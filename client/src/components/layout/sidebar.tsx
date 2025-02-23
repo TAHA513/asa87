@@ -9,6 +9,7 @@ import {
   Users,
   FileText,
   LogOut,
+  Settings as SettingsIcon,
 } from "lucide-react";
 
 const navigation = [
@@ -17,6 +18,7 @@ const navigation = [
   { name: "المبيعات", href: "/sales", icon: Receipt },
   { name: "الفواتير", href: "/invoices", icon: FileText },
   { name: "الموظفين", href: "/staff", icon: Users },
+  { name: "الإعدادات", href: "/settings", icon: SettingsIcon },
 ];
 
 export default function Sidebar() {

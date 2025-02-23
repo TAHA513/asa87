@@ -12,6 +12,7 @@ import Inventory from "@/pages/inventory";
 import Sales from "@/pages/sales";
 import Invoices from "@/pages/invoices";
 import Staff from "@/pages/staff";
+import Settings from "@/pages/settings";
 
 function Router() {
   return (
@@ -22,6 +23,7 @@ function Router() {
       <ProtectedRoute path="/sales" component={Sales} />
       <ProtectedRoute path="/invoices" component={Invoices} />
       <ProtectedRoute path="/staff" component={Staff} />
+      <ProtectedRoute path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );
