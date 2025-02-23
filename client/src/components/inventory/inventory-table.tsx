@@ -44,8 +44,8 @@ export default function InventoryTable() {
 
   const { data: exchangeRate } = useQuery<ExchangeRate>({
     queryKey: ["/api/exchange-rate"],
-    staleTime: 0, // Always fetch fresh data
-    refetchInterval: 5000, // Refresh every 5 seconds
+    staleTime: 0,
+    refetchInterval: 5000,
   });
 
   const form = useForm({
@@ -53,13 +53,13 @@ export default function InventoryTable() {
     defaultValues: {
       name: "",
       description: "",
-      priceIqd: 0,
+      priceIqd: "",
       stock: 0,
     },
   });
 
   const watchPriceIqd = form.watch("priceIqd");
-  const priceUsd = exchangeRate ? Number(watchPriceIqd) / Number(exchangeRate.usdToIqd) : 0;
+  const priceUsd = exchangeRate && watchPriceIqd ? Number(watchPriceIqd) / Number(exchangeRate.usdToIqd) : 0;
 
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(search.toLowerCase())
@@ -156,11 +156,12 @@ export default function InventoryTable() {
                         <FormLabel>السعر بالدينار العراقي</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
-                            step="1"
-                            min="0"
+                            type="text"
                             {...field}
-                            onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                            onChange={(e) => {
+                              const value = e.target.value.replace(/[^0-9]/g, '');
+                              field.onChange(value);
+                            }}
                           />
                         </FormControl>
                         <div className="text-sm text-muted-foreground">
@@ -182,7 +183,7 @@ export default function InventoryTable() {
                             type="number"
                             min="0"
                             {...field}
-                            onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                            onChange={(e) => field.onChange(Number(e.target.value))}
                           />
                         </FormControl>
                         <FormMessage />
