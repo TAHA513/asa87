@@ -26,52 +26,52 @@ export default function StatsCards() {
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+          <CardTitle className="text-sm font-medium">إجمالي الإيرادات</CardTitle>
           <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">${totalSales.toFixed(2)}</div>
           <p className="text-xs text-muted-foreground">
-            +20.1% from last month
+            +20.1% عن الشهر الماضي
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Products</CardTitle>
+          <CardTitle className="text-sm font-medium">المنتجات</CardTitle>
           <Package className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{totalProducts}</div>
           <p className="text-xs text-muted-foreground">
-            {lowStock} items low in stock
+            {lowStock} منتجات منخفضة المخزون
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Sales</CardTitle>
+          <CardTitle className="text-sm font-medium">المبيعات</CardTitle>
           <ShoppingCart className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{totalTransactions}</div>
           <p className="text-xs text-muted-foreground">
-            +12 since last hour
+            +12 منذ الساعة الماضية
           </p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Active Staff</CardTitle>
+          <CardTitle className="text-sm font-medium">الموظفون النشطون</CardTitle>
           <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">3</div>
           <p className="text-xs text-muted-foreground">
-            +2 since last month
+            +2 منذ الشهر الماضي
           </p>
         </CardContent>
       </Card>

@@ -10,7 +10,7 @@ export default function Dashboard() {
       </div>
       <main className="flex-1 p-8 overflow-auto">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+          <h1 className="text-3xl font-bold mb-8">لوحة التحكم</h1>
           <StatsCards />
           <div className="grid gap-4 mt-8">
             <SalesChart />

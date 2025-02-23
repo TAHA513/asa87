@@ -63,27 +63,27 @@ export default function InventoryTable() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-4">
           <Package className="h-6 w-6" />
-          <h2 className="text-2xl font-bold">Inventory</h2>
+          <h2 className="text-2xl font-bold">المخزون</h2>
         </div>
 
         <div className="flex items-center gap-4">
           <Input
-            placeholder="Search products..."
+            placeholder="بحث عن المنتجات..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-64"
           />
-          
+
           <Dialog>
             <DialogTrigger asChild>
               <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Product
+                <Plus className="h-4 w-4 ml-2" />
+                إضافة منتج
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add New Product</DialogTitle>
+                <DialogTitle>إضافة منتج جديد</DialogTitle>
               </DialogHeader>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -92,7 +92,7 @@ export default function InventoryTable() {
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Name</FormLabel>
+                        <FormLabel>اسم المنتج</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -105,7 +105,7 @@ export default function InventoryTable() {
                     name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Description</FormLabel>
+                        <FormLabel>الوصف</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -118,7 +118,7 @@ export default function InventoryTable() {
                     name="priceUsd"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Price (USD)</FormLabel>
+                        <FormLabel>السعر (دولار)</FormLabel>
                         <FormControl>
                           <Input type="number" {...field} />
                         </FormControl>
@@ -131,7 +131,7 @@ export default function InventoryTable() {
                     name="priceIqd"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Price (IQD)</FormLabel>
+                        <FormLabel>السعر (دينار)</FormLabel>
                         <FormControl>
                           <Input type="number" {...field} />
                         </FormControl>
@@ -144,7 +144,7 @@ export default function InventoryTable() {
                     name="stock"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Stock</FormLabel>
+                        <FormLabel>المخزون</FormLabel>
                         <FormControl>
                           <Input type="number" {...field} />
                         </FormControl>
@@ -153,7 +153,7 @@ export default function InventoryTable() {
                     )}
                   />
                   <Button type="submit" className="w-full">
-                    Add Product
+                    إضافة المنتج
                   </Button>
                 </form>
               </Form>
@@ -166,11 +166,11 @@ export default function InventoryTable() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Price (USD)</TableHead>
-              <TableHead>Price (IQD)</TableHead>
-              <TableHead>Stock</TableHead>
+              <TableHead>اسم المنتج</TableHead>
+              <TableHead>الوصف</TableHead>
+              <TableHead>السعر (دولار)</TableHead>
+              <TableHead>السعر (دينار)</TableHead>
+              <TableHead>المخزون</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -179,7 +179,7 @@ export default function InventoryTable() {
                 <TableCell>{product.name}</TableCell>
                 <TableCell>{product.description}</TableCell>
                 <TableCell>${Number(product.priceUsd).toFixed(2)}</TableCell>
-                <TableCell>{Number(product.priceIqd).toFixed(2)} IQD</TableCell>
+                <TableCell>{Number(product.priceIqd).toFixed(2)} د.ع</TableCell>
                 <TableCell>{product.stock}</TableCell>
               </TableRow>
             ))}

@@ -17,9 +17,9 @@ export default function SalesChart() {
 
   // Group sales by date
   const salesByDate = sales.reduce((acc, sale) => {
-    const date = new Date(sale.date).toLocaleDateString();
+    const date = new Date(sale.date).toLocaleDateString('ar-IQ');
     const amount = Number(sale.priceUsd) * sale.quantity;
-    
+
     acc[date] = (acc[date] || 0) + amount;
     return acc;
   }, {} as Record<string, number>);
@@ -32,7 +32,7 @@ export default function SalesChart() {
   return (
     <Card className="col-span-4">
       <CardHeader>
-        <CardTitle>Sales Overview</CardTitle>
+        <CardTitle>نظرة عامة على المبيعات</CardTitle>
       </CardHeader>
       <CardContent className="pl-2">
         <ResponsiveContainer width="100%" height={350}>
