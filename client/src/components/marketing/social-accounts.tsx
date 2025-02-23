@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   SiFacebook,
   SiInstagram,
-  SiTwitter,
+  SiX,
   SiLinkedin,
   SiSnapchat,
   SiTiktok,
@@ -24,7 +24,7 @@ import {
 const platformIcons = {
   facebook: SiFacebook,
   instagram: SiInstagram,
-  twitter: SiTwitter,
+  twitter: SiX,
   linkedin: SiLinkedin,
   snapchat: SiSnapchat,
   tiktok: SiTiktok,
@@ -113,7 +113,7 @@ export default function SocialAccounts() {
           {Object.entries(platformNames).map(([platform, name]) => {
             const Icon = platformIcons[platform as keyof typeof platformIcons];
             const account = accounts.find(acc => acc.platform === platform);
-            
+
             return (
               <div
                 key={platform}
@@ -121,7 +121,7 @@ export default function SocialAccounts() {
               >
                 <Icon className="h-8 w-8" />
                 <h3 className="font-medium">{name}</h3>
-                
+
                 {account ? (
                   <>
                     <Badge variant="secondary">{account.accountName}</Badge>
