@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Megaphone, TrendingUp, Users, DollarSign } from "lucide-react";
 import type { Campaign } from "@shared/schema";
-import type { SocialMediaAccount } from "@shared/schema"; // Assuming this type exists
+import type { SocialMediaAccount } from "@shared/schema";
 import {
   Card,
   CardContent,
@@ -15,7 +15,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription, // Added import
+  DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,23 @@ import {
 } from "recharts";
 import SocialAccounts from "@/components/marketing/social-accounts";
 
+// بيانات تجريبية للرسوم البيانية
+const performanceData = [
+  { name: "يناير", انطباعات: 4000, نقرات: 2400, تحويلات: 400 },
+  { name: "فبراير", انطباعات: 3000, نقرات: 1398, تحويلات: 210 },
+  { name: "مارس", انطباعات: 2000, نقرات: 9800, تحويلات: 290 },
+  { name: "أبريل", انطباعات: 2780, نقرات: 3908, تحويلات: 300 },
+];
+
+const platformData = [
+  { name: "فيسبوك", قيمة: 4000 },
+  { name: "انستغرام", قيمة: 3000 },
+  { name: "تويتر", قيمة: 2000 },
+  { name: "لينكد إن", قيمة: 2780 },
+  { name: "سناب شات", قيمة: 1890 },
+  { name: "تيك توك", قيمة: 2390 },
+];
+
 export default function MarketingPage() {
   const [showNewCampaign, setShowNewCampaign] = useState(false);
 
@@ -45,6 +62,9 @@ export default function MarketingPage() {
   const { data: accounts = [] } = useQuery<SocialMediaAccount[]>({
     queryKey: ["/api/marketing/social-accounts"],
   });
+
+  // تصفية الحملات النشطة
+  const activeCampaigns = campaigns.filter(campaign => campaign.status === "active");
 
   return (
     <div className="flex h-screen">
