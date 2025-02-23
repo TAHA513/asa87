@@ -9,6 +9,7 @@ import {
   Users,
   FileText,
   LogOut,
+  Calendar,
   Settings as SettingsIcon,
 } from "lucide-react";
 
@@ -17,6 +18,7 @@ const navigation = [
   { name: "المخزون", href: "/inventory", icon: Package },
   { name: "المبيعات", href: "/sales", icon: Receipt },
   { name: "الفواتير", href: "/invoices", icon: FileText },
+  { name: "التقسيط", href: "/installments", icon: Calendar },
   { name: "الموظفين", href: "/staff", icon: Users },
   { name: "الإعدادات", href: "/settings", icon: SettingsIcon },
 ];
