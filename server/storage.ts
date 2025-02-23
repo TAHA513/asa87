@@ -39,6 +39,10 @@ export interface IStorage {
   createSocialMediaAccount(account: SocialMediaAccount): Promise<SocialMediaAccount>;
   deleteSocialMediaAccount(id: number): Promise<void>;
 
+  // وظائف مفاتيح API
+  setApiKeys(userId: number, apiKeys: Record<string, any>): Promise<void>;
+  getApiKeys(userId: number): Promise<Record<string, any> | null>;
+
   sessionStore: session.Store;
 }
 
@@ -52,6 +56,7 @@ export class MemStorage implements IStorage {
   private campaigns: Map<number, Campaign>;
   private campaignAnalytics: Map<number, CampaignAnalytics>;
   private socialMediaAccounts: Map<number, SocialMediaAccount>;
+  private apiKeys: Map<number, Record<string, any>>;
   private currentId: number;
   sessionStore: session.Store;
 
@@ -67,6 +72,7 @@ export class MemStorage implements IStorage {
     this.campaigns = new Map();
     this.campaignAnalytics = new Map();
     this.socialMediaAccounts = new Map();
+    this.apiKeys = new Map();
     this.currentId = 1;
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
@@ -262,6 +268,15 @@ export class MemStorage implements IStorage {
 
   async deleteSocialMediaAccount(id: number): Promise<void> {
     this.socialMediaAccounts.delete(id);
+  }
+
+  // وظائف مفاتيح API
+  async setApiKeys(userId: number, apiKeys: Record<string, any>): Promise<void> {
+    this.apiKeys.set(userId, apiKeys);
+  }
+
+  async getApiKeys(userId: number): Promise<Record<string, any> | null> {
+    return this.apiKeys.get(userId) || null;
   }
 }
 
