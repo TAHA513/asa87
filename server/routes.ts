@@ -6,7 +6,6 @@ import { z } from "zod";
 import { insertProductSchema, insertSaleSchema, insertInstallmentSchema, insertInstallmentPaymentSchema } from "@shared/schema";
 import fs from "fs/promises";
 import path from "path";
-import { setupWebSocket } from './websocket';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -230,121 +229,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  app.get("/api/marketing/analytics", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const { from, to, platform } = req.query;
-      const dateFrom = from ? new Date(from as string) : null;
-      const dateTo = to ? new Date(to as string) : null;
-
-      // التحقق من المنصات المرتبطة
-      const accounts = await storage.getSocialMediaAccounts(req.user!.id);
-      if (accounts.length === 0) {
-        return res.json([]);
-      }
-
-      // جلب المفاتيح المخزنة للمستخدم
-      const apiKeys = await storage.getApiKeys(req.user!.id);
-      if (!apiKeys) {
-        return res.json([]);
-      }
-
-      // تصفية الحسابات حسب المنصة المختارة
-      const filteredAccounts = platform && platform !== 'all' 
-        ? accounts.filter(account => account.platform === platform)
-        : accounts;
-
-      // جمع البيانات من كل منصة مرتبطة
-      const analyticsPromises = filteredAccounts.map(async (account) => {
-        try {
-          switch (account.platform) {
-            case 'facebook':
-              if (apiKeys.facebook) {
-                // Facebook Marketing API integration will be added here
-                // Using the stored apiKeys.facebook.appId and apiKeys.facebook.appSecret
-                return {
-                  name: 'facebook',
-                  impressions: 0,
-                  clicks: 0,
-                  conversions: 0,
-                  spend: 0
-                };
-              }
-              break;
-
-            case 'twitter':
-              if (apiKeys.twitter) {
-                // Twitter Ads API integration will be added here
-                // Using the stored apiKeys.twitter credentials
-                return {
-                  name: 'twitter',
-                  impressions: 0,
-                  clicks: 0,
-                  conversions: 0,
-                  spend: 0
-                };
-              }
-              break;
-
-            case 'tiktok':
-              if (apiKeys.tiktok) {
-                // TikTok Marketing API integration will be added here
-                // Using the stored apiKeys.tiktok credentials
-                return {
-                  name: 'tiktok',
-                  impressions: 0,
-                  clicks: 0,
-                  conversions: 0,
-                  spend: 0
-                };
-              }
-              break;
-
-            case 'snapchat':
-              if (apiKeys.snapchat) {
-                // Snapchat Marketing API integration will be added here
-                // Using the stored apiKeys.snapchat credentials
-                return {
-                  name: 'snapchat',
-                  impressions: 0,
-                  clicks: 0,
-                  conversions: 0,
-                  spend: 0
-                };
-              }
-              break;
-
-            case 'linkedin':
-              if (apiKeys.linkedin) {
-                // LinkedIn Marketing API integration will be added here
-                // Using the stored apiKeys.linkedin credentials
-                return {
-                  name: 'linkedin',
-                  impressions: 0,
-                  clicks: 0,
-                  conversions: 0,
-                  spend: 0
-                };
-              }
-              break;
-          }
-        } catch (error) {
-          console.error(`Error fetching data from ${account.platform}:`, error);
-          return null;
-        }
-      });
-
-      const results = (await Promise.all(analyticsPromises)).filter(Boolean);
-      return res.json(results);
-    } catch (error) {
-      console.error("Error fetching analytics:", error);
-      res.status(500).json({ message: "فشل في جلب التحليلات" });
-    }
-  });
-
   // Social Media Auth Routes
   app.get("/api/marketing/social-accounts", async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -483,6 +367,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-  setupWebSocket(httpServer);
   return httpServer;
 }
