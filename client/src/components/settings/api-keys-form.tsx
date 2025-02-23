@@ -23,37 +23,41 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
-const platformSchema = z.object({
-  facebook: z.object({
-    appId: z.string().min(1, "App ID مطلوب"),
-    appSecret: z.string().min(1, "App Secret مطلوب"),
-  }),
-  twitter: z.object({
-    apiKey: z.string().min(1, "API Key مطلوب"),
-    apiSecret: z.string().min(1, "API Secret مطلوب"),
-  }),
-  tiktok: z.object({
-    clientKey: z.string().min(1, "Client Key مطلوب"),
-    clientSecret: z.string().min(1, "Client Secret مطلوب"),
-  }),
-  snapchat: z.object({
-    clientId: z.string().min(1, "Client ID مطلوب"),
-    clientSecret: z.string().min(1, "Client Secret مطلوب"),
-  }),
-  linkedin: z.object({
-    clientId: z.string().min(1, "Client ID مطلوب"),
-    clientSecret: z.string().min(1, "Client Secret مطلوب"),
-  }),
-});
+// تعريف نوع البيانات لكل منصة
+type PlatformField = {
+  name: string;
+  label: string;
+  type: "text" | "password";
+  placeholder?: string;
+};
 
-const platforms = {
+// تعريف نوع البيانات للمنصة
+type Platform = {
+  title: string;
+  description: string;
+  fields: Record<string, PlatformField>;
+  instructions: string[];
+};
+
+// تكوين المنصات
+const platforms: Record<string, Platform> = {
   facebook: {
     title: "فيسبوك وانستغرام",
     description: "قم بإنشاء تطبيق على Facebook Developers وأدخل المفاتيح هنا",
-    fields: [
-      { name: "appId", label: "App ID", type: "text" },
-      { name: "appSecret", label: "App Secret", type: "password" },
-    ],
+    fields: {
+      appId: {
+        name: "appId",
+        label: "App ID",
+        type: "text",
+        placeholder: "أدخل App ID",
+      },
+      appSecret: {
+        name: "appSecret",
+        label: "App Secret",
+        type: "password",
+        placeholder: "أدخل App Secret",
+      },
+    },
     instructions: [
       "1. قم بزيارة https://developers.facebook.com",
       "2. أنشئ تطبيقًا جديدًا",
@@ -65,10 +69,20 @@ const platforms = {
   twitter: {
     title: "تويتر",
     description: "قم بإنشاء تطبيق على Twitter Developer Portal وأدخل المفاتيح هنا",
-    fields: [
-      { name: "apiKey", label: "API Key", type: "text" },
-      { name: "apiSecret", label: "API Secret", type: "password" },
-    ],
+    fields: {
+      apiKey: {
+        name: "apiKey",
+        label: "API Key",
+        type: "text",
+        placeholder: "أدخل API Key",
+      },
+      apiSecret: {
+        name: "apiSecret",
+        label: "API Secret",
+        type: "password",
+        placeholder: "أدخل API Secret",
+      },
+    },
     instructions: [
       "1. قم بزيارة https://developer.twitter.com",
       "2. أنشئ مشروعًا جديدًا",
@@ -79,10 +93,20 @@ const platforms = {
   tiktok: {
     title: "تيك توك",
     description: "قم بإنشاء تطبيق على TikTok for Developers وأدخل المفاتيح هنا",
-    fields: [
-      { name: "clientKey", label: "Client Key", type: "text" },
-      { name: "clientSecret", label: "Client Secret", type: "password" },
-    ],
+    fields: {
+      clientKey: {
+        name: "clientKey",
+        label: "Client Key",
+        type: "text",
+        placeholder: "أدخل Client Key",
+      },
+      clientSecret: {
+        name: "clientSecret",
+        label: "Client Secret",
+        type: "password",
+        placeholder: "أدخل Client Secret",
+      },
+    },
     instructions: [
       "1. قم بزيارة https://developers.tiktok.com",
       "2. أنشئ تطبيقًا جديدًا",
@@ -93,10 +117,20 @@ const platforms = {
   snapchat: {
     title: "سناب شات",
     description: "قم بإنشاء تطبيق على Snap Kit Developer Portal وأدخل المفاتيح هنا",
-    fields: [
-      { name: "clientId", label: "Client ID", type: "text" },
-      { name: "clientSecret", label: "Client Secret", type: "password" },
-    ],
+    fields: {
+      clientId: {
+        name: "clientId",
+        label: "Client ID",
+        type: "text",
+        placeholder: "أدخل Client ID",
+      },
+      clientSecret: {
+        name: "clientSecret",
+        label: "Client Secret",
+        type: "password",
+        placeholder: "أدخل Client Secret",
+      },
+    },
     instructions: [
       "1. قم بزيارة https://kit.snapchat.com",
       "2. أنشئ تطبيقًا جديدًا",
@@ -107,10 +141,20 @@ const platforms = {
   linkedin: {
     title: "لينكد إن",
     description: "قم بإنشاء تطبيق على LinkedIn Developers وأدخل المفاتيح هنا",
-    fields: [
-      { name: "clientId", label: "Client ID", type: "text" },
-      { name: "clientSecret", label: "Client Secret", type: "password" },
-    ],
+    fields: {
+      clientId: {
+        name: "clientId",
+        label: "Client ID",
+        type: "text",
+        placeholder: "أدخل Client ID",
+      },
+      clientSecret: {
+        name: "clientSecret",
+        label: "Client Secret",
+        type: "password",
+        placeholder: "أدخل Client Secret",
+      },
+    },
     instructions: [
       "1. قم بزيارة https://www.linkedin.com/developers",
       "2. أنشئ تطبيقًا جديدًا",
@@ -120,22 +164,42 @@ const platforms = {
   },
 };
 
+// إنشاء مخطط Zod للتحقق من صحة البيانات
+const formSchema = z.object(
+  Object.fromEntries(
+    Object.entries(platforms).map(([platform, config]) => [
+      platform,
+      z.object(
+        Object.fromEntries(
+          Object.entries(config.fields).map(([key, field]) => [
+            key,
+            z.string().min(1, `${field.label} مطلوب`),
+          ])
+        )
+      ),
+    ])
+  )
+);
+
+type FormData = z.infer<typeof formSchema>;
+
 export default function ApiKeysForm() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm({
-    resolver: zodResolver(platformSchema),
-    defaultValues: {
-      facebook: { appId: "", appSecret: "" },
-      twitter: { apiKey: "", apiSecret: "" },
-      tiktok: { clientKey: "", clientSecret: "" },
-      snapchat: { clientId: "", clientSecret: "" },
-      linkedin: { clientId: "", clientSecret: "" },
-    },
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: Object.fromEntries(
+      Object.entries(platforms).map(([platform, config]) => [
+        platform,
+        Object.fromEntries(
+          Object.entries(config.fields).map(([key]) => [key, ""])
+        ),
+      ])
+    ),
   });
 
-  async function onSubmit(data: z.infer<typeof platformSchema>) {
+  async function onSubmit(data: FormData) {
     setIsSubmitting(true);
     try {
       await apiRequest("POST", "/api/settings/api-keys", data);
@@ -158,27 +222,28 @@ export default function ApiKeysForm() {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <Accordion type="single" collapsible className="w-full">
-          {Object.entries(platforms).map(([key, platform]) => (
-            <AccordionItem key={key} value={key}>
+          {Object.entries(platforms).map(([platformKey, platform]) => (
+            <AccordionItem key={platformKey} value={platformKey}>
               <AccordionTrigger>{platform.title}</AccordionTrigger>
               <AccordionContent>
                 <Card className="p-4">
                   <p className="text-sm text-muted-foreground mb-4">
                     {platform.description}
                   </p>
-                  
+
                   <div className="space-y-4">
-                    {platform.fields.map((field) => (
+                    {Object.entries(platform.fields).map(([fieldKey, field]) => (
                       <FormField
-                        key={field.name}
+                        key={fieldKey}
                         control={form.control}
-                        name={`${key}.${field.name}`}
+                        name={`${platformKey}.${fieldKey}`}
                         render={({ field: formField }) => (
                           <FormItem>
                             <FormLabel>{field.label}</FormLabel>
                             <FormControl>
                               <Input
                                 type={field.type}
+                                placeholder={field.placeholder}
                                 {...formField}
                                 className="font-mono"
                               />
@@ -188,7 +253,7 @@ export default function ApiKeysForm() {
                         )}
                       />
                     ))}
-                    
+
                     <div className="mt-4 p-4 bg-muted rounded-lg">
                       <h4 className="font-medium mb-2">تعليمات الإعداد:</h4>
                       <ul className="text-sm space-y-1 list-none">
