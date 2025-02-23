@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Calendar } from "lucide-react";
+import { Calendar, Plus } from "lucide-react";
 import type { Installment } from "@shared/schema";
 import {
   Table,
@@ -17,12 +17,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import Sidebar from "@/components/layout/sidebar";
 import InstallmentDetails from "@/components/installments/installment-details";
 import { useState } from "react";
+import { useLocation } from "wouter";
 
 export default function InstallmentsPage() {
   const [selectedInstallment, setSelectedInstallment] = useState<number | null>(null);
+  const [_, navigate] = useLocation();
 
   const { data: installments = [] } = useQuery<Installment[]>({
     queryKey: ["/api/installments"],
@@ -45,9 +48,15 @@ export default function InstallmentsPage() {
       </div>
       <main className="flex-1 p-8 overflow-auto">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-4 mb-8">
-            <Calendar className="h-6 w-6" />
-            <h1 className="text-3xl font-bold">نظام التقسيط</h1>
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <Calendar className="h-6 w-6" />
+              <h1 className="text-3xl font-bold">نظام التقسيط</h1>
+            </div>
+            <Button onClick={() => navigate("/sales")}>
+              <Plus className="h-4 w-4 ml-2" />
+              إنشاء تقسيط جديد
+            </Button>
           </div>
 
           <div className="grid gap-8">
