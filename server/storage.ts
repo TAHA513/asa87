@@ -113,15 +113,18 @@ export class MemStorage implements IStorage {
   async getCurrentExchangeRate(): Promise<ExchangeRate> {
     const rates = Array.from(this.exchangeRates.values());
     if (rates.length === 0) {
-      // Set default exchange rate if none exists
       return this.setExchangeRate(1300);
     }
-    return rates[rates.length - 1]; // Return the most recent rate
+    return rates[rates.length - 1];
   }
 
   async setExchangeRate(rate: number): Promise<ExchangeRate> {
     const id = this.currentId++;
-    const exchangeRate = { id, usdToIqd: rate, date: new Date() };
+    const exchangeRate: ExchangeRate = {
+      id,
+      usdToIqd: rate.toString(),
+      date: new Date()
+    };
     this.exchangeRates.set(id, exchangeRate);
     console.log("Storage: Exchange rate updated to:", exchangeRate);
     return exchangeRate;

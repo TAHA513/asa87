@@ -28,7 +28,7 @@ export const sales = pgTable("sales", {
 
 export const exchangeRates = pgTable("exchange_rates", {
   id: serial("id").primaryKey(),
-  usdToIqd: decimal("usd_to_iqd").notNull(),
+  usdToIqd: decimal("usd_to_iqd", { precision: 10, scale: 2 }).notNull(),
   date: timestamp("date").notNull().defaultNow(),
 });
 
