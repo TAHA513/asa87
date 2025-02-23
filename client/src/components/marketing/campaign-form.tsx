@@ -69,8 +69,20 @@ export default function CampaignForm() {
 
   const openAdManager = (platform: string) => {
     const config = platformConfig[platform as keyof typeof platformConfig];
-    if (config) {
-      window.open(config.adManagerUrl, '_blank', 'noopener,noreferrer');
+    if (!config) return;
+
+    // فتح نافذة مدير الإعلانات بدون شريط العنوان والأزرار
+    const popup = window.open(
+      config.adManagerUrl,
+      'مدير الإعلانات',
+      'popup=true,menubar=no,toolbar=no,location=no,status=no,width=1200,height=800'
+    );
+
+    if (popup) {
+      // التأكد من أن النافذة في المنتصف
+      const left = (window.screen.width - 1200) / 2;
+      const top = (window.screen.height - 800) / 2;
+      popup.moveTo(left, top);
     }
   };
 

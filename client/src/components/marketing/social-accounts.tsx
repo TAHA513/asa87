@@ -87,8 +87,19 @@ export default function SocialAccounts() {
     const config = platformConfig[platform as keyof typeof platformConfig];
     if (!config) return;
 
-    // فتح صفحة تسجيل الدخول الرسمية في نافذة جديدة
-    window.open(config.authUrl, '_blank', 'width=600,height=700,scrollbars=yes');
+    // فتح نافذة تسجيل الدخول بدون شريط العنوان والأزرار
+    const popup = window.open(
+      config.authUrl,
+      'تسجيل الدخول',
+      'popup=true,menubar=no,toolbar=no,location=no,status=no,width=600,height=700'
+    );
+
+    if (popup) {
+      // التأكد من أن النافذة في المنتصف
+      const left = (window.screen.width - 600) / 2;
+      const top = (window.screen.height - 700) / 2;
+      popup.moveTo(left, top);
+    }
   };
 
   return (
