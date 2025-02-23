@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, decimal, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, decimal, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -13,7 +13,7 @@ export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
-  priceIqd: decimal("price_iqd").notNull(),
+  priceIqd: decimal("price_iqd", { precision: 10, scale: 2 }).notNull(),
   stock: integer("stock").notNull().default(0),
 });
 
@@ -37,11 +37,11 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
 });
 
-export const insertProductSchema = createInsertSchema(products).pick({
-  name: true,
-  description: true,
-  priceIqd: true,
-  stock: true,
+export const insertProductSchema = createInsertSchema(products).extend({
+  name: z.string().min(1, "اسم المنتج مطلوب"),
+  description: z.string().optional(),
+  priceIqd: z.string().or(z.number()).transform(val => val.toString()),
+  stock: z.number().min(0, "المخزون يجب أن يكون 0 على الأقل"),
 });
 
 export const insertSaleSchema = createInsertSchema(sales).pick({

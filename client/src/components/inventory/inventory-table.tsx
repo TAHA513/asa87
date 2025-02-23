@@ -68,9 +68,10 @@ export default function InventoryTable() {
   async function onSubmit(data: any) {
     try {
       await apiRequest("POST", "/api/products", {
-        ...data,
-        priceIqd: Number(data.priceIqd),
-        stock: Number(data.stock),
+        name: data.name,
+        description: data.description || "",
+        priceIqd: data.priceIqd.toString(),
+        stock: Number(data.stock)
       });
 
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
@@ -154,12 +155,12 @@ export default function InventoryTable() {
                       <FormItem>
                         <FormLabel>السعر بالدينار العراقي</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="number" 
+                          <Input
+                            type="number"
                             step="1"
                             min="0"
-                            {...field} 
-                            onChange={(e) => field.onChange(e.target.valueAsNumber)} 
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.valueAsNumber)}
                           />
                         </FormControl>
                         <div className="text-sm text-muted-foreground">
@@ -177,7 +178,7 @@ export default function InventoryTable() {
                       <FormItem>
                         <FormLabel>المخزون</FormLabel>
                         <FormControl>
-                          <Input 
+                          <Input
                             type="number"
                             min="0"
                             {...field}
@@ -211,7 +212,7 @@ export default function InventoryTable() {
           </TableHeader>
           <TableBody>
             {filteredProducts.map((product) => {
-              const priceUsd = exchangeRate 
+              const priceUsd = exchangeRate
                 ? Number(product.priceIqd) / Number(exchangeRate.usdToIqd)
                 : 0;
 
