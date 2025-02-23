@@ -352,6 +352,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/settings/api-keys/migrate", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      await storage.migrateLocalStorageToDb(req.user!.id, req.body);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error migrating API keys:", error);
+      res.status(500).json({ message: "فشل في ترحيل مفاتيح API" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

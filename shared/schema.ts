@@ -90,6 +90,16 @@ export const socialMediaAccounts = pgTable("social_media_accounts", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const apiKeys = pgTable("api_keys", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  platform: text("platform").notNull(),
+  keyType: text("key_type").notNull(),
+  keyValue: text("key_value").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -161,6 +171,12 @@ export const insertSocialMediaAccountSchema = createInsertSchema(socialMediaAcco
     expiresAt: z.date().optional(),
   });
 
+export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
@@ -176,3 +192,5 @@ export type CampaignAnalytics = typeof campaignAnalytics.$inferSelect;
 export type InsertCampaignAnalytics = z.infer<typeof insertAnalyticsSchema>;
 export type SocialMediaAccount = typeof socialMediaAccounts.$inferSelect;
 export type InsertSocialMediaAccount = z.infer<typeof insertSocialMediaAccountSchema>;
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
