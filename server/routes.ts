@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { z } from "zod";
-import { insertProductSchema, insertSaleSchema, insertExchangeRateSchema } from "@shared/schema";
+import { insertProductSchema, insertSaleSchema, insertInstallmentSchema, insertInstallmentPaymentSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -85,6 +85,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating exchange rate:", error);
       res.status(500).json({ message: "فشل في تحديث سعر الصرف" });
+    }
+  });
+
+  // طرق التقسيط
+  app.get("/api/installments", async (_req, res) => {
+    const installments = await storage.getInstallments();
+    res.json(installments);
+  });
+
+  app.get("/api/installments/:id", async (req, res) => {
+    const installment = await storage.getInstallment(Number(req.params.id));
+    if (!installment) {
+      return res.status(404).json({ message: "التقسيط غير موجود" });
+    }
+    res.json(installment);
+  });
+
+  app.post("/api/installments", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const installment = await storage.createInstallment({
+        ...req.body,
+        startDate: new Date(),
+        status: "active"
+      });
+
+      res.status(201).json(installment);
+    } catch (error) {
+      console.error("Error creating installment:", error);
+      res.status(500).json({ message: "فشل في إنشاء التقسيط" });
+    }
+  });
+
+  app.get("/api/installments/:id/payments", async (req, res) => {
+    const payments = await storage.getInstallmentPayments(Number(req.params.id));
+    res.json(payments);
+  });
+
+  app.post("/api/installments/:id/payments", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const payment = await storage.createInstallmentPayment({
+        ...req.body,
+        installmentId: Number(req.params.id),
+        paymentDate: new Date()
+      });
+
+      res.status(201).json(payment);
+    } catch (error) {
+      console.error("Error creating payment:", error);
+      res.status(500).json({ message: "فشل في إنشاء الدفعة" });
     }
   });
 
