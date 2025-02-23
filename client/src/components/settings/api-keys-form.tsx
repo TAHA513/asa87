@@ -202,15 +202,25 @@ export default function ApiKeysForm() {
   async function onSubmit(data: FormData) {
     setIsSubmitting(true);
     try {
-      await apiRequest("POST", "/api/settings/api-keys", data);
-      toast({
-        title: "تم الحفظ بنجاح",
-        description: "تم حفظ مفاتيح API بنجاح",
-      });
+      const response = await apiRequest("POST", "/api/settings/api-keys", data);
+      if (!response.ok) {
+        throw new Error(`فشل في حفظ المفاتيح: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        toast({
+          title: "تم الحفظ بنجاح",
+          description: "تم حفظ مفاتيح API بنجاح",
+        });
+      } else {
+        throw new Error("فشل في حفظ المفاتيح");
+      }
     } catch (error) {
+      console.error("Error saving API keys:", error);
       toast({
         title: "خطأ",
-        description: "فشل في حفظ مفاتيح API",
+        description: error instanceof Error ? error.message : "فشل في حفظ مفاتيح API",
         variant: "destructive",
       });
     } finally {
