@@ -28,12 +28,16 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@shared/schema";
 import { insertProductSchema } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function InventoryTable() {
   const [search, setSearch] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { toast } = useToast();
+
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
@@ -54,8 +58,29 @@ export default function InventoryTable() {
   );
 
   async function onSubmit(data: any) {
-    await apiRequest("POST", "/api/products", data);
-    queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+    try {
+      await apiRequest("POST", "/api/products", {
+        ...data,
+        priceUsd: Number(data.priceUsd),
+        priceIqd: Number(data.priceIqd),
+        stock: Number(data.stock),
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      setIsDialogOpen(false);
+      form.reset();
+
+      toast({
+        title: "تم بنجاح",
+        description: "تم إضافة المنتج بنجاح",
+      });
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "فشل في إضافة المنتج. الرجاء المحاولة مرة أخرى",
+        variant: "destructive",
+      });
+    }
   }
 
   return (
@@ -74,7 +99,7 @@ export default function InventoryTable() {
             className="w-64"
           />
 
-          <Dialog>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 ml-2" />
@@ -120,7 +145,13 @@ export default function InventoryTable() {
                       <FormItem>
                         <FormLabel>السعر (دولار)</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <Input 
+                            type="number" 
+                            step="0.01"
+                            min="0"
+                            {...field} 
+                            onChange={(e) => field.onChange(e.target.valueAsNumber)} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -133,7 +164,13 @@ export default function InventoryTable() {
                       <FormItem>
                         <FormLabel>السعر (دينار)</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <Input 
+                            type="number"
+                            step="1"
+                            min="0"
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -146,7 +183,12 @@ export default function InventoryTable() {
                       <FormItem>
                         <FormLabel>المخزون</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <Input 
+                            type="number"
+                            min="0"
+                            {...field}
+                            onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
