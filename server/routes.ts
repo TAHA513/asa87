@@ -52,14 +52,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Exchange Rates  
   app.get("/api/exchange-rate", async (_req, res) => {
-    const rate = await storage.getCurrentExchangeRate();
-    res.json(rate);
+    try {
+      const rate = await storage.getCurrentExchangeRate();
+      res.json(rate);
+    } catch (error) {
+      res.status(500).json({ message: "فشل في جلب سعر الصرف" });
+    }
   });
 
   app.post("/api/exchange-rate", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    const rate = await storage.setExchangeRate(req.body.usdToIqd);
-    res.status(201).json(rate);
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول لتحديث سعر الصرف" });
+    }
+
+    try {
+      const rate = Number(req.body.usdToIqd);
+      if (isNaN(rate) || rate <= 0) {
+        return res.status(400).json({ message: "سعر الصرف يجب أن يكون رقماً موجباً" });
+      }
+
+      const updatedRate = await storage.setExchangeRate(rate);
+      res.status(201).json(updatedRate);
+    } catch (error) {
+      res.status(500).json({ message: "فشل في تحديث سعر الصرف" });
+    }
   });
 
   const httpServer = createServer(app);
