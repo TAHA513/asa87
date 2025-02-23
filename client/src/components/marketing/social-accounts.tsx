@@ -41,43 +41,59 @@ const platformNames = {
 
 export default function SocialAccounts() {
   const { toast } = useToast();
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [isConnecting, setIsConnecting] = useState<{[key: string]: boolean}>({});
 
   const { data: accounts = [] } = useQuery<SocialMediaAccount[]>({
     queryKey: ["/api/marketing/social-accounts"],
   });
 
   const connectPlatform = async (platform: string) => {
-    setIsConnecting(true);
+    setIsConnecting(prev => ({ ...prev, [platform]: true }));
+
     try {
-      // هنا سيتم فتح نافذة تسجيل الدخول للمنصة المختارة
       const authWindow = window.open(
         `/api/marketing/social-auth/${platform}`,
         'تسجيل الدخول',
-        'width=600,height=700'
+        'width=600,height=700,scrollbars=yes'
       );
 
-      if (authWindow) {
-        window.addEventListener('message', async (event) => {
-          if (event.data.type === 'social-auth-success') {
-            await queryClient.invalidateQueries({
-              queryKey: ["/api/marketing/social-accounts"],
-            });
-            toast({
-              title: "تم بنجاح",
-              description: `تم ربط حساب ${platformNames[platform as keyof typeof platformNames]} بنجاح`,
-            });
-          }
-        });
+      if (!authWindow) {
+        throw new Error("تم حظر النافذة المنبثقة");
       }
+
+      await new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error("انتهت مهلة الاتصال"));
+        }, 120000); // 2 minute timeout
+
+        const handleMessage = async (event: MessageEvent) => {
+          if (event.data.type === 'social-auth-success' && event.data.platform === platform) {
+            window.removeEventListener('message', handleMessage);
+            clearTimeout(timeoutId);
+            resolve(event.data);
+          }
+        };
+
+        window.addEventListener('message', handleMessage);
+      });
+
+      await queryClient.invalidateQueries({
+        queryKey: ["/api/marketing/social-accounts"],
+      });
+
+      toast({
+        title: "تم بنجاح",
+        description: `تم ربط حساب ${platformNames[platform as keyof typeof platformNames]} بنجاح`,
+      });
     } catch (error) {
+      console.error("Error connecting platform:", error);
       toast({
         title: "خطأ",
-        description: "فشل في ربط الحساب",
+        description: error instanceof Error ? error.message : "فشل في ربط الحساب",
         variant: "destructive",
       });
     } finally {
-      setIsConnecting(false);
+      setIsConnecting(prev => ({ ...prev, [platform]: false }));
     }
   };
 
@@ -138,9 +154,9 @@ export default function SocialAccounts() {
                     variant="outline"
                     size="sm"
                     onClick={() => connectPlatform(platform)}
-                    disabled={isConnecting}
+                    disabled={isConnecting[platform]}
                   >
-                    {isConnecting ? "جاري الربط..." : "ربط الحساب"}
+                    {isConnecting[platform] ? "جاري الربط..." : "ربط الحساب"}
                   </Button>
                 )}
               </div>

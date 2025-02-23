@@ -245,21 +245,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const { platform } = req.params;
 
-    // هنا سنضيف المنطق الخاص بكل منصة
     try {
-      // في هذه المرحلة نقوم بمحاكاة عملية المصادقة
+      // Mock social auth data with all required fields
       const mockAccount = {
         id: Date.now(),
         userId: req.user!.id,
         platform,
         accountName: `${req.user!.username}_${platform}`,
         accessToken: `mock_token_${Date.now()}`,
+        refreshToken: `mock_refresh_${Date.now()}`,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
         createdAt: new Date()
       };
 
       await storage.createSocialMediaAccount(mockAccount);
 
-      res.json({ success: true });
+      // Return HTML that will post message to parent window and close
+      res.send(`
+        <html>
+          <body>
+            <script>
+              window.opener.postMessage({ 
+                type: 'social-auth-success',
+                platform: '${platform}',
+                accountName: '${mockAccount.accountName}'
+              }, '*');
+              window.close();
+            </script>
+          </body>
+        </html>
+      `);
     } catch (error) {
       console.error(`Error authenticating with ${platform}:`, error);
       res.status(500).json({ message: "فشل في عملية المصادقة" });
