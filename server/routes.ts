@@ -6,6 +6,7 @@ import { z } from "zod";
 import { insertProductSchema, insertSaleSchema, insertInstallmentSchema, insertInstallmentPaymentSchema } from "@shared/schema";
 import fs from "fs/promises";
 import path from "path";
+import { setupWebSocket } from './websocket';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -367,5 +368,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+
+  // إعداد WebSocket
+  setupWebSocket(httpServer);
+
   return httpServer;
 }
