@@ -33,21 +33,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/sales", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
-    const sale = await storage.createSale({
-      ...req.body,
-      userId: req.user!.id,
-    });
-
-    // Update product stock
-    const product = await storage.getProduct(sale.productId);
-    if (product) {
-      await storage.updateProduct(product.id, {
-        ...product,
-        stock: product.stock - sale.quantity
+    try {
+      const sale = await storage.createSale({
+        ...req.body,
+        userId: req.user!.id,
+        date: new Date()
       });
-    }
 
-    res.status(201).json(sale);
+      // Update product stock
+      const product = await storage.getProduct(sale.productId);
+      if (product) {
+        await storage.updateProduct(product.id, {
+          ...product,
+          stock: product.stock - sale.quantity
+        });
+      }
+
+      res.status(201).json(sale);
+    } catch (error) {
+      console.error("Error creating sale:", error);
+      res.status(500).json({ message: "فشل في إنشاء عملية البيع" });
+    }
   });
 
   // Exchange Rates  

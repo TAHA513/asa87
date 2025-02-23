@@ -47,8 +47,9 @@ export const insertProductSchema = createInsertSchema(products).pick({
 export const insertSaleSchema = createInsertSchema(sales).pick({
   productId: true,
   quantity: true,
-  userId: true,
-  priceIqd: true,
+}).extend({
+  productId: z.number().min(1, "يجب اختيار منتج"),
+  quantity: z.number().min(1, "الكمية يجب أن تكون 1 على الأقل"),
 });
 
 export const insertExchangeRateSchema = createInsertSchema(exchangeRates).pick({

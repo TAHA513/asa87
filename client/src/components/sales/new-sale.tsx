@@ -21,16 +21,18 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function NewSale() {
+  const { toast } = useToast();
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
 
   const { data: exchangeRate } = useQuery<ExchangeRate>({
     queryKey: ["/api/exchange-rate"],
-    staleTime: 0, // Always fetch fresh data
-    refetchInterval: 5000, // Refresh every 5 seconds
+    staleTime: 0,
+    refetchInterval: 5000,
   });
 
   const form = useForm({
@@ -48,17 +50,33 @@ export default function NewSale() {
   const watchQuantity = form.watch("quantity");
 
   const priceIqd = selectedProduct ? Number(selectedProduct.priceIqd) * watchQuantity : 0;
-  const priceUsd = exchangeRate ? priceIqd / Number(exchangeRate.usdToIqd) : 0;
 
   async function onSubmit(data: any) {
-    await apiRequest("POST", "/api/sales", {
-      ...data,
-      priceIqd
-    });
+    try {
+      const saleData = {
+        productId: Number(data.productId),
+        quantity: Number(data.quantity),
+        priceIqd: priceIqd.toString()
+      };
 
-    queryClient.invalidateQueries({ queryKey: ["/api/sales"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/products"] });
-    form.reset();
+      await apiRequest("POST", "/api/sales", saleData);
+
+      queryClient.invalidateQueries({ queryKey: ["/api/sales"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+
+      toast({
+        title: "تم بنجاح",
+        description: "تم حفظ الفاتورة بنجاح",
+      });
+
+      form.reset();
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء حفظ الفاتورة. الرجاء المحاولة مرة أخرى",
+        variant: "destructive",
+      });
+    }
   }
 
   return (
@@ -99,7 +117,12 @@ export default function NewSale() {
             <FormItem>
               <FormLabel>الكمية</FormLabel>
               <FormControl>
-                <Input type="number" min="1" {...field} />
+                <Input 
+                  type="number" 
+                  min="1" 
+                  {...field}
+                  onChange={(e) => field.onChange(Number(e.target.value))}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -117,7 +140,7 @@ export default function NewSale() {
             <div className="flex justify-between text-sm">
               <span>ما يعادل بالدولار:</span>
               <span className="font-bold">
-                ${priceUsd.toFixed(2)}
+                ${(exchangeRate ? priceIqd / Number(exchangeRate.usdToIqd) : 0).toFixed(2)}
               </span>
             </div>
           </div>
