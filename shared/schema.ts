@@ -14,7 +14,6 @@ export const products = pgTable("products", {
   name: text("name").notNull(),
   description: text("description"),
   priceUsd: decimal("price_usd").notNull(),
-  priceIqd: decimal("price_iqd").notNull(),
   stock: integer("stock").notNull().default(0),
 });
 
@@ -23,8 +22,6 @@ export const sales = pgTable("sales", {
   productId: integer("product_id").notNull(),
   quantity: integer("quantity").notNull(),
   priceUsd: decimal("price_usd").notNull(),
-  priceIqd: decimal("price_iqd").notNull(),
-  currency: text("currency").notNull(),
   date: timestamp("date").notNull().defaultNow(),
   userId: integer("user_id").notNull(),
 });
@@ -44,17 +41,14 @@ export const insertProductSchema = createInsertSchema(products).pick({
   name: true,
   description: true,
   priceUsd: true,
-  priceIqd: true,
   stock: true,
 });
 
 export const insertSaleSchema = createInsertSchema(sales).pick({
   productId: true,
   quantity: true,
-  priceUsd: true,
-  priceIqd: true,
-  currency: true,
   userId: true,
+  priceUsd: true,
 });
 
 export const insertExchangeRateSchema = createInsertSchema(exchangeRates).pick({

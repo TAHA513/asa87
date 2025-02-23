@@ -29,7 +29,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import type { Product } from "@shared/schema";
+import type { Product, ExchangeRate } from "@shared/schema";
 import { insertProductSchema } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -42,16 +42,22 @@ export default function InventoryTable() {
     queryKey: ["/api/products"],
   });
 
+  const { data: exchangeRate } = useQuery<ExchangeRate>({
+    queryKey: ["/api/exchange-rate"],
+  });
+
   const form = useForm({
     resolver: zodResolver(insertProductSchema),
     defaultValues: {
       name: "",
       description: "",
       priceUsd: 0,
-      priceIqd: 0,
       stock: 0,
     },
   });
+
+  const watchPriceUsd = form.watch("priceUsd");
+  const priceIqd = exchangeRate ? Number(watchPriceUsd) * Number(exchangeRate.usdToIqd) : 0;
 
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(search.toLowerCase())
@@ -62,7 +68,6 @@ export default function InventoryTable() {
       await apiRequest("POST", "/api/products", {
         ...data,
         priceUsd: Number(data.priceUsd),
-        priceIqd: Number(data.priceIqd),
         stock: Number(data.stock),
       });
 
@@ -125,6 +130,7 @@ export default function InventoryTable() {
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
                     name="description"
@@ -138,12 +144,13 @@ export default function InventoryTable() {
                       </FormItem>
                     )}
                   />
+
                   <FormField
                     control={form.control}
                     name="priceUsd"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>السعر (دولار)</FormLabel>
+                        <FormLabel>السعر بالدولار</FormLabel>
                         <FormControl>
                           <Input 
                             type="number" 
@@ -153,29 +160,14 @@ export default function InventoryTable() {
                             onChange={(e) => field.onChange(e.target.valueAsNumber)} 
                           />
                         </FormControl>
+                        <div className="text-sm text-muted-foreground">
+                          ما يعادل: {priceIqd.toLocaleString()} دينار عراقي
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="priceIqd"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>السعر (دينار)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number"
-                            step="1"
-                            min="0"
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+
                   <FormField
                     control={form.control}
                     name="stock"
@@ -194,6 +186,7 @@ export default function InventoryTable() {
                       </FormItem>
                     )}
                   />
+
                   <Button type="submit" className="w-full">
                     إضافة المنتج
                   </Button>
@@ -210,21 +203,31 @@ export default function InventoryTable() {
             <TableRow>
               <TableHead>اسم المنتج</TableHead>
               <TableHead>الوصف</TableHead>
-              <TableHead>السعر (دولار)</TableHead>
-              <TableHead>السعر (دينار)</TableHead>
+              <TableHead>السعر</TableHead>
               <TableHead>المخزون</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredProducts.map((product) => (
-              <TableRow key={product.id}>
-                <TableCell>{product.name}</TableCell>
-                <TableCell>{product.description}</TableCell>
-                <TableCell>${Number(product.priceUsd).toFixed(2)}</TableCell>
-                <TableCell>{Number(product.priceIqd).toFixed(2)} د.ع</TableCell>
-                <TableCell>{product.stock}</TableCell>
-              </TableRow>
-            ))}
+            {filteredProducts.map((product) => {
+              const priceIqd = exchangeRate 
+                ? Number(product.priceUsd) * Number(exchangeRate.usdToIqd)
+                : 0;
+
+              return (
+                <TableRow key={product.id}>
+                  <TableCell>{product.name}</TableCell>
+                  <TableCell>{product.description}</TableCell>
+                  <TableCell>
+                    ${Number(product.priceUsd).toFixed(2)}
+                    <br />
+                    <span className="text-sm text-muted-foreground">
+                      {priceIqd.toLocaleString()} د.ع
+                    </span>
+                  </TableCell>
+                  <TableCell>{product.stock}</TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
