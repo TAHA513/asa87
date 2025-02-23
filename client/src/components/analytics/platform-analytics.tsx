@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BarChart,
   Bar,
@@ -24,9 +24,9 @@ import { addDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-// تعريف أنواع البيانات
 interface PlatformData {
   name: string;
   impressions: number;
@@ -35,11 +35,7 @@ interface PlatformData {
   spend: number;
 }
 
-interface AnalyticsProps {
-  platformData: PlatformData[];
-}
-
-export function PlatformAnalytics({ platformData }: AnalyticsProps) {
+export function PlatformAnalytics() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [dateRange, setDateRange] = useState({
@@ -49,7 +45,7 @@ export function PlatformAnalytics({ platformData }: AnalyticsProps) {
   const [selectedPlatform, setSelectedPlatform] = useState<string>("all");
   const [filteredData, setFilteredData] = useState<PlatformData[]>([]);
 
-  // جلب البيانات من API
+  // جلب البيانات من API مع معاملات التصفية
   const { data: analyticsData, isLoading } = useQuery({
     queryKey: ["/api/marketing/analytics", selectedPlatform, dateRange],
     enabled: !!user,
@@ -63,6 +59,32 @@ export function PlatformAnalytics({ platformData }: AnalyticsProps) {
     }
     setFilteredData(filtered);
   }, [selectedPlatform, analyticsData]);
+
+  // تصدير البيانات
+  const exportData = () => {
+    const csvContent = [
+      ["المنصة", "المشاهدات", "النقرات", "التحويلات", "الإنفاق", "معدل التحويل", "العائد على الاستثمار"],
+      ...filteredData.map(item => {
+        const conversionRate = item.clicks === 0 ? 0 : ((item.conversions / item.clicks) * 100);
+        const roi = item.spend === 0 ? 0 : (((item.conversions * 100) - item.spend) / item.spend) * 100;
+        return [
+          item.name,
+          item.impressions,
+          item.clicks,
+          item.conversions,
+          item.spend,
+          `${conversionRate.toFixed(2)}%`,
+          `${roi.toFixed(2)}%`
+        ];
+      })
+    ].map(row => row.join(",")).join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `analytics_${new Date().toISOString()}.csv`;
+    link.click();
+  };
 
   // حساب المؤشرات
   const totalSpend = filteredData.reduce((sum, item) => sum + item.spend, 0);
@@ -113,13 +135,16 @@ export function PlatformAnalytics({ platformData }: AnalyticsProps) {
             <SelectContent>
               <SelectItem value="all">جميع المنصات</SelectItem>
               <SelectItem value="facebook">فيسبوك</SelectItem>
-              <SelectItem value="instagram">انستغرام</SelectItem>
               <SelectItem value="twitter">تويتر</SelectItem>
               <SelectItem value="tiktok">تيك توك</SelectItem>
               <SelectItem value="snapchat">سناب شات</SelectItem>
               <SelectItem value="linkedin">لينكد إن</SelectItem>
             </SelectContent>
           </Select>
+          <Button variant="outline" onClick={exportData}>
+            <Download className="h-4 w-4 ml-2" />
+            تصدير البيانات
+          </Button>
         </div>
       </div>
 
