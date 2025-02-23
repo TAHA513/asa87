@@ -4,6 +4,8 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { z } from "zod";
 import { insertProductSchema, insertSaleSchema, insertInstallmentSchema, insertInstallmentPaymentSchema } from "@shared/schema";
+import fs from "fs/promises";
+import path from "path";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -85,6 +87,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating exchange rate:", error);
       res.status(500).json({ message: "فشل في تحديث سعر الصرف" });
+    }
+  });
+
+  // Theme Settings
+  app.post("/api/theme", async (req, res) => {
+    try {
+      // التحقق من صحة البيانات
+      const themeSchema = z.object({
+        primary: z.string(),
+        variant: z.enum(["professional", "vibrant", "tint"]),
+        appearance: z.enum(["light", "dark", "system"]),
+        radius: z.number(),
+      });
+
+      const theme = themeSchema.parse(req.body);
+
+      // حفظ الثيم في ملف theme.json
+      await fs.writeFile(
+        path.join(process.cwd(), "theme.json"),
+        JSON.stringify(theme, null, 2)
+      );
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating theme:", error);
+      res.status(500).json({ message: "فشل في تحديث المظهر" });
     }
   });
 

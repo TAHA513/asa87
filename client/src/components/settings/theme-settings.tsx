@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { apiRequest } from "@/lib/queryClient";
 
 const themeColors = [
   { name: "أخضر زمردي", value: "hsl(142.1 76.2% 36.3%)" },
@@ -47,9 +48,10 @@ export default function ThemeSettings() {
     variant: "vibrant",
     radius: 0.75,
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Load saved theme from localStorage
+    // تحميل الثيم المحفوظ من localStorage
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme) {
       setTheme(JSON.parse(savedTheme));
@@ -59,15 +61,10 @@ export default function ThemeSettings() {
   const saveTheme = async (updates: Partial<typeof theme>) => {
     const newTheme = { ...theme, ...updates };
     setTheme(newTheme);
+    setIsLoading(true);
 
     try {
-      const response = await fetch("/api/theme", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newTheme),
-      });
-
-      if (!response.ok) throw new Error();
+      await apiRequest("POST", "/api/theme", newTheme);
 
       localStorage.setItem("theme", JSON.stringify(newTheme));
 
@@ -76,14 +73,16 @@ export default function ThemeSettings() {
         description: "تم تحديث المظهر بنجاح",
       });
 
-      // Reload the page to apply changes
+      // إعادة تحميل الصفحة لتطبيق التغييرات
       window.location.reload();
-    } catch {
+    } catch (error) {
       toast({
         title: "خطأ",
         description: "فشل في حفظ التغييرات",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -102,6 +101,7 @@ export default function ThemeSettings() {
             value={theme.primary}
             onValueChange={(value) => saveTheme({ primary: value })}
             className="grid grid-cols-2 gap-4"
+            disabled={isLoading}
           >
             {themeColors.map((color) => (
               <Label
@@ -124,6 +124,7 @@ export default function ThemeSettings() {
           <Select
             value={theme.variant}
             onValueChange={(value) => saveTheme({ variant: value })}
+            disabled={isLoading}
           >
             <SelectTrigger>
               <SelectValue />
@@ -143,6 +144,7 @@ export default function ThemeSettings() {
           <Select
             value={theme.appearance}
             onValueChange={(value) => saveTheme({ appearance: value })}
+            disabled={isLoading}
           >
             <SelectTrigger>
               <SelectValue />
