@@ -1,6 +1,7 @@
 import Sidebar from "@/components/layout/sidebar";
 import ChangePasswordForm from "@/components/settings/change-password";
 import ThemeSettings from "@/components/settings/theme-settings";
+import ApiKeysForm from "@/components/settings/api-keys-form";
 import { Settings as SettingsIcon } from "lucide-react";
 import {
   Card,
@@ -24,6 +25,18 @@ export default function Settings() {
           </div>
 
           <div className="grid gap-8 max-w-2xl">
+            <Card>
+              <CardHeader>
+                <CardTitle>مفاتيح API للمنصات الاجتماعية</CardTitle>
+                <CardDescription>
+                  قم بإضافة مفاتيح API الخاصة بكل منصة تواصل اجتماعي لتتمكن من الربط والتحكم في الحملات الإعلانية
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ApiKeysForm />
+              </CardContent>
+            </Card>
+
             <ThemeSettings />
 
             <Card>

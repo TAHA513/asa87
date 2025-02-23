@@ -295,6 +295,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API Key routes
+  app.post("/api/settings/api-keys", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      // التحقق من صحة البيانات
+      const apiKeysSchema = z.object({
+        facebook: z.object({
+          appId: z.string().min(1, "App ID مطلوب"),
+          appSecret: z.string().min(1, "App Secret مطلوب"),
+        }),
+        twitter: z.object({
+          apiKey: z.string().min(1, "API Key مطلوب"),
+          apiSecret: z.string().min(1, "API Secret مطلوب"),
+        }),
+        tiktok: z.object({
+          clientKey: z.string().min(1, "Client Key مطلوب"),
+          clientSecret: z.string().min(1, "Client Secret مطلوب"),
+        }),
+        snapchat: z.object({
+          clientId: z.string().min(1, "Client ID مطلوب"),
+          clientSecret: z.string().min(1, "Client Secret مطلوب"),
+        }),
+        linkedin: z.object({
+          clientId: z.string().min(1, "Client ID مطلوب"),
+          clientSecret: z.string().min(1, "Client Secret مطلوب"),
+        }),
+      });
+
+      const apiKeys = apiKeysSchema.parse(req.body);
+
+      // حفظ المفاتيح في قاعدة البيانات بشكل آمن
+      await storage.setApiKeys(req.user!.id, apiKeys);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating API keys:", error);
+      res.status(500).json({ message: "فشل في تحديث مفاتيح API" });
+    }
+  });
+
+  app.get("/api/settings/api-keys", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const apiKeys = await storage.getApiKeys(req.user!.id);
+      res.json(apiKeys);
+    } catch (error) {
+      console.error("Error getting API keys:", error);
+      res.status(500).json({ message: "فشل في جلب مفاتيح API" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
