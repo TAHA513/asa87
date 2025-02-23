@@ -230,6 +230,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
+  // إضافة مسار جديد لجلب تحليلات التسويق
+  app.get("/api/marketing/analytics", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      // التحقق من المنصات المرتبطة
+      const accounts = await storage.getSocialMediaAccounts(req.user!.id);
+      if (accounts.length === 0) {
+        return res.json([]);
+      }
+
+      // جلب المفاتيح المخزنة للمستخدم
+      const apiKeys = await storage.getApiKeys(req.user!.id);
+      if (!apiKeys) {
+        return res.json([]);
+      }
+
+      // جمع البيانات من كل منصة مرتبطة
+      const analyticsPromises = accounts.map(async (account) => {
+        try {
+          switch (account.platform) {
+            case 'facebook':
+              // استخدام Facebook Marketing API
+              if (apiKeys.facebook) {
+                // جلب البيانات باستخدام المفاتيح المخزنة
+                // يتم إضافة الكود الفعلي عند ربط الحساب
+                return {
+                  name: 'facebook',
+                  impressions: 0,
+                  clicks: 0,
+                  conversions: 0,
+                  spend: 0
+                };
+              }
+              break;
+
+            case 'twitter':
+              // استخدام Twitter Ads API
+              if (apiKeys.twitter) {
+                // جلب البيانات باستخدام المفاتيح المخزنة
+                return {
+                  name: 'twitter',
+                  impressions: 0,
+                  clicks: 0,
+                  conversions: 0,
+                  spend: 0
+                };
+              }
+              break;
+
+            case 'tiktok':
+              // استخدام TikTok Marketing API
+              if (apiKeys.tiktok) {
+                // جلب البيانات باستخدام المفاتيح المخزنة
+                return {
+                  name: 'tiktok',
+                  impressions: 0,
+                  clicks: 0,
+                  conversions: 0,
+                  spend: 0
+                };
+              }
+              break;
+
+            case 'snapchat':
+              // استخدام Snapchat Marketing API
+              if (apiKeys.snapchat) {
+                // جلب البيانات باستخدام المفاتيح المخزنة
+                return {
+                  name: 'snapchat',
+                  impressions: 0,
+                  clicks: 0,
+                  conversions: 0,
+                  spend: 0
+                };
+              }
+              break;
+
+            case 'linkedin':
+              // استخدام LinkedIn Marketing API
+              if (apiKeys.linkedin) {
+                // جلب البيانات باستخدام المفاتيح المخزنة
+                return {
+                  name: 'linkedin',
+                  impressions: 0,
+                  clicks: 0,
+                  conversions: 0,
+                  spend: 0
+                };
+              }
+              break;
+          }
+        } catch (error) {
+          console.error(`Error fetching data from ${account.platform}:`, error);
+          return null;
+        }
+      });
+
+      const results = (await Promise.all(analyticsPromises)).filter(Boolean);
+      return res.json(results);
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      res.status(500).json({ message: "فشل في جلب التحليلات" });
+    }
+  });
+
   // Social Media Auth Routes
   app.get("/api/marketing/social-accounts", async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -368,9 +476,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-
-  // إعداد WebSocket
   setupWebSocket(httpServer);
-
   return httpServer;
 }

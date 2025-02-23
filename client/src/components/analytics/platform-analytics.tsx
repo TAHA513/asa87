@@ -22,7 +22,6 @@ import {
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { addDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { useAnalyticsSocket } from "@/hooks/use-analytics-socket";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
@@ -48,10 +47,7 @@ export function PlatformAnalytics({ platformData }: AnalyticsProps) {
     to: new Date(),
   });
   const [selectedPlatform, setSelectedPlatform] = useState<string>("all");
-  const [filteredData, setFilteredData] = useState<PlatformData[]>(platformData);
-
-  // استخدام WebSocket للتحديثات المباشرة
-  const liveData = useAnalyticsSocket();
+  const [filteredData, setFilteredData] = useState<PlatformData[]>([]);
 
   // جلب البيانات من API
   const { data: analyticsData, isLoading } = useQuery({
@@ -59,54 +55,16 @@ export function PlatformAnalytics({ platformData }: AnalyticsProps) {
     enabled: !!user,
   });
 
-  // تحديث البيانات عند تغيير المنصة أو النطاق الزمني أو وصول بيانات جديدة
+  // تحديث البيانات عند تغيير المنصة أو النطاق الزمني
   useEffect(() => {
-    let filtered = analyticsData || platformData;
-
-    // دمج البيانات المباشرة مع البيانات الحالية
-    if (liveData && liveData.length > 0) {
-      const newData = liveData.reduce((acc: PlatformData[], curr) => {
-        const existingIndex = acc.findIndex(item => item.name === curr.platform);
-        if (existingIndex > -1) {
-          acc[existingIndex] = {
-            name: curr.platform,
-            impressions: curr.impressions,
-            clicks: curr.clicks,
-            conversions: curr.conversions,
-            spend: curr.spend,
-          };
-        } else {
-          acc.push({
-            name: curr.platform,
-            impressions: curr.impressions,
-            clicks: curr.clicks,
-            conversions: curr.conversions,
-            spend: curr.spend,
-          });
-        }
-        return acc;
-      }, [...filtered]);
-      filtered = newData;
-    }
-
+    let filtered = analyticsData || [];
     if (selectedPlatform !== "all") {
       filtered = filtered.filter((item) => item.name === selectedPlatform);
     }
     setFilteredData(filtered);
-  }, [selectedPlatform, analyticsData, liveData, platformData]);
+  }, [selectedPlatform, analyticsData]);
 
-  // حساب معدل التحويل
-  const calculateConversionRate = (clicks: number, conversions: number) => {
-    if (clicks === 0) return 0;
-    return ((conversions / clicks) * 100).toFixed(2);
-  };
-
-  // حساب العائد على الاستثمار
-  const calculateROI = (revenue: number, spend: number) => {
-    if (spend === 0) return 0;
-    return (((revenue - spend) / spend) * 100).toFixed(2);
-  };
-
+  // حساب المؤشرات
   const totalSpend = filteredData.reduce((sum, item) => sum + item.spend, 0);
   const totalClicks = filteredData.reduce((sum, item) => sum + item.clicks, 0);
   const totalConversions = filteredData.reduce((sum, item) => sum + item.conversions, 0);
@@ -115,7 +73,7 @@ export function PlatformAnalytics({ platformData }: AnalyticsProps) {
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-lg text-muted-foreground">يرجى تسجيل الدخول لعرض التحليلات</p>
+        <p className="text-lg text-muted-foreground">يرجى تسجيل الدخول وربط حسابات التواصل الاجتماعي لعرض التحليلات</p>
       </div>
     );
   }
@@ -124,6 +82,14 @@ export function PlatformAnalytics({ platformData }: AnalyticsProps) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (filteredData.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <p className="text-lg text-muted-foreground">لا توجد بيانات متاحة. يرجى ربط حسابات التواصل الاجتماعي أولاً.</p>
       </div>
     );
   }
@@ -184,7 +150,7 @@ export function PlatformAnalytics({ platformData }: AnalyticsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-4xl font-bold">
-              {calculateConversionRate(totalClicks, totalConversions)}%
+              {totalClicks === 0 ? 0 : ((totalConversions / totalClicks) * 100).toFixed(2)}%
             </div>
           </CardContent>
         </Card>
