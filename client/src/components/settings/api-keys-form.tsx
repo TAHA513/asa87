@@ -202,12 +202,18 @@ export default function ApiKeysForm() {
   async function onSubmit(data: FormData) {
     setIsSubmitting(true);
     try {
+      console.log("Submitting API keys:", data);
       const response = await apiRequest("POST", "/api/settings/api-keys", data);
+
       if (!response.ok) {
-        throw new Error(`فشل في حفظ المفاتيح: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error("API Response Error:", response.status, errorText);
+        throw new Error(`فشل في حفظ المفاتيح: ${errorText}`);
       }
 
       const result = await response.json();
+      console.log("API Response:", result);
+
       if (result.success) {
         toast({
           title: "تم الحفظ بنجاح",

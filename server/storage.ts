@@ -272,11 +272,15 @@ export class MemStorage implements IStorage {
 
   // وظائف مفاتيح API
   async setApiKeys(userId: number, apiKeys: Record<string, any>): Promise<void> {
+    console.log("Saving API keys for user:", userId, apiKeys);
     this.apiKeys.set(userId, apiKeys);
   }
 
   async getApiKeys(userId: number): Promise<Record<string, any> | null> {
-    return this.apiKeys.get(userId) || null;
+    console.log("Getting API keys for user:", userId);
+    const keys = this.apiKeys.get(userId);
+    console.log("Retrieved keys:", keys);
+    return keys || null;
   }
 }
 
