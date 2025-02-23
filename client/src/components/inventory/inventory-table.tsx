@@ -44,6 +44,8 @@ export default function InventoryTable() {
 
   const { data: exchangeRate } = useQuery<ExchangeRate>({
     queryKey: ["/api/exchange-rate"],
+    staleTime: 0, // Always fetch fresh data
+    refetchInterval: 5000, // Refresh every 5 seconds
   });
 
   const form = useForm({
