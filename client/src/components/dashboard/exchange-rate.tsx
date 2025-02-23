@@ -13,7 +13,7 @@ export default function ExchangeRateCard() {
   const [newRate, setNewRate] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const { data: exchangeRate } = useQuery<ExchangeRate>({
+  const { data: exchangeRate, refetch } = useQuery<ExchangeRate>({
     queryKey: ["/api/exchange-rate"],
   });
 
@@ -43,7 +43,14 @@ export default function ExchangeRateCard() {
         usdToIqd: rateNumber
       });
 
+      // تحديث البيانات مباشرة
+      await refetch();
+
+      // إلغاء صلاحية جميع الاستعلامات المتعلقة بالأسعار
       queryClient.invalidateQueries({ queryKey: ["/api/exchange-rate"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sales"] });
+
       setNewRate("");
 
       toast({
