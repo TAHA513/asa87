@@ -8,21 +8,22 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
+  updateUser(id: number, update: Partial<User>): Promise<User>;
+
   // Products
   getProducts(): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
   createProduct(product: Product): Promise<Product>;
   updateProduct(id: number, product: Partial<Product>): Promise<Product>;
-  
+
   // Sales
   getSales(): Promise<Sale[]>;
   createSale(sale: Sale): Promise<Sale>;
-  
+
   // Exchange Rates
   getCurrentExchangeRate(): Promise<ExchangeRate>;
   setExchangeRate(rate: number): Promise<ExchangeRate>;
-  
+
   sessionStore: session.Store;
 }
 
@@ -43,7 +44,7 @@ export class MemStorage implements IStorage {
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
-    
+
     // Set default exchange rate
     this.setExchangeRate(1300);
   }
@@ -65,6 +66,15 @@ export class MemStorage implements IStorage {
     return user;
   }
 
+  async updateUser(id: number, update: Partial<User>): Promise<User> {
+    const user = this.users.get(id);
+    if (!user) throw new Error("User not found");
+
+    const updatedUser = { ...user, ...update };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+
   async getProducts(): Promise<Product[]> {
     return Array.from(this.products.values());
   }
@@ -83,7 +93,7 @@ export class MemStorage implements IStorage {
   async updateProduct(id: number, update: Partial<Product>): Promise<Product> {
     const product = this.products.get(id);
     if (!product) throw new Error("Product not found");
-    
+
     const updatedProduct = { ...product, ...update };
     this.products.set(id, updatedProduct);
     return updatedProduct;

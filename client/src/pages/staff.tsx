@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Sidebar from "@/components/layout/sidebar";
 import {
@@ -7,6 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { apiRequest } from "@/lib/queryClient";
+import { Users } from "lucide-react";
+import type { User } from "@shared/schema";
 import {
   Table,
   TableBody,
@@ -21,15 +29,48 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MoreVertical, Users } from "lucide-react";
-import type { User } from "@shared/schema";
+import { MoreVertical } from "lucide-react";
+
 
 export default function Staff() {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
   const { data: users = [] } = useQuery<User[]>({
     queryKey: ["/api/users"],
   });
+
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault();
+    setIsChangingPassword(true);
+
+    try {
+      await apiRequest("POST", "/api/change-password", {
+        currentPassword,
+        newPassword,
+      });
+
+      toast({
+        title: "تم تغيير كلمة المرور",
+        description: "تم تغيير كلمة المرور بنجاح",
+      });
+
+      setCurrentPassword("");
+      setNewPassword("");
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "فشل تغيير كلمة المرور. يرجى التحقق من كلمة المرور الحالية",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  }
 
   return (
     <div className="flex h-screen">
@@ -41,11 +82,42 @@ export default function Staff() {
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
               <Users className="h-6 w-6" />
-              <h1 className="text-3xl font-bold">Staff Management</h1>
+              <h1 className="text-3xl font-bold">إدارة الموظفين</h1>
             </div>
           </div>
 
           <div className="grid gap-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>تغيير كلمة المرور</CardTitle>
+                <CardDescription>قم بتحديث كلمة المرور الخاصة بك</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handlePasswordChange} className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium">كلمة المرور الحالية</label>
+                    <Input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">كلمة المرور الجديدة</label>
+                    <Input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" disabled={isChangingPassword}>
+                    {isChangingPassword ? "جاري التغيير..." : "تغيير كلمة المرور"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
             <Card>
               <CardHeader>
                 <CardTitle>Staff Members</CardTitle>
