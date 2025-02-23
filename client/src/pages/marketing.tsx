@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Megaphone, TrendingUp, Users, DollarSign, Target } from "lucide-react";
+import { Megaphone, TrendingUp, Users, DollarSign } from "lucide-react";
 import type { Campaign } from "@shared/schema";
 import {
   Card,
@@ -9,10 +9,22 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
 import Sidebar from "@/components/layout/sidebar";
 import { CampaignAnalytics } from "@/components/marketing/campaign-analytics";
 import { useAnalyticsSocket } from "@/hooks/use-analytics-socket";
+import CampaignForm from "@/components/marketing/campaign-form";
+import SocialAccounts from "@/components/marketing/social-accounts";
+import { Redirect } from "wouter";
 
 // تكوين الألوان حسب المنصات
 const platformColors = {
@@ -25,15 +37,31 @@ const platformColors = {
 };
 
 export default function MarketingPage() {
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [selectedPlatform, setSelectedPlatform] = useState<string>("all");
+  const [showNewCampaign, setShowNewCampaign] = useState(false);
   const socket = useAnalyticsSocket();
 
-  const { data: campaigns = [] } = useQuery<Campaign[]>({
+  // التحقق من تسجيل الدخول
+  if (isAuthLoading) {
+    return <div>جاري التحميل...</div>;
+  }
+
+  if (!user) {
+    return <Redirect to="/auth" />;
+  }
+
+  const { data: campaigns = [], isLoading: isCampaignsLoading } = useQuery<Campaign[]>({
     queryKey: ["/api/marketing/campaigns"],
+    enabled: !!user,
   });
 
   // تصفية الحملات النشطة
   const activeCampaigns = campaigns.filter(campaign => campaign.status === "active");
+
+  if (isCampaignsLoading) {
+    return <div>جاري تحميل البيانات...</div>;
+  }
 
   return (
     <div className="flex h-screen bg-background">
@@ -47,10 +75,26 @@ export default function MarketingPage() {
               <Megaphone className="h-6 w-6 text-primary" />
               <h1 className="text-3xl font-bold">التسويق</h1>
             </div>
-            <Button className="bg-primary hover:bg-primary/90">
-              إنشاء حملة جديدة
-            </Button>
+            <Dialog open={showNewCampaign} onOpenChange={setShowNewCampaign}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary hover:bg-primary/90">
+                  إنشاء حملة جديدة
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px]">
+                <DialogHeader>
+                  <DialogTitle>إنشاء حملة إعلانية جديدة</DialogTitle>
+                  <DialogDescription>
+                    اختر المنصة التي تريد إنشاء حملة إعلانية عليها
+                  </DialogDescription>
+                </DialogHeader>
+                <CampaignForm onSuccess={() => setShowNewCampaign(false)} />
+              </DialogContent>
+            </Dialog>
           </div>
+
+          {/* حسابات المنصات الاجتماعية */}
+          <SocialAccounts />
 
           {/* بطاقات الإحصائيات */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
