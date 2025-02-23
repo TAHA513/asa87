@@ -1,12 +1,11 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { WebSocketServer } from 'ws';
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { z } from "zod";
+import { insertProductSchema, insertSaleSchema, insertInstallmentSchema, insertInstallmentPaymentSchema } from "@shared/schema";
 import fs from "fs/promises";
 import path from "path";
-
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -211,6 +210,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(analytics);
   });
 
+  app.post("/api/marketing/campaigns/:id/analytics", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const analytics = await storage.createCampaignAnalytics({
+        ...req.body,
+        campaignId: Number(req.params.id),
+      });
+
+      res.status(201).json(analytics);
+    } catch (error) {
+      console.error("Error creating analytics:", error);
+      res.status(500).json({ message: "فشل في تسجيل التحليلات" });
+    }
+  });
+
 
   // Social Media Auth Routes
   app.get("/api/marketing/social-accounts", async (req, res) => {
@@ -229,9 +246,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { platform } = req.params;
 
     try {
-      //This section is removed as per instruction
-      res.status(501).json({message: "Not Implemented"})
+      // Mock social auth data with all required fields
+      const mockAccount = {
+        id: Date.now(),
+        userId: req.user!.id,
+        platform,
+        accountName: `${req.user!.username}_${platform}`,
+        accessToken: `mock_token_${Date.now()}`,
+        refreshToken: `mock_refresh_${Date.now()}`,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        createdAt: new Date()
+      };
 
+      await storage.createSocialMediaAccount(mockAccount);
+
+      // Return HTML that will post message to parent window and close
+      res.send(`
+        <html>
+          <body>
+            <script>
+              window.opener.postMessage({ 
+                type: 'social-auth-success',
+                platform: '${platform}',
+                accountName: '${mockAccount.accountName}'
+              }, '*');
+              window.close();
+            </script>
+          </body>
+        </html>
+      `);
     } catch (error) {
       console.error(`Error authenticating with ${platform}:`, error);
       res.status(500).json({ message: "فشل في عملية المصادقة" });
@@ -323,17 +366,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // إضافة WebSocket Server
   const httpServer = createServer(app);
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws/analytics' });
-
-  wss.on('connection', (ws) => {
-    console.log('Client connected to analytics websocket');
-
-    ws.on('close', () => {
-      console.log('Client disconnected from analytics websocket');
-    });
-  });
-
   return httpServer;
 }

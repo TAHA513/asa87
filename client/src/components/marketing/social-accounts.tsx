@@ -33,42 +33,42 @@ const platformIcons = {
 const platformConfig = {
   facebook: {
     label: "فيسبوك",
-    authUrl: "/api/marketing/social-auth/facebook",
+    authUrl: "https://www.facebook.com/login",
     color: "#1877F2",
     hoverColor: "#1559b7",
     textColor: "white"
   },
   instagram: {
     label: "انستغرام",
-    authUrl: "/api/marketing/social-auth/instagram",
+    authUrl: "https://www.instagram.com/accounts/login",
     color: "linear-gradient(45deg, #833AB4, #C13584, #E1306C, #FD1D1D)",
     hoverColor: "linear-gradient(45deg, #6d2e94, #a02d6e, #bc285a, #d41919)",
     textColor: "white"
   },
   twitter: {
     label: "تويتر",
-    authUrl: "/api/marketing/social-auth/twitter",
+    authUrl: "https://twitter.com/login",
     color: "#1DA1F2",
     hoverColor: "#1884c7",
     textColor: "white"
   },
   linkedin: {
     label: "لينكد إن",
-    authUrl: "/api/marketing/social-auth/linkedin",
+    authUrl: "https://www.linkedin.com/login",
     color: "#0A66C2",
     hoverColor: "#084d94",
     textColor: "white"
   },
   snapchat: {
     label: "سناب شات",
-    authUrl: "/api/marketing/social-auth/snapchat",
+    authUrl: "https://accounts.snapchat.com/accounts/login",
     color: "#FFFC00",
     hoverColor: "#e6e300",
     textColor: "black"
   },
   tiktok: {
     label: "تيك توك",
-    authUrl: "/api/marketing/social-auth/tiktok",
+    authUrl: "https://www.tiktok.com/login",
     color: "linear-gradient(90deg, #00f2ea, #ff0050)",
     hoverColor: "linear-gradient(90deg, #00d6cf, #e6004a)",
     textColor: "white"
@@ -114,7 +114,6 @@ export default function SocialAccounts() {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {Object.entries(platformConfig).map(([platform, config]) => {
             const Icon = platformIcons[platform as keyof typeof platformIcons];
-            const isConnected = accounts.some(account => account.platform === platform);
 
             return (
               <div
@@ -138,7 +137,7 @@ export default function SocialAccounts() {
                   }}
                   onClick={() => connectPlatform(platform)}
                 >
-                  {isConnected ? "تم الربط" : "تسجيل الدخول"}
+                  تسجيل الدخول
                 </Button>
               </div>
             );
