@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Megaphone, TrendingUp, Users, DollarSign } from "lucide-react";
 import type { Campaign } from "@shared/schema";
+import type { SocialMediaAccount } from "@shared/schema"; // Assuming this type exists
 import {
   Card,
   CardContent,
@@ -31,12 +32,17 @@ import {
   LineChart,
   Line,
 } from "recharts";
+import SocialAccounts from "@/components/marketing/social-accounts";
 
 export default function MarketingPage() {
   const [showNewCampaign, setShowNewCampaign] = useState(false);
 
   const { data: campaigns = [] } = useQuery<Campaign[]>({
     queryKey: ["/api/marketing/campaigns"],
+  });
+
+  const { data: accounts = [] } = useQuery<SocialMediaAccount[]>({
+    queryKey: ["/api/marketing/social-accounts"],
   });
 
   const activeCampaigns = campaigns.filter(
@@ -74,7 +80,9 @@ export default function MarketingPage() {
             </div>
             <Dialog open={showNewCampaign} onOpenChange={setShowNewCampaign}>
               <DialogTrigger asChild>
-                <Button>إنشاء حملة جديدة</Button>
+                <Button disabled={accounts.length === 0}>
+                  {accounts.length === 0 ? "قم بربط حساب أولاً" : "إنشاء حملة جديدة"}
+                </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
@@ -85,109 +93,112 @@ export default function MarketingPage() {
             </Dialog>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  الحملات النشطة
-                </CardTitle>
-                <Megaphone className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{activeCampaigns.length}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  إجمالي الانطباعات
-                </CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">48.2K</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  معدل التحويل
-                </CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">2.4%</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  إجمالي الإنفاق
-                </CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">$4,325</div>
-              </CardContent>
-            </Card>
-          </div>
+          <div className="space-y-6">
+            <SocialAccounts />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    الحملات النشطة
+                  </CardTitle>
+                  <Megaphone className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{activeCampaigns.length}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    إجمالي الانطباعات
+                  </CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">48.2K</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    معدل التحويل
+                  </CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">2.4%</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    إجمالي الإنفاق
+                  </CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">$4,325</div>
+                </CardContent>
+              </Card>
+            </div>
 
-          <div className="grid gap-6 md:grid-cols-2 mb-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>أداء الحملات</CardTitle>
-                <CardDescription>
-                  تحليل الانطباعات والنقرات والتحويلات
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={performanceData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="انطباعات"
-                        stroke="#8884d8"
-                      />
-                      <Line type="monotone" dataKey="نقرات" stroke="#82ca9d" />
-                      <Line
-                        type="monotone"
-                        dataKey="تحويلات"
-                        stroke="#ffc658"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="grid gap-6 md:grid-cols-2 mb-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle>أداء الحملات</CardTitle>
+                  <CardDescription>
+                    تحليل الانطباعات والنقرات والتحويلات
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={performanceData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="انطباعات"
+                          stroke="#8884d8"
+                        />
+                        <Line type="monotone" dataKey="نقرات" stroke="#82ca9d" />
+                        <Line
+                          type="monotone"
+                          dataKey="تحويلات"
+                          stroke="#ffc658"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>أداء المنصات</CardTitle>
-                <CardDescription>
-                  مقارنة الأداء بين منصات التواصل الاجتماعي
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={platformData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="قيمة" fill="#8884d8" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>أداء المنصات</CardTitle>
+                  <CardDescription>
+                    مقارنة الأداء بين منصات التواصل الاجتماعي
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={platformData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="قيمة" fill="#8884d8" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </main>

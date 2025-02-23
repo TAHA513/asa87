@@ -79,6 +79,17 @@ export const campaignAnalytics = pgTable("campaign_analytics", {
   date: timestamp("date").notNull(),
 });
 
+export const socialMediaAccounts = pgTable("social_media_accounts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  platform: text("platform").notNull(),
+  accountName: text("account_name").notNull(),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -140,6 +151,16 @@ export const insertAnalyticsSchema = createInsertSchema(campaignAnalytics)
     spend: z.number().min(0),
   });
 
+export const insertSocialMediaAccountSchema = createInsertSchema(socialMediaAccounts)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    platform: z.enum(["facebook", "instagram", "twitter", "linkedin", "snapchat", "tiktok"]),
+    accountName: z.string().min(1, "اسم الحساب مطلوب"),
+    accessToken: z.string().min(1, "رمز الوصول مطلوب"),
+    refreshToken: z.string().optional(),
+    expiresAt: z.date().optional(),
+  });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
@@ -153,3 +174,5 @@ export type Campaign = typeof marketingCampaigns.$inferSelect;
 export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
 export type CampaignAnalytics = typeof campaignAnalytics.$inferSelect;
 export type InsertCampaignAnalytics = z.infer<typeof insertAnalyticsSchema>;
+export type SocialMediaAccount = typeof socialMediaAccounts.$inferSelect;
+export type InsertSocialMediaAccount = z.infer<typeof insertSocialMediaAccountSchema>;
