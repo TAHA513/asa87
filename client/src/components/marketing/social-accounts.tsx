@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   SiFacebook,
@@ -30,13 +30,31 @@ const platformIcons = {
   tiktok: SiTiktok,
 };
 
-const platformNames = {
-  facebook: "فيسبوك",
-  instagram: "انستغرام",
-  twitter: "تويتر",
-  linkedin: "لينكد إن",
-  snapchat: "سناب شات",
-  tiktok: "تيك توك",
+const platformConfig = {
+  facebook: {
+    label: "فيسبوك",
+    authUrl: "https://www.facebook.com/login",
+  },
+  instagram: {
+    label: "انستغرام",
+    authUrl: "https://www.instagram.com/accounts/login",
+  },
+  twitter: {
+    label: "تويتر",
+    authUrl: "https://twitter.com/login",
+  },
+  linkedin: {
+    label: "لينكد إن",
+    authUrl: "https://www.linkedin.com/login",
+  },
+  snapchat: {
+    label: "سناب شات",
+    authUrl: "https://accounts.snapchat.com/accounts/login",
+  },
+  tiktok: {
+    label: "تيك توك",
+    authUrl: "https://www.tiktok.com/login",
+  },
 };
 
 export default function SocialAccounts() {
@@ -48,72 +66,11 @@ export default function SocialAccounts() {
   });
 
   const connectPlatform = async (platform: string) => {
-    setIsConnecting(prev => ({ ...prev, [platform]: true }));
+    const config = platformConfig[platform as keyof typeof platformConfig];
+    if (!config) return;
 
-    try {
-      const authWindow = window.open(
-        `/api/marketing/social-auth/${platform}`,
-        'تسجيل الدخول',
-        'width=600,height=700,scrollbars=yes'
-      );
-
-      if (!authWindow) {
-        throw new Error("تم حظر النافذة المنبثقة");
-      }
-
-      await new Promise((resolve, reject) => {
-        const timeoutId = setTimeout(() => {
-          reject(new Error("انتهت مهلة الاتصال"));
-        }, 120000); // 2 minute timeout
-
-        const handleMessage = async (event: MessageEvent) => {
-          if (event.data.type === 'social-auth-success' && event.data.platform === platform) {
-            window.removeEventListener('message', handleMessage);
-            clearTimeout(timeoutId);
-            resolve(event.data);
-          }
-        };
-
-        window.addEventListener('message', handleMessage);
-      });
-
-      await queryClient.invalidateQueries({
-        queryKey: ["/api/marketing/social-accounts"],
-      });
-
-      toast({
-        title: "تم بنجاح",
-        description: `تم ربط حساب ${platformNames[platform as keyof typeof platformNames]} بنجاح`,
-      });
-    } catch (error) {
-      console.error("Error connecting platform:", error);
-      toast({
-        title: "خطأ",
-        description: error instanceof Error ? error.message : "فشل في ربط الحساب",
-        variant: "destructive",
-      });
-    } finally {
-      setIsConnecting(prev => ({ ...prev, [platform]: false }));
-    }
-  };
-
-  const disconnectPlatform = async (accountId: number) => {
-    try {
-      await apiRequest("DELETE", `/api/marketing/social-accounts/${accountId}`);
-      await queryClient.invalidateQueries({
-        queryKey: ["/api/marketing/social-accounts"],
-      });
-      toast({
-        title: "تم بنجاح",
-        description: "تم إلغاء ربط الحساب",
-      });
-    } catch (error) {
-      toast({
-        title: "خطأ",
-        description: "فشل في إلغاء ربط الحساب",
-        variant: "destructive",
-      });
-    }
+    // فتح صفحة تسجيل الدخول الرسمية في نافذة جديدة
+    window.open(config.authUrl, '_blank', 'width=600,height=700,scrollbars=yes');
   };
 
   return (
@@ -121,14 +78,13 @@ export default function SocialAccounts() {
       <CardHeader>
         <CardTitle>حسابات التواصل الاجتماعي</CardTitle>
         <CardDescription>
-          قم بربط حسابات التواصل الاجتماعي لإدارة حملاتك التسويقية
+          قم بتسجيل الدخول إلى حساباتك على منصات التواصل الاجتماعي
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {Object.entries(platformNames).map(([platform, name]) => {
+          {Object.entries(platformConfig).map(([platform, config]) => {
             const Icon = platformIcons[platform as keyof typeof platformIcons];
-            const account = accounts.find(acc => acc.platform === platform);
 
             return (
               <div
@@ -136,29 +92,14 @@ export default function SocialAccounts() {
                 className="flex flex-col items-center p-4 border rounded-lg space-y-4"
               >
                 <Icon className="h-8 w-8" />
-                <h3 className="font-medium">{name}</h3>
-
-                {account ? (
-                  <>
-                    <Badge variant="secondary">{account.accountName}</Badge>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => disconnectPlatform(account.id)}
-                    >
-                      إلغاء الربط
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => connectPlatform(platform)}
-                    disabled={isConnecting[platform]}
-                  >
-                    {isConnecting[platform] ? "جاري الربط..." : "ربط الحساب"}
-                  </Button>
-                )}
+                <h3 className="font-medium">{config.label}</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => connectPlatform(platform)}
+                >
+                  تسجيل الدخول
+                </Button>
               </div>
             );
           })}
