@@ -173,6 +173,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Marketing Campaign Routes
+  app.get("/api/marketing/campaigns", async (_req, res) => {
+    const campaigns = await storage.getCampaigns();
+    res.json(campaigns);
+  });
+
+  app.get("/api/marketing/campaigns/:id", async (req, res) => {
+    const campaign = await storage.getCampaign(Number(req.params.id));
+    if (!campaign) {
+      return res.status(404).json({ message: "الحملة غير موجودة" });
+    }
+    res.json(campaign);
+  });
+
+  app.post("/api/marketing/campaigns", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const campaign = await storage.createCampaign({
+        ...req.body,
+        userId: req.user!.id,
+      });
+
+      res.status(201).json(campaign);
+    } catch (error) {
+      console.error("Error creating campaign:", error);
+      res.status(500).json({ message: "فشل في إنشاء الحملة" });
+    }
+  });
+
+  app.get("/api/marketing/campaigns/:id/analytics", async (req, res) => {
+    const analytics = await storage.getCampaignAnalytics(Number(req.params.id));
+    res.json(analytics);
+  });
+
+  app.post("/api/marketing/campaigns/:id/analytics", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const analytics = await storage.createCampaignAnalytics({
+        ...req.body,
+        campaignId: Number(req.params.id),
+      });
+
+      res.status(201).json(analytics);
+    } catch (error) {
+      console.error("Error creating analytics:", error);
+      res.status(500).json({ message: "فشل في تسجيل التحليلات" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

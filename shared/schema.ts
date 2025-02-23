@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, decimal, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, decimal, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -54,6 +54,31 @@ export const exchangeRates = pgTable("exchange_rates", {
   date: timestamp("date").notNull().defaultNow(),
 });
 
+export const marketingCampaigns = pgTable("marketing_campaigns", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  platforms: text("platforms").array().notNull(),
+  budget: decimal("budget", { precision: 10, scale: 2 }).notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"),
+  status: text("status").notNull().default("draft"),
+  userId: integer("user_id").notNull(),
+  metrics: jsonb("metrics"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const campaignAnalytics = pgTable("campaign_analytics", {
+  id: serial("id").primaryKey(),
+  campaignId: integer("campaign_id").notNull(),
+  platform: text("platform").notNull(),
+  impressions: integer("impressions").notNull().default(0),
+  clicks: integer("clicks").notNull().default(0),
+  conversions: integer("conversions").notNull().default(0),
+  spend: decimal("spend", { precision: 10, scale: 2 }).notNull().default("0"),
+  date: timestamp("date").notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -95,6 +120,26 @@ export const insertInstallmentPaymentSchema = createInsertSchema(installmentPaym
     notes: z.string().optional(),
   });
 
+export const insertCampaignSchema = createInsertSchema(marketingCampaigns)
+  .omit({ id: true, createdAt: true, metrics: true })
+  .extend({
+    platforms: z.array(z.string()).min(1, "يجب اختيار منصة واحدة على الأقل"),
+    budget: z.number().min(0, "الميزانية يجب أن تكون أكبر من 0"),
+    startDate: z.date(),
+    endDate: z.date().optional(),
+  });
+
+export const insertAnalyticsSchema = createInsertSchema(campaignAnalytics)
+  .omit({ id: true })
+  .extend({
+    date: z.date(),
+    platform: z.string(),
+    impressions: z.number().min(0),
+    clicks: z.number().min(0),
+    conversions: z.number().min(0),
+    spend: z.number().min(0),
+  });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
@@ -104,3 +149,7 @@ export type Installment = typeof installments.$inferSelect;
 export type InstallmentPayment = typeof installmentPayments.$inferSelect;
 export type InsertInstallment = z.infer<typeof insertInstallmentSchema>;
 export type InsertInstallmentPayment = z.infer<typeof insertInstallmentPaymentSchema>;
+export type Campaign = typeof marketingCampaigns.$inferSelect;
+export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
+export type CampaignAnalytics = typeof campaignAnalytics.$inferSelect;
+export type InsertCampaignAnalytics = z.infer<typeof insertAnalyticsSchema>;

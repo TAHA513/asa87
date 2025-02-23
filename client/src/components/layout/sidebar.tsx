@@ -11,6 +11,7 @@ import {
   LogOut,
   Calendar,
   Settings as SettingsIcon,
+  Megaphone,
 } from "lucide-react";
 
 const navigation = [
@@ -19,6 +20,7 @@ const navigation = [
   { name: "المبيعات", href: "/sales", icon: Receipt },
   { name: "الفواتير", href: "/invoices", icon: FileText },
   { name: "التقسيط", href: "/installments", icon: Calendar },
+  { name: "التسويق", href: "/marketing", icon: Megaphone },
   { name: "الموظفين", href: "/staff", icon: Users },
   { name: "الإعدادات", href: "/settings", icon: SettingsIcon },
 ];

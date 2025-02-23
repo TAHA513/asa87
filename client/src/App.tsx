@@ -14,6 +14,7 @@ import Invoices from "@/pages/invoices";
 import Staff from "@/pages/staff";
 import Settings from "@/pages/settings";
 import Installments from "@/pages/installments";
+import Marketing from "@/pages/marketing";
 
 function Router() {
   return (
@@ -26,6 +27,7 @@ function Router() {
       <ProtectedRoute path="/staff" component={Staff} />
       <ProtectedRoute path="/settings" component={Settings} />
       <ProtectedRoute path="/installments" component={Installments} />
+      <ProtectedRoute path="/marketing" component={Marketing} />
       <Route component={NotFound} />
     </Switch>
   );

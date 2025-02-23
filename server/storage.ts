@@ -1,4 +1,4 @@
-import { User, Product, Sale, ExchangeRate, InsertUser, Installment, InstallmentPayment } from "@shared/schema";
+import { User, Product, Sale, ExchangeRate, InsertUser, Installment, InstallmentPayment, Campaign, InsertCampaign, CampaignAnalytics, InsertCampaignAnalytics } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { addMonths } from "date-fns";
@@ -6,6 +6,7 @@ import { addMonths } from "date-fns";
 const MemoryStore = createMemoryStore(session);
 
 export interface IStorage {
+  // الوظائف الحالية
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
@@ -24,6 +25,15 @@ export interface IStorage {
   updateInstallment(id: number, update: Partial<Installment>): Promise<Installment>;
   getInstallmentPayments(installmentId: number): Promise<InstallmentPayment[]>;
   createInstallmentPayment(payment: InstallmentPayment): Promise<InstallmentPayment>;
+
+  // وظائف جديدة للتسويق
+  getCampaigns(): Promise<Campaign[]>;
+  getCampaign(id: number): Promise<Campaign | undefined>;
+  createCampaign(campaign: InsertCampaign): Promise<Campaign>;
+  updateCampaign(id: number, update: Partial<Campaign>): Promise<Campaign>;
+  getCampaignAnalytics(campaignId: number): Promise<CampaignAnalytics[]>;
+  createCampaignAnalytics(analytics: InsertCampaignAnalytics): Promise<CampaignAnalytics>;
+
   sessionStore: session.Store;
 }
 
@@ -34,16 +44,22 @@ export class MemStorage implements IStorage {
   private exchangeRates: Map<number, ExchangeRate>;
   private installments: Map<number, Installment>;
   private installmentPayments: Map<number, InstallmentPayment>;
+  private campaigns: Map<number, Campaign>;
+  private campaignAnalytics: Map<number, CampaignAnalytics>;
   private currentId: number;
   sessionStore: session.Store;
 
   constructor() {
+    // المتغيرات الحالية
     this.users = new Map();
     this.products = new Map();
     this.sales = new Map();
     this.exchangeRates = new Map();
     this.installments = new Map();
     this.installmentPayments = new Map();
+    // متغيرات جديدة للتسويق
+    this.campaigns = new Map();
+    this.campaignAnalytics = new Map();
     this.currentId = 1;
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
@@ -51,6 +67,7 @@ export class MemStorage implements IStorage {
     this.setExchangeRate(1300);
   }
 
+  // الوظائف الحالية تبقى كما هي
   async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
   }
@@ -172,6 +189,55 @@ export class MemStorage implements IStorage {
       });
     }
     return newPayment;
+  }
+
+  // وظائف جديدة للتسويق
+  async getCampaigns(): Promise<Campaign[]> {
+    return Array.from(this.campaigns.values());
+  }
+
+  async getCampaign(id: number): Promise<Campaign | undefined> {
+    return this.campaigns.get(id);
+  }
+
+  async createCampaign(campaign: InsertCampaign): Promise<Campaign> {
+    const id = this.currentId++;
+    const newCampaign: Campaign = {
+      ...campaign,
+      id,
+      status: "draft",
+      metrics: null,
+      description: campaign.description || null,
+      endDate: campaign.endDate || null,
+      budget: campaign.budget.toString(),
+      createdAt: new Date(),
+    };
+    this.campaigns.set(id, newCampaign);
+    return newCampaign;
+  }
+
+  async updateCampaign(id: number, update: Partial<Campaign>): Promise<Campaign> {
+    const campaign = this.campaigns.get(id);
+    if (!campaign) throw new Error("الحملة غير موجودة");
+    const updatedCampaign = { ...campaign, ...update };
+    this.campaigns.set(id, updatedCampaign);
+    return updatedCampaign;
+  }
+
+  async getCampaignAnalytics(campaignId: number): Promise<CampaignAnalytics[]> {
+    return Array.from(this.campaignAnalytics.values())
+      .filter(analytics => analytics.campaignId === campaignId);
+  }
+
+  async createCampaignAnalytics(analytics: InsertCampaignAnalytics): Promise<CampaignAnalytics> {
+    const id = this.currentId++;
+    const newAnalytics: CampaignAnalytics = {
+      ...analytics,
+      id,
+      spend: analytics.spend.toString(),
+    };
+    this.campaignAnalytics.set(id, newAnalytics);
+    return newAnalytics;
   }
 }
 
