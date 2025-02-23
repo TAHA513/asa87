@@ -15,6 +15,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription, // Added import
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -45,27 +46,6 @@ export default function MarketingPage() {
     queryKey: ["/api/marketing/social-accounts"],
   });
 
-  const activeCampaigns = campaigns.filter(
-    (campaign) => campaign.status === "active"
-  );
-
-  // بيانات تجريبية للرسوم البيانية
-  const performanceData = [
-    { name: "يناير", انطباعات: 4000, نقرات: 2400, تحويلات: 400 },
-    { name: "فبراير", انطباعات: 3000, نقرات: 1398, تحويلات: 210 },
-    { name: "مارس", انطباعات: 2000, نقرات: 9800, تحويلات: 290 },
-    { name: "أبريل", انطباعات: 2780, نقرات: 3908, تحويلات: 300 },
-  ];
-
-  const platformData = [
-    { name: "فيسبوك", قيمة: 4000 },
-    { name: "انستغرام", قيمة: 3000 },
-    { name: "تويتر", قيمة: 2000 },
-    { name: "لينكد إن", قيمة: 2780 },
-    { name: "سناب شات", قيمة: 1890 },
-    { name: "تيك توك", قيمة: 2390 },
-  ];
-
   return (
     <div className="flex h-screen">
       <div className="w-64 h-full">
@@ -80,13 +60,16 @@ export default function MarketingPage() {
             </div>
             <Dialog open={showNewCampaign} onOpenChange={setShowNewCampaign}>
               <DialogTrigger asChild>
-                <Button disabled={accounts.length === 0}>
-                  {accounts.length === 0 ? "قم بربط حساب أولاً" : "إنشاء حملة جديدة"}
+                <Button>
+                  إنشاء حملة إعلانية جديدة
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
+              <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
-                  <DialogTitle>إنشاء حملة تسويقية جديدة</DialogTitle>
+                  <DialogTitle>إنشاء حملة إعلانية جديدة</DialogTitle>
+                  <DialogDescription>
+                    اختر المنصة التي تريد إنشاء حملة إعلانية عليها
+                  </DialogDescription>
                 </DialogHeader>
                 <CampaignForm />
               </DialogContent>
