@@ -8,23 +8,6 @@ import { insertProductSchema, insertSaleSchema, insertExchangeRateSchema } from 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
-  // Password change endpoint
-  app.post("/api/change-password", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-
-    const { currentPassword, newPassword } = req.body;
-    const user = await storage.getUser(req.user!.id);
-
-    if (!user || !(await comparePasswords(currentPassword, user.password))) {
-      return res.status(400).json({ message: "كلمة المرور الحالية غير صحيحة" });
-    }
-
-    const hashedPassword = await hashPassword(newPassword);
-    await storage.updateUser(user.id, { password: hashedPassword });
-
-    res.json({ message: "تم تغيير كلمة المرور بنجاح" });
-  });
-
   // Products
   app.get("/api/products", async (_req, res) => {
     const products = await storage.getProducts();
