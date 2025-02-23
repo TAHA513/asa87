@@ -35,15 +35,6 @@ export default function MarketingPage() {
   // تصفية الحملات النشطة
   const activeCampaigns = campaigns.filter(campaign => campaign.status === "active");
 
-  // إحصائيات عامة
-  const stats = {
-    activeCampaigns: activeCampaigns.length,
-    totalImpressions: "48.2K",
-    conversionRate: "2.4%",
-    totalSpend: "$4,325",
-    roi: "156%"
-  };
-
   return (
     <div className="flex h-screen bg-background">
       <div className="w-64 h-full">
@@ -62,7 +53,7 @@ export default function MarketingPage() {
           </div>
 
           {/* بطاقات الإحصائيات */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="bg-white/50 backdrop-blur-sm hover:bg-white/60 transition-colors">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -72,7 +63,7 @@ export default function MarketingPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-primary">
-                  {stats.activeCampaigns}
+                  {activeCampaigns.length}
                 </div>
               </CardContent>
             </Card>
@@ -86,7 +77,7 @@ export default function MarketingPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-blue-500">
-                  {stats.totalImpressions}
+                  -
                 </div>
               </CardContent>
             </Card>
@@ -100,7 +91,7 @@ export default function MarketingPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-500">
-                  {stats.conversionRate}
+                  -
                 </div>
               </CardContent>
             </Card>
@@ -114,21 +105,7 @@ export default function MarketingPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-yellow-500">
-                  {stats.totalSpend}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/50 backdrop-blur-sm hover:bg-white/60 transition-colors">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">
-                  العائد على الاستثمار
-                </CardTitle>
-                <Target className="h-4 w-4 text-purple-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-purple-500">
-                  {stats.roi}
+                  -
                 </div>
               </CardContent>
             </Card>
