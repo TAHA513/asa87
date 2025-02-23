@@ -12,11 +12,11 @@ import {
 } from "lucide-react";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Inventory", href: "/inventory", icon: Package },
-  { name: "Sales", href: "/sales", icon: Receipt },
-  { name: "Invoices", href: "/invoices", icon: FileText },
-  { name: "Staff", href: "/staff", icon: Users },
+  { name: "لوحة التحكم", href: "/", icon: LayoutDashboard },
+  { name: "المخزون", href: "/inventory", icon: Package },
+  { name: "المبيعات", href: "/sales", icon: Receipt },
+  { name: "الفواتير", href: "/invoices", icon: FileText },
+  { name: "الموظفين", href: "/staff", icon: Users },
 ];
 
 export default function Sidebar() {
@@ -27,10 +27,10 @@ export default function Sidebar() {
     <div className="flex flex-col h-full bg-sidebar border-r">
       <div className="p-6">
         <h1 className="text-xl font-bold text-sidebar-foreground">
-          Business Management
+          نظام إدارة الأعمال
         </h1>
         <p className="text-sm text-sidebar-foreground/60">
-          Welcome, {user?.username}
+          مرحباً, {user?.username}
         </p>
       </div>
 
@@ -40,19 +40,21 @@ export default function Sidebar() {
             const Icon = item.icon;
             return (
               <li key={item.name}>
-                <Link href={item.href}>
-                  <a
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                      location === item.href
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-                    )}
-                  >
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start gap-3",
+                    location === item.href
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  )}
+                  asChild
+                >
+                  <Link href={item.href}>
                     <Icon className="h-4 w-4" />
                     {item.name}
-                  </a>
-                </Link>
+                  </Link>
+                </Button>
               </li>
             );
           })}
@@ -65,8 +67,8 @@ export default function Sidebar() {
           className="w-full"
           onClick={() => logoutMutation.mutate()}
         >
-          <LogOut className="h-4 w-4 mr-2" />
-          Logout
+          <LogOut className="h-4 w-4 ml-2" />
+          تسجيل خروج
         </Button>
       </div>
     </div>
