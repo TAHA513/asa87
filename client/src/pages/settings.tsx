@@ -1,5 +1,6 @@
 import Sidebar from "@/components/layout/sidebar";
 import ChangePasswordForm from "@/components/settings/change-password";
+import ThemeSettings from "@/components/settings/theme-settings";
 import { Settings as SettingsIcon } from "lucide-react";
 import {
   Card,
@@ -22,7 +23,9 @@ export default function Settings() {
             <h1 className="text-3xl font-bold">الإعدادات</h1>
           </div>
 
-          <div className="max-w-lg">
+          <div className="grid gap-8 max-w-2xl">
+            <ThemeSettings />
+
             <Card>
               <CardHeader>
                 <CardTitle>تغيير كلمة المرور</CardTitle>
