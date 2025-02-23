@@ -45,14 +45,13 @@ export default function NewSale() {
 
   const watchQuantity = form.watch("quantity");
 
-  const priceUsd = selectedProduct ? Number(selectedProduct.priceUsd) * watchQuantity : 0;
-  const priceIqd = exchangeRate ? priceUsd * Number(exchangeRate.usdToIqd) : 0;
+  const priceIqd = selectedProduct ? Number(selectedProduct.priceIqd) * watchQuantity : 0;
+  const priceUsd = exchangeRate ? priceIqd / Number(exchangeRate.usdToIqd) : 0;
 
   async function onSubmit(data: any) {
     await apiRequest("POST", "/api/sales", {
       ...data,
-      priceUsd,
-      priceIqd // Added priceIqd to the submitted data
+      priceIqd
     });
 
     queryClient.invalidateQueries({ queryKey: ["/api/sales"] });
@@ -108,15 +107,15 @@ export default function NewSale() {
         {selectedProduct && (
           <div className="pt-4 border-t space-y-2">
             <div className="flex justify-between text-sm">
-              <span>السعر بالدولار:</span>
-              <span className="font-bold">
-                ${priceUsd.toFixed(2)}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
               <span>السعر بالدينار:</span>
               <span className="font-bold">
                 {priceIqd.toLocaleString()} د.ع
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>ما يعادل بالدولار:</span>
+              <span className="font-bold">
+                ${priceUsd.toFixed(2)}
               </span>
             </div>
           </div>

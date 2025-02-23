@@ -51,13 +51,13 @@ export default function InventoryTable() {
     defaultValues: {
       name: "",
       description: "",
-      priceUsd: 0,
+      priceIqd: 0,
       stock: 0,
     },
   });
 
-  const watchPriceUsd = form.watch("priceUsd");
-  const priceIqd = exchangeRate ? Number(watchPriceUsd) * Number(exchangeRate.usdToIqd) : 0;
+  const watchPriceIqd = form.watch("priceIqd");
+  const priceUsd = exchangeRate ? Number(watchPriceIqd) / Number(exchangeRate.usdToIqd) : 0;
 
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(search.toLowerCase())
@@ -67,7 +67,7 @@ export default function InventoryTable() {
     try {
       await apiRequest("POST", "/api/products", {
         ...data,
-        priceUsd: Number(data.priceUsd),
+        priceIqd: Number(data.priceIqd),
         stock: Number(data.stock),
       });
 
@@ -147,21 +147,21 @@ export default function InventoryTable() {
 
                   <FormField
                     control={form.control}
-                    name="priceUsd"
+                    name="priceIqd"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>السعر بالدولار</FormLabel>
+                        <FormLabel>السعر بالدينار العراقي</FormLabel>
                         <FormControl>
                           <Input 
                             type="number" 
-                            step="0.01"
+                            step="1"
                             min="0"
                             {...field} 
                             onChange={(e) => field.onChange(e.target.valueAsNumber)} 
                           />
                         </FormControl>
                         <div className="text-sm text-muted-foreground">
-                          ما يعادل: {priceIqd.toLocaleString()} دينار عراقي
+                          ما يعادل: ${priceUsd.toFixed(2)} دولار
                         </div>
                         <FormMessage />
                       </FormItem>
@@ -209,8 +209,8 @@ export default function InventoryTable() {
           </TableHeader>
           <TableBody>
             {filteredProducts.map((product) => {
-              const priceIqd = exchangeRate 
-                ? Number(product.priceUsd) * Number(exchangeRate.usdToIqd)
+              const priceUsd = exchangeRate 
+                ? Number(product.priceIqd) / Number(exchangeRate.usdToIqd)
                 : 0;
 
               return (
@@ -218,10 +218,10 @@ export default function InventoryTable() {
                   <TableCell>{product.name}</TableCell>
                   <TableCell>{product.description}</TableCell>
                   <TableCell>
-                    ${Number(product.priceUsd).toFixed(2)}
+                    {Number(product.priceIqd).toLocaleString()} د.ع
                     <br />
                     <span className="text-sm text-muted-foreground">
-                      {priceIqd.toLocaleString()} د.ع
+                      ${priceUsd.toFixed(2)}
                     </span>
                   </TableCell>
                   <TableCell>{product.stock}</TableCell>
