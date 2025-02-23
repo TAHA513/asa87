@@ -1,4 +1,4 @@
-import { User, Product, Sale, ExchangeRate, InsertUser, Installment, InstallmentPayment, Campaign, InsertCampaign, CampaignAnalytics, InsertCampaignAnalytics } from "@shared/schema";
+import { User, Product, Sale, ExchangeRate, InsertUser, Installment, InstallmentPayment, Campaign, InsertCampaign, CampaignAnalytics, InsertCampaignAnalytics, SocialMediaAccount } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { addMonths } from "date-fns";
@@ -26,13 +26,18 @@ export interface IStorage {
   getInstallmentPayments(installmentId: number): Promise<InstallmentPayment[]>;
   createInstallmentPayment(payment: InstallmentPayment): Promise<InstallmentPayment>;
 
-  // وظائف جديدة للتسويق
+  // وظائف التسويق
   getCampaigns(): Promise<Campaign[]>;
   getCampaign(id: number): Promise<Campaign | undefined>;
   createCampaign(campaign: InsertCampaign): Promise<Campaign>;
   updateCampaign(id: number, update: Partial<Campaign>): Promise<Campaign>;
   getCampaignAnalytics(campaignId: number): Promise<CampaignAnalytics[]>;
   createCampaignAnalytics(analytics: InsertCampaignAnalytics): Promise<CampaignAnalytics>;
+
+  // وظائف حسابات التواصل الاجتماعي
+  getSocialMediaAccounts(userId: number): Promise<SocialMediaAccount[]>;
+  createSocialMediaAccount(account: SocialMediaAccount): Promise<SocialMediaAccount>;
+  deleteSocialMediaAccount(id: number): Promise<void>;
 
   sessionStore: session.Store;
 }
@@ -46,6 +51,7 @@ export class MemStorage implements IStorage {
   private installmentPayments: Map<number, InstallmentPayment>;
   private campaigns: Map<number, Campaign>;
   private campaignAnalytics: Map<number, CampaignAnalytics>;
+  private socialMediaAccounts: Map<number, SocialMediaAccount>;
   private currentId: number;
   sessionStore: session.Store;
 
@@ -57,9 +63,10 @@ export class MemStorage implements IStorage {
     this.exchangeRates = new Map();
     this.installments = new Map();
     this.installmentPayments = new Map();
-    // متغيرات جديدة للتسويق
+    // متغيرات التسويق
     this.campaigns = new Map();
     this.campaignAnalytics = new Map();
+    this.socialMediaAccounts = new Map();
     this.currentId = 1;
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
@@ -238,6 +245,23 @@ export class MemStorage implements IStorage {
     };
     this.campaignAnalytics.set(id, newAnalytics);
     return newAnalytics;
+  }
+
+  // وظائف حسابات التواصل الاجتماعي
+  async getSocialMediaAccounts(userId: number): Promise<SocialMediaAccount[]> {
+    return Array.from(this.socialMediaAccounts.values())
+      .filter(account => account.userId === userId);
+  }
+
+  async createSocialMediaAccount(account: SocialMediaAccount): Promise<SocialMediaAccount> {
+    const id = this.currentId++;
+    const newAccount = { ...account, id };
+    this.socialMediaAccounts.set(id, newAccount);
+    return newAccount;
+  }
+
+  async deleteSocialMediaAccount(id: number): Promise<void> {
+    this.socialMediaAccounts.delete(id);
   }
 }
 

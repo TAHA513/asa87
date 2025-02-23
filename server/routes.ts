@@ -228,6 +228,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  // Social Media Auth Routes
+  app.get("/api/marketing/social-accounts", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+    const accounts = await storage.getSocialMediaAccounts(req.user!.id);
+    res.json(accounts);
+  });
+
+  app.get("/api/marketing/social-auth/:platform", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    const { platform } = req.params;
+
+    // هنا سنضيف المنطق الخاص بكل منصة
+    try {
+      // في هذه المرحلة نقوم بمحاكاة عملية المصادقة
+      const mockAccount = {
+        id: Date.now(),
+        userId: req.user!.id,
+        platform,
+        accountName: `${req.user!.username}_${platform}`,
+        accessToken: `mock_token_${Date.now()}`,
+        createdAt: new Date()
+      };
+
+      await storage.createSocialMediaAccount(mockAccount);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error(`Error authenticating with ${platform}:`, error);
+      res.status(500).json({ message: "فشل في عملية المصادقة" });
+    }
+  });
+
+  app.delete("/api/marketing/social-accounts/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      await storage.deleteSocialMediaAccount(Number(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting social account:", error);
+      res.status(500).json({ message: "فشل في إلغاء ربط الحساب" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
