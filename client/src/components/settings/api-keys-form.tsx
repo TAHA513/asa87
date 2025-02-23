@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/accordion";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { Separator } from "@/components/ui/separator";
 
 // تعريف نوع البيانات لكل منصة
 type PlatformField = {
@@ -40,7 +40,7 @@ type Platform = {
 };
 
 // تكوين المنصات
-const platforms: Record<string, Platform> = {
+const platformConfig = {
   facebook: {
     title: "فيسبوك وانستغرام",
     description: "قم بإنشاء تطبيق على Facebook Developers وأدخل المفاتيح هنا",
@@ -167,7 +167,7 @@ const platforms: Record<string, Platform> = {
 // إنشاء مخطط Zod للتحقق من صحة البيانات
 const formSchema = z.object(
   Object.fromEntries(
-    Object.entries(platforms).map(([platform, config]) => [
+    Object.entries(platformConfig).map(([platform, config]) => [
       platform,
       z.object(
         Object.fromEntries(
@@ -183,6 +183,8 @@ const formSchema = z.object(
 
 type FormData = z.infer<typeof formSchema>;
 
+const LOCAL_STORAGE_KEY = 'social_media_api_keys';
+
 export default function ApiKeysForm() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -190,7 +192,7 @@ export default function ApiKeysForm() {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: Object.fromEntries(
-      Object.entries(platforms).map(([platform, config]) => [
+      Object.entries(platformConfig).map(([platform, config]) => [
         platform,
         Object.fromEntries(
           Object.entries(config.fields).map(([key]) => [key, ""])
@@ -199,29 +201,29 @@ export default function ApiKeysForm() {
     ),
   });
 
+  // استرجاع البيانات المحفوظة عند تحميل النموذج
+  useEffect(() => {
+    const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        form.reset(parsedData);
+      } catch (error) {
+        console.error("Error loading saved API keys:", error);
+      }
+    }
+  }, [form]);
+
   async function onSubmit(data: FormData) {
     setIsSubmitting(true);
     try {
-      console.log("Submitting API keys:", data);
-      const response = await apiRequest("POST", "/api/settings/api-keys", data);
+      // حفظ البيانات في LocalStorage
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("API Response Error:", response.status, errorText);
-        throw new Error(`فشل في حفظ المفاتيح: ${errorText}`);
-      }
-
-      const result = await response.json();
-      console.log("API Response:", result);
-
-      if (result.success) {
-        toast({
-          title: "تم الحفظ بنجاح",
-          description: "تم حفظ مفاتيح API بنجاح",
-        });
-      } else {
-        throw new Error("فشل في حفظ المفاتيح");
-      }
+      toast({
+        title: "تم الحفظ بنجاح",
+        description: "تم حفظ مفاتيح API في المتصفح",
+      });
     } catch (error) {
       console.error("Error saving API keys:", error);
       toast({
@@ -238,7 +240,7 @@ export default function ApiKeysForm() {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <Accordion type="single" collapsible className="w-full">
-          {Object.entries(platforms).map(([platformKey, platform]) => (
+          {Object.entries(platformConfig).map(([platformKey, platform]) => (
             <AccordionItem key={platformKey} value={platformKey}>
               <AccordionTrigger>{platform.title}</AccordionTrigger>
               <AccordionContent>
