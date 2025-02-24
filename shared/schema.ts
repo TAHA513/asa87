@@ -1,6 +1,7 @@
-import { pgTable, text, serial, integer, decimal, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { decimal, timestamp, integer, boolean, jsonb } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -100,14 +101,13 @@ export const apiKeys = pgTable("api_keys", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// New tables for inventory tracking
 export const inventoryTransactions = pgTable("inventory_transactions", {
   id: serial("id").primaryKey(),
   productId: integer("product_id").notNull(),
-  type: text("type").notNull(), // 'in' or 'out'
+  type: text("type").notNull(), 
   quantity: integer("quantity").notNull(),
-  reason: text("reason").notNull(), // 'sale', 'return', 'adjustment', 'purchase'
-  reference: text("reference"), // Reference to sale or purchase id
+  reason: text("reason").notNull(), 
+  reference: text("reference"), 
   date: timestamp("date").notNull().defaultNow(),
   userId: integer("user_id").notNull(),
   notes: text("notes"),
@@ -126,15 +126,15 @@ export const inventoryAdjustments = pgTable("inventory_adjustments", {
 
 export const reports = pgTable("reports", {
   id: serial("id").primaryKey(),
-  type: text("type").notNull(), // 'sales', 'inventory', 'marketing', 'financial'
+  type: text("type").notNull(), 
   title: text("title").notNull(),
-  dateRange: jsonb("date_range").notNull(), // { start: Date, end: Date }
-  filters: jsonb("filters"), // Any additional filters applied
-  data: jsonb("data").notNull(), // The actual report data
+  dateRange: jsonb("date_range").notNull(), 
+  filters: jsonb("filters"), 
+  data: jsonb("data").notNull(), 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   userId: integer("user_id").notNull(),
   status: text("status").notNull().default("generated"),
-  format: text("format").notNull().default("json"), // 'json', 'csv', 'pdf'
+  format: text("format").notNull().default("json"), 
 });
 
 export const expenseCategories = pgTable("expense_categories", {
@@ -155,8 +155,8 @@ export const expenses = pgTable("expenses", {
   categoryId: integer("category_id").notNull().references(() => expenseCategories.id),
   userId: integer("user_id").notNull(),
   isRecurring: boolean("is_recurring").default(false),
-  recurringPeriod: text("recurring_period"), // monthly, weekly, yearly
-  recurringDay: integer("recurring_day"), // day of month/week for recurring
+  recurringPeriod: text("recurring_period"), 
+  recurringDay: integer("recurring_day"), 
   notes: text("notes"),
   attachments: text("attachments").array(),
   status: text("status").notNull().default("active"),
@@ -164,10 +164,15 @@ export const expenses = pgTable("expenses", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
+export const insertUserSchema = createInsertSchema(users)
+  .pick({
+    username: true,
+    password: true,
+  })
+  .extend({
+    username: z.string().min(1, "اسم المستخدم مطلوب"),
+    password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
+  });
 
 export const insertProductSchema = createInsertSchema(products).extend({
   name: z.string().min(1, "اسم المنتج مطلوب"),
@@ -241,7 +246,6 @@ export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
   updatedAt: true,
 });
 
-// New schemas for inventory transactions
 export const insertInventoryTransactionSchema = createInsertSchema(inventoryTransactions)
   .omit({ id: true })
   .extend({
@@ -315,7 +319,6 @@ export type InsertSocialMediaAccount = z.infer<typeof insertSocialMediaAccountSc
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
 
-// Export new types
 export type InventoryTransaction = typeof inventoryTransactions.$inferSelect;
 export type InsertInventoryTransaction = z.infer<typeof insertInventoryTransactionSchema>;
 export type InventoryAdjustment = typeof inventoryAdjustments.$inferSelect;

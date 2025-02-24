@@ -4,11 +4,11 @@ import { Express } from "express";
 import session from "express-session";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import { insertUserSchema, type User } from "@shared/schema";
 
 declare global {
   namespace Express {
-    interface User extends SelectUser {}
+    interface User extends User {}
   }
 }
 
@@ -58,15 +58,10 @@ export function setupAuth(app: Express) {
     })
   );
 
-  // Serialize just the user ID
-  passport.serializeUser((user, done) => {
-    if (!user.id) {
-      return done(new Error("User ID is missing"));
-    }
+  passport.serializeUser((user: Express.User, done) => {
     done(null, user.id);
   });
 
-  // Deserialize by fetching user from storage
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
@@ -81,45 +76,35 @@ export function setupAuth(app: Express) {
 
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { username, password } = req.body;
+      const validatedData = insertUserSchema.parse(req.body);
 
-      if (!username || !password) {
-        return res.status(400).json({ 
-          message: "يجب توفير اسم المستخدم وكلمة المرور" 
-        });
-      }
-
-      // Check if user already exists
-      const existingUser = await storage.getUserByUsername(username);
+      const existingUser = await storage.getUserByUsername(validatedData.username);
       if (existingUser) {
-        return res.status(400).json({ 
-          message: "اسم المستخدم موجود بالفعل" 
-        });
+        return res.status(400).json({ message: "اسم المستخدم موجود بالفعل" });
       }
 
-      // Create new user
-      const hashedPassword = await hashPassword(password);
+      const hashedPassword = await hashPassword(validatedData.password);
       const user = await storage.createUser({
-        username,
+        ...validatedData,
         password: hashedPassword,
-        role: "staff",
       });
 
-      // Log in the new user
       req.login(user, (err) => {
         if (err) {
           console.error("Login error after registration:", err);
-          return res.status(500).json({ 
-            message: "فشل في تسجيل الدخول بعد إنشاء الحساب" 
+          return res.status(500).json({
+            message: "فشل في تسجيل الدخول بعد إنشاء الحساب",
           });
         }
         res.status(201).json(user);
       });
     } catch (err) {
       console.error("Registration error:", err);
-      res.status(500).json({ 
-        message: "حدث خطأ أثناء إنشاء الحساب" 
-      });
+      if (err instanceof Error) {
+        res.status(400).json({ message: err.message });
+      } else {
+        res.status(500).json({ message: "حدث خطأ أثناء إنشاء الحساب" });
+      }
     }
   });
 
@@ -127,22 +112,20 @@ export function setupAuth(app: Express) {
     passport.authenticate("local", (err, user, info) => {
       if (err) {
         console.error("Login error:", err);
-        return res.status(500).json({ 
-          message: "حدث خطأ أثناء تسجيل الدخول" 
-        });
+        return res.status(500).json({ message: "حدث خطأ أثناء تسجيل الدخول" });
       }
 
       if (!user) {
-        return res.status(401).json({ 
-          message: info?.message || "فشل تسجيل الدخول" 
+        return res.status(401).json({
+          message: info?.message || "فشل تسجيل الدخول",
         });
       }
 
       req.login(user, (err) => {
         if (err) {
           console.error("Session error:", err);
-          return res.status(500).json({ 
-            message: "فشل في إنشاء جلسة المستخدم" 
+          return res.status(500).json({
+            message: "فشل في إنشاء جلسة المستخدم",
           });
         }
         res.json(user);
@@ -154,8 +137,8 @@ export function setupAuth(app: Express) {
     req.logout((err) => {
       if (err) {
         console.error("Logout error:", err);
-        return res.status(500).json({ 
-          message: "حدث خطأ أثناء تسجيل الخروج" 
+        return res.status(500).json({
+          message: "حدث خطأ أثناء تسجيل الخروج",
         });
       }
       res.sendStatus(200);
@@ -164,8 +147,8 @@ export function setupAuth(app: Express) {
 
   app.get("/api/auth/user", (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ 
-        message: "يجب تسجيل الدخول أولاً" 
+      return res.status(401).json({
+        message: "يجب تسجيل الدخول أولاً",
       });
     }
     res.json(req.user);

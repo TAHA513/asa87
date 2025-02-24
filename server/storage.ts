@@ -86,7 +86,6 @@ export class MemStorage implements IStorage {
     this.setExchangeRate(1300);
   }
 
-  // Implementation of all interface methods...
   async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
   }
@@ -97,7 +96,12 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentId++;
-    const user = { ...insertUser, id, role: "staff" };
+    const user: User = {
+      id,
+      username: insertUser.username,
+      password: insertUser.password,
+      role: "staff",
+    };
     this.users.set(id, user);
     return user;
   }
@@ -405,7 +409,6 @@ export class DatabaseStorage implements IStorage {
     this.sessionStore = new MemoryStore({ checkPeriod: 86400000 });
   }
 
-  // Database implementation will be added later. For now, using in-memory implementation.
   async getUser(id: number): Promise<User | undefined> { return undefined; }
   async getUserByUsername(username: string): Promise<User | undefined> { return undefined; }
   async createUser(user: InsertUser): Promise<User> { return user as User; }
