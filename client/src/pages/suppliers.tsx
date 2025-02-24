@@ -51,8 +51,8 @@ export default function SuppliersPage() {
       taxNumber: "",
       paymentTerms: "",
       notes: "",
-      categories: ["أجهزة"], // تعيين قيمة افتراضية للفئات
-      userId: 0,
+      categories: ["أجهزة"],
+      userId: user?.id || 0,
     },
   });
 
@@ -62,8 +62,14 @@ export default function SuppliersPage() {
 
       const response = await fetch("/api/suppliers", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, userId: user.id }),
+        headers: { 
+          "Content-Type": "application/json",
+        },
+        credentials: 'include', 
+        body: JSON.stringify({
+          ...data,
+          userId: user.id,
+        }),
       });
 
       if (!response.ok) {
@@ -83,6 +89,7 @@ export default function SuppliersPage() {
       });
     },
     onError: (error: Error) => {
+      console.error("خطأ في إنشاء المورد:", error);
       toast({
         title: "خطأ",
         description: error.message,
