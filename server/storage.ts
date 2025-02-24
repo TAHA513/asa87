@@ -5,14 +5,10 @@ import {
   InventoryTransaction, InsertInventoryTransaction,
   ExpenseCategory, InsertExpenseCategory, Expense, InsertExpense,
   Supplier, InsertSupplier, SupplierTransaction, InsertSupplierTransaction,
-  Customer, InsertCustomer, Appointment, InsertAppointment,
-  users
+  Customer, InsertCustomer, Appointment, InsertAppointment
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
-import { db } from "./db";
-import connectPgSimple from 'connect-pg-simple';
-import { eq } from 'drizzle-orm';
 
 const MemoryStore = createMemoryStore(session);
 
@@ -116,7 +112,15 @@ export class MemStorage implements IStorage {
       id,
       username: insertUser.username,
       password: insertUser.password,
-      role: "staff",
+      fullName: insertUser.fullName,
+      role: insertUser.role || "staff",
+      email: insertUser.email || null,
+      phone: insertUser.phone || null,
+      isActive: true,
+      lastLoginAt: null,
+      permissions: insertUser.permissions || [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
     this.users.set(id, user);
     return user;
@@ -125,7 +129,7 @@ export class MemStorage implements IStorage {
   async updateUser(id: number, update: Partial<User>): Promise<User> {
     const user = this.users.get(id);
     if (!user) throw new Error("User not found");
-    const updatedUser = { ...user, ...update };
+    const updatedUser = { ...user, ...update, updatedAt: new Date() };
     this.users.set(id, updatedUser);
     return updatedUser;
   }
@@ -547,153 +551,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export class DatabaseStorage implements IStorage {
-  sessionStore: session.Store;
-
-  constructor() {
-    const PostgresStore = connectPgSimple(session);
-    this.sessionStore = new PostgresStore({
-      conObject: { connectionString: process.env.DATABASE_URL },
-      createTableIfMissing: true,
-    });
-  }
-
-  async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values({
-        ...insertUser,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isActive: true,
-        lastLoginAt: null,
-      })
-      .returning();
-    return user;
-  }
-
-  async updateUser(id: number, update: Partial<User>): Promise<User> {
-    const [user] = await db
-      .update(users)
-      .set({
-        ...update,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, id))
-      .returning();
-
-    if (!user) throw new Error("User not found");
-    return user;
-  }
-
-  async getProducts(): Promise<Product[]> { return []; }
-  async getProduct(id: number): Promise<Product | undefined> { return undefined; }
-  async createProduct(product: Product): Promise<Product> { return product; }
-  async updateProduct(id: number, product: Partial<Product>): Promise<Product> { return {...product, id} as Product; }
-  async getSales(): Promise<Sale[]> { return []; }
-  async createSale(sale: Sale): Promise<Sale> { return sale; }
-  async getCurrentExchangeRate(): Promise<ExchangeRate> { return {id:0, usdToIqd: "1", date: new Date()} as ExchangeRate; }
-  async setExchangeRate(rate: number): Promise<ExchangeRate> { return {id:0, usdToIqd: rate.toString(), date: new Date()} as ExchangeRate; }
-  async getInstallments(): Promise<Installment[]> { return []; }
-  async getInstallment(id: number): Promise<Installment | undefined> { return undefined; }
-  async createInstallment(installment: Installment): Promise<Installment> { return installment; }
-  async updateInstallment(id: number, update: Partial<Installment>): Promise<Installment> { return {...installment, id} as Installment; }
-  async getInstallmentPayments(installmentId: number): Promise<InstallmentPayment[]> { return []; }
-  async createInstallmentPayment(payment: InstallmentPayment): Promise<InstallmentPayment> { return payment; }
-  async getCampaigns(): Promise<Campaign[]> { return []; }
-  async getCampaign(id: number): Promise<Campaign | undefined> { return undefined; }
-  async createCampaign(campaign: InsertCampaign): Promise<Campaign> { return {...campaign, id:1} as Campaign; }
-  async updateCampaign(id: number, update: Partial<Campaign>): Promise<Campaign> { return {...campaign, id:id, ...update} as Campaign; }
-  async getCampaignAnalytics(campaignId: number): Promise<CampaignAnalytics[]> { return []; }
-  async createCampaignAnalytics(analytics: InsertCampaignAnalytics): Promise<CampaignAnalytics> { return {...analytics, id:1} as CampaignAnalytics; }
-  async getSocialMediaAccounts(userId: number): Promise<SocialMediaAccount[]> { return []; }
-  async createSocialMediaAccount(account: SocialMediaAccount): Promise<SocialMediaAccount> { return account; }
-  async deleteSocialMediaAccount(id: number): Promise<void> {}
-  async setApiKeys(userId: number, keys: Record<string, any>): Promise<void> {}
-  async getApiKeys(userId: number): Promise<Record<string, any> | null> { return null; }
-  async migrateLocalStorageToDb(userId: number, keys: Record<string, any>): Promise<void> {}
-  async getInventoryTransactions(): Promise<InventoryTransaction[]> { return []; }
-  async createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction> { return {...transaction, id:1} as InventoryTransaction; }
-  async getExpenseCategories(userId: number): Promise<ExpenseCategory[]> { return []; }
-  async getExpenseCategory(id: number): Promise<ExpenseCategory | undefined> { return undefined; }
-  async createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory> { return {...category, id:1} as ExpenseCategory; }
-  async updateExpenseCategory(id: number, update: Partial<ExpenseCategory>): Promise<ExpenseCategory> { return {...category, id:id, ...update} as ExpenseCategory; }
-  async deleteExpenseCategory(id: number): Promise<void> {}
-  async getExpenses(userId: number): Promise<Expense[]> { return []; }
-  async getExpense(id: number): Promise<Expense | undefined> { return undefined; }
-  async createExpense(expense: InsertExpense): Promise<Expense> { return {...expense, id:1} as Expense; }
-  async updateExpense(id: number, update: Partial<Expense>): Promise<Expense> { return {...expense, id:id, ...update} as Expense; }
-  async deleteExpense(id: number): Promise<void> {}
-  async getSuppliers(userId: number): Promise<Supplier[]> { return []; }
-  async getSupplier(id: number): Promise<Supplier | undefined> { return undefined; }
-  async createSupplier(supplier: InsertSupplier): Promise<Supplier> { return {...supplier, id:1}; }
-  async updateSupplier(id: number, update: Partial<Supplier>): Promise<Supplier> { return {...supplier, id:id, ...update} as Supplier; }
-  async deleteSupplier(id: number): Promise<void> {}
-  async getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]> { return []; }
-  async createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction> { return {...transaction, id:1} as SupplierTransaction; }
-  async searchCustomers(search?: string): Promise<Customer[]> {
-    return []; 
-  }
-  async getCustomer(id: number): Promise<Customer | undefined> {
-    return undefined;
-  }
-  async getCustomerSales(customerId: number): Promise<Sale[]> {
-    return [];
-  }
-  async createCustomer(insertCustomer: InsertCustomer): Promise<Customer> {
-    return {
-      id: 1,
-      name: insertCustomer.name,
-      phone: insertCustomer.phone || null,
-      email: insertCustomer.email || null,
-      address: insertCustomer.address || null,
-      notes: insertCustomer.notes || null,
-      createdAt: new Date()
-    };
-  }
-  async getCustomerAppointments(customerId: number): Promise<Appointment[]> {
-    return [];
-  }
-  async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
-    return {
-      id: 1,
-      customerId: appointment.customerId,
-      title: appointment.title,
-      description: appointment.description || null,
-      date: appointment.date,
-      duration: appointment.duration,
-      status: appointment.status || "scheduled",
-      notes: appointment.notes || null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  }
-  async updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment> {
-    return {
-      id,
-      ...update,
-      customerId: 1,
-      title: "Appointment",
-      date: new Date(),
-      duration: 30,
-      status: "scheduled",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as Appointment;
-  }
-  async deleteAppointment(id: number): Promise<void> { }
-}
-
-export const storage = process.env.DATABASE_URL
-  ? new DatabaseStorage()
-  : new MemStorage();
+export const storage = new MemStorage();

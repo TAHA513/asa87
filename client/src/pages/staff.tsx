@@ -170,7 +170,11 @@ export default function Staff() {
                         <FormItem>
                           <FormLabel>البريد الإلكتروني</FormLabel>
                           <FormControl>
-                            <Input type="email" {...field} />
+                            <Input 
+                              type="email" 
+                              {...field}
+                              value={field.value || ''}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -183,7 +187,10 @@ export default function Staff() {
                         <FormItem>
                           <FormLabel>رقم الهاتف</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input 
+                              {...field}
+                              value={field.value || ''}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
