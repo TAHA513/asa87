@@ -35,7 +35,12 @@ export default function AuthPage() {
   }, [user, navigate]);
 
   const loginForm = useForm({
-    resolver: zodResolver(insertUserSchema),
+    resolver: zodResolver(
+      insertUserSchema.pick({
+        username: true,
+        password: true,
+      })
+    ),
     defaultValues: {
       username: "",
       password: "",
@@ -47,6 +52,11 @@ export default function AuthPage() {
     defaultValues: {
       username: "",
       password: "",
+      fullName: "",
+      email: "",
+      phone: "",
+      role: "staff",
+      permissions: [],
     },
   });
 
@@ -154,12 +164,58 @@ export default function AuthPage() {
                       />
                       <FormField
                         control={registerForm.control}
+                        name="fullName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>الاسم الكامل</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={registerForm.control}
                         name="password"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>كلمة المرور</FormLabel>
                             <FormControl>
                               <Input type="password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={registerForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>البريد الإلكتروني</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="email" 
+                                {...field}
+                                value={field.value || ''}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={registerForm.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>رقم الهاتف</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field}
+                                value={field.value || ''}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
