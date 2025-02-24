@@ -3,10 +3,17 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { z } from "zod";
-import { insertProductSchema, insertSaleSchema, insertInstallmentSchema, insertInstallmentPaymentSchema } from "@shared/schema";
+import {
+  insertProductSchema,
+  insertSaleSchema,
+  insertInstallmentSchema,
+  insertInstallmentPaymentSchema,
+  insertInventoryTransactionSchema,
+  insertExpenseCategorySchema,
+  insertExpenseSchema
+} from "@shared/schema";
 import fs from "fs/promises";
 import path from "path";
-import { insertInventoryTransactionSchema, insertInventoryAdjustmentSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -408,6 +415,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating inventory transaction:", error);
       res.status(500).json({ message: "فشل في إنشاء حركة المخزون" });
+    }
+  });
+
+  // Expense Categories Routes
+  app.get("/api/expenses/categories", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const categories = await storage.getExpenseCategories(req.user!.id);
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching expense categories:", error);
+      res.status(500).json({ message: "فشل في جلب فئات المصروفات" });
+    }
+  });
+
+  app.post("/api/expenses/categories", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const validatedData = insertExpenseCategorySchema.parse(req.body);
+      const category = await storage.createExpenseCategory({
+        ...validatedData,
+        userId: req.user!.id,
+      });
+      res.status(201).json(category);
+    } catch (error) {
+      console.error("Error creating expense category:", error);
+      res.status(500).json({ message: "فشل في إنشاء فئة المصروفات" });
+    }
+  });
+
+  app.patch("/api/expenses/categories/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const category = await storage.getExpenseCategory(Number(req.params.id));
+      if (!category || category.userId !== req.user!.id) {
+        return res.status(404).json({ message: "فئة المصروفات غير موجودة" });
+      }
+
+      const updatedCategory = await storage.updateExpenseCategory(category.id, req.body);
+      res.json(updatedCategory);
+    } catch (error) {
+      console.error("Error updating expense category:", error);
+      res.status(500).json({ message: "فشل في تحديث فئة المصروفات" });
+    }
+  });
+
+  app.delete("/api/expenses/categories/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const category = await storage.getExpenseCategory(Number(req.params.id));
+      if (!category || category.userId !== req.user!.id) {
+        return res.status(404).json({ message: "فئة المصروفات غير موجودة" });
+      }
+
+      await storage.deleteExpenseCategory(category.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting expense category:", error);
+      res.status(500).json({ message: "فشل في حذف فئة المصروفات" });
+    }
+  });
+
+  // Expenses Routes
+  app.get("/api/expenses", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const expenses = await storage.getExpenses(req.user!.id);
+      res.json(expenses);
+    } catch (error) {
+      console.error("Error fetching expenses:", error);
+      res.status(500).json({ message: "فشل في جلب المصروفات" });
+    }
+  });
+
+  app.post("/api/expenses", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const validatedData = insertExpenseSchema.parse(req.body);
+      const expense = await storage.createExpense({
+        ...validatedData,
+        userId: req.user!.id,
+      });
+      res.status(201).json(expense);
+    } catch (error) {
+      console.error("Error creating expense:", error);
+      res.status(500).json({ message: "فشل في إنشاء المصروف" });
+    }
+  });
+
+  app.patch("/api/expenses/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const expense = await storage.getExpense(Number(req.params.id));
+      if (!expense || expense.userId !== req.user!.id) {
+        return res.status(404).json({ message: "المصروف غير موجود" });
+      }
+
+      const updatedExpense = await storage.updateExpense(expense.id, req.body);
+      res.json(updatedExpense);
+    } catch (error) {
+      console.error("Error updating expense:", error);
+      res.status(500).json({ message: "فشل في تحديث المصروف" });
+    }
+  });
+
+  app.delete("/api/expenses/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const expense = await storage.getExpense(Number(req.params.id));
+      if (!expense || expense.userId !== req.user!.id) {
+        return res.status(404).json({ message: "المصروف غير موجود" });
+      }
+
+      await storage.deleteExpense(expense.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+      res.status(500).json({ message: "فشل في حذف المصروف" });
     }
   });
 

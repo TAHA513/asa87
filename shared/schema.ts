@@ -137,6 +137,33 @@ export const reports = pgTable("reports", {
   format: text("format").notNull().default("json"), // 'json', 'csv', 'pdf'
 });
 
+export const expenseCategories = pgTable("expense_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  parentId: integer("parent_id").references(() => expenseCategories.id),
+  budgetAmount: decimal("budget_amount", { precision: 10, scale: 2 }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  userId: integer("user_id").notNull(),
+});
+
+export const expenses = pgTable("expenses", {
+  id: serial("id").primaryKey(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  description: text("description").notNull(),
+  date: timestamp("date").notNull(),
+  categoryId: integer("category_id").notNull().references(() => expenseCategories.id),
+  userId: integer("user_id").notNull(),
+  isRecurring: boolean("is_recurring").default(false),
+  recurringPeriod: text("recurring_period"), // monthly, weekly, yearly
+  recurringDay: integer("recurring_day"), // day of month/week for recurring
+  notes: text("notes"),
+  attachments: text("attachments").array(),
+  status: text("status").notNull().default("active"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -248,6 +275,28 @@ export const insertReportSchema = createInsertSchema(reports)
     format: z.enum(["json", "csv", "pdf"]).default("json"),
   });
 
+export const insertExpenseCategorySchema = createInsertSchema(expenseCategories)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    name: z.string().min(1, "اسم الفئة مطلوب"),
+    parentId: z.number().optional(),
+    budgetAmount: z.number().min(0, "الميزانية يجب أن تكون 0 على الأقل").optional(),
+  });
+
+export const insertExpenseSchema = createInsertSchema(expenses)
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .extend({
+    amount: z.number().min(0, "المبلغ يجب أن يكون أكبر من 0"),
+    description: z.string().min(1, "الوصف مطلوب"),
+    date: z.date(),
+    categoryId: z.number().min(1, "يجب اختيار فئة"),
+    isRecurring: z.boolean().default(false),
+    recurringPeriod: z.enum(["monthly", "weekly", "yearly"]).optional(),
+    recurringDay: z.number().min(1).max(31).optional(),
+    attachments: z.array(z.string()).optional(),
+  });
+
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
@@ -273,3 +322,7 @@ export type InventoryAdjustment = typeof inventoryAdjustments.$inferSelect;
 export type InsertInventoryAdjustment = z.infer<typeof insertInventoryAdjustmentSchema>;
 export type Report = typeof reports.$inferSelect;
 export type InsertReport = z.infer<typeof insertReportSchema>;
+export type ExpenseCategory = typeof expenseCategories.$inferSelect;
+export type InsertExpenseCategory = z.infer<typeof insertExpenseCategorySchema>;
+export type Expense = typeof expenses.$inferSelect;
+export type InsertExpense = z.infer<typeof insertExpenseSchema>;

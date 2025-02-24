@@ -13,6 +13,7 @@ import {
   Settings as SettingsIcon,
   Megaphone,
   BarChart,
+  Wallet,
 } from "lucide-react";
 
 const navigation = [
@@ -23,6 +24,7 @@ const navigation = [
   { name: "التقسيط", href: "/installments", icon: Calendar },
   { name: "التسويق", href: "/marketing", icon: Megaphone },
   { name: "التقارير", href: "/reports", icon: BarChart },
+  { name: "المصروفات", href: "/expenses", icon: Wallet },
   { name: "الموظفين", href: "/staff", icon: Users },
   { name: "الإعدادات", href: "/settings", icon: SettingsIcon },
 ];
