@@ -17,12 +17,14 @@ import {
   Truck,
   QrCode,
   Tag,
+  UserRound,
 } from "lucide-react";
 
 const navigation = [
   { name: "لوحة التحكم", href: "/", icon: LayoutDashboard },
   { name: "المخزون", href: "/inventory", icon: Package },
   { name: "المبيعات", href: "/sales", icon: Receipt },
+  { name: "العملاء", href: "/customers", icon: UserRound },
   { name: "الفواتير", href: "/invoices", icon: FileText },
   { name: "التقسيط", href: "/installments", icon: Calendar },
   { name: "التسويق", href: "/marketing", icon: Megaphone },

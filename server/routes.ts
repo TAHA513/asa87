@@ -12,7 +12,9 @@ import {
   insertExpenseCategorySchema,
   insertExpenseSchema,
   insertSupplierSchema,
-  insertSupplierTransactionSchema
+  insertSupplierTransactionSchema,
+  insertCustomerSchema,
+  type Customer,
 } from "@shared/schema";
 import fs from "fs/promises";
 import path from "path";
@@ -597,6 +599,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(400).json({ message: error.message });
       } else {
         res.status(500).json({ message: "فشل في إنشاء معاملة المورد" });
+      }
+    }
+  });
+
+  // Customer Routes
+  app.get("/api/customers", async (req, res) => {
+    try {
+      const search = req.query.search as string;
+      const customers = await storage.searchCustomers(search);
+      res.json(customers);
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+      res.status(500).json({ message: "فشل في جلب قائمة العملاء" });
+    }
+  });
+
+  app.get("/api/customers/:id", async (req, res) => {
+    try {
+      const customer = await storage.getCustomer(Number(req.params.id));
+      if (!customer) {
+        return res.status(404).json({ message: "العميل غير موجود" });
+      }
+      res.json(customer);
+    } catch (error) {
+      console.error("Error fetching customer:", error);
+      res.status(500).json({ message: "فشل في جلب بيانات العميل" });
+    }
+  });
+
+  app.get("/api/customers/:id/sales", async (req, res) => {
+    try {
+      const sales = await storage.getCustomerSales(Number(req.params.id));
+      res.json(sales);
+    } catch (error) {
+      console.error("Error fetching customer sales:", error);
+      res.status(500).json({ message: "فشل في جلب مشتريات العميل" });
+    }
+  });
+
+  app.post("/api/customers", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const validatedData = insertCustomerSchema.parse(req.body);
+      const customer = await storage.createCustomer(validatedData);
+      res.status(201).json(customer);
+    } catch (error) {
+      console.error("Error creating customer:", error);
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "فشل في إنشاء العميل" });
       }
     }
   });

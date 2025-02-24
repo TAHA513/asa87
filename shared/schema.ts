@@ -18,9 +18,20 @@ export const products = pgTable("products", {
   stock: integer("stock").notNull().default(0),
 });
 
+export const customers = pgTable("customers", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  email: text("email"),
+  address: text("address"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const sales = pgTable("sales", {
   id: serial("id").primaryKey(),
   productId: integer("product_id").notNull(),
+  customerId: integer("customer_id").references(() => customers.id),
   quantity: integer("quantity").notNull(),
   priceIqd: decimal("price_iqd").notNull(),
   date: timestamp("date").notNull().defaultNow(),
@@ -184,7 +195,7 @@ export const suppliers = pgTable("suppliers", {
 export const supplierTransactions = pgTable("supplier_transactions", {
   id: serial("id").primaryKey(),
   supplierId: integer("supplier_id").notNull(),
-  type: text("type").notNull(), // payment, refund, etc.
+  type: text("type").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   date: timestamp("date").notNull(),
   reference: text("reference"),
@@ -351,6 +362,14 @@ export const insertSupplierTransactionSchema = createInsertSchema(supplierTransa
     attachments: z.array(z.string()).optional(),
   });
 
+export const insertCustomerSchema = createInsertSchema(customers)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    name: z.string().min(1, "اسم العميل مطلوب"),
+    phone: z.string().optional(),
+    email: z.string().email("البريد الإلكتروني غير صالح").optional().nullable(),
+  });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
@@ -383,3 +402,5 @@ export type Supplier = typeof suppliers.$inferSelect;
 export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
 export type SupplierTransaction = typeof supplierTransactions.$inferSelect;
 export type InsertSupplierTransaction = z.infer<typeof insertSupplierTransactionSchema>;
+export type Customer = typeof customers.$inferSelect;
+export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
