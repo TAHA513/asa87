@@ -121,7 +121,7 @@ export default function ExpensesPage() {
         ...data,
         userId: user.id,
         status: "active",
-        amount: data.amount.toString(),
+        amount: data.amount?.toString() || "0",
         attachments: [],
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -147,29 +147,11 @@ export default function ExpensesPage() {
   });
 
   const onSubmitCategory = (data: InsertExpenseCategoryForm) => {
-    try {
-      createCategoryMutation.mutate(data);
-    } catch (error) {
-      console.error("Submit category error:", error);
-      toast({
-        title: "خطأ",
-        description: "حدث خطأ أثناء حفظ فئة المصروفات",
-        variant: "destructive",
-      });
-    }
+    createCategoryMutation.mutate(data);
   };
 
   const onSubmitExpense = (data: InsertExpenseForm) => {
-    try {
-      createExpenseMutation.mutate(data);
-    } catch (error) {
-      console.error("Submit expense error:", error);
-      toast({
-        title: "خطأ",
-        description: "حدث خطأ أثناء حفظ المصروف",
-        variant: "destructive",
-      });
-    }
+    createExpenseMutation.mutate(data);
   };
 
   if (isLoadingCategories || isLoadingExpenses) {
