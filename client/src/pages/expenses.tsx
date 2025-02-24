@@ -83,12 +83,14 @@ export default function ExpensesPage() {
     },
   });
 
-  // إنشاء فئة مصروفات جديدة
+  // إضافة فئة مصروفات
   const createCategoryMutation = useMutation({
     mutationFn: async (data: InsertExpenseCategoryForm) => {
       if (!user) {
         throw new Error("يجب تسجيل الدخول أولاً");
       }
+
+      console.log("بيانات فئة المصروفات الجديدة:", data);
 
       return addItem<ExpenseCategory>("expense-categories", {
         ...data,
@@ -106,6 +108,7 @@ export default function ExpensesPage() {
       });
     },
     onError: (error: Error) => {
+      console.error("خطأ في إنشاء فئة المصروفات:", error);
       toast({
         title: "خطأ",
         description: error.message,
@@ -114,7 +117,7 @@ export default function ExpensesPage() {
     },
   });
 
-  // إنشاء مصروف جديد
+  // إضافة مصروف
   const createExpenseMutation = useMutation({
     mutationFn: async (data: InsertExpenseForm) => {
       if (!user) {
@@ -125,11 +128,12 @@ export default function ExpensesPage() {
         throw new Error("يجب اختيار فئة المصروف");
       }
 
+      console.log("بيانات المصروف الجديد:", data);
+
       return addItem<Expense>("expenses", {
         ...data,
         userId: user.id,
         status: "active",
-        amount: data.amount?.toString() || "0",
         attachments: [],
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -145,6 +149,7 @@ export default function ExpensesPage() {
       });
     },
     onError: (error: Error) => {
+      console.error("خطأ في إنشاء المصروف:", error);
       toast({
         title: "خطأ",
         description: error.message,
@@ -153,13 +158,22 @@ export default function ExpensesPage() {
     },
   });
 
-  const onSubmitCategory = categoryForm.handleSubmit((data) => {
-    createCategoryMutation.mutate(data);
-  });
+  // Form submissions
+  const onSubmitCategory = async (data: InsertExpenseCategoryForm) => {
+    try {
+      await createCategoryMutation.mutateAsync(data);
+    } catch (error) {
+      console.error("خطأ في تقديم نموذج فئة المصروفات:", error);
+    }
+  };
 
-  const onSubmitExpense = expenseForm.handleSubmit((data) => {
-    createExpenseMutation.mutate(data);
-  });
+  const onSubmitExpense = async (data: InsertExpenseForm) => {
+    try {
+      await createExpenseMutation.mutateAsync(data);
+    } catch (error) {
+      console.error("خطأ في تقديم نموذج المصروف:", error);
+    }
+  };
 
   if (isLoadingCategories || isLoadingExpenses) {
     return (
@@ -207,7 +221,7 @@ export default function ExpensesPage() {
                   </SheetHeader>
                   <div className="mt-6">
                     <Form {...categoryForm}>
-                      <form onSubmit={onSubmitCategory} className="space-y-4">
+                      <form onSubmit={categoryForm.handleSubmit(onSubmitCategory)} className="space-y-4">
                         <FormField
                           control={categoryForm.control}
                           name="name"
@@ -279,7 +293,7 @@ export default function ExpensesPage() {
                   </SheetHeader>
                   <div className="mt-6">
                     <Form {...expenseForm}>
-                      <form onSubmit={onSubmitExpense} className="space-y-4">
+                      <form onSubmit={expenseForm.handleSubmit(onSubmitExpense)} className="space-y-4">
                         <FormField
                           control={expenseForm.control}
                           name="description"
