@@ -22,7 +22,7 @@ import { Loader2, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import type { Expense, ExpenseCategory } from "@shared/schema";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
@@ -59,27 +59,13 @@ export default function ExpensesPage() {
     queryFn: () => getStorageData("expenses"),
   });
 
-  // تهيئة النماذج
+  // نموذج فئة المصروفات
   const categoryForm = useForm<InsertExpenseCategoryForm>({
     resolver: zodResolver(insertExpenseCategorySchema),
     defaultValues: {
       name: "",
       description: "",
       budgetAmount: undefined,
-    },
-  });
-
-  const expenseForm = useForm<InsertExpenseForm>({
-    resolver: zodResolver(insertExpenseSchema),
-    defaultValues: {
-      description: "",
-      amount: undefined,
-      date: new Date(),
-      categoryId: undefined,
-      isRecurring: false,
-      recurringPeriod: undefined,
-      recurringDay: undefined,
-      notes: "",
     },
   });
 
@@ -90,28 +76,22 @@ export default function ExpensesPage() {
         throw new Error("يجب تسجيل الدخول أولاً");
       }
 
-      console.log("محاولة إضافة فئة مصروفات جديدة:", data);
-
-      const result = await addItem<ExpenseCategory>("expense-categories", {
+      return addItem<ExpenseCategory>("expense-categories", {
         ...data,
         userId: user.id,
         createdAt: new Date(),
       });
-
-      console.log("تم إضافة فئة المصروفات بنجاح:", result);
-      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expense-categories"] });
       setCategorySheetOpen(false);
       categoryForm.reset();
       toast({
-        title: "تم إنشاء فئة المصروفات بنجاح",
-        description: "تم إضافة فئة المصروفات الجديدة إلى القائمة",
+        title: "تم بنجاح",
+        description: "تم إضافة فئة المصروفات الجديدة",
       });
     },
     onError: (error: Error) => {
-      console.error("خطأ في إنشاء فئة المصروفات:", error);
       toast({
         title: "خطأ",
         description: error.message,
@@ -164,14 +144,25 @@ export default function ExpensesPage() {
     },
   });
 
+  // تهيئة نموذج المصروفات
+  const expenseForm = useForm<InsertExpenseForm>({
+    resolver: zodResolver(insertExpenseSchema),
+    defaultValues: {
+      description: "",
+      amount: undefined,
+      date: new Date(),
+      categoryId: undefined,
+      isRecurring: false,
+      recurringPeriod: undefined,
+      recurringDay: undefined,
+      notes: "",
+    },
+  });
+
+
   // معالجة تقديم النماذج
-  const onSubmitCategory = async (data: InsertExpenseCategoryForm) => {
-    console.log("تقديم نموذج فئة المصروفات:", data);
-    try {
-      await createCategoryMutation.mutateAsync(data);
-    } catch (error) {
-      console.error("خطأ في تقديم نموذج فئة المصروفات:", error);
-    }
+  const onSubmitCategory = (data: InsertExpenseCategoryForm) => {
+    createCategoryMutation.mutate(data);
   };
 
   const onSubmitExpense = async (data: InsertExpenseForm) => {
@@ -250,7 +241,7 @@ export default function ExpensesPage() {
                             <FormItem>
                               <FormLabel>الوصف</FormLabel>
                               <FormControl>
-                                <Textarea {...field} />
+                                <Input {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
