@@ -35,10 +35,27 @@ import {
 } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
 import Sidebar from "@/components/layout/sidebar";
 import { cn } from "@/lib/utils";
-import type { Report, InventoryTransaction } from "@shared/schema";
+import type { InventoryTransaction } from "@shared/schema";
+
+const EmptyState = () => (
+  <Card>
+    <CardHeader>
+      <CardTitle>لا توجد بيانات</CardTitle>
+      <CardDescription>
+        لم يتم تسجيل أي حركات مخزون بعد. عندما تبدأ في استخدام النظام، ستظهر هنا تقارير وإحصائيات مفصلة.
+      </CardDescription>
+    </CardHeader>
+  </Card>
+);
+
+const LoadingState = () => (
+  <div className="flex h-[400px] items-center justify-center">
+    <Loader2 className="h-8 w-8 animate-spin text-border" />
+  </div>
+);
 
 export default function ReportsPage() {
   const [reportType, setReportType] = useState<"inventory" | "sales" | "marketing">("inventory");
@@ -47,57 +64,6 @@ export default function ReportsPage() {
   const { data: inventoryTransactions = [], isLoading } = useQuery<InventoryTransaction[]>({
     queryKey: ["/api/inventory/transactions"],
   });
-
-  // تحليل بيانات المخزون
-  const inventoryData = inventoryTransactions.reduce((acc, transaction) => {
-    const date = format(new Date(transaction.date), "yyyy-MM-dd");
-    if (!acc[date]) {
-      acc[date] = { in: 0, out: 0 };
-    }
-    if (transaction.type === "in") {
-      acc[date].in += transaction.quantity;
-    } else {
-      acc[date].out += transaction.quantity;
-    }
-    return acc;
-  }, {} as Record<string, { in: number; out: number }>);
-
-  const inventoryChartData = Object.entries(inventoryData).map(([date, data]) => ({
-    date,
-    دخول: data.in,
-    خروج: data.out,
-  }));
-
-  // تجميع البيانات حسب نوع الحركة
-  const transactionsByType = inventoryTransactions.reduce((acc, transaction) => {
-    if (!acc[transaction.reason]) {
-      acc[transaction.reason] = 0;
-    }
-    acc[transaction.reason] += transaction.quantity;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const pieChartData = Object.entries(transactionsByType).map(([name, value]) => ({
-    name,
-    value,
-  }));
-
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
-
-  if (isLoading) {
-    return (
-      <div className="flex h-screen">
-        <div className="w-64 h-full">
-          <Sidebar />
-        </div>
-        <main className="flex-1 p-8">
-          <div className="max-w-7xl mx-auto">
-            <h2 className="text-2xl font-semibold mb-4">جاري تحميل البيانات...</h2>
-          </div>
-        </main>
-      </div>
-    );
-  }
 
   return (
     <div className="flex h-screen">
@@ -149,15 +115,10 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          {inventoryTransactions.length === 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>لا توجد بيانات</CardTitle>
-                <CardDescription>
-                  لم يتم تسجيل أي حركات مخزون بعد
-                </CardDescription>
-              </CardHeader>
-            </Card>
+          {isLoading ? (
+            <LoadingState />
+          ) : !inventoryTransactions.length ? (
+            <EmptyState />
           ) : (
             <div className="grid gap-6">
               <Card>
@@ -168,73 +129,27 @@ export default function ReportsPage() {
                 <CardContent>
                   <div className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={inventoryChartData}>
+                      <LineChart data={inventoryTransactions}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" />
+                        <XAxis
+                          dataKey="date"
+                          tickFormatter={(date) => format(new Date(date), "MM/dd")}
+                        />
                         <YAxis />
-                        <Tooltip />
-                        <Line type="monotone" dataKey="دخول" stroke="#8884d8" />
-                        <Line type="monotone" dataKey="خروج" stroke="#82ca9d" />
+                        <Tooltip
+                          labelFormatter={(date) => format(new Date(date), "PP")}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="quantity"
+                          name="الكمية"
+                          stroke="#8884d8"
+                        />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
                 </CardContent>
               </Card>
-
-              {pieChartData.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>توزيع حركات المخزون</CardTitle>
-                      <CardDescription>تحليل أنواع الحركات في المخزون</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={pieChartData}
-                              cx="50%"
-                              cy="50%"
-                              outerRadius={100}
-                              fill="#8884d8"
-                              dataKey="value"
-                              label={({ name, percent }) =>
-                                `${name} (${(percent * 100).toFixed(0)}%)`
-                              }
-                            >
-                              {pieChartData.map((_, index) => (
-                                <Cell
-                                  key={`cell-${index}`}
-                                  fill={COLORS[index % COLORS.length]}
-                                />
-                              ))}
-                            </Pie>
-                            <Tooltip />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>ملخص الحركات</CardTitle>
-                      <CardDescription>إحصائيات سريعة عن حركة المخزون</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {Object.entries(transactionsByType).map(([type, count]) => (
-                          <div key={type} className="flex justify-between items-center">
-                            <span className="font-medium">{type}</span>
-                            <span className="text-2xl font-bold">{count}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
             </div>
           )}
         </div>
