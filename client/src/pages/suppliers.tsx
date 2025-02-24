@@ -12,17 +12,15 @@ import {
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Loader2, Plus, Phone, Mail, MapPin, Receipt, Tag } from "lucide-react";
+import { Loader2, Plus, Phone, Mail, MapPin, Tag } from "lucide-react";
 import type { Supplier, InsertSupplier } from "@shared/schema";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { insertSupplierSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -68,7 +66,7 @@ export default function SuppliersPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "فشل في إضافة المورد");
+        throw new Error(error.message || "فشل في إنشاء المورد");
       }
 
       return response.json();
@@ -112,7 +110,7 @@ export default function SuppliersPage() {
         <Sidebar />
       </div>
       <main className="flex-1 p-8">
-        <div className="max-w-7xl mx-auto space-y-8">
+        <div className="max-w-7xl mx-auto space-y-6">
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-3xl font-bold">الموردين</h2>
@@ -120,140 +118,81 @@ export default function SuppliersPage() {
                 إدارة الموردين والمعاملات
               </p>
             </div>
-            <div className="space-x-4 rtl:space-x-reverse">
-              <Sheet open={supplierSheetOpen} onOpenChange={setSupplierSheetOpen}>
-                <SheetTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 ml-2" />
-                    إضافة مورد
-                  </Button>
-                </SheetTrigger>
-                <SheetContent>
-                  <SheetHeader>
-                    <SheetTitle>إضافة مورد جديد</SheetTitle>
-                    <SheetDescription>
-                      قم بإدخال معلومات المورد الجديد
-                    </SheetDescription>
-                  </SheetHeader>
-                  <div className="mt-6">
-                    <Form {...form}>
-                      <form onSubmit={form.handleSubmit((data) => createSupplierMutation.mutate(data))} className="space-y-4">
-                        <FormField
-                          control={form.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>اسم المورد</FormLabel>
-                              <FormControl>
-                                <Input {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="contactPerson"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>الشخص المسؤول</FormLabel>
-                              <FormControl>
-                                <Input {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="phone"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>رقم الهاتف</FormLabel>
-                              <FormControl>
-                                <Input {...field} type="tel" dir="ltr" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>البريد الإلكتروني</FormLabel>
-                              <FormControl>
-                                <Input {...field} type="email" dir="ltr" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="address"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>العنوان</FormLabel>
-                              <FormControl>
-                                <Textarea {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="taxNumber"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>الرقم الضريبي</FormLabel>
-                              <FormControl>
-                                <Input {...field} dir="ltr" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="paymentTerms"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>شروط الدفع</FormLabel>
-                              <FormControl>
-                                <Input {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="notes"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>ملاحظات</FormLabel>
-                              <FormControl>
-                                <Textarea {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <Button type="submit" className="w-full" disabled={createSupplierMutation.isPending}>
-                          {createSupplierMutation.isPending && (
-                            <Loader2 className="h-4 w-4 animate-spin ml-2" />
-                          )}
-                          إضافة مورد جديد
-                        </Button>
-                      </form>
-                    </Form>
-                  </div>
-                </SheetContent>
-              </Sheet>
-            </div>
+            <Sheet open={supplierSheetOpen} onOpenChange={setSupplierSheetOpen}>
+              <SheetTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 ml-2" />
+                  إضافة مورد
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle>إضافة مورد جديد</SheetTitle>
+                </SheetHeader>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit((data) => createSupplierMutation.mutate(data))} className="space-y-3 mt-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>اسم المورد</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="contactPerson"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>الشخص المسؤول</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>رقم الهاتف</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="tel" dir="ltr" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>البريد الإلكتروني</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="email" dir="ltr" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" className="w-full" disabled={createSupplierMutation.isPending}>
+                      {createSupplierMutation.isPending && (
+                        <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                      )}
+                      إضافة مورد جديد
+                    </Button>
+                  </form>
+                </Form>
+              </SheetContent>
+            </Sheet>
           </div>
 
           <Card>
@@ -313,14 +252,9 @@ export default function SuppliersPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={supplier.status === "active" ? "default" : "secondary"}>
-                          {supplier.status === "active" ? "نشط" : "غير نشط"}
-                        </Badge>
-                        <Button variant="ghost" size="icon">
-                          <Receipt className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <Badge variant={supplier.status === "active" ? "default" : "secondary"}>
+                        {supplier.status === "active" ? "نشط" : "غير نشط"}
+                      </Badge>
                     </div>
                   ))}
                 </div>
