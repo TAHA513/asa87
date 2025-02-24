@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { MdSupervisorAccount } from "react-icons/md";
+import { MdSupervisorAccount, MdAdd } from "react-icons/md";
 import type { User } from "@shared/schema";
 import {
   Table,
@@ -20,6 +20,30 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -27,11 +51,50 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { MoreVertical } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { insertUserSchema, type InsertUser } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
+import { cn } from "@/lib/utils";
 
 export default function Staff() {
   const { data: users = [] } = useQuery<User[]>({
     queryKey: ["/api/users"],
   });
+
+  const { toast } = useToast();
+  const form = useForm<InsertUser>({
+    resolver: zodResolver(insertUserSchema),
+    defaultValues: {
+      role: "staff",
+      permissions: [],
+    },
+  });
+
+  const onSubmit = async (data: InsertUser) => {
+    try {
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error("فشل إنشاء الحساب");
+
+      await queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "تم إنشاء الحساب بنجاح",
+        description: "تم إضافة الموظف الجديد إلى النظام",
+      });
+    } catch (error) {
+      toast({
+        title: "حدث خطأ",
+        description: error instanceof Error ? error.message : "فشل إنشاء الحساب",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="flex h-screen">
@@ -45,9 +108,115 @@ export default function Staff() {
               <MdSupervisorAccount className="h-8 w-8" style={{ color: "#4285F4" }} />
               <h1 className="text-3xl font-bold">إدارة الموظفين</h1>
             </div>
-            <Button>
-              إضافة موظف جديد
-            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button>
+                  <MdAdd className="h-4 w-4 ml-2" />
+                  إضافة موظف جديد
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>إضافة موظف جديد</DialogTitle>
+                  <DialogDescription>
+                    أدخل معلومات الموظف الجديد. سيتم إرسال بيانات تسجيل الدخول إلى البريد الإلكتروني المدخل.
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>اسم المستخدم</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="fullName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>الاسم الكامل</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>كلمة المرور</FormLabel>
+                          <FormControl>
+                            <Input type="password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>البريد الإلكتروني</FormLabel>
+                          <FormControl>
+                            <Input type="email" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>رقم الهاتف</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="role"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>الدور</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="اختر الدور" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="admin">مدير</SelectItem>
+                              <SelectItem value="staff">موظف</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" className="w-full">
+                      إضافة الموظف
+                    </Button>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
           </div>
 
           <div className="grid gap-8">
@@ -63,6 +232,7 @@ export default function Staff() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>اسم المستخدم</TableHead>
+                      <TableHead>الاسم الكامل</TableHead>
                       <TableHead>الدور</TableHead>
                       <TableHead>الحالة</TableHead>
                       <TableHead className="text-right">الإجراءات</TableHead>
@@ -75,13 +245,19 @@ export default function Staff() {
                           {user.username}
                         </TableCell>
                         <TableCell>
+                          {user.fullName}
+                        </TableCell>
+                        <TableCell>
                           <Badge variant={user.role === "admin" ? "default" : "secondary"}>
                             {user.role === "admin" ? "مدير" : "موظف"}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="bg-green-50 text-green-700">
-                            نشط
+                          <Badge variant="outline" className={cn(
+                            "bg-green-50",
+                            user.isActive ? "text-green-700" : "text-red-700"
+                          )}>
+                            {user.isActive ? "نشط" : "معطل"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -93,9 +269,11 @@ export default function Staff() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem>تعديل المعلومات</DropdownMenuItem>
                               <DropdownMenuItem>تعديل الدور</DropdownMenuItem>
+                              <DropdownMenuItem>إدارة الصلاحيات</DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive">
-                                تعطيل الحساب
+                                {user.isActive ? "تعطيل الحساب" : "تفعيل الحساب"}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -118,8 +296,10 @@ export default function Staff() {
                 <div className="space-y-4">
                   {users.map((user) => (
                     <div key={user.id} className="flex items-center gap-4 text-sm">
-                      <div className="font-medium">{user.username}</div>
-                      <div className="text-muted-foreground">تسجيل دخول قبل ساعتين</div>
+                      <div className="font-medium">{user.fullName}</div>
+                      <div className="text-muted-foreground">
+                        {user.lastLoginAt ? `آخر تسجيل دخول ${new Date(user.lastLoginAt).toLocaleString('ar-SA')}` : 'لم يسجل الدخول بعد'}
+                      </div>
                     </div>
                   ))}
                 </div>

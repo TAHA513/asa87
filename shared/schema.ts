@@ -1,4 +1,4 @@
-import { pgTable, text, serial, decimal, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, decimal, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { jsonb } from "drizzle-orm/pg-core";
@@ -7,7 +7,15 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  fullName: text("full_name").notNull(),
   role: text("role").notNull().default("staff"),
+  email: text("email"),
+  phone: text("phone"),
+  isActive: boolean("is_active").notNull().default(true),
+  lastLoginAt: timestamp("last_login_at"),
+  permissions: text("permissions").array(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const products = pgTable("products", {
@@ -206,15 +214,14 @@ export const supplierTransactions = pgTable("supplier_transactions", {
   userId: integer("user_id").notNull(),
 });
 
-// Add appointments table
 export const appointments = pgTable("appointments", {
   id: serial("id").primaryKey(),
   customerId: integer("customer_id").references(() => customers.id),
   title: text("title").notNull(),
   description: text("description"),
   date: timestamp("date").notNull(),
-  duration: integer("duration").notNull(), // in minutes
-  status: text("status").notNull().default("scheduled"), // scheduled, completed, cancelled
+  duration: integer("duration").notNull(),
+  status: text("status").notNull().default("scheduled"),
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -224,10 +231,20 @@ export const insertUserSchema = createInsertSchema(users)
   .pick({
     username: true,
     password: true,
+    fullName: true,
+    email: true,
+    phone: true,
+    role: true,
+    permissions: true,
   })
   .extend({
     username: z.string().min(1, "اسم المستخدم مطلوب"),
     password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
+    fullName: z.string().min(1, "الاسم الكامل مطلوب"),
+    email: z.string().email("البريد الإلكتروني غير صالح").optional().nullable(),
+    phone: z.string().optional().nullable(),
+    role: z.enum(["admin", "staff"]).default("staff"),
+    permissions: z.array(z.string()).default([]),
   });
 
 export const insertProductSchema = createInsertSchema(products).extend({
@@ -384,7 +401,6 @@ export const insertCustomerSchema = createInsertSchema(customers)
     email: z.string().email("البريد الإلكتروني غير صالح").optional().nullable(),
   });
 
-// Add appointments schema
 export const insertAppointmentSchema = createInsertSchema(appointments)
   .omit({ id: true, createdAt: true, updatedAt: true })
   .extend({
@@ -429,6 +445,5 @@ export type InsertSupplierTransaction = z.infer<typeof insertSupplierTransaction
 export type Customer = typeof customers.$inferSelect;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 
-// Export types
 export type Appointment = typeof appointments.$inferSelect;
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;

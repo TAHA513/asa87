@@ -5,11 +5,14 @@ import {
   InventoryTransaction, InsertInventoryTransaction,
   ExpenseCategory, InsertExpenseCategory, Expense, InsertExpense,
   Supplier, InsertSupplier, SupplierTransaction, InsertSupplierTransaction,
-  Customer, InsertCustomer, Appointment, InsertAppointment
+  Customer, InsertCustomer, Appointment, InsertAppointment,
+  users
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { db } from "./db";
+import connectPgSimple from 'connect-pg-simple';
+import { eq } from 'drizzle-orm';
 
 const MemoryStore = createMemoryStore(session);
 
@@ -548,17 +551,51 @@ export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.sessionStore = new MemoryStore({ checkPeriod: 86400000 });
+    const PostgresStore = connectPgSimple(session);
+    this.sessionStore = new PostgresStore({
+      conObject: { connectionString: process.env.DATABASE_URL },
+      createTableIfMissing: true,
+    });
   }
 
-  async getUser(id: number): Promise<User | undefined> { return undefined; }
-  async getUserByUsername(username: string): Promise<User | undefined> { return undefined; }
-  async createUser(insertUser: InsertUser): Promise<User> { 
-    return { id: 1, ...insertUser, role: "staff" }; 
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
-  async updateUser(id: number, update: Partial<User>): Promise<User> { 
-    return {id:id, ...update} as User;
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...insertUser,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isActive: true,
+        lastLoginAt: null,
+      })
+      .returning();
+    return user;
+  }
+
+  async updateUser(id: number, update: Partial<User>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...update,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+
+    if (!user) throw new Error("User not found");
+    return user;
+  }
+
   async getProducts(): Promise<Product[]> { return []; }
   async getProduct(id: number): Promise<Product | undefined> { return undefined; }
   async createProduct(product: Product): Promise<Product> { return product; }
@@ -605,7 +642,7 @@ export class DatabaseStorage implements IStorage {
   async getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]> { return []; }
   async createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction> { return {...transaction, id:1} as SupplierTransaction; }
   async searchCustomers(search?: string): Promise<Customer[]> {
-    return []; // Return empty array until DB implementation
+    return []; 
   }
   async getCustomer(id: number): Promise<Customer | undefined> {
     return undefined;
@@ -614,7 +651,6 @@ export class DatabaseStorage implements IStorage {
     return [];
   }
   async createCustomer(insertCustomer: InsertCustomer): Promise<Customer> {
-    // Basic implementation returning the customer with an ID
     return {
       id: 1,
       name: insertCustomer.name,
@@ -629,7 +665,6 @@ export class DatabaseStorage implements IStorage {
     return [];
   }
   async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
-    // Basic implementation returning the appointment with an ID
     return {
       id: 1,
       customerId: appointment.customerId,
@@ -656,9 +691,7 @@ export class DatabaseStorage implements IStorage {
       updatedAt: new Date(),
     } as Appointment;
   }
-  async deleteAppointment(id: number): Promise<void> {
-    // No-op for now
-  }
+  async deleteAppointment(id: number): Promise<void> { }
 }
 
 export const storage = process.env.DATABASE_URL
