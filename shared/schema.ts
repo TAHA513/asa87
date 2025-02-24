@@ -1,7 +1,7 @@
-import { pgTable, text, serial } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, decimal, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { decimal, timestamp, integer, boolean, jsonb } from "drizzle-orm/pg-core";
+import { jsonb } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -104,10 +104,10 @@ export const apiKeys = pgTable("api_keys", {
 export const inventoryTransactions = pgTable("inventory_transactions", {
   id: serial("id").primaryKey(),
   productId: integer("product_id").notNull(),
-  type: text("type").notNull(), 
+  type: text("type").notNull(),
   quantity: integer("quantity").notNull(),
-  reason: text("reason").notNull(), 
-  reference: text("reference"), 
+  reason: text("reason").notNull(),
+  reference: text("reference"),
   date: timestamp("date").notNull().defaultNow(),
   userId: integer("user_id").notNull(),
   notes: text("notes"),
@@ -126,15 +126,15 @@ export const inventoryAdjustments = pgTable("inventory_adjustments", {
 
 export const reports = pgTable("reports", {
   id: serial("id").primaryKey(),
-  type: text("type").notNull(), 
+  type: text("type").notNull(),
   title: text("title").notNull(),
-  dateRange: jsonb("date_range").notNull(), 
-  filters: jsonb("filters"), 
-  data: jsonb("data").notNull(), 
+  dateRange: jsonb("date_range").notNull(),
+  filters: jsonb("filters"),
+  data: jsonb("data").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   userId: integer("user_id").notNull(),
   status: text("status").notNull().default("generated"),
-  format: text("format").notNull().default("json"), 
+  format: text("format").notNull().default("json"),
 });
 
 export const expenseCategories = pgTable("expense_categories", {
@@ -155,13 +155,44 @@ export const expenses = pgTable("expenses", {
   categoryId: integer("category_id").notNull().references(() => expenseCategories.id),
   userId: integer("user_id").notNull(),
   isRecurring: boolean("is_recurring").default(false),
-  recurringPeriod: text("recurring_period"), 
-  recurringDay: integer("recurring_day"), 
+  recurringPeriod: text("recurring_period"),
+  recurringDay: integer("recurring_day"),
   notes: text("notes"),
   attachments: text("attachments").array(),
   status: text("status").notNull().default("active"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const suppliers = pgTable("suppliers", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  contactPerson: text("contact_person").notNull(),
+  phone: text("phone").notNull(),
+  email: text("email"),
+  address: text("address"),
+  taxNumber: text("tax_number"),
+  paymentTerms: text("payment_terms"),
+  notes: text("notes"),
+  status: text("status").notNull().default("active"),
+  categories: text("categories").array(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  userId: integer("user_id").notNull(),
+});
+
+export const supplierTransactions = pgTable("supplier_transactions", {
+  id: serial("id").primaryKey(),
+  supplierId: integer("supplier_id").notNull(),
+  type: text("type").notNull(), // payment, refund, etc.
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  date: timestamp("date").notNull(),
+  reference: text("reference"),
+  status: text("status").notNull().default("completed"),
+  notes: text("notes"),
+  attachments: text("attachments").array(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  userId: integer("user_id").notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users)
@@ -300,6 +331,25 @@ export const insertExpenseSchema = createInsertSchema(expenses)
     attachments: z.array(z.string()).optional(),
   });
 
+export const insertSupplierSchema = createInsertSchema(suppliers)
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .extend({
+    name: z.string().min(1, "اسم المورد مطلوب"),
+    contactPerson: z.string().min(1, "اسم الشخص المسؤول مطلوب"),
+    phone: z.string().min(1, "رقم الهاتف مطلوب"),
+    email: z.string().email("البريد الإلكتروني غير صالح").optional().nullable(),
+    categories: z.array(z.string()).min(1, "يجب اختيار فئة واحدة على الأقل"),
+  });
+
+export const insertSupplierTransactionSchema = createInsertSchema(supplierTransactions)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    amount: z.number().min(0, "المبلغ يجب أن يكون أكبر من 0"),
+    date: z.date(),
+    type: z.enum(["payment", "refund", "advance", "other"]),
+    status: z.enum(["pending", "completed", "cancelled"]).default("completed"),
+    attachments: z.array(z.string()).optional(),
+  });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -329,3 +379,7 @@ export type ExpenseCategory = typeof expenseCategories.$inferSelect;
 export type InsertExpenseCategory = z.infer<typeof insertExpenseCategorySchema>;
 export type Expense = typeof expenses.$inferSelect;
 export type InsertExpense = z.infer<typeof insertExpenseSchema>;
+export type Supplier = typeof suppliers.$inferSelect;
+export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
+export type SupplierTransaction = typeof supplierTransactions.$inferSelect;
+export type InsertSupplierTransaction = z.infer<typeof insertSupplierTransactionSchema>;

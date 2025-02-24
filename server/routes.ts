@@ -10,7 +10,9 @@ import {
   insertInstallmentPaymentSchema,
   insertInventoryTransactionSchema,
   insertExpenseCategorySchema,
-  insertExpenseSchema
+  insertExpenseSchema,
+  insertSupplierSchema,
+  insertSupplierTransactionSchema
 } from "@shared/schema";
 import fs from "fs/promises";
 import path from "path";
@@ -418,7 +420,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Expense Categories Routes (from edited snippet)
+  // Expense Categories Routes
   app.get("/api/expenses/categories", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
@@ -451,7 +453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Expenses Routes (from edited snippet)
+  // Expenses Routes
   app.get("/api/expenses", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
@@ -488,6 +490,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Suppliers Routes
+  app.get("/api/suppliers", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const suppliers = await storage.getSuppliers(req.user!.id);
+      res.json(suppliers);
+    } catch (error) {
+      console.error("Error fetching suppliers:", error);
+      res.status(500).json({ message: "فشل في جلب قائمة الموردين" });
+    }
+  });
+
+  app.post("/api/suppliers", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const validatedData = insertSupplierSchema.parse(req.body);
+      const supplier = await storage.createSupplier({
+        ...validatedData,
+        userId: req.user!.id,
+      });
+      res.status(201).json(supplier);
+    } catch (error) {
+      console.error("Error creating supplier:", error);
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "فشل في إنشاء المورد" });
+      }
+    }
+  });
+
+  app.patch("/api/suppliers/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const supplier = await storage.getSupplier(Number(req.params.id));
+      if (!supplier || supplier.userId !== req.user!.id) {
+        return res.status(404).json({ message: "المورد غير موجود" });
+      }
+
+      const updatedSupplier = await storage.updateSupplier(supplier.id, req.body);
+      res.json(updatedSupplier);
+    } catch (error) {
+      console.error("Error updating supplier:", error);
+      res.status(500).json({ message: "فشل في تحديث المورد" });
+    }
+  });
+
+  app.delete("/api/suppliers/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const supplier = await storage.getSupplier(Number(req.params.id));
+      if (!supplier || supplier.userId !== req.user!.id) {
+        return res.status(404).json({ message: "المورد غير موجود" });
+      }
+      await storage.deleteSupplier(supplier.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting supplier:", error);
+      res.status(500).json({ message: "فشل في حذف المورد" });
+    }
+  });
+
+  app.get("/api/suppliers/:id/transactions", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const transactions = await storage.getSupplierTransactions(Number(req.params.id));
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching supplier transactions:", error);
+      res.status(500).json({ message: "فشل في جلب معاملات المورد" });
+    }
+  });
+
+  app.post("/api/suppliers/:id/transactions", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const validatedData = insertSupplierTransactionSchema.parse(req.body);
+      const transaction = await storage.createSupplierTransaction({
+        ...validatedData,
+        supplierId: Number(req.params.id),
+        userId: req.user!.id,
+      });
+      res.status(201).json(transaction);
+    } catch (error) {
+      console.error("Error creating supplier transaction:", error);
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "فشل في إنشاء معاملة المورد" });
+      }
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

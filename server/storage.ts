@@ -3,7 +3,8 @@ import {
   Campaign, InsertCampaign, CampaignAnalytics, InsertCampaignAnalytics, 
   SocialMediaAccount, apiKeys, type ApiKey, type InsertApiKey, 
   InventoryTransaction, InsertInventoryTransaction,
-  ExpenseCategory, InsertExpenseCategory, Expense, InsertExpense
+  ExpenseCategory, InsertExpenseCategory, Expense, InsertExpense,
+  Supplier, InsertSupplier, SupplierTransaction, InsertSupplierTransaction
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -55,6 +56,17 @@ export interface IStorage {
   createExpense(expense: InsertExpense): Promise<Expense>;
   updateExpense(id: number, update: Partial<Expense>): Promise<Expense>;
   deleteExpense(id: number): Promise<void>;
+
+  // Supplier methods
+  getSuppliers(userId: number): Promise<Supplier[]>;
+  getSupplier(id: number): Promise<Supplier | undefined>;
+  createSupplier(supplier: InsertSupplier): Promise<Supplier>;
+  updateSupplier(id: number, update: Partial<Supplier>): Promise<Supplier>;
+  deleteSupplier(id: number): Promise<void>;
+
+  // Supplier transactions methods
+  getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]>;
+  createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction>;
 }
 
 export class MemStorage implements IStorage {
@@ -71,6 +83,8 @@ export class MemStorage implements IStorage {
   private inventoryTransactions: Map<number, InventoryTransaction> = new Map();
   private expenseCategories: Map<number, ExpenseCategory> = new Map();
   private expenses: Map<number, Expense> = new Map();
+  private suppliers: Map<number, Supplier> = new Map();
+  private supplierTransactions: Map<number, SupplierTransaction> = new Map();
   private currentId: number = 1;
   sessionStore: session.Store;
 
@@ -393,6 +407,59 @@ export class MemStorage implements IStorage {
   async deleteExpense(id: number): Promise<void> {
     this.expenses.delete(id);
   }
+
+  // Implement supplier methods
+  async getSuppliers(userId: number): Promise<Supplier[]> {
+    return Array.from(this.suppliers.values()).filter(
+      (supplier) => supplier.userId === userId
+    );
+  }
+
+  async getSupplier(id: number): Promise<Supplier | undefined> {
+    return this.suppliers.get(id);
+  }
+
+  async createSupplier(supplier: InsertSupplier): Promise<Supplier> {
+    const id = this.currentId++;
+    const newSupplier: Supplier = {
+      ...supplier,
+      id,
+      status: "active",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.suppliers.set(id, newSupplier);
+    return newSupplier;
+  }
+
+  async updateSupplier(id: number, update: Partial<Supplier>): Promise<Supplier> {
+    const supplier = this.suppliers.get(id);
+    if (!supplier) throw new Error("المورد غير موجود");
+    const updatedSupplier = { ...supplier, ...update, updatedAt: new Date() };
+    this.suppliers.set(id, updatedSupplier);
+    return updatedSupplier;
+  }
+
+  async deleteSupplier(id: number): Promise<void> {
+    this.suppliers.delete(id);
+  }
+
+  async getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]> {
+    return Array.from(this.supplierTransactions.values()).filter(
+      (transaction) => transaction.supplierId === supplierId
+    );
+  }
+
+  async createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction> {
+    const id = this.currentId++;
+    const newTransaction: SupplierTransaction = {
+      ...transaction,
+      id,
+      createdAt: new Date(),
+    };
+    this.supplierTransactions.set(id, newTransaction);
+    return newTransaction;
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -448,6 +515,13 @@ export class DatabaseStorage implements IStorage {
   async createExpense(expense: InsertExpense): Promise<Expense> { return expense as Expense; }
   async updateExpense(id: number, update: Partial<Expense>): Promise<Expense> { return expense as Expense; }
   async deleteExpense(id: number): Promise<void> {}
+  async getSuppliers(userId: number): Promise<Supplier[]> { return []; }
+  async getSupplier(id: number): Promise<Supplier | undefined> { return undefined; }
+  async createSupplier(supplier: InsertSupplier): Promise<Supplier> { return supplier; }
+  async updateSupplier(id: number, update: Partial<Supplier>): Promise<Supplier> { return supplier as Supplier; }
+  async deleteSupplier(id: number): Promise<void> {}
+  async getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]> { return []; }
+  async createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction> { return transaction as SupplierTransaction; }
 }
 
 export const storage = process.env.DATABASE_URL
