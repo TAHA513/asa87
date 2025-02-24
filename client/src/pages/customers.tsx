@@ -311,6 +311,130 @@ export default function CustomersPage() {
               </Form>
             </DialogContent>
           </Dialog>
+
+          <Dialog open={isNewAppointmentOpen} onOpenChange={setIsNewAppointmentOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Calendar className="h-4 w-4 ml-2" />
+                إضافة موعد
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>إضافة موعد جديد</DialogTitle>
+              </DialogHeader>
+
+              <Form {...appointmentForm}>
+                <form onSubmit={appointmentForm.handleSubmit(onSubmitAppointment)} className="space-y-4">
+                  <FormField
+                    control={appointmentForm.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>عنوان الموعد</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={appointmentForm.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>الوصف</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={appointmentForm.control}
+                    name="date"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>التاريخ والوقت</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full pl-3 text-right font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? (
+                                  format(field.value, "PPP", { locale: ar })
+                                ) : (
+                                  <span>اختر تاريخ</span>
+                                )}
+                                <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={appointmentForm.control}
+                    name="duration"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>المدة (بالدقائق)</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="number" min="1" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={appointmentForm.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ملاحظات</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={createAppointmentMutation.isPending}
+                  >
+                    {createAppointmentMutation.isPending && (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent ml-2" />
+                    )}
+                    إضافة الموعد
+                  </Button>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -369,257 +493,130 @@ export default function CustomersPage() {
           </CardContent>
         </Card>
 
-        {/* تفاصيل العميل والمواعيد */}
-        {selectedCustomer && (
-          <>
-            {/* معلومات العميل */}
-            <div className="col-span-12 lg:col-span-8 space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>معلومات العميل - {selectedCustomer.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">رقم الهاتف:</span>
-                      <span>{selectedCustomer.phone || "غير متوفر"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">البريد الإلكتروني:</span>
-                      <span>{selectedCustomer.email || "غير متوفر"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">العنوان:</span>
-                      <span>{selectedCustomer.address || "غير متوفر"}</span>
-                    </div>
-                    {selectedCustomer.notes && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">ملاحظات:</span>
-                        <span>{selectedCustomer.notes}</span>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* المواعيد والحجوزات */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle>المواعيد والحجوزات</CardTitle>
-                      <CardDescription>
-                        {customerAppointments.length} موعد
-                      </CardDescription>
-                    </div>
-                    <Dialog open={isNewAppointmentOpen} onOpenChange={setIsNewAppointmentOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline">
-                          <Calendar className="h-4 w-4 ml-2" />
-                          إضافة موعد
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>إضافة موعد جديد - {selectedCustomer?.name || ""}</DialogTitle>
-                        </DialogHeader>
-
-                        <Form {...appointmentForm}>
-                          <form onSubmit={appointmentForm.handleSubmit(onSubmitAppointment)} className="space-y-4">
-                            <FormField
-                              control={appointmentForm.control}
-                              name="title"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>عنوان الموعد</FormLabel>
-                                  <FormControl>
-                                    <Input {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={appointmentForm.control}
-                              name="description"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>الوصف</FormLabel>
-                                  <FormControl>
-                                    <Input {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={appointmentForm.control}
-                              name="date"
-                              render={({ field }) => (
-                                <FormItem className="flex flex-col">
-                                  <FormLabel>التاريخ والوقت</FormLabel>
-                                  <Popover>
-                                    <PopoverTrigger asChild>
-                                      <FormControl>
-                                        <Button
-                                          variant={"outline"}
-                                          className={cn(
-                                            "w-full pl-3 text-right font-normal",
-                                            !field.value && "text-muted-foreground"
-                                          )}
-                                        >
-                                          {field.value ? (
-                                            format(field.value, "PPP", { locale: ar })
-                                          ) : (
-                                            <span>اختر تاريخ</span>
-                                          )}
-                                          <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                                        </Button>
-                                      </FormControl>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                      <CalendarComponent
-                                        mode="single"
-                                        selected={field.value}
-                                        onSelect={field.onChange}
-                                        initialFocus
-                                      />
-                                    </PopoverContent>
-                                  </Popover>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={appointmentForm.control}
-                              name="duration"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>المدة (بالدقائق)</FormLabel>
-                                  <FormControl>
-                                    <Input {...field} type="number" min="1" />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={appointmentForm.control}
-                              name="notes"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>ملاحظات</FormLabel>
-                                  <FormControl>
-                                    <Input {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <Button
-                              type="submit"
-                              className="w-full"
-                              disabled={createAppointmentMutation.isPending}
-                            >
-                              {createAppointmentMutation.isPending && (
-                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent ml-2" />
-                              )}
-                              إضافة الموعد
-                            </Button>
-                          </form>
-                        </Form>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {customerAppointments.map((appointment) => (
-                      <div
-                        key={appointment.id}
-                        className="p-4 border rounded-lg"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-medium">{appointment.title}</h4>
-                            {appointment.description && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {appointment.description}
-                              </p>
-                            )}
-                          </div>
-                          <span className="text-sm text-muted-foreground">
-                            {format(new Date(appointment.date), "PPP", { locale: ar })}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                          <span>المدة: {appointment.duration} دقيقة</span>
-                          <span className="capitalize">{appointment.status}</span>
-                        </div>
-                        {appointment.notes && (
-                          <p className="text-sm text-muted-foreground mt-2 border-t pt-2">
-                            {appointment.notes}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-
-                    {customerAppointments.length === 0 && (
-                      <div className="text-center py-4 text-muted-foreground">
-                        لا توجد مواعيد أو حجوزات
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* المشتريات */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>سجل المشتريات</CardTitle>
-                  <CardDescription>
-                    {customerSales.length} عملية شراء
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {customerSales.map((sale) => (
-                      <div
-                        key={sale.id}
-                        className="p-4 border rounded-lg"
-                      >
-                        <div className="flex justify-between">
-                          <span className="font-medium">
-                            {sale.productId}
-                          </span>
-                          <span>
-                            {Number(sale.priceIqd).toLocaleString()} د.ع
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                          <span>الكمية: {sale.quantity}</span>
-                          <span>
-                            {format(new Date(sale.date), "PPP", { locale: ar })}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-
-                    {customerSales.length === 0 && (
-                      <div className="text-center py-4 text-muted-foreground">
-                        لا توجد مشتريات
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+        {/* المواعيد والحجوزات */}
+        <Card className="col-span-12 lg:col-span-8">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>المواعيد والحجوزات</CardTitle>
+                <CardDescription>
+                  {customerAppointments.length} موعد
+                </CardDescription>
+              </div>
             </div>
-          </>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {customerAppointments.map((appointment) => (
+                <div
+                  key={appointment.id}
+                  className="p-4 border rounded-lg"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium">{appointment.title}</h4>
+                      {appointment.description && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {appointment.description}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      {format(new Date(appointment.date), "PPP", { locale: ar })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm text-muted-foreground mt-2">
+                    <span>المدة: {appointment.duration} دقيقة</span>
+                    <span className="capitalize">{appointment.status}</span>
+                  </div>
+                  {appointment.notes && (
+                    <p className="text-sm text-muted-foreground mt-2 border-t pt-2">
+                      {appointment.notes}
+                    </p>
+                  )}
+                </div>
+              ))}
+
+              {customerAppointments.length === 0 && (
+                <div className="text-center py-4 text-muted-foreground">
+                  لا توجد مواعيد أو حجوزات
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* تفاصيل العميل */}
+        {selectedCustomer && (
+          <Card className="col-span-12 lg:col-span-8">
+            <CardHeader>
+              <CardTitle>تفاصيل العميل - {selectedCustomer.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">رقم الهاتف:</span>
+                  <span>{selectedCustomer.phone || "غير متوفر"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">البريد الإلكتروني:</span>
+                  <span>{selectedCustomer.email || "غير متوفر"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">العنوان:</span>
+                  <span>{selectedCustomer.address || "غير متوفر"}</span>
+                </div>
+                {selectedCustomer.notes && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">ملاحظات:</span>
+                    <span>{selectedCustomer.notes}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        {/* المشتريات */}
+        {selectedCustomer && (
+          <Card className="col-span-12 lg:col-span-4">
+            <CardHeader>
+              <CardTitle>سجل المشتريات</CardTitle>
+              <CardDescription>
+                {customerSales.length} عملية شراء
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {customerSales.map((sale) => (
+                  <div
+                    key={sale.id}
+                    className="p-4 border rounded-lg"
+                  >
+                    <div className="flex justify-between">
+                      <span className="font-medium">
+                        {sale.productId}
+                      </span>
+                      <span>
+                        {Number(sale.priceIqd).toLocaleString()} د.ع
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm text-muted-foreground mt-2">
+                      <span>الكمية: {sale.quantity}</span>
+                      <span>
+                        {format(new Date(sale.date), "PPP", { locale: ar })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+
+                {customerSales.length === 0 && (
+                  <div className="text-center py-4 text-muted-foreground">
+                    لا توجد مشتريات
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>
