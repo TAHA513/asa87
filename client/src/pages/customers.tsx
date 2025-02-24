@@ -18,7 +18,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { type Customer, type Sale, insertCustomerSchema } from "@shared/schema";
+import { type Customer, type Sale, type Appointment, insertCustomerSchema, insertAppointmentSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -30,6 +30,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { queryClient } from "@/lib/queryClient";
+import { format } from "date-fns";
+import { ar } from "date-fns/locale";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 type NewCustomerForm = {
   name: string;
@@ -39,19 +44,39 @@ type NewCustomerForm = {
   notes?: string;
 };
 
+type NewAppointmentForm = {
+  title: string;
+  description?: string;
+  date: Date;
+  duration: number;
+  notes?: string;
+};
+
 export default function CustomersPage() {
   const [search, setSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isNewCustomerOpen, setIsNewCustomerOpen] = useState(false);
+  const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
   const { toast } = useToast();
 
-  const form = useForm<NewCustomerForm>({
+  const customerForm = useForm<NewCustomerForm>({
     resolver: zodResolver(insertCustomerSchema),
     defaultValues: {
       name: "",
       phone: "",
       email: "",
       address: "",
+      notes: "",
+    },
+  });
+
+  const appointmentForm = useForm<NewAppointmentForm>({
+    resolver: zodResolver(insertAppointmentSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      date: new Date(),
+      duration: 30,
       notes: "",
     },
   });
@@ -83,6 +108,19 @@ export default function CustomersPage() {
     enabled: !!selectedCustomer?.id,
   });
 
+  const { data: customerAppointments = [] } = useQuery<Appointment[]>({
+    queryKey: ["/api/customers", selectedCustomer?.id, "appointments"],
+    queryFn: async () => {
+      if (!selectedCustomer?.id) return [];
+      const res = await fetch(`/api/customers/${selectedCustomer.id}/appointments`);
+      if (!res.ok) {
+        throw new Error("فشل في جلب مواعيد العميل");
+      }
+      return res.json();
+    },
+    enabled: !!selectedCustomer?.id,
+  });
+
   const createCustomerMutation = useMutation({
     mutationFn: async (data: NewCustomerForm) => {
       const res = await fetch("/api/customers", {
@@ -102,7 +140,40 @@ export default function CustomersPage() {
         description: "تم إضافة العميل الجديد إلى قائمة العملاء",
       });
       setIsNewCustomerOpen(false);
-      form.reset();
+      customerForm.reset();
+    },
+    onError: (error) => {
+      toast({
+        title: "خطأ",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createAppointmentMutation = useMutation({
+    mutationFn: async (data: NewAppointmentForm) => {
+      if (!selectedCustomer?.id) throw new Error("لم يتم اختيار العميل");
+      const res = await fetch(`/api/customers/${selectedCustomer.id}/appointments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        throw new Error("فشل في إنشاء الموعد");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/customers", selectedCustomer?.id, "appointments"] 
+      });
+      toast({
+        title: "تم إنشاء الموعد بنجاح",
+        description: "تم إضافة الموعد الجديد إلى جدول المواعيد",
+      });
+      setIsNewAppointmentOpen(false);
+      appointmentForm.reset();
     },
     onError: (error) => {
       toast({
@@ -115,8 +186,12 @@ export default function CustomersPage() {
 
   const customers = data || [];
 
-  const onSubmit = (data: NewCustomerForm) => {
+  const onSubmitCustomer = (data: NewCustomerForm) => {
     createCustomerMutation.mutate(data);
+  };
+
+  const onSubmitAppointment = (data: NewAppointmentForm) => {
+    createAppointmentMutation.mutate(data);
   };
 
   return (
@@ -150,10 +225,10 @@ export default function CustomersPage() {
                 <DialogTitle>إضافة عميل جديد</DialogTitle>
               </DialogHeader>
 
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <Form {...customerForm}>
+                <form onSubmit={customerForm.handleSubmit(onSubmitCustomer)} className="space-y-4">
                   <FormField
-                    control={form.control}
+                    control={customerForm.control}
                     name="name"
                     render={({ field }) => (
                       <FormItem>
@@ -167,7 +242,7 @@ export default function CustomersPage() {
                   />
 
                   <FormField
-                    control={form.control}
+                    control={customerForm.control}
                     name="phone"
                     render={({ field }) => (
                       <FormItem>
@@ -181,7 +256,7 @@ export default function CustomersPage() {
                   />
 
                   <FormField
-                    control={form.control}
+                    control={customerForm.control}
                     name="email"
                     render={({ field }) => (
                       <FormItem>
@@ -195,7 +270,7 @@ export default function CustomersPage() {
                   />
 
                   <FormField
-                    control={form.control}
+                    control={customerForm.control}
                     name="address"
                     render={({ field }) => (
                       <FormItem>
@@ -209,7 +284,7 @@ export default function CustomersPage() {
                   />
 
                   <FormField
-                    control={form.control}
+                    control={customerForm.control}
                     name="notes"
                     render={({ field }) => (
                       <FormItem>
@@ -346,7 +421,7 @@ export default function CustomersPage() {
                         >
                           <div className="flex justify-between">
                             <span className="font-medium">
-                              {sale.productId} {/* سيتم استبدالها باسم المنتج */}
+                              {sale.productId}
                             </span>
                             <span>
                               {Number(sale.priceIqd).toLocaleString()} د.ع
@@ -355,7 +430,7 @@ export default function CustomersPage() {
                           <div className="flex justify-between text-sm text-muted-foreground mt-2">
                             <span>الكمية: {sale.quantity}</span>
                             <span>
-                              {new Date(sale.date).toLocaleDateString("ar-IQ")}
+                              {format(new Date(sale.date), "PPP", { locale: ar })}
                             </span>
                           </div>
                         </div>
@@ -375,15 +450,168 @@ export default function CustomersPage() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle>المواعيد والحجوزات</CardTitle>
-                      <Button variant="outline" size="sm">
-                        <Calendar className="h-4 w-4 ml-2" />
-                        إضافة موعد
-                      </Button>
+                      <Dialog open={isNewAppointmentOpen} onOpenChange={setIsNewAppointmentOpen}>
+                        <DialogTrigger asChild>
+                          <Button variant="outline" size="sm">
+                            <Calendar className="h-4 w-4 ml-2" />
+                            إضافة موعد
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>إضافة موعد جديد</DialogTitle>
+                          </DialogHeader>
+
+                          <Form {...appointmentForm}>
+                            <form onSubmit={appointmentForm.handleSubmit(onSubmitAppointment)} className="space-y-4">
+                              <FormField
+                                control={appointmentForm.control}
+                                name="title"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>عنوان الموعد</FormLabel>
+                                    <FormControl>
+                                      <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={appointmentForm.control}
+                                name="description"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>الوصف</FormLabel>
+                                    <FormControl>
+                                      <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={appointmentForm.control}
+                                name="date"
+                                render={({ field }) => (
+                                  <FormItem className="flex flex-col">
+                                    <FormLabel>التاريخ والوقت</FormLabel>
+                                    <Popover>
+                                      <PopoverTrigger asChild>
+                                        <FormControl>
+                                          <Button
+                                            variant={"outline"}
+                                            className={cn(
+                                              "w-full pl-3 text-right font-normal",
+                                              !field.value && "text-muted-foreground"
+                                            )}
+                                          >
+                                            {field.value ? (
+                                              format(field.value, "PPP", { locale: ar })
+                                            ) : (
+                                              <span>اختر تاريخ</span>
+                                            )}
+                                            <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                                          </Button>
+                                        </FormControl>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-auto p-0" align="start">
+                                        <CalendarComponent
+                                          mode="single"
+                                          selected={field.value}
+                                          onSelect={field.onChange}
+                                          initialFocus
+                                        />
+                                      </PopoverContent>
+                                    </Popover>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={appointmentForm.control}
+                                name="duration"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>المدة (بالدقائق)</FormLabel>
+                                    <FormControl>
+                                      <Input {...field} type="number" min="1" />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={appointmentForm.control}
+                                name="notes"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>ملاحظات</FormLabel>
+                                    <FormControl>
+                                      <Input {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <Button
+                                type="submit"
+                                className="w-full"
+                                disabled={createAppointmentMutation.isPending}
+                              >
+                                {createAppointmentMutation.isPending && (
+                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent ml-2" />
+                                )}
+                                إضافة الموعد
+                              </Button>
+                            </form>
+                          </Form>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-center py-4 text-muted-foreground">
-                      لا توجد مواعيد أو حجوزات
+                    <div className="space-y-4">
+                      {customerAppointments.map((appointment) => (
+                        <div
+                          key={appointment.id}
+                          className="p-4 border rounded-lg"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-medium">{appointment.title}</h4>
+                              {appointment.description && (
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {appointment.description}
+                                </p>
+                              )}
+                            </div>
+                            <span className="text-sm text-muted-foreground">
+                              {format(new Date(appointment.date), "PPP", { locale: ar })}
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-sm text-muted-foreground mt-2">
+                            <span>المدة: {appointment.duration} دقيقة</span>
+                            <span className="capitalize">{appointment.status}</span>
+                          </div>
+                          {appointment.notes && (
+                            <p className="text-sm text-muted-foreground mt-2 border-t pt-2">
+                              {appointment.notes}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+
+                      {customerAppointments.length === 0 && (
+                        <div className="text-center py-4 text-muted-foreground">
+                          لا توجد مواعيد أو حجوزات
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
