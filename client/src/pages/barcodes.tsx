@@ -43,6 +43,34 @@ export default function BarcodesPage() {
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
+    onBeforeGetContent: () => {
+      return new Promise((resolve) => {
+        generateBarcodes();
+        resolve();
+      });
+    },
+    pageStyle: `
+      @page {
+        size: A4;
+        margin: 10mm;
+      }
+      @media print {
+        body {
+          margin: 0;
+          padding: 0;
+        }
+        .print-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 5mm;
+          page-break-inside: avoid;
+        }
+        .print-item {
+          padding: 2mm;
+          text-align: center;
+        }
+      }
+    `,
   });
 
   const addBarcodeItem = () => {
@@ -187,9 +215,9 @@ export default function BarcodesPage() {
               <div ref={printRef} className="mt-6 p-4 border rounded-lg">
                 {barcodes.map((barcode) => (
                   <div key={barcode.id} className="mb-6">
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 print:grid-cols-3">
+                    <div className="print-grid grid grid-cols-2 md:grid-cols-3 gap-4">
                       {Array.from({ length: barcode.quantity }).map((_, index) => (
-                        <div key={index} className="border p-2 rounded print:border-none">
+                        <div key={index} className="print-item border p-2 rounded print:border-none">
                           <svg
                             ref={(el) => {
                               if (!barcodeRefs.current[barcode.id]) {
