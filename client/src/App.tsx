@@ -18,6 +18,7 @@ import Marketing from "@/pages/marketing";
 import Reports from "@/pages/reports";
 import Expenses from "@/pages/expenses";
 import Suppliers from "@/pages/suppliers";
+import Barcodes from "@/pages/barcodes";
 
 function Router() {
   return (
@@ -34,6 +35,7 @@ function Router() {
       <ProtectedRoute path="/reports" component={Reports} />
       <ProtectedRoute path="/expenses" component={Expenses} />
       <ProtectedRoute path="/suppliers" component={Suppliers} />
+      <ProtectedRoute path="/barcodes" component={Barcodes} />
       <Route component={NotFound} />
     </Switch>
   );
