@@ -206,7 +206,10 @@ export default function BarcodesPage() {
                   <QrCode className="h-4 w-4 ml-2" />
                   إنشاء الباركود
                 </Button>
-                <Button variant="outline" onClick={handlePrint}>
+                <Button variant="outline" onClick={() => {
+                  generateBarcodes();
+                  setTimeout(handlePrint, 100);
+                }}>
                   <Printer className="h-4 w-4 ml-2" />
                   طباعة
                 </Button>
