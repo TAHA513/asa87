@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { Users } from "lucide-react";
+import { MdSupervisorAccount } from "react-icons/md";
 import type { User } from "@shared/schema";
 import {
   Table,
@@ -42,27 +42,30 @@ export default function Staff() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
-              <Users className="h-6 w-6" />
+              <MdSupervisorAccount className="h-8 w-8" style={{ color: "#4285F4" }} />
               <h1 className="text-3xl font-bold">إدارة الموظفين</h1>
             </div>
+            <Button>
+              إضافة موظف جديد
+            </Button>
           </div>
 
           <div className="grid gap-8">
             <Card>
               <CardHeader>
-                <CardTitle>Staff Members</CardTitle>
+                <CardTitle>قائمة الموظفين</CardTitle>
                 <CardDescription>
-                  Manage your staff and their roles.
+                  إدارة الموظفين وأدوارهم في النظام
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Username</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead>اسم المستخدم</TableHead>
+                      <TableHead>الدور</TableHead>
+                      <TableHead>الحالة</TableHead>
+                      <TableHead className="text-right">الإجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -73,12 +76,12 @@ export default function Staff() {
                         </TableCell>
                         <TableCell>
                           <Badge variant={user.role === "admin" ? "default" : "secondary"}>
-                            {user.role}
+                            {user.role === "admin" ? "مدير" : "موظف"}
                           </Badge>
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className="bg-green-50 text-green-700">
-                            Active
+                            نشط
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -86,13 +89,13 @@ export default function Staff() {
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm">
                                 <MoreVertical className="h-4 w-4" />
-                                <span className="sr-only">Actions</span>
+                                <span className="sr-only">الإجراءات</span>
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>Edit Role</DropdownMenuItem>
+                              <DropdownMenuItem>تعديل الدور</DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive">
-                                Deactivate
+                                تعطيل الحساب
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -106,9 +109,9 @@ export default function Staff() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Activity Log</CardTitle>
+                <CardTitle>سجل النشاط</CardTitle>
                 <CardDescription>
-                  Recent activity from staff members.
+                  آخر نشاطات الموظفين في النظام
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -116,7 +119,7 @@ export default function Staff() {
                   {users.map((user) => (
                     <div key={user.id} className="flex items-center gap-4 text-sm">
                       <div className="font-medium">{user.username}</div>
-                      <div className="text-muted-foreground">Logged in 2 hours ago</div>
+                      <div className="text-muted-foreground">تسجيل دخول قبل ساعتين</div>
                     </div>
                   ))}
                 </div>
