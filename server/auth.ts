@@ -23,8 +23,12 @@ export function setupAuth(app: Express) {
     store: storage.sessionStore,
     cookie: {
       secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'strict',
+      path: '/'
     },
+    name: 'sid' // تغيير اسم الكوكي الافتراضي
   };
 
   app.set("trust proxy", 1);
@@ -128,6 +132,9 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/auth/logout", (req, res) => {
+    // حفظ معرف الجلسة قبل تسجيل الخروج
+    const sessionId = req.sessionID;
+
     req.logout((err) => {
       if (err) {
         console.error("Logout error:", err);
@@ -135,7 +142,22 @@ export function setupAuth(app: Express) {
           message: "حدث خطأ أثناء تسجيل الخروج",
         });
       }
-      res.sendStatus(200);
+
+      // تدمير الجلسة بالكامل
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Session destruction error:", err);
+          return res.status(500).json({
+            message: "حدث خطأ أثناء إنهاء الجلسة",
+          });
+        }
+
+        // مسح الكوكي من المتصفح
+        res.clearCookie('sid');
+
+        // إرسال استجابة نجاح
+        res.json({ success: true });
+      });
     });
   });
 
