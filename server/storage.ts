@@ -7,14 +7,11 @@ import {
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
-import { addMonths } from "date-fns";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
 
 const MemoryStore = createMemoryStore(session);
 
 export interface IStorage {
-  // الوظائف الحالية
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
@@ -46,12 +43,8 @@ export interface IStorage {
   getApiKeys(userId: number): Promise<Record<string, any> | null>;
   migrateLocalStorageToDb(userId: number, keys: Record<string, any>): Promise<void>;
   sessionStore: session.Store;
-
-  // المخزون
   getInventoryTransactions(): Promise<InventoryTransaction[]>;
   createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction>;
-
-  // المصروفات
   getExpenseCategories(userId: number): Promise<ExpenseCategory[]>;
   getExpenseCategory(id: number): Promise<ExpenseCategory | undefined>;
   createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory>;
@@ -83,7 +76,7 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.sessionStore = new MemoryStore({ checkPeriod: 86400000 });
-    this.setExchangeRate(1300);
+    // Remove initial data loading
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -411,8 +404,12 @@ export class DatabaseStorage implements IStorage {
 
   async getUser(id: number): Promise<User | undefined> { return undefined; }
   async getUserByUsername(username: string): Promise<User | undefined> { return undefined; }
-  async createUser(user: InsertUser): Promise<User> { return user as User; }
-  async updateUser(id: number, update: Partial<User>): Promise<User> { return user as User; }
+  async createUser(insertUser: InsertUser): Promise<User> { 
+    return { id: 1, ...insertUser, role: "staff" }; 
+  }
+  async updateUser(id: number, update: Partial<User>): Promise<User> { 
+    throw new Error("Not implemented"); 
+  }
   async getProducts(): Promise<Product[]> { return []; }
   async getProduct(id: number): Promise<Product | undefined> { return undefined; }
   async createProduct(product: Product): Promise<Product> { return product; }

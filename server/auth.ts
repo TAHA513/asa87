@@ -4,13 +4,7 @@ import { Express } from "express";
 import session from "express-session";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
-import { insertUserSchema, type User } from "@shared/schema";
-
-declare global {
-  namespace Express {
-    interface User extends User {}
-  }
-}
+import { insertUserSchema } from "@shared/schema";
 
 async function hashPassword(password: string) {
   const salt = await bcrypt.genSalt(10);
@@ -58,7 +52,7 @@ export function setupAuth(app: Express) {
     })
   );
 
-  passport.serializeUser((user: Express.User, done) => {
+  passport.serializeUser((user, done) => {
     done(null, user.id);
   });
 
