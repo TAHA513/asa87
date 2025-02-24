@@ -4,6 +4,8 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import Sidebar from "@/components/layout/sidebar";
 
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
@@ -51,8 +53,15 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router />
-        <Toaster />
+        <SidebarProvider defaultOpen={true}>
+          <div className="flex h-full">
+            <Sidebar />
+            <div className="flex-1">
+              <Router />
+            </div>
+          </div>
+          <Toaster />
+        </SidebarProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

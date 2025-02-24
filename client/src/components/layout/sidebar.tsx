@@ -25,6 +25,7 @@ const navigation = [
   { name: "المخزون", href: "/inventory", icon: Package },
   { name: "المبيعات", href: "/sales", icon: Receipt },
   { name: "العملاء", href: "/customers", icon: UserRound },
+  { name: "المواعيد", href: "/appointments", icon: Calendar },
   { name: "الفواتير", href: "/invoices", icon: FileText },
   { name: "التقسيط", href: "/installments", icon: Calendar },
   { name: "التسويق", href: "/marketing", icon: Megaphone },
@@ -42,7 +43,7 @@ export default function Sidebar() {
   const { user, logoutMutation } = useAuth();
 
   return (
-    <div className="flex flex-col h-full bg-sidebar border-r">
+    <div className="flex flex-col h-full bg-sidebar border-l" style={{ width: '16rem' }}>
       <div className="p-6">
         <h1 className="text-xl font-bold text-sidebar-foreground">
           نظام إدارة الأعمال
