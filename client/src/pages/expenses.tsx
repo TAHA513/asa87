@@ -37,6 +37,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import { getStorageData, addItem } from "@/lib/localExpenseStorage";
 
 type InsertExpenseCategoryForm = z.infer<typeof insertExpenseCategorySchema>;
 type InsertExpenseForm = z.infer<typeof insertExpenseSchema>;
@@ -48,11 +49,13 @@ export default function ExpensesPage() {
   const [expenseSheetOpen, setExpenseSheetOpen] = useState(false);
 
   const { data: categories = [], isLoading: isLoadingCategories } = useQuery<ExpenseCategory[]>({
-    queryKey: ["/api/expenses/categories"],
+    queryKey: ["expense-categories"],
+    queryFn: () => getStorageData("expense-categories"),
   });
 
   const { data: expenses = [], isLoading: isLoadingExpenses } = useQuery<Expense[]>({
-    queryKey: ["/api/expenses"],
+    queryKey: ["expenses"],
+    queryFn: () => getStorageData("expenses"),
   });
 
   const categoryForm = useForm<InsertExpenseCategoryForm>({
@@ -84,21 +87,14 @@ export default function ExpensesPage() {
         throw new Error("يجب تسجيل الدخول أولاً");
       }
 
-      const response = await fetch("/api/expenses/categories", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, userId: user.id }),
+      return addItem<ExpenseCategory>("expense-categories", {
+        ...data,
+        userId: user.id,
+        createdAt: new Date(),
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "فشل في إنشاء فئة المصروفات");
-      }
-
-      return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/expenses/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["expense-categories"] });
       setCategorySheetOpen(false);
       categoryForm.reset();
       toast({
@@ -121,21 +117,18 @@ export default function ExpensesPage() {
         throw new Error("يجب تسجيل الدخول أولاً");
       }
 
-      const response = await fetch("/api/expenses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, userId: user.id }),
+      return addItem<Expense>("expenses", {
+        ...data,
+        userId: user.id,
+        status: "active",
+        amount: data.amount.toString(),
+        attachments: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "فشل في إنشاء المصروف");
-      }
-
-      return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
       setExpenseSheetOpen(false);
       expenseForm.reset();
       toast({
@@ -496,7 +489,7 @@ export default function ExpensesPage() {
               <CardHeader>
                 <CardTitle>فئات المصروفات</CardTitle>
                 <CardDescription>
-                  {categories.length === 0 
+                  {categories.length === 0
                     ? "لم يتم إضافة أي فئات مصروفات بعد"
                     : `${categories.length} فئات مصروفات`}
                 </CardDescription>
