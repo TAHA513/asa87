@@ -35,6 +35,11 @@ import { ar } from "date-fns/locale";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 
 type NewCustomerForm = {
   name: string;
@@ -438,187 +443,188 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
-        {/* قائمة العملاء */}
-        <Card className="col-span-12 lg:col-span-4">
-          <CardHeader>
-            <CardTitle>قائمة العملاء</CardTitle>
-            <CardDescription>
-              {customers.length} عميل
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {customers.map((customer) => (
-                <div
-                  key={customer.id}
-                  className={cn(
-                    "flex items-center justify-between p-4 border rounded-lg hover:bg-secondary/50 cursor-pointer",
-                    selectedCustomer?.id === customer.id && "bg-secondary"
-                  )}
-                  onClick={() => setSelectedCustomer(customer)}
-                >
-                  <div>
-                    <h3 className="font-medium">{customer.name}</h3>
-                    {customer.phone && (
-                      <p className="text-sm text-muted-foreground">
-                        {customer.phone}
-                      </p>
+      <ResizablePanelGroup direction="horizontal" className="min-h-[800px] rounded-lg border">
+        <ResizablePanel defaultSize={25} minSize={15}>
+          <div className="flex h-full flex-col">
+            <div className="flex-1 px-4 py-4">
+              <h2 className="mb-4 text-lg font-semibold">قائمة العملاء</h2>
+              <div className="space-y-4">
+                {customers.map((customer) => (
+                  <div
+                    key={customer.id}
+                    className={cn(
+                      "flex items-center justify-between p-4 border rounded-lg hover:bg-secondary/50 cursor-pointer",
+                      selectedCustomer?.id === customer.id && "bg-secondary"
                     )}
-                  </div>
-                  <Button variant="ghost" size="icon">
-                    <FileText className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-
-              {isLoading && (
-                <div className="text-center py-4 text-muted-foreground">
-                  جاري التحميل...
-                </div>
-              )}
-
-              {error && (
-                <div className="text-center py-4 text-destructive">
-                  حدث خطأ في تحميل البيانات
-                </div>
-              )}
-
-              {!isLoading && !error && customers.length === 0 && (
-                <div className="text-center py-4 text-muted-foreground">
-                  لا يوجد عملاء
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* المواعيد والحجوزات */}
-        <Card className="col-span-12 lg:col-span-8">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>المواعيد والحجوزات</CardTitle>
-                <CardDescription>
-                  {customerAppointments.length} موعد
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {customerAppointments.map((appointment) => (
-                <div
-                  key={appointment.id}
-                  className="p-4 border rounded-lg"
-                >
-                  <div className="flex justify-between items-start">
+                    onClick={() => setSelectedCustomer(customer)}
+                  >
                     <div>
-                      <h4 className="font-medium">{appointment.title}</h4>
-                      {appointment.description && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {appointment.description}
+                      <h3 className="font-medium">{customer.name}</h3>
+                      {customer.phone && (
+                        <p className="text-sm text-muted-foreground">
+                          {customer.phone}
                         </p>
                       )}
                     </div>
-                    <span className="text-sm text-muted-foreground">
-                      {format(new Date(appointment.date), "PPP", { locale: ar })}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                    <span>المدة: {appointment.duration} دقيقة</span>
-                    <span className="capitalize">{appointment.status}</span>
-                  </div>
-                  {appointment.notes && (
-                    <p className="text-sm text-muted-foreground mt-2 border-t pt-2">
-                      {appointment.notes}
-                    </p>
-                  )}
-                </div>
-              ))}
-
-              {customerAppointments.length === 0 && (
-                <div className="text-center py-4 text-muted-foreground">
-                  لا توجد مواعيد أو حجوزات
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* تفاصيل العميل */}
-        {selectedCustomer && (
-          <Card className="col-span-12 lg:col-span-8">
-            <CardHeader>
-              <CardTitle>تفاصيل العميل - {selectedCustomer.name}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">رقم الهاتف:</span>
-                  <span>{selectedCustomer.phone || "غير متوفر"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">البريد الإلكتروني:</span>
-                  <span>{selectedCustomer.email || "غير متوفر"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">العنوان:</span>
-                  <span>{selectedCustomer.address || "غير متوفر"}</span>
-                </div>
-                {selectedCustomer.notes && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">ملاحظات:</span>
-                    <span>{selectedCustomer.notes}</span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        {/* المشتريات */}
-        {selectedCustomer && (
-          <Card className="col-span-12 lg:col-span-4">
-            <CardHeader>
-              <CardTitle>سجل المشتريات</CardTitle>
-              <CardDescription>
-                {customerSales.length} عملية شراء
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {customerSales.map((sale) => (
-                  <div
-                    key={sale.id}
-                    className="p-4 border rounded-lg"
-                  >
-                    <div className="flex justify-between">
-                      <span className="font-medium">
-                        {sale.productId}
-                      </span>
-                      <span>
-                        {Number(sale.priceIqd).toLocaleString()} د.ع
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                      <span>الكمية: {sale.quantity}</span>
-                      <span>
-                        {format(new Date(sale.date), "PPP", { locale: ar })}
-                      </span>
-                    </div>
+                    <Button variant="ghost" size="icon">
+                      <FileText className="h-4 w-4" />
+                    </Button>
                   </div>
                 ))}
 
-                {customerSales.length === 0 && (
+                {isLoading && (
                   <div className="text-center py-4 text-muted-foreground">
-                    لا توجد مشتريات
+                    جاري التحميل...
+                  </div>
+                )}
+
+                {error && (
+                  <div className="text-center py-4 text-destructive">
+                    حدث خطأ في تحميل البيانات
+                  </div>
+                )}
+
+                {!isLoading && !error && customers.length === 0 && (
+                  <div className="text-center py-4 text-muted-foreground">
+                    لا يوجد عملاء
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+            </div>
+          </div>
+        </ResizablePanel>
+        <ResizableHandle withHandle />
+        <ResizablePanel defaultSize={75}>
+          <ResizablePanelGroup direction="vertical">
+            <ResizablePanel defaultSize={50}>
+              <div className="h-full p-4">
+                {/* المواعيد والحجوزات */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold">المواعيد والحجوزات</h2>
+                    <p className="text-sm text-muted-foreground">
+                      {customerAppointments.length} موعد
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  {customerAppointments.map((appointment) => (
+                    <div
+                      key={appointment.id}
+                      className="p-4 border rounded-lg"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-medium">{appointment.title}</h4>
+                          {appointment.description && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {appointment.description}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-sm text-muted-foreground">
+                          {format(new Date(appointment.date), "PPP", { locale: ar })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm text-muted-foreground mt-2">
+                        <span>المدة: {appointment.duration} دقيقة</span>
+                        <span className="capitalize">{appointment.status}</span>
+                      </div>
+                      {appointment.notes && (
+                        <p className="text-sm text-muted-foreground mt-2 border-t pt-2">
+                          {appointment.notes}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+
+                  {customerAppointments.length === 0 && (
+                    <div className="text-center py-4 text-muted-foreground">
+                      لا توجد مواعيد أو حجوزات
+                    </div>
+                  )}
+                </div>
+              </div>
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={50}>
+              <div className="h-full p-4">
+                {selectedCustomer ? (
+                  <>
+                    {/* تفاصيل العميل */}
+                    <div className="mb-8">
+                      <h2 className="text-lg font-semibold mb-4">تفاصيل العميل - {selectedCustomer.name}</h2>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">رقم الهاتف:</span>
+                          <span>{selectedCustomer.phone || "غير متوفر"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">البريد الإلكتروني:</span>
+                          <span>{selectedCustomer.email || "غير متوفر"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">العنوان:</span>
+                          <span>{selectedCustomer.address || "غير متوفر"}</span>
+                        </div>
+                        {selectedCustomer.notes && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">ملاحظات:</span>
+                            <span>{selectedCustomer.notes}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* سجل المشتريات */}
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold">سجل المشتريات</h2>
+                        <p className="text-sm text-muted-foreground">
+                          {customerSales.length} عملية شراء
+                        </p>
+                      </div>
+                      <div className="space-y-4">
+                        {customerSales.map((sale) => (
+                          <div
+                            key={sale.id}
+                            className="p-4 border rounded-lg"
+                          >
+                            <div className="flex justify-between">
+                              <span className="font-medium">
+                                {sale.productId}
+                              </span>
+                              <span>
+                                {Number(sale.priceIqd).toLocaleString()} د.ع
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-sm text-muted-foreground mt-2">
+                              <span>الكمية: {sale.quantity}</span>
+                              <span>
+                                {format(new Date(sale.date), "PPP", { locale: ar })}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+
+                        {customerSales.length === 0 && (
+                          <div className="text-center py-4 text-muted-foreground">
+                            لا توجد مشتريات
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    اختر عميلاً لعرض التفاصيل
+                  </div>
+                )}
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 }
