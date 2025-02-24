@@ -8,8 +8,6 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell,
@@ -46,11 +44,7 @@ export default function ReportsPage() {
   const [reportType, setReportType] = useState<"inventory" | "sales" | "marketing">("inventory");
   const [date, setDate] = useState<Date | undefined>(new Date());
 
-  const { data: reports = [] } = useQuery<Report[]>({
-    queryKey: ["/api/reports", reportType],
-  });
-
-  const { data: inventoryTransactions = [] } = useQuery<InventoryTransaction[]>({
+  const { data: inventoryTransactions = [], isLoading } = useQuery<InventoryTransaction[]>({
     queryKey: ["/api/inventory/transactions"],
   });
 
@@ -89,6 +83,21 @@ export default function ReportsPage() {
   }));
 
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen">
+        <div className="w-64 h-full">
+          <Sidebar />
+        </div>
+        <main className="flex-1 p-8">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-2xl font-semibold mb-4">جاري تحميل البيانات...</h2>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen">
@@ -140,81 +149,94 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <div className="grid gap-6">
+          {inventoryTransactions.length === 0 ? (
             <Card>
               <CardHeader>
-                <CardTitle>حركة المخزون</CardTitle>
-                <CardDescription>تحليل حركة الدخول والخروج للمخزون</CardDescription>
+                <CardTitle>لا توجد بيانات</CardTitle>
+                <CardDescription>
+                  لم يتم تسجيل أي حركات مخزون بعد
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={inventoryChartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="دخول" stroke="#8884d8" />
-                      <Line type="monotone" dataKey="خروج" stroke="#82ca9d" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
             </Card>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          ) : (
+            <div className="grid gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>توزيع حركات المخزون</CardTitle>
-                  <CardDescription>تحليل أنواع الحركات في المخزون</CardDescription>
+                  <CardTitle>حركة المخزون</CardTitle>
+                  <CardDescription>تحليل حركة الدخول والخروج للمخزون</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[300px]">
+                  <div className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={pieChartData}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={100}
-                          fill="#8884d8"
-                          dataKey="value"
-                          label={({ name, percent }) => 
-                            `${name} (${(percent * 100).toFixed(0)}%)`
-                          }
-                        >
-                          {pieChartData.map((_, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={COLORS[index % COLORS.length]}
-                            />
-                          ))}
-                        </Pie>
+                      <LineChart data={inventoryChartData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" />
+                        <YAxis />
                         <Tooltip />
-                      </PieChart>
+                        <Line type="monotone" dataKey="دخول" stroke="#8884d8" />
+                        <Line type="monotone" dataKey="خروج" stroke="#82ca9d" />
+                      </LineChart>
                     </ResponsiveContainer>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>ملخص الحركات</CardTitle>
-                  <CardDescription>إحصائيات سريعة عن حركة المخزون</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {Object.entries(transactionsByType).map(([type, count]) => (
-                      <div key={type} className="flex justify-between items-center">
-                        <span className="font-medium">{type}</span>
-                        <span className="text-2xl font-bold">{count}</span>
+              {pieChartData.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>توزيع حركات المخزون</CardTitle>
+                      <CardDescription>تحليل أنواع الحركات في المخزون</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={pieChartData}
+                              cx="50%"
+                              cy="50%"
+                              outerRadius={100}
+                              fill="#8884d8"
+                              dataKey="value"
+                              label={({ name, percent }) =>
+                                `${name} (${(percent * 100).toFixed(0)}%)`
+                              }
+                            >
+                              {pieChartData.map((_, index) => (
+                                <Cell
+                                  key={`cell-${index}`}
+                                  fill={COLORS[index % COLORS.length]}
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>ملخص الحركات</CardTitle>
+                      <CardDescription>إحصائيات سريعة عن حركة المخزون</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {Object.entries(transactionsByType).map(([type, count]) => (
+                          <div key={type} className="flex justify-between items-center">
+                            <span className="font-medium">{type}</span>
+                            <span className="text-2xl font-bold">{count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
       </main>
     </div>
