@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import Sidebar from "@/components/layout/sidebar";
 import {
@@ -22,14 +22,119 @@ import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import type { Expense, ExpenseCategory } from "@shared/schema";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage,FormDescription } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { CalendarIcon } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { insertExpenseCategorySchema, insertExpenseSchema } from "@shared/schema";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
+
+type InsertExpenseCategoryForm = z.infer<typeof insertExpenseCategorySchema>;
+type InsertExpenseForm = z.infer<typeof insertExpenseSchema>;
 
 export default function ExpensesPage() {
+  const { toast } = useToast();
+  const [categorySheetOpen, setCategorySheetOpen] = useState(false);
+  const [expenseSheetOpen, setExpenseSheetOpen] = useState(false);
+
   const { data: categories = [], isLoading: isLoadingCategories } = useQuery<ExpenseCategory[]>({
     queryKey: ["/api/expenses/categories"],
   });
 
   const { data: expenses = [], isLoading: isLoadingExpenses } = useQuery<Expense[]>({
     queryKey: ["/api/expenses"],
+  });
+
+  const categoryForm = useForm<InsertExpenseCategoryForm>({
+    resolver: zodResolver(insertExpenseCategorySchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      budgetAmount: undefined,
+    },
+  });
+
+  const expenseForm = useForm<InsertExpenseForm>({
+    resolver: zodResolver(insertExpenseSchema),
+    defaultValues: {
+      description: "",
+      amount: undefined,
+      date: new Date(),
+      categoryId: undefined,
+      isRecurring: false,
+      recurringPeriod: undefined,
+      recurringDay: undefined,
+      notes: "",
+    },
+  });
+
+  const createCategoryMutation = useMutation({
+    mutationFn: async (data: InsertExpenseCategoryForm) => {
+      const response = await fetch("/api/expenses/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        throw new Error("فشل في إنشاء فئة المصروفات");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/expenses/categories"] });
+      setCategorySheetOpen(false);
+      categoryForm.reset();
+      toast({
+        title: "تم إنشاء فئة المصروفات بنجاح",
+        description: "تم إضافة فئة المصروفات الجديدة إلى القائمة",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "خطأ",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createExpenseMutation = useMutation({
+    mutationFn: async (data: InsertExpenseForm) => {
+      const response = await fetch("/api/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        throw new Error("فشل في إنشاء المصروف");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
+      setExpenseSheetOpen(false);
+      expenseForm.reset();
+      toast({
+        title: "تم إنشاء المصروف بنجاح",
+        description: "تم إضافة المصروف الجديد إلى القائمة",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "خطأ",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   if (isLoadingCategories || isLoadingExpenses) {
@@ -62,7 +167,7 @@ export default function ExpensesPage() {
               </p>
             </div>
             <div className="space-x-4 rtl:space-x-reverse">
-              <Sheet>
+              <Sheet open={categorySheetOpen} onOpenChange={setCategorySheetOpen}>
                 <SheetTrigger asChild>
                   <Button>
                     <Plus className="h-4 w-4 ml-2" />
@@ -76,11 +181,65 @@ export default function ExpensesPage() {
                       قم بإدخال معلومات فئة المصروفات الجديدة
                     </SheetDescription>
                   </SheetHeader>
-                  {/* Add category form will go here */}
+                  <div className="mt-6">
+                    <Form {...categoryForm}>
+                      <form onSubmit={categoryForm.handleSubmit((data) => createCategoryMutation.mutate(data))} className="space-y-4">
+                        <FormField
+                          control={categoryForm.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>اسم الفئة</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={categoryForm.control}
+                          name="description"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>الوصف</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={categoryForm.control}
+                          name="budgetAmount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>الميزانية المخصصة</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  {...field}
+                                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button type="submit" className="w-full" disabled={createCategoryMutation.isPending}>
+                          {createCategoryMutation.isPending && (
+                            <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                          )}
+                          إضافة فئة جديدة
+                        </Button>
+                      </form>
+                    </Form>
+                  </div>
                 </SheetContent>
               </Sheet>
 
-              <Sheet>
+              <Sheet open={expenseSheetOpen} onOpenChange={setExpenseSheetOpen}>
                 <SheetTrigger asChild>
                   <Button>
                     <Plus className="h-4 w-4 ml-2" />
@@ -94,7 +253,197 @@ export default function ExpensesPage() {
                       قم بإدخال معلومات المصروف الجديد
                     </SheetDescription>
                   </SheetHeader>
-                  {/* Add expense form will go here */}
+                  <div className="mt-6">
+                    <Form {...expenseForm}>
+                      <form onSubmit={expenseForm.handleSubmit((data) => createExpenseMutation.mutate(data))} className="space-y-4">
+                        <FormField
+                          control={expenseForm.control}
+                          name="description"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>الوصف</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={expenseForm.control}
+                          name="amount"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>المبلغ</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  {...field}
+                                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={expenseForm.control}
+                          name="date"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>التاريخ</FormLabel>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant="outline"
+                                      className={cn(
+                                        "w-full pl-3 text-right font-normal",
+                                        !field.value && "text-muted-foreground"
+                                      )}
+                                    >
+                                      {field.value ? (
+                                        format(field.value, "PPP", { locale: ar })
+                                      ) : (
+                                        <span>اختر تاريخ</span>
+                                      )}
+                                      <CalendarIcon className="mr-auto h-4 w-4" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <Calendar
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={expenseForm.control}
+                          name="categoryId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>الفئة</FormLabel>
+                              <Select
+                                value={field.value?.toString()}
+                                onValueChange={(value) => field.onChange(parseInt(value))}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="اختر فئة المصروف" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {categories.map((category) => (
+                                    <SelectItem
+                                      key={category.id}
+                                      value={category.id.toString()}
+                                    >
+                                      {category.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={expenseForm.control}
+                          name="isRecurring"
+                          render={({ field }) => (
+                            <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                              <div className="space-y-0.5">
+                                <FormLabel>مصروف متكرر</FormLabel>
+                                <FormDescription>
+                                  حدد إذا كان هذا المصروف متكرراً
+                                </FormDescription>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        {expenseForm.watch("isRecurring") && (
+                          <>
+                            <FormField
+                              control={expenseForm.control}
+                              name="recurringPeriod"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>فترة التكرار</FormLabel>
+                                  <Select
+                                    value={field.value}
+                                    onValueChange={field.onChange}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="اختر فترة التكرار" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="monthly">شهرياً</SelectItem>
+                                      <SelectItem value="weekly">أسبوعياً</SelectItem>
+                                      <SelectItem value="yearly">سنوياً</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={expenseForm.control}
+                              name="recurringDay"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>يوم التكرار</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      min={1}
+                                      max={31}
+                                      {...field}
+                                      onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </>
+                        )}
+                        <FormField
+                          control={expenseForm.control}
+                          name="notes"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>ملاحظات</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <Button type="submit" className="w-full" disabled={createExpenseMutation.isPending}>
+                          {createExpenseMutation.isPending && (
+                            <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                          )}
+                          إضافة مصروف جديد
+                        </Button>
+                      </form>
+                    </Form>
+                  </div>
                 </SheetContent>
               </Sheet>
             </div>
