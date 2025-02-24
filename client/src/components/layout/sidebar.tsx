@@ -52,8 +52,8 @@ export default function Sidebar() {
         </p>
       </div>
 
-      <nav className="flex-1 px-2">
-        <ul className="space-y-1">
+      <nav className="flex-1 px-3">
+        <ul className="space-y-2">
           {navigation.map((item) => {
             const Icon = item.icon;
             return (
@@ -61,7 +61,7 @@ export default function Sidebar() {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start gap-2 h-8 px-2 text-xs font-normal",
+                    "w-full justify-start gap-3 h-10 px-3 text-sm font-normal",
                     location === item.href
                       ? "bg-gray-100 text-black"
                       : "text-black hover:bg-gray-50"
@@ -70,7 +70,7 @@ export default function Sidebar() {
                 >
                   <Link href={item.href}>
                     <Icon 
-                      className="h-4 w-4"
+                      className="h-5 w-5"
                       style={{ color: item.color }}
                     />
                     {item.name}
@@ -82,13 +82,13 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      <div className="p-2 border-t border-gray-200">
+      <div className="p-3 border-t border-gray-200">
         <Button
           variant="ghost"
-          className="w-full h-8 text-xs font-normal text-black hover:bg-gray-50"
+          className="w-full h-10 text-sm font-normal text-black hover:bg-gray-50"
           onClick={() => logoutMutation.mutate()}
         >
-          <LogOut className="h-3.5 w-3.5 ml-2" style={{ color: "#EA4335" }} />
+          <LogOut className="h-5 w-5 ml-3" style={{ color: "#EA4335" }} />
           تسجيل خروج
         </Button>
       </div>
