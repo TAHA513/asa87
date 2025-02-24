@@ -6,6 +6,7 @@ import { z } from "zod";
 import { insertProductSchema, insertSaleSchema, insertInstallmentSchema, insertInstallmentPaymentSchema } from "@shared/schema";
 import fs from "fs/promises";
 import path from "path";
+import { insertInventoryTransactionSchema, insertInventoryAdjustmentSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -363,6 +364,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error migrating API keys:", error);
       res.status(500).json({ message: "فشل في ترحيل مفاتيح API" });
+    }
+  });
+
+  // Inventory Transaction Routes
+  app.get("/api/inventory/transactions", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const transactions = await storage.getInventoryTransactions();
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching inventory transactions:", error);
+      res.status(500).json({ message: "فشل في جلب حركات المخزون" });
+    }
+  });
+
+  app.post("/api/inventory/transactions", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const transaction = await storage.createInventoryTransaction({
+        ...req.body,
+        userId: req.user!.id,
+        date: new Date()
+      });
+
+      // Update product stock
+      const product = await storage.getProduct(transaction.productId);
+      if (product) {
+        const stockChange = transaction.type === 'in' ? transaction.quantity : -transaction.quantity;
+        await storage.updateProduct(product.id, {
+          ...product,
+          stock: product.stock + stockChange
+        });
+      }
+
+      res.status(201).json(transaction);
+    } catch (error) {
+      console.error("Error creating inventory transaction:", error);
+      res.status(500).json({ message: "فشل في إنشاء حركة المخزون" });
     }
   });
 

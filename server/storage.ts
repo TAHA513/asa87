@@ -1,4 +1,4 @@
-import { User, Product, Sale, ExchangeRate, InsertUser, Installment, InstallmentPayment, Campaign, InsertCampaign, CampaignAnalytics, InsertCampaignAnalytics, SocialMediaAccount, apiKeys, type ApiKey, type InsertApiKey } from "@shared/schema";
+import { User, Product, Sale, ExchangeRate, InsertUser, Installment, InstallmentPayment, Campaign, InsertCampaign, CampaignAnalytics, InsertCampaignAnalytics, SocialMediaAccount, apiKeys, type ApiKey, type InsertApiKey, InventoryTransaction, InsertInventoryTransaction } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { addMonths } from "date-fns";
@@ -46,6 +46,10 @@ export interface IStorage {
   getApiKeys(userId: number): Promise<Record<string, any> | null>;
   migrateLocalStorageToDb(userId: number, keys: Record<string, any>): Promise<void>;
   sessionStore: session.Store;
+
+  // Add new inventory methods
+  getInventoryTransactions(): Promise<InventoryTransaction[]>;
+  createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction>;
 }
 
 export class MemStorage implements IStorage {
@@ -59,6 +63,7 @@ export class MemStorage implements IStorage {
   private campaignAnalytics: Map<number, CampaignAnalytics>;
   private socialMediaAccounts: Map<number, SocialMediaAccount>;
   private apiKeys: Map<number, Record<string, any>>;
+  private inventoryTransactions: Map<number, InventoryTransaction>;
   private currentId: number;
   sessionStore: session.Store;
 
@@ -73,6 +78,7 @@ export class MemStorage implements IStorage {
     this.campaignAnalytics = new Map();
     this.socialMediaAccounts = new Map();
     this.apiKeys = new Map();
+    this.inventoryTransactions = new Map();
     this.currentId = 1;
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
@@ -271,17 +277,26 @@ export class MemStorage implements IStorage {
   }
 
   async setApiKeys(userId: number, keys: Record<string, any>): Promise<void> {
-    console.log("Saving API keys for user:", userId);
     this.apiKeys.set(userId, keys);
   }
 
   async getApiKeys(userId: number): Promise<Record<string, any> | null> {
-    console.log("Getting API keys for user:", userId);
     return this.apiKeys.get(userId) || null;
   }
 
   async migrateLocalStorageToDb(userId: number, keys: Record<string, any>): Promise<void> {
     //This is a placeholder,  a real implementation would move data from local storage to the database.
+  }
+
+  async getInventoryTransactions(): Promise<InventoryTransaction[]> {
+    return Array.from(this.inventoryTransactions.values());
+  }
+
+  async createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction> {
+    const id = this.currentId++;
+    const newTransaction = { ...transaction, id };
+    this.inventoryTransactions.set(id, newTransaction);
+    return newTransaction;
   }
 }
 
@@ -296,6 +311,7 @@ export class DatabaseStorage implements IStorage {
   private campaignAnalytics: Map<number, CampaignAnalytics>;
   private socialMediaAccounts: Map<number, SocialMediaAccount>;
   private apiKeys: Map<number, Record<string, any>>;
+  private inventoryTransactions: Map<number, InventoryTransaction>;
   private currentId: number;
   sessionStore: session.Store;
 
@@ -310,6 +326,7 @@ export class DatabaseStorage implements IStorage {
     this.campaignAnalytics = new Map();
     this.socialMediaAccounts = new Map();
     this.apiKeys = new Map();
+    this.inventoryTransactions = new Map();
     this.currentId = 1;
     this.sessionStore = new MemoryStore({ checkPeriod: 86400000 });
     this.setExchangeRate(1300);
@@ -514,8 +531,17 @@ export class DatabaseStorage implements IStorage {
   async migrateLocalStorageToDb(userId: number, keys: Record<string, any>): Promise<void> {
     await this.setApiKeys(userId, keys);
   }
-}
+    async getInventoryTransactions(): Promise<InventoryTransaction[]> {
+        return Array.from(this.inventoryTransactions.values());
+    }
 
+    async createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction> {
+        const id = this.currentId++;
+        const newTransaction = { ...transaction, id };
+        this.inventoryTransactions.set(id, newTransaction);
+        return newTransaction;
+    }
+}
 
 // تحديد نوع التخزين بناءً على وجود قاعدة البيانات
 export const storage = process.env.DATABASE_URL
