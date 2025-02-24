@@ -29,8 +29,8 @@ export function setupAuth(app: Express) {
     store: storage.sessionStore,
     cookie: {
       secure: process.env.NODE_ENV === "production",
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
   };
 
   app.set("trust proxy", 1);
@@ -42,82 +42,132 @@ export function setupAuth(app: Express) {
     new LocalStrategy(async (username, password, done) => {
       try {
         const user = await storage.getUserByUsername(username);
-        if (!user || !(await comparePasswords(password, user.password))) {
-          return done(null, false);
+        if (!user) {
+          return done(null, false, { message: "اسم المستخدم غير موجود" });
         }
+
+        const isValidPassword = await comparePasswords(password, user.password);
+        if (!isValidPassword) {
+          return done(null, false, { message: "كلمة المرور غير صحيحة" });
+        }
+
         return done(null, user);
       } catch (err) {
         return done(err);
       }
-    }),
+    })
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  // Serialize just the user ID
+  passport.serializeUser((user, done) => {
+    if (!user.id) {
+      return done(new Error("User ID is missing"));
+    }
+    done(null, user.id);
+  });
+
+  // Deserialize by fetching user from storage
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
+      if (!user) {
+        return done(null, false);
+      }
       done(null, user);
     } catch (err) {
       done(err);
     }
   });
 
-  app.post("/api/auth/register", async (req, res, next) => {
+  app.post("/api/auth/register", async (req, res) => {
     try {
-      const existingUser = await storage.getUserByUsername(req.body.username);
-      if (existingUser) {
-        return res.status(400).json({ message: "اسم المستخدم موجود بالفعل" });
+      const { username, password } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ 
+          message: "يجب توفير اسم المستخدم وكلمة المرور" 
+        });
       }
 
+      // Check if user already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ 
+          message: "اسم المستخدم موجود بالفعل" 
+        });
+      }
+
+      // Create new user
+      const hashedPassword = await hashPassword(password);
       const user = await storage.createUser({
-        ...req.body,
-        password: await hashPassword(req.body.password),
+        username,
+        password: hashedPassword,
+        role: "staff",
       });
 
+      // Log in the new user
       req.login(user, (err) => {
-        if (err) return next(err);
+        if (err) {
+          console.error("Login error after registration:", err);
+          return res.status(500).json({ 
+            message: "فشل في تسجيل الدخول بعد إنشاء الحساب" 
+          });
+        }
         res.status(201).json(user);
       });
     } catch (err) {
-      next(err);
+      console.error("Registration error:", err);
+      res.status(500).json({ 
+        message: "حدث خطأ أثناء إنشاء الحساب" 
+      });
     }
   });
 
-  app.post("/api/auth/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json(req.user);
+  app.post("/api/auth/login", (req, res, next) => {
+    passport.authenticate("local", (err, user, info) => {
+      if (err) {
+        console.error("Login error:", err);
+        return res.status(500).json({ 
+          message: "حدث خطأ أثناء تسجيل الدخول" 
+        });
+      }
+
+      if (!user) {
+        return res.status(401).json({ 
+          message: info?.message || "فشل تسجيل الدخول" 
+        });
+      }
+
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Session error:", err);
+          return res.status(500).json({ 
+            message: "فشل في إنشاء جلسة المستخدم" 
+          });
+        }
+        res.json(user);
+      });
+    })(req, res, next);
   });
 
-  app.post("/api/auth/logout", (req, res, next) => {
+  app.post("/api/auth/logout", (req, res) => {
     req.logout((err) => {
-      if (err) return next(err);
+      if (err) {
+        console.error("Logout error:", err);
+        return res.status(500).json({ 
+          message: "حدث خطأ أثناء تسجيل الخروج" 
+        });
+      }
       res.sendStatus(200);
     });
   });
 
   app.get("/api/auth/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    res.json(req.user);
-  });
-
-  app.post("/api/auth/change-password", async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ 
+        message: "يجب تسجيل الدخول أولاً" 
+      });
     }
-
-    try {
-      const { currentPassword, newPassword } = req.body;
-      const user = await storage.getUser(req.user!.id);
-
-      if (!user || !(await comparePasswords(currentPassword, user.password))) {
-        return res.status(400).json({ message: "كلمة المرور الحالية غير صحيحة" });
-      }
-
-      const hashedPassword = await hashPassword(newPassword);
-      await storage.updateUser(user.id, { password: hashedPassword });
-
-      res.json({ message: "تم تغيير كلمة المرور بنجاح" });
-    } catch (error) {
-      res.status(500).json({ message: "حدث خطأ أثناء تغيير كلمة المرور" });
-    }
+    res.json(req.user);
   });
 }
