@@ -95,7 +95,31 @@ export class MemStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
+    // تهيئة جميع البيانات
+    this.clearAllData();
     this.sessionStore = new MemoryStore({ checkPeriod: 86400000 });
+  }
+
+  // إضافة دالة لمسح جميع البيانات
+  private clearAllData() {
+    this.users.clear();
+    this.products.clear();
+    this.sales.clear();
+    this.exchangeRates.clear();
+    this.installments.clear();
+    this.installmentPayments.clear();
+    this.campaigns.clear();
+    this.campaignAnalytics.clear();
+    this.socialMediaAccounts.clear();
+    this.apiKeys.clear();
+    this.inventoryTransactions.clear();
+    this.expenseCategories.clear();
+    this.expenses.clear();
+    this.suppliers.clear();
+    this.supplierTransactions.clear();
+    this.customers.clear();
+    this.appointments.clear();
+    this.currentId = 1;
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -331,7 +355,7 @@ export class MemStorage implements IStorage {
     return newTransaction;
   }
 
-  // Expense Categories
+
   async getExpenseCategories(userId: number): Promise<ExpenseCategory[]> {
     return Array.from(this.expenseCategories.values())
       .filter(category => category.userId === userId);
@@ -372,7 +396,6 @@ export class MemStorage implements IStorage {
     this.expenseCategories.delete(id);
   }
 
-  // Expenses
   async getExpenses(userId: number): Promise<Expense[]> {
     return Array.from(this.expenses.values())
       .filter(expense => expense.userId === userId);
@@ -421,7 +444,6 @@ export class MemStorage implements IStorage {
     this.expenses.delete(id);
   }
 
-  // Implement supplier methods
   async getSuppliers(userId: number): Promise<Supplier[]> {
     return Array.from(this.suppliers.values()).filter(
       (supplier) => supplier.userId === userId
