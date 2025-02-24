@@ -37,7 +37,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
-import { getStorageData, addItem } from "@/lib/localExpenseStorage";
 
 type InsertExpenseCategoryForm = z.infer<typeof insertExpenseCategorySchema>;
 type InsertExpenseForm = z.infer<typeof insertExpenseSchema>;
@@ -48,18 +47,14 @@ export default function ExpensesPage() {
   const [categorySheetOpen, setCategorySheetOpen] = useState(false);
   const [expenseSheetOpen, setExpenseSheetOpen] = useState(false);
 
-  // استعلام البيانات
   const { data: categories = [], isLoading: isLoadingCategories } = useQuery<ExpenseCategory[]>({
-    queryKey: ["expense-categories"],
-    queryFn: () => getStorageData("expense-categories"),
+    queryKey: ["/api/expenses/categories"],
   });
 
   const { data: expenses = [], isLoading: isLoadingExpenses } = useQuery<Expense[]>({
-    queryKey: ["expenses"],
-    queryFn: () => getStorageData("expenses"),
+    queryKey: ["/api/expenses"],
   });
 
-  // نموذج فئة المصروفات
   const categoryForm = useForm<InsertExpenseCategoryForm>({
     resolver: zodResolver(insertExpenseCategorySchema),
     defaultValues: {
@@ -69,21 +64,39 @@ export default function ExpensesPage() {
     },
   });
 
-  // إضافة فئة مصروفات
+  const expenseForm = useForm<InsertExpenseForm>({
+    resolver: zodResolver(insertExpenseSchema),
+    defaultValues: {
+      description: "",
+      amount: undefined,
+      date: new Date(),
+      categoryId: undefined,
+      isRecurring: false,
+      recurringPeriod: undefined,
+      recurringDay: undefined,
+      notes: "",
+    },
+  });
+
   const createCategoryMutation = useMutation({
     mutationFn: async (data: InsertExpenseCategoryForm) => {
-      if (!user) {
-        throw new Error("يجب تسجيل الدخول أولاً");
+      if (!user) throw new Error("يجب تسجيل الدخول أولاً");
+
+      const response = await fetch("/api/expenses/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, userId: user.id }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create category");
       }
 
-      return addItem<ExpenseCategory>("expense-categories", {
-        ...data,
-        userId: user.id,
-        createdAt: new Date(),
-      });
+      return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["expense-categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/expenses/categories"] });
       setCategorySheetOpen(false);
       categoryForm.reset();
       toast({
@@ -100,42 +113,34 @@ export default function ExpensesPage() {
     },
   });
 
-  // إضافة مصروف
   const createExpenseMutation = useMutation({
     mutationFn: async (data: InsertExpenseForm) => {
-      if (!user) {
-        throw new Error("يجب تسجيل الدخول أولاً");
-      }
+      if (!user) throw new Error("يجب تسجيل الدخول أولاً");
+      if (!data.categoryId) throw new Error("يجب اختيار فئة المصروف");
 
-      if (!data.categoryId) {
-        throw new Error("يجب اختيار فئة المصروف");
-      }
-
-      console.log("محاولة إضافة مصروف جديد:", data);
-
-      const result = await addItem<Expense>("expenses", {
-        ...data,
-        userId: user.id,
-        status: "active",
-        attachments: [],
-        createdAt: new Date(),
-        updatedAt: new Date(),
+      const response = await fetch("/api/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, userId: user.id }),
       });
 
-      console.log("تم إضافة المصروف بنجاح:", result);
-      return result;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create expense");
+      }
+
+      return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
       setExpenseSheetOpen(false);
       expenseForm.reset();
       toast({
-        title: "تم إنشاء المصروف بنجاح",
-        description: "تم إضافة المصروف الجديد إلى القائمة",
+        title: "تم بنجاح",
+        description: "تم إضافة المصروف الجديد",
       });
     },
     onError: (error: Error) => {
-      console.error("خطأ في إنشاء المصروف:", error);
       toast({
         title: "خطأ",
         description: error.message,
@@ -143,36 +148,6 @@ export default function ExpensesPage() {
       });
     },
   });
-
-  // تهيئة نموذج المصروفات
-  const expenseForm = useForm<InsertExpenseForm>({
-    resolver: zodResolver(insertExpenseSchema),
-    defaultValues: {
-      description: "",
-      amount: undefined,
-      date: new Date(),
-      categoryId: undefined,
-      isRecurring: false,
-      recurringPeriod: undefined,
-      recurringDay: undefined,
-      notes: "",
-    },
-  });
-
-
-  // معالجة تقديم النماذج
-  const onSubmitCategory = (data: InsertExpenseCategoryForm) => {
-    createCategoryMutation.mutate(data);
-  };
-
-  const onSubmitExpense = async (data: InsertExpenseForm) => {
-    console.log("تقديم نموذج المصروف:", data);
-    try {
-      await createExpenseMutation.mutateAsync(data);
-    } catch (error) {
-      console.error("خطأ في تقديم نموذج المصروف:", error);
-    }
-  };
 
   if (isLoadingCategories || isLoadingExpenses) {
     return (
@@ -220,7 +195,7 @@ export default function ExpensesPage() {
                   </SheetHeader>
                   <div className="mt-6">
                     <Form {...categoryForm}>
-                      <form onSubmit={categoryForm.handleSubmit(onSubmitCategory)} className="space-y-4">
+                      <form onSubmit={categoryForm.handleSubmit((data) => createCategoryMutation.mutate(data))} className="space-y-4">
                         <FormField
                           control={categoryForm.control}
                           name="name"
@@ -292,7 +267,7 @@ export default function ExpensesPage() {
                   </SheetHeader>
                   <div className="mt-6">
                     <Form {...expenseForm}>
-                      <form onSubmit={expenseForm.handleSubmit(onSubmitExpense)} className="space-y-4">
+                      <form onSubmit={expenseForm.handleSubmit((data) => createExpenseMutation.mutate(data))} className="space-y-4">
                         <FormField
                           control={expenseForm.control}
                           name="description"
@@ -319,6 +294,36 @@ export default function ExpensesPage() {
                                   onChange={(e) => field.onChange(e.target.valueAsNumber)}
                                 />
                               </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={expenseForm.control}
+                          name="categoryId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>الفئة</FormLabel>
+                              <Select
+                                value={field.value?.toString()}
+                                onValueChange={(value) => field.onChange(parseInt(value))}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="اختر فئة المصروف" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {categories.map((category) => (
+                                    <SelectItem
+                                      key={category.id}
+                                      value={category.id.toString()}
+                                    >
+                                      {category.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -361,104 +366,6 @@ export default function ExpensesPage() {
                             </FormItem>
                           )}
                         />
-                        <FormField
-                          control={expenseForm.control}
-                          name="categoryId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>الفئة</FormLabel>
-                              <Select
-                                value={field.value?.toString()}
-                                onValueChange={(value) => field.onChange(parseInt(value))}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="اختر فئة المصروف" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {categories.map((category) => (
-                                    <SelectItem
-                                      key={category.id}
-                                      value={category.id.toString()}
-                                    >
-                                      {category.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={expenseForm.control}
-                          name="isRecurring"
-                          render={({ field }) => (
-                            <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                              <div className="space-y-0.5">
-                                <FormLabel>مصروف متكرر</FormLabel>
-                                <FormDescription>
-                                  حدد إذا كان هذا المصروف متكرراً
-                                </FormDescription>
-                              </div>
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                        {expenseForm.watch("isRecurring") && (
-                          <>
-                            <FormField
-                              control={expenseForm.control}
-                              name="recurringPeriod"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>فترة التكرار</FormLabel>
-                                  <Select
-                                    value={field.value}
-                                    onValueChange={field.onChange}
-                                  >
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="اختر فترة التكرار" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      <SelectItem value="monthly">شهرياً</SelectItem>
-                                      <SelectItem value="weekly">أسبوعياً</SelectItem>
-                                      <SelectItem value="yearly">سنوياً</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={expenseForm.control}
-                              name="recurringDay"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>يوم التكرار</FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      type="number"
-                                      min={1}
-                                      max={31}
-                                      {...field}
-                                      onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </>
-                        )}
                         <FormField
                           control={expenseForm.control}
                           name="notes"
@@ -552,7 +459,7 @@ export default function ExpensesPage() {
                         <div>
                           <h3 className="font-medium">{expense.description}</h3>
                           <p className="text-sm text-muted-foreground">
-                            {format(new Date(expense.date), "PP", { locale: ar })}
+                            {format(new Date(expense.date), "PPP", { locale: ar })}
                           </p>
                         </div>
                         <div className="text-lg font-semibold">
