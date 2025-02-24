@@ -48,6 +48,7 @@ export default function ExpensesPage() {
   const [categorySheetOpen, setCategorySheetOpen] = useState(false);
   const [expenseSheetOpen, setExpenseSheetOpen] = useState(false);
 
+  // استعلام البيانات
   const { data: categories = [], isLoading: isLoadingCategories } = useQuery<ExpenseCategory[]>({
     queryKey: ["expense-categories"],
     queryFn: () => getStorageData("expense-categories"),
@@ -58,6 +59,7 @@ export default function ExpensesPage() {
     queryFn: () => getStorageData("expenses"),
   });
 
+  // تهيئة النماذج
   const categoryForm = useForm<InsertExpenseCategoryForm>({
     resolver: zodResolver(insertExpenseCategorySchema),
     defaultValues: {
@@ -81,6 +83,7 @@ export default function ExpensesPage() {
     },
   });
 
+  // إنشاء فئة مصروفات جديدة
   const createCategoryMutation = useMutation({
     mutationFn: async (data: InsertExpenseCategoryForm) => {
       if (!user) {
@@ -111,10 +114,15 @@ export default function ExpensesPage() {
     },
   });
 
+  // إنشاء مصروف جديد
   const createExpenseMutation = useMutation({
     mutationFn: async (data: InsertExpenseForm) => {
       if (!user) {
         throw new Error("يجب تسجيل الدخول أولاً");
+      }
+
+      if (!data.categoryId) {
+        throw new Error("يجب اختيار فئة المصروف");
       }
 
       return addItem<Expense>("expenses", {
@@ -142,17 +150,16 @@ export default function ExpensesPage() {
         description: error.message,
         variant: "destructive",
       });
-      console.error("Create expense error:", error);
     },
   });
 
-  const onSubmitCategory = (data: InsertExpenseCategoryForm) => {
+  const onSubmitCategory = categoryForm.handleSubmit((data) => {
     createCategoryMutation.mutate(data);
-  };
+  });
 
-  const onSubmitExpense = (data: InsertExpenseForm) => {
+  const onSubmitExpense = expenseForm.handleSubmit((data) => {
     createExpenseMutation.mutate(data);
-  };
+  });
 
   if (isLoadingCategories || isLoadingExpenses) {
     return (
@@ -200,7 +207,7 @@ export default function ExpensesPage() {
                   </SheetHeader>
                   <div className="mt-6">
                     <Form {...categoryForm}>
-                      <form onSubmit={categoryForm.handleSubmit(onSubmitCategory)} className="space-y-4">
+                      <form onSubmit={onSubmitCategory} className="space-y-4">
                         <FormField
                           control={categoryForm.control}
                           name="name"
@@ -272,7 +279,7 @@ export default function ExpensesPage() {
                   </SheetHeader>
                   <div className="mt-6">
                     <Form {...expenseForm}>
-                      <form onSubmit={expenseForm.handleSubmit(onSubmitExpense)} className="space-y-4">
+                      <form onSubmit={onSubmitExpense} className="space-y-4">
                         <FormField
                           control={expenseForm.control}
                           name="description"
