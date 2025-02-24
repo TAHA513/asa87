@@ -26,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -49,6 +50,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { MoreVertical } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -59,7 +71,7 @@ import { queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 
 export default function Staff() {
-  const { data: users = [] } = useQuery<User[]>({
+  const { data: users = [], deleteUserMutation } = useQuery<User[]>({
     queryKey: ["/api/users"],
   });
 
@@ -91,6 +103,22 @@ export default function Staff() {
       toast({
         title: "حدث خطأ",
         description: error instanceof Error ? error.message : "فشل إنشاء الحساب",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteUser = async (userId: number) => {
+    try {
+      await deleteUserMutation.mutateAsync(userId);
+      toast({
+        title: "تم حذف الحساب بنجاح",
+        description: "تم حذف الموظف من النظام",
+      });
+    } catch (error) {
+      toast({
+        title: "حدث خطأ",
+        description: "فشل حذف الحساب",
         variant: "destructive",
       });
     }
@@ -279,9 +307,30 @@ export default function Staff() {
                               <DropdownMenuItem>تعديل المعلومات</DropdownMenuItem>
                               <DropdownMenuItem>تعديل الدور</DropdownMenuItem>
                               <DropdownMenuItem>إدارة الصلاحيات</DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive">
-                                {user.isActive ? "تعطيل الحساب" : "تفعيل الحساب"}
-                              </DropdownMenuItem>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <DropdownMenuItem className="text-destructive">
+                                    حذف الحساب
+                                  </DropdownMenuItem>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>هل أنت متأكد من حذف هذا الحساب؟</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع بيانات الموظف نهائياً.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      onClick={() => handleDeleteUser(user.id)}
+                                    >
+                                      حذف
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

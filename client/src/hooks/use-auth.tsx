@@ -15,6 +15,7 @@ type AuthContextType = {
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
+  deleteUserMutation: UseMutationResult<void, Error, number>;
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
@@ -70,15 +71,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
-      // مسح كل البيانات المخزنة في ذاكرة التخزين المؤقت
       queryClient.clear();
-      // تعيين قيمة المستخدم إلى null
       queryClient.setQueryData(["/api/auth/user"], null);
-      // مسح التخزين المحلي
       localStorage.clear();
-      // مسح الجلسة
       sessionStorage.clear();
-      // عرض رسالة نجاح
       toast({
         title: "تم تسجيل الخروج",
         description: "تم تسجيل الخروج بنجاح",
@@ -87,6 +83,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onError: (error: Error) => {
       toast({
         title: "فشل تسجيل الخروج",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      await apiRequest("DELETE", `/api/users/${userId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "فشل حذف المستخدم",
         description: error.message,
         variant: "destructive",
       });
@@ -102,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
+        deleteUserMutation,
       }}
     >
       {children}
