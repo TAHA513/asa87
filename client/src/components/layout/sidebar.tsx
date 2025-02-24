@@ -42,18 +42,18 @@ export default function Sidebar() {
   const { user, logoutMutation } = useAuth();
 
   return (
-    <div className="flex flex-col h-full bg-sidebar border-r">
-      <div className="p-6">
-        <h1 className="text-xl font-bold text-sidebar-foreground">
+    <div className="flex flex-col h-full bg-white border-l">
+      <div className="p-4">
+        <h1 className="text-base font-medium text-black">
           نظام إدارة الأعمال
         </h1>
-        <p className="text-sm text-sidebar-foreground/60">
+        <p className="text-xs text-gray-600">
           مرحباً, {user?.username}
         </p>
       </div>
 
-      <nav className="flex-1 px-4">
-        <ul className="space-y-2">
+      <nav className="flex-1 px-2">
+        <ul className="space-y-1">
           {navigation.map((item) => {
             const Icon = item.icon;
             return (
@@ -61,15 +61,15 @@ export default function Sidebar() {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start gap-3",
+                    "w-full justify-start gap-2 h-8 px-2 text-xs font-normal",
                     location === item.href
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                      ? "bg-gray-100 text-black"
+                      : "text-black hover:bg-gray-50"
                   )}
                   asChild
                 >
                   <Link href={item.href}>
-                    <Icon className="h-4 w-4" />
+                    <Icon className="h-3.5 w-3.5" />
                     {item.name}
                   </Link>
                 </Button>
@@ -79,13 +79,13 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-2 border-t border-gray-200">
         <Button
-          variant="secondary"
-          className="w-full"
+          variant="ghost"
+          className="w-full h-8 text-xs font-normal text-black hover:bg-gray-50"
           onClick={() => logoutMutation.mutate()}
         >
-          <LogOut className="h-4 w-4 ml-2" />
+          <LogOut className="h-3.5 w-3.5 ml-2" />
           تسجيل خروج
         </Button>
       </div>
