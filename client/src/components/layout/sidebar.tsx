@@ -12,6 +12,7 @@ import {
   Calendar,
   Settings as SettingsIcon,
   Megaphone,
+  BarChart,
 } from "lucide-react";
 
 const navigation = [
@@ -21,6 +22,7 @@ const navigation = [
   { name: "الفواتير", href: "/invoices", icon: FileText },
   { name: "التقسيط", href: "/installments", icon: Calendar },
   { name: "التسويق", href: "/marketing", icon: Megaphone },
+  { name: "التقارير", href: "/reports", icon: BarChart },
   { name: "الموظفين", href: "/staff", icon: Users },
   { name: "الإعدادات", href: "/settings", icon: SettingsIcon },
 ];

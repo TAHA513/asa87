@@ -100,6 +100,43 @@ export const apiKeys = pgTable("api_keys", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// New tables for inventory tracking
+export const inventoryTransactions = pgTable("inventory_transactions", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull(),
+  type: text("type").notNull(), // 'in' or 'out'
+  quantity: integer("quantity").notNull(),
+  reason: text("reason").notNull(), // 'sale', 'return', 'adjustment', 'purchase'
+  reference: text("reference"), // Reference to sale or purchase id
+  date: timestamp("date").notNull().defaultNow(),
+  userId: integer("user_id").notNull(),
+  notes: text("notes"),
+});
+
+export const inventoryAdjustments = pgTable("inventory_adjustments", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull(),
+  oldQuantity: integer("old_quantity").notNull(),
+  newQuantity: integer("new_quantity").notNull(),
+  reason: text("reason").notNull(),
+  date: timestamp("date").notNull().defaultNow(),
+  userId: integer("user_id").notNull(),
+  notes: text("notes"),
+});
+
+export const reports = pgTable("reports", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull(), // 'sales', 'inventory', 'marketing', 'financial'
+  title: text("title").notNull(),
+  dateRange: jsonb("date_range").notNull(), // { start: Date, end: Date }
+  filters: jsonb("filters"), // Any additional filters applied
+  data: jsonb("data").notNull(), // The actual report data
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  userId: integer("user_id").notNull(),
+  status: text("status").notNull().default("generated"),
+  format: text("format").notNull().default("json"), // 'json', 'csv', 'pdf'
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -177,6 +214,40 @@ export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
   updatedAt: true,
 });
 
+// New schemas for inventory transactions
+export const insertInventoryTransactionSchema = createInsertSchema(inventoryTransactions)
+  .omit({ id: true })
+  .extend({
+    type: z.enum(["in", "out"]),
+    quantity: z.number().min(1, "الكمية يجب أن تكون 1 على الأقل"),
+    reason: z.enum(["sale", "return", "adjustment", "purchase"]),
+    reference: z.string().optional(),
+    notes: z.string().optional(),
+  });
+
+export const insertInventoryAdjustmentSchema = createInsertSchema(inventoryAdjustments)
+  .omit({ id: true })
+  .extend({
+    oldQuantity: z.number().min(0, "الكمية القديمة يجب أن تكون 0 على الأقل"),
+    newQuantity: z.number().min(0, "الكمية الجديدة يجب أن تكون 0 على الأقل"),
+    reason: z.string().min(1, "سبب التعديل مطلوب"),
+    notes: z.string().optional(),
+  });
+
+export const insertReportSchema = createInsertSchema(reports)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    type: z.enum(["sales", "inventory", "marketing", "financial"]),
+    title: z.string().min(1, "عنوان التقرير مطلوب"),
+    dateRange: z.object({
+      start: z.date(),
+      end: z.date(),
+    }),
+    filters: z.record(z.unknown()).optional(),
+    data: z.record(z.unknown()),
+    format: z.enum(["json", "csv", "pdf"]).default("json"),
+  });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
@@ -194,3 +265,11 @@ export type SocialMediaAccount = typeof socialMediaAccounts.$inferSelect;
 export type InsertSocialMediaAccount = z.infer<typeof insertSocialMediaAccountSchema>;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
+
+// Export new types
+export type InventoryTransaction = typeof inventoryTransactions.$inferSelect;
+export type InsertInventoryTransaction = z.infer<typeof insertInventoryTransactionSchema>;
+export type InventoryAdjustment = typeof inventoryAdjustments.$inferSelect;
+export type InsertInventoryAdjustment = z.infer<typeof insertInventoryAdjustmentSchema>;
+export type Report = typeof reports.$inferSelect;
+export type InsertReport = z.infer<typeof insertReportSchema>;
