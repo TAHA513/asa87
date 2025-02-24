@@ -19,8 +19,6 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, Phone, Mail, MapPin, Receipt, Tag } from "lucide-react";
-import { format } from "date-fns";
-import { ar } from "date-fns/locale";
 import type { Supplier, InsertSupplier } from "@shared/schema";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -42,7 +40,7 @@ export default function SuppliersPage() {
     queryKey: ["/api/suppliers"],
   });
 
-  const supplierForm = useForm<InsertSupplier>({
+  const form = useForm<InsertSupplier>({
     resolver: zodResolver(insertSupplierSchema),
     defaultValues: {
       name: "",
@@ -54,6 +52,7 @@ export default function SuppliersPage() {
       paymentTerms: "",
       notes: "",
       categories: [],
+      userId: 0,
     },
   });
 
@@ -77,7 +76,7 @@ export default function SuppliersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
       setSupplierSheetOpen(false);
-      supplierForm.reset();
+      form.reset();
       toast({
         title: "تم بنجاح",
         description: "تم إضافة المورد الجديد",
@@ -137,10 +136,10 @@ export default function SuppliersPage() {
                     </SheetDescription>
                   </SheetHeader>
                   <div className="mt-6">
-                    <Form {...supplierForm}>
-                      <form onSubmit={supplierForm.handleSubmit((data) => createSupplierMutation.mutate(data))} className="space-y-4">
+                    <Form {...form}>
+                      <form onSubmit={form.handleSubmit((data) => createSupplierMutation.mutate(data))} className="space-y-4">
                         <FormField
-                          control={supplierForm.control}
+                          control={form.control}
                           name="name"
                           render={({ field }) => (
                             <FormItem>
@@ -153,7 +152,7 @@ export default function SuppliersPage() {
                           )}
                         />
                         <FormField
-                          control={supplierForm.control}
+                          control={form.control}
                           name="contactPerson"
                           render={({ field }) => (
                             <FormItem>
@@ -166,7 +165,7 @@ export default function SuppliersPage() {
                           )}
                         />
                         <FormField
-                          control={supplierForm.control}
+                          control={form.control}
                           name="phone"
                           render={({ field }) => (
                             <FormItem>
@@ -179,7 +178,7 @@ export default function SuppliersPage() {
                           )}
                         />
                         <FormField
-                          control={supplierForm.control}
+                          control={form.control}
                           name="email"
                           render={({ field }) => (
                             <FormItem>
@@ -192,7 +191,7 @@ export default function SuppliersPage() {
                           )}
                         />
                         <FormField
-                          control={supplierForm.control}
+                          control={form.control}
                           name="address"
                           render={({ field }) => (
                             <FormItem>
@@ -205,7 +204,7 @@ export default function SuppliersPage() {
                           )}
                         />
                         <FormField
-                          control={supplierForm.control}
+                          control={form.control}
                           name="taxNumber"
                           render={({ field }) => (
                             <FormItem>
@@ -218,7 +217,7 @@ export default function SuppliersPage() {
                           )}
                         />
                         <FormField
-                          control={supplierForm.control}
+                          control={form.control}
                           name="paymentTerms"
                           render={({ field }) => (
                             <FormItem>
@@ -231,7 +230,7 @@ export default function SuppliersPage() {
                           )}
                         />
                         <FormField
-                          control={supplierForm.control}
+                          control={form.control}
                           name="notes"
                           render={({ field }) => (
                             <FormItem>
