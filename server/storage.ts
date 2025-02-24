@@ -4,7 +4,8 @@ import {
   SocialMediaAccount, apiKeys, type ApiKey, type InsertApiKey, 
   InventoryTransaction, InsertInventoryTransaction,
   ExpenseCategory, InsertExpenseCategory, Expense, InsertExpense,
-  Supplier, InsertSupplier, SupplierTransaction, InsertSupplierTransaction
+  Supplier, InsertSupplier, SupplierTransaction, InsertSupplierTransaction,
+  Customer, InsertCustomer
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -67,6 +68,12 @@ export interface IStorage {
   // Supplier transactions methods
   getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]>;
   createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction>;
+
+  // Customer methods
+  searchCustomers(search?: string): Promise<Customer[]>;
+  getCustomer(id: number): Promise<Customer | undefined>;
+  getCustomerSales(customerId: number): Promise<Sale[]>;
+  createCustomer(customer: InsertCustomer): Promise<Customer>;
 }
 
 export class MemStorage implements IStorage {
@@ -85,6 +92,7 @@ export class MemStorage implements IStorage {
   private expenses: Map<number, Expense> = new Map();
   private suppliers: Map<number, Supplier> = new Map();
   private supplierTransactions: Map<number, SupplierTransaction> = new Map();
+  private customers: Map<number, Customer> = new Map();
   private currentId: number = 1;
   sessionStore: session.Store;
 
@@ -460,6 +468,42 @@ export class MemStorage implements IStorage {
     this.supplierTransactions.set(id, newTransaction);
     return newTransaction;
   }
+
+  async searchCustomers(search?: string): Promise<Customer[]> {
+    const allCustomers = Array.from(this.customers.values());
+    if (!search) return allCustomers;
+
+    const searchLower = search.toLowerCase();
+    return allCustomers.filter(customer => 
+      customer.name.toLowerCase().includes(searchLower) ||
+      customer.phone?.toLowerCase().includes(searchLower) ||
+      customer.email?.toLowerCase().includes(searchLower)
+    );
+  }
+
+  async getCustomer(id: number): Promise<Customer | undefined> {
+    return this.customers.get(id);
+  }
+
+  async getCustomerSales(customerId: number): Promise<Sale[]> {
+    return Array.from(this.sales.values())
+      .filter(sale => sale.customerId === customerId);
+  }
+
+  async createCustomer(insertCustomer: InsertCustomer): Promise<Customer> {
+    const id = this.currentId++;
+    const customer: Customer = {
+      id,
+      name: insertCustomer.name,
+      phone: insertCustomer.phone || null,
+      email: insertCustomer.email || null,
+      address: insertCustomer.address || null,
+      notes: insertCustomer.notes || null,
+      createdAt: new Date()
+    };
+    this.customers.set(id, customer);
+    return customer;
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -522,6 +566,22 @@ export class DatabaseStorage implements IStorage {
   async deleteSupplier(id: number): Promise<void> {}
   async getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]> { return []; }
   async createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction> { return transaction as SupplierTransaction; }
+  async searchCustomers(search?: string): Promise<Customer[]> {
+    // For now return empty array since we're using MemStorage
+    return [];
+  }
+
+  async getCustomer(id: number): Promise<Customer | undefined> {
+    return undefined;
+  }
+
+  async getCustomerSales(customerId: number): Promise<Sale[]> {
+    return [];
+  }
+
+  async createCustomer(customer: InsertCustomer): Promise<Customer> {
+    throw new Error("Not implemented");
+  }
 }
 
 export const storage = process.env.DATABASE_URL

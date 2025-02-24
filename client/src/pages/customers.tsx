@@ -22,20 +22,34 @@ export default function CustomersPage() {
   const [search, setSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
-  const { data: customers = [] } = useQuery<Customer[]>({
+  const { data, isLoading, error } = useQuery<Customer[]>({
     queryKey: ["/api/customers", search],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (search) params.append("search", search);
       const res = await fetch(`/api/customers?${params.toString()}`);
-      return res.json();
+      if (!res.ok) {
+        throw new Error("فشل في جلب قائمة العملاء");
+      }
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
   });
 
   const { data: customerSales = [] } = useQuery<Sale[]>({
     queryKey: ["/api/customers", selectedCustomer?.id, "sales"],
-    enabled: !!selectedCustomer,
+    queryFn: async () => {
+      if (!selectedCustomer?.id) return [];
+      const res = await fetch(`/api/customers/${selectedCustomer.id}/sales`);
+      if (!res.ok) {
+        throw new Error("فشل في جلب مشتريات العميل");
+      }
+      return res.json();
+    },
+    enabled: !!selectedCustomer?.id,
   });
+
+  const customers = data || [];
 
   return (
     <div className="container mx-auto py-6">
@@ -86,6 +100,24 @@ export default function CustomersPage() {
                   </Button>
                 </div>
               ))}
+
+              {isLoading && (
+                <div className="text-center py-4 text-muted-foreground">
+                  جاري التحميل...
+                </div>
+              )}
+
+              {error && (
+                <div className="text-center py-4 text-destructive">
+                  حدث خطأ في تحميل البيانات
+                </div>
+              )}
+
+              {!isLoading && !error && customers.length === 0 && (
+                <div className="text-center py-4 text-muted-foreground">
+                  لا يوجد عملاء
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -153,6 +185,12 @@ export default function CustomersPage() {
                           </div>
                         </div>
                       ))}
+
+                      {customerSales.length === 0 && (
+                        <div className="text-center py-4 text-muted-foreground">
+                          لا توجد مشتريات
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
