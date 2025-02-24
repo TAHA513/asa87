@@ -294,7 +294,17 @@ export class MemStorage implements IStorage {
 
   async createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction> {
     const id = this.currentId++;
-    const newTransaction = { ...transaction, id };
+    const newTransaction: InventoryTransaction = {
+      id,
+      type: transaction.type,
+      productId: transaction.productId,
+      quantity: transaction.quantity,
+      userId: transaction.userId,
+      reason: transaction.reason,
+      date: transaction.date || new Date(),
+      notes: transaction.notes || null,
+      reference: transaction.reference || null
+    };
     this.inventoryTransactions.set(id, newTransaction);
     return newTransaction;
   }
@@ -537,13 +547,22 @@ export class DatabaseStorage implements IStorage {
 
     async createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction> {
         const id = this.currentId++;
-        const newTransaction = { ...transaction, id };
+        const newTransaction: InventoryTransaction = {
+          id,
+          type: transaction.type,
+          productId: transaction.productId,
+          quantity: transaction.quantity,
+          userId: transaction.userId,
+          reason: transaction.reason,
+          date: transaction.date || new Date(),
+          notes: transaction.notes || null,
+          reference: transaction.reference || null
+        };
         this.inventoryTransactions.set(id, newTransaction);
         return newTransaction;
     }
 }
 
-// تحديد نوع التخزين بناءً على وجود قاعدة البيانات
 export const storage = process.env.DATABASE_URL
   ? new DatabaseStorage()
   : new MemStorage();
