@@ -2,39 +2,39 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 import {
-  LayoutDashboard,
-  Package,
-  Receipt,
-  Users,
-  FileText,
-  LogOut,
-  Calendar,
-  Settings as SettingsIcon,
-  Megaphone,
-  BarChart,
-  Wallet,
-  Truck,
-  QrCode,
-  Tag,
-  UserRound,
-} from "lucide-react";
+  MdDashboard,
+  MdInventory2,
+  MdPointOfSale,
+  MdPeople,
+  MdReceipt,
+  MdCalendarMonth,
+  MdCampaign,
+  MdBarChart,
+  MdAccountBalance,
+  MdLocalShipping,
+  MdQrCode2,
+  MdLocalOffer,
+  MdSupervisorAccount,
+  MdSettings,
+} from "react-icons/md";
 
 const navigation = [
-  { name: "لوحة التحكم", href: "/", icon: LayoutDashboard },
-  { name: "المخزون", href: "/inventory", icon: Package },
-  { name: "المبيعات", href: "/sales", icon: Receipt },
-  { name: "العملاء", href: "/customers", icon: UserRound },
-  { name: "الفواتير", href: "/invoices", icon: FileText },
-  { name: "التقسيط", href: "/installments", icon: Calendar },
-  { name: "التسويق", href: "/marketing", icon: Megaphone },
-  { name: "التقارير", href: "/reports", icon: BarChart },
-  { name: "المصروفات", href: "/expenses", icon: Wallet },
-  { name: "الموردين", href: "/suppliers", icon: Truck },
-  { name: "الباركود", href: "/barcodes", icon: QrCode },
-  { name: "أكواد الخصم", href: "/discount-codes", icon: Tag },
-  { name: "الموظفين", href: "/staff", icon: Users },
-  { name: "الإعدادات", href: "/settings", icon: SettingsIcon },
+  { name: "لوحة التحكم", href: "/", icon: MdDashboard, color: "#4285F4" },
+  { name: "المخزون", href: "/inventory", icon: MdInventory2, color: "#34A853" },
+  { name: "المبيعات", href: "/sales", icon: MdPointOfSale, color: "#EA4335" },
+  { name: "العملاء", href: "/customers", icon: MdPeople, color: "#FBBC05" },
+  { name: "الفواتير", href: "/invoices", icon: MdReceipt, color: "#4285F4" },
+  { name: "التقسيط", href: "/installments", icon: MdCalendarMonth, color: "#34A853" },
+  { name: "التسويق", href: "/marketing", icon: MdCampaign, color: "#EA4335" },
+  { name: "التقارير", href: "/reports", icon: MdBarChart, color: "#FBBC05" },
+  { name: "المصروفات", href: "/expenses", icon: MdAccountBalance, color: "#4285F4" },
+  { name: "الموردين", href: "/suppliers", icon: MdLocalShipping, color: "#34A853" },
+  { name: "الباركود", href: "/barcodes", icon: MdQrCode2, color: "#EA4335" },
+  { name: "أكواد الخصم", href: "/discount-codes", icon: MdLocalOffer, color: "#FBBC05" },
+  { name: "الموظفين", href: "/staff", icon: MdSupervisorAccount, color: "#4285F4" },
+  { name: "الإعدادات", href: "/settings", icon: MdSettings, color: "#34A853" },
 ];
 
 export default function Sidebar() {
@@ -69,7 +69,10 @@ export default function Sidebar() {
                   asChild
                 >
                   <Link href={item.href}>
-                    <Icon className="h-3.5 w-3.5" />
+                    <Icon 
+                      className="h-4 w-4"
+                      style={{ color: item.color }}
+                    />
                     {item.name}
                   </Link>
                 </Button>
@@ -85,7 +88,7 @@ export default function Sidebar() {
           className="w-full h-8 text-xs font-normal text-black hover:bg-gray-50"
           onClick={() => logoutMutation.mutate()}
         >
-          <LogOut className="h-3.5 w-3.5 ml-2" />
+          <LogOut className="h-3.5 w-3.5 ml-2" style={{ color: "#EA4335" }} />
           تسجيل خروج
         </Button>
       </div>
