@@ -14,6 +14,7 @@ import {
   Megaphone,
   BarChart,
   Wallet,
+  Truck,
 } from "lucide-react";
 
 const navigation = [
@@ -25,6 +26,7 @@ const navigation = [
   { name: "التسويق", href: "/marketing", icon: Megaphone },
   { name: "التقارير", href: "/reports", icon: BarChart },
   { name: "المصروفات", href: "/expenses", icon: Wallet },
+  { name: "الموردين", href: "/suppliers", icon: Truck },
   { name: "الموظفين", href: "/staff", icon: Users },
   { name: "الإعدادات", href: "/settings", icon: SettingsIcon },
 ];
