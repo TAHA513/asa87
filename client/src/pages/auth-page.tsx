@@ -6,7 +6,6 @@ import { useLocation } from "wouter";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -21,11 +20,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, navigate] = useLocation();
+  const [activeTab, setActiveTab] = useState("login");
 
   useEffect(() => {
     if (user) {
@@ -49,6 +50,11 @@ export default function AuthPage() {
     },
   });
 
+  const onRegisterSuccess = () => {
+    registerForm.reset();
+    setActiveTab("login");
+  };
+
   if (user) {
     return null;
   }
@@ -65,8 +71,11 @@ export default function AuthPage() {
           </p>
 
           <Card>
+            <CardHeader>
+              <CardTitle>تسجيل الدخول / إنشاء حساب</CardTitle>
+            </CardHeader>
             <CardContent className="p-6">
-              <Tabs defaultValue="login">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-2 mb-4">
                   <TabsTrigger value="login">تسجيل الدخول</TabsTrigger>
                   <TabsTrigger value="register">تسجيل جديد</TabsTrigger>
@@ -111,6 +120,9 @@ export default function AuthPage() {
                         className="w-full"
                         disabled={loginMutation.isPending}
                       >
+                        {loginMutation.isPending && (
+                          <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                        )}
                         تسجيل الدخول
                       </Button>
                     </form>
@@ -121,7 +133,9 @@ export default function AuthPage() {
                   <Form {...registerForm}>
                     <form
                       onSubmit={registerForm.handleSubmit((data) =>
-                        registerMutation.mutate(data)
+                        registerMutation.mutate(data, {
+                          onSuccess: onRegisterSuccess,
+                        })
                       )}
                       className="space-y-4"
                     >
@@ -156,6 +170,9 @@ export default function AuthPage() {
                         className="w-full"
                         disabled={registerMutation.isPending}
                       >
+                        {registerMutation.isPending && (
+                          <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                        )}
                         تسجيل جديد
                       </Button>
                     </form>
