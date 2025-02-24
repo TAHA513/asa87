@@ -19,6 +19,7 @@ import Reports from "@/pages/reports";
 import Expenses from "@/pages/expenses";
 import Suppliers from "@/pages/suppliers";
 import Barcodes from "@/pages/barcodes";
+import DiscountCodes from "@/pages/discount-codes";
 
 function Router() {
   return (
@@ -36,6 +37,7 @@ function Router() {
       <ProtectedRoute path="/expenses" component={Expenses} />
       <ProtectedRoute path="/suppliers" component={Suppliers} />
       <ProtectedRoute path="/barcodes" component={Barcodes} />
+      <ProtectedRoute path="/discount-codes" component={DiscountCodes} />
       <Route component={NotFound} />
     </Switch>
   );

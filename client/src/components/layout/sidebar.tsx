@@ -16,6 +16,7 @@ import {
   Wallet,
   Truck,
   QrCode,
+  Tag,
 } from "lucide-react";
 
 const navigation = [
@@ -29,6 +30,7 @@ const navigation = [
   { name: "المصروفات", href: "/expenses", icon: Wallet },
   { name: "الموردين", href: "/suppliers", icon: Truck },
   { name: "الباركود", href: "/barcodes", icon: QrCode },
+  { name: "أكواد الخصم", href: "/discount-codes", icon: Tag },
   { name: "الموظفين", href: "/staff", icon: Users },
   { name: "الإعدادات", href: "/settings", icon: SettingsIcon },
 ];
