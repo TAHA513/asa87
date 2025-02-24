@@ -49,9 +49,14 @@ export function addItem<T extends { id?: number }>(key: StorageKey, item: Omit<T
       amount: typeof item['amount'] === 'number' ? item['amount'].toString() : undefined,
     } as T;
 
+    console.log(`بيانات العنصر الجديد قبل الحفظ:`, newItem);
+
     items.push(newItem);
     setStorageData(key, items);
+
     console.log(`تم إضافة عنصر جديد إلى ${key}:`, newItem);
+    console.log(`البيانات الحالية في ${key}:`, items);
+
     return newItem;
   } catch (error) {
     console.error(`خطأ في إضافة عنصر إلى ${key}:`, error);

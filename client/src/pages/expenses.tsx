@@ -90,13 +90,16 @@ export default function ExpensesPage() {
         throw new Error("يجب تسجيل الدخول أولاً");
       }
 
-      console.log("بيانات فئة المصروفات الجديدة:", data);
+      console.log("محاولة إضافة فئة مصروفات جديدة:", data);
 
-      return addItem<ExpenseCategory>("expense-categories", {
+      const result = await addItem<ExpenseCategory>("expense-categories", {
         ...data,
         userId: user.id,
         createdAt: new Date(),
       });
+
+      console.log("تم إضافة فئة المصروفات بنجاح:", result);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expense-categories"] });
@@ -128,9 +131,9 @@ export default function ExpensesPage() {
         throw new Error("يجب اختيار فئة المصروف");
       }
 
-      console.log("بيانات المصروف الجديد:", data);
+      console.log("محاولة إضافة مصروف جديد:", data);
 
-      return addItem<Expense>("expenses", {
+      const result = await addItem<Expense>("expenses", {
         ...data,
         userId: user.id,
         status: "active",
@@ -138,6 +141,9 @@ export default function ExpensesPage() {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+
+      console.log("تم إضافة المصروف بنجاح:", result);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
@@ -158,8 +164,9 @@ export default function ExpensesPage() {
     },
   });
 
-  // Form submissions
+  // معالجة تقديم النماذج
   const onSubmitCategory = async (data: InsertExpenseCategoryForm) => {
+    console.log("تقديم نموذج فئة المصروفات:", data);
     try {
       await createCategoryMutation.mutateAsync(data);
     } catch (error) {
@@ -168,6 +175,7 @@ export default function ExpensesPage() {
   };
 
   const onSubmitExpense = async (data: InsertExpenseForm) => {
+    console.log("تقديم نموذج المصروف:", data);
     try {
       await createExpenseMutation.mutateAsync(data);
     } catch (error) {
