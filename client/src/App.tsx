@@ -4,8 +4,6 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import Sidebar from "@/components/layout/sidebar";
 
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
@@ -23,7 +21,6 @@ import Suppliers from "@/pages/suppliers";
 import Barcodes from "@/pages/barcodes";
 import DiscountCodes from "@/pages/discount-codes";
 import Customers from "@/pages/customers";
-import Appointments from "@/pages/appointments";
 
 function Router() {
   return (
@@ -43,7 +40,6 @@ function Router() {
       <ProtectedRoute path="/barcodes" component={Barcodes} />
       <ProtectedRoute path="/discount-codes" component={DiscountCodes} />
       <ProtectedRoute path="/customers" component={Customers} />
-      <ProtectedRoute path="/appointments" component={Appointments} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -53,15 +49,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <SidebarProvider defaultOpen={true}>
-          <div className="flex h-full">
-            <Sidebar />
-            <div className="flex-1">
-              <Router />
-            </div>
-          </div>
-          <Toaster />
-        </SidebarProvider>
+        <Router />
+        <Toaster />
       </AuthProvider>
     </QueryClientProvider>
   );
