@@ -70,7 +70,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiRequest("POST", "/api/auth/logout");
     },
     onSuccess: () => {
+      // مسح كل البيانات المخزنة في ذاكرة التخزين المؤقت
+      queryClient.clear();
+      // تعيين قيمة المستخدم إلى null
       queryClient.setQueryData(["/api/auth/user"], null);
+      // مسح التخزين المحلي
+      localStorage.clear();
+      // مسح الجلسة
+      sessionStorage.clear();
+      // عرض رسالة نجاح
+      toast({
+        title: "تم تسجيل الخروج",
+        description: "تم تسجيل الخروج بنجاح",
+      });
     },
     onError: (error: Error) => {
       toast({
