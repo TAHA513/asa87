@@ -1,4 +1,3 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import Sidebar from "@/components/layout/sidebar";
@@ -28,6 +27,9 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useQuery, useMutation } from "@tanstack/react-query";
+
+const DEFAULT_CATEGORIES = ["أجهزة", "قطع غيار", "مواد استهلاكية", "خدمات"];
 
 export default function SuppliersPage() {
   const { toast } = useToast();
@@ -49,7 +51,7 @@ export default function SuppliersPage() {
       taxNumber: "",
       paymentTerms: "",
       notes: "",
-      categories: [],
+      categories: ["أجهزة"], // تعيين قيمة افتراضية للفئات
       userId: 0,
     },
   });
@@ -179,6 +181,34 @@ export default function SuppliersPage() {
                           <FormControl>
                             <Input {...field} type="email" dir="ltr" />
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="categories"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>الفئات</FormLabel>
+                          <div className="flex flex-wrap gap-2">
+                            {DEFAULT_CATEGORIES.map((category) => (
+                              <Badge
+                                key={category}
+                                variant={field.value.includes(category) ? "default" : "outline"}
+                                className="cursor-pointer"
+                                onClick={() => {
+                                  const newCategories = field.value.includes(category)
+                                    ? field.value.filter((c) => c !== category)
+                                    : [...field.value, category];
+                                  field.onChange(newCategories);
+                                }}
+                              >
+                                <Tag className="h-3 w-3 ml-1" />
+                                {category}
+                              </Badge>
+                            ))}
+                          </div>
                           <FormMessage />
                         </FormItem>
                       )}
