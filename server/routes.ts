@@ -18,6 +18,7 @@ import {
 } from "@shared/schema";
 import fs from "fs/promises";
 import path from "path";
+import { insertAppointmentSchema } from "@shared/schema"; // Added import
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -654,6 +655,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(500).json({ message: "فشل في إنشاء العميل" });
       }
+    }
+  });
+
+  // Appointment Routes
+  app.get("/api/customers/:id/appointments", async (req, res) => {
+    try {
+      const appointments = await storage.getCustomerAppointments(Number(req.params.id));
+      res.json(appointments);
+    } catch (error) {
+      console.error("Error fetching customer appointments:", error);
+      res.status(500).json({ message: "فشل في جلب المواعيد" });
+    }
+  });
+
+  app.post("/api/customers/:id/appointments", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const validatedData = insertAppointmentSchema.parse(req.body);
+      const appointment = await storage.createAppointment({
+        ...validatedData,
+        customerId: Number(req.params.id),
+      });
+      res.status(201).json(appointment);
+    } catch (error) {
+      console.error("Error creating appointment:", error);
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "فشل في إنشاء الموعد" });
+      }
+    }
+  });
+
+  app.patch("/api/appointments/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const appointment = await storage.updateAppointment(Number(req.params.id), req.body);
+      res.json(appointment);
+    } catch (error) {
+      console.error("Error updating appointment:", error);
+      res.status(500).json({ message: "فشل في تحديث الموعد" });
+    }
+  });
+
+  app.delete("/api/appointments/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      await storage.deleteAppointment(Number(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting appointment:", error);
+      res.status(500).json({ message: "فشل في حذف الموعد" });
     }
   });
 

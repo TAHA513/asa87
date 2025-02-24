@@ -5,7 +5,7 @@ import {
   InventoryTransaction, InsertInventoryTransaction,
   ExpenseCategory, InsertExpenseCategory, Expense, InsertExpense,
   Supplier, InsertSupplier, SupplierTransaction, InsertSupplierTransaction,
-  Customer, InsertCustomer
+  Customer, InsertCustomer, Appointment, InsertAppointment
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -57,23 +57,21 @@ export interface IStorage {
   createExpense(expense: InsertExpense): Promise<Expense>;
   updateExpense(id: number, update: Partial<Expense>): Promise<Expense>;
   deleteExpense(id: number): Promise<void>;
-
-  // Supplier methods
   getSuppliers(userId: number): Promise<Supplier[]>;
   getSupplier(id: number): Promise<Supplier | undefined>;
   createSupplier(supplier: InsertSupplier): Promise<Supplier>;
   updateSupplier(id: number, update: Partial<Supplier>): Promise<Supplier>;
   deleteSupplier(id: number): Promise<void>;
-
-  // Supplier transactions methods
   getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]>;
   createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction>;
-
-  // Customer methods
   searchCustomers(search?: string): Promise<Customer[]>;
   getCustomer(id: number): Promise<Customer | undefined>;
   getCustomerSales(customerId: number): Promise<Sale[]>;
   createCustomer(customer: InsertCustomer): Promise<Customer>;
+  getCustomerAppointments(customerId: number): Promise<Appointment[]>;
+  createAppointment(appointment: InsertAppointment): Promise<Appointment>;
+  updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment>;
+  deleteAppointment(id: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -93,12 +91,12 @@ export class MemStorage implements IStorage {
   private suppliers: Map<number, Supplier> = new Map();
   private supplierTransactions: Map<number, SupplierTransaction> = new Map();
   private customers: Map<number, Customer> = new Map();
+  private appointments: Map<number, Appointment> = new Map();
   private currentId: number = 1;
   sessionStore: session.Store;
 
   constructor() {
     this.sessionStore = new MemoryStore({ checkPeriod: 86400000 });
-    // Remove initial data loading
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -504,6 +502,46 @@ export class MemStorage implements IStorage {
     this.customers.set(id, customer);
     return customer;
   }
+
+  async getCustomerAppointments(customerId: number): Promise<Appointment[]> {
+    return Array.from(this.appointments.values())
+      .filter(appointment => appointment.customerId === customerId)
+      .sort((a, b) => b.date.getTime() - a.date.getTime());
+  }
+
+  async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
+    const id = this.currentId++;
+    const newAppointment: Appointment = {
+      id,
+      customerId: appointment.customerId,
+      title: appointment.title,
+      description: appointment.description || null,
+      date: appointment.date,
+      duration: appointment.duration,
+      status: appointment.status || "scheduled",
+      notes: appointment.notes || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.appointments.set(id, newAppointment);
+    return newAppointment;
+  }
+
+  async updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment> {
+    const appointment = this.appointments.get(id);
+    if (!appointment) throw new Error("الموعد غير موجود");
+    const updatedAppointment = { 
+      ...appointment, 
+      ...update,
+      updatedAt: new Date()
+    };
+    this.appointments.set(id, updatedAppointment);
+    return updatedAppointment;
+  }
+
+  async deleteAppointment(id: number): Promise<void> {
+    this.appointments.delete(id);
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -519,12 +557,12 @@ export class DatabaseStorage implements IStorage {
     return { id: 1, ...insertUser, role: "staff" }; 
   }
   async updateUser(id: number, update: Partial<User>): Promise<User> { 
-    throw new Error("Not implemented"); 
+    return {id:id, ...update} as User;
   }
   async getProducts(): Promise<Product[]> { return []; }
   async getProduct(id: number): Promise<Product | undefined> { return undefined; }
   async createProduct(product: Product): Promise<Product> { return product; }
-  async updateProduct(id: number, product: Partial<Product>): Promise<Product> { return product as Product; }
+  async updateProduct(id: number, product: Partial<Product>): Promise<Product> { return {...product, id} as Product; }
   async getSales(): Promise<Sale[]> { return []; }
   async createSale(sale: Sale): Promise<Sale> { return sale; }
   async getCurrentExchangeRate(): Promise<ExchangeRate> { return {id:0, usdToIqd: "1", date: new Date()} as ExchangeRate; }
@@ -532,15 +570,15 @@ export class DatabaseStorage implements IStorage {
   async getInstallments(): Promise<Installment[]> { return []; }
   async getInstallment(id: number): Promise<Installment | undefined> { return undefined; }
   async createInstallment(installment: Installment): Promise<Installment> { return installment; }
-  async updateInstallment(id: number, update: Partial<Installment>): Promise<Installment> { return installment as Installment; }
+  async updateInstallment(id: number, update: Partial<Installment>): Promise<Installment> { return {...installment, id} as Installment; }
   async getInstallmentPayments(installmentId: number): Promise<InstallmentPayment[]> { return []; }
   async createInstallmentPayment(payment: InstallmentPayment): Promise<InstallmentPayment> { return payment; }
   async getCampaigns(): Promise<Campaign[]> { return []; }
   async getCampaign(id: number): Promise<Campaign | undefined> { return undefined; }
-  async createCampaign(campaign: InsertCampaign): Promise<Campaign> { return campaign as Campaign; }
-  async updateCampaign(id: number, update: Partial<Campaign>): Promise<Campaign> { return campaign as Campaign; }
+  async createCampaign(campaign: InsertCampaign): Promise<Campaign> { return {...campaign, id:1} as Campaign; }
+  async updateCampaign(id: number, update: Partial<Campaign>): Promise<Campaign> { return {...campaign, id:id, ...update} as Campaign; }
   async getCampaignAnalytics(campaignId: number): Promise<CampaignAnalytics[]> { return []; }
-  async createCampaignAnalytics(analytics: InsertCampaignAnalytics): Promise<CampaignAnalytics> { return analytics as CampaignAnalytics; }
+  async createCampaignAnalytics(analytics: InsertCampaignAnalytics): Promise<CampaignAnalytics> { return {...analytics, id:1} as CampaignAnalytics; }
   async getSocialMediaAccounts(userId: number): Promise<SocialMediaAccount[]> { return []; }
   async createSocialMediaAccount(account: SocialMediaAccount): Promise<SocialMediaAccount> { return account; }
   async deleteSocialMediaAccount(id: number): Promise<void> {}
@@ -548,39 +586,78 @@ export class DatabaseStorage implements IStorage {
   async getApiKeys(userId: number): Promise<Record<string, any> | null> { return null; }
   async migrateLocalStorageToDb(userId: number, keys: Record<string, any>): Promise<void> {}
   async getInventoryTransactions(): Promise<InventoryTransaction[]> { return []; }
-  async createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction> { return transaction as InventoryTransaction; }
+  async createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction> { return {...transaction, id:1} as InventoryTransaction; }
   async getExpenseCategories(userId: number): Promise<ExpenseCategory[]> { return []; }
   async getExpenseCategory(id: number): Promise<ExpenseCategory | undefined> { return undefined; }
-  async createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory> { return category as ExpenseCategory; }
-  async updateExpenseCategory(id: number, update: Partial<ExpenseCategory>): Promise<ExpenseCategory> { return category as ExpenseCategory; }
+  async createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory> { return {...category, id:1} as ExpenseCategory; }
+  async updateExpenseCategory(id: number, update: Partial<ExpenseCategory>): Promise<ExpenseCategory> { return {...category, id:id, ...update} as ExpenseCategory; }
   async deleteExpenseCategory(id: number): Promise<void> {}
   async getExpenses(userId: number): Promise<Expense[]> { return []; }
   async getExpense(id: number): Promise<Expense | undefined> { return undefined; }
-  async createExpense(expense: InsertExpense): Promise<Expense> { return expense as Expense; }
-  async updateExpense(id: number, update: Partial<Expense>): Promise<Expense> { return expense as Expense; }
+  async createExpense(expense: InsertExpense): Promise<Expense> { return {...expense, id:1} as Expense; }
+  async updateExpense(id: number, update: Partial<Expense>): Promise<Expense> { return {...expense, id:id, ...update} as Expense; }
   async deleteExpense(id: number): Promise<void> {}
   async getSuppliers(userId: number): Promise<Supplier[]> { return []; }
   async getSupplier(id: number): Promise<Supplier | undefined> { return undefined; }
-  async createSupplier(supplier: InsertSupplier): Promise<Supplier> { return supplier; }
-  async updateSupplier(id: number, update: Partial<Supplier>): Promise<Supplier> { return supplier as Supplier; }
+  async createSupplier(supplier: InsertSupplier): Promise<Supplier> { return {...supplier, id:1}; }
+  async updateSupplier(id: number, update: Partial<Supplier>): Promise<Supplier> { return {...supplier, id:id, ...update} as Supplier; }
   async deleteSupplier(id: number): Promise<void> {}
   async getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]> { return []; }
-  async createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction> { return transaction as SupplierTransaction; }
+  async createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction> { return {...transaction, id:1} as SupplierTransaction; }
   async searchCustomers(search?: string): Promise<Customer[]> {
-    // For now return empty array since we're using MemStorage
-    return [];
+    return []; // Return empty array until DB implementation
   }
-
   async getCustomer(id: number): Promise<Customer | undefined> {
     return undefined;
   }
-
   async getCustomerSales(customerId: number): Promise<Sale[]> {
     return [];
   }
-
-  async createCustomer(customer: InsertCustomer): Promise<Customer> {
-    throw new Error("Not implemented");
+  async createCustomer(insertCustomer: InsertCustomer): Promise<Customer> {
+    // Basic implementation returning the customer with an ID
+    return {
+      id: 1,
+      name: insertCustomer.name,
+      phone: insertCustomer.phone || null,
+      email: insertCustomer.email || null,
+      address: insertCustomer.address || null,
+      notes: insertCustomer.notes || null,
+      createdAt: new Date()
+    };
+  }
+  async getCustomerAppointments(customerId: number): Promise<Appointment[]> {
+    return [];
+  }
+  async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
+    // Basic implementation returning the appointment with an ID
+    return {
+      id: 1,
+      customerId: appointment.customerId,
+      title: appointment.title,
+      description: appointment.description || null,
+      date: appointment.date,
+      duration: appointment.duration,
+      status: appointment.status || "scheduled",
+      notes: appointment.notes || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  }
+  async updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment> {
+    return {
+      id,
+      ...update,
+      customerId: 1,
+      title: "Appointment",
+      date: new Date(),
+      duration: 30,
+      status: "scheduled",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Appointment;
+  }
+  async deleteAppointment(id: number): Promise<void> {
+    // No-op for now
   }
 }
 

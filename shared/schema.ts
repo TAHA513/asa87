@@ -206,6 +206,20 @@ export const supplierTransactions = pgTable("supplier_transactions", {
   userId: integer("user_id").notNull(),
 });
 
+// Add appointments table
+export const appointments = pgTable("appointments", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id").references(() => customers.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  date: timestamp("date").notNull(),
+  duration: integer("duration").notNull(), // in minutes
+  status: text("status").notNull().default("scheduled"), // scheduled, completed, cancelled
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users)
   .pick({
     username: true,
@@ -370,6 +384,16 @@ export const insertCustomerSchema = createInsertSchema(customers)
     email: z.string().email("البريد الإلكتروني غير صالح").optional().nullable(),
   });
 
+// Add appointments schema
+export const insertAppointmentSchema = createInsertSchema(appointments)
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .extend({
+    title: z.string().min(1, "عنوان الموعد مطلوب"),
+    date: z.date(),
+    duration: z.number().min(1, "مدة الموعد يجب أن تكون 1 دقيقة على الأقل"),
+    status: z.enum(["scheduled", "completed", "cancelled"]).default("scheduled"),
+  });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
@@ -404,3 +428,7 @@ export type SupplierTransaction = typeof supplierTransactions.$inferSelect;
 export type InsertSupplierTransaction = z.infer<typeof insertSupplierTransactionSchema>;
 export type Customer = typeof customers.$inferSelect;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
+
+// Export types
+export type Appointment = typeof appointments.$inferSelect;
+export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
