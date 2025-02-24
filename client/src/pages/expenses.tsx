@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import Sidebar from "@/components/layout/sidebar";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Card,
   CardContent,
@@ -18,11 +19,10 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import type { Expense, ExpenseCategory } from "@shared/schema";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage,FormDescription } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
@@ -43,6 +43,7 @@ type InsertExpenseForm = z.infer<typeof insertExpenseSchema>;
 
 export default function ExpensesPage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [categorySheetOpen, setCategorySheetOpen] = useState(false);
   const [expenseSheetOpen, setExpenseSheetOpen] = useState(false);
 
@@ -79,14 +80,21 @@ export default function ExpensesPage() {
 
   const createCategoryMutation = useMutation({
     mutationFn: async (data: InsertExpenseCategoryForm) => {
+      if (!user) {
+        throw new Error("يجب تسجيل الدخول أولاً");
+      }
+
       const response = await fetch("/api/expenses/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, userId: user.id }),
       });
+
       if (!response.ok) {
-        throw new Error("فشل في إنشاء فئة المصروفات");
+        const error = await response.json();
+        throw new Error(error.message || "فشل في إنشاء فئة المصروفات");
       }
+
       return response.json();
     },
     onSuccess: () => {
@@ -109,14 +117,21 @@ export default function ExpensesPage() {
 
   const createExpenseMutation = useMutation({
     mutationFn: async (data: InsertExpenseForm) => {
+      if (!user) {
+        throw new Error("يجب تسجيل الدخول أولاً");
+      }
+
       const response = await fetch("/api/expenses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, userId: user.id }),
       });
+
       if (!response.ok) {
-        throw new Error("فشل في إنشاء المصروف");
+        const error = await response.json();
+        throw new Error(error.message || "فشل في إنشاء المصروف");
       }
+
       return response.json();
     },
     onSuccess: () => {
@@ -134,8 +149,35 @@ export default function ExpensesPage() {
         description: error.message,
         variant: "destructive",
       });
+      console.error("Create expense error:", error);
     },
   });
+
+  const onSubmitCategory = (data: InsertExpenseCategoryForm) => {
+    try {
+      createCategoryMutation.mutate(data);
+    } catch (error) {
+      console.error("Submit category error:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء حفظ فئة المصروفات",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const onSubmitExpense = (data: InsertExpenseForm) => {
+    try {
+      createExpenseMutation.mutate(data);
+    } catch (error) {
+      console.error("Submit expense error:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء حفظ المصروف",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isLoadingCategories || isLoadingExpenses) {
     return (
@@ -183,7 +225,7 @@ export default function ExpensesPage() {
                   </SheetHeader>
                   <div className="mt-6">
                     <Form {...categoryForm}>
-                      <form onSubmit={categoryForm.handleSubmit((data) => createCategoryMutation.mutate(data))} className="space-y-4">
+                      <form onSubmit={categoryForm.handleSubmit(onSubmitCategory)} className="space-y-4">
                         <FormField
                           control={categoryForm.control}
                           name="name"
@@ -255,7 +297,7 @@ export default function ExpensesPage() {
                   </SheetHeader>
                   <div className="mt-6">
                     <Form {...expenseForm}>
-                      <form onSubmit={expenseForm.handleSubmit((data) => createExpenseMutation.mutate(data))} className="space-y-4">
+                      <form onSubmit={expenseForm.handleSubmit(onSubmitExpense)} className="space-y-4">
                         <FormField
                           control={expenseForm.control}
                           name="description"

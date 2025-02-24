@@ -418,7 +418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Expense Categories Routes
+  // Expense Categories Routes (from edited snippet)
   app.get("/api/expenses/categories", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
@@ -451,45 +451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/expenses/categories/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const category = await storage.getExpenseCategory(Number(req.params.id));
-      if (!category || category.userId !== req.user!.id) {
-        return res.status(404).json({ message: "فئة المصروفات غير موجودة" });
-      }
-
-      const updatedCategory = await storage.updateExpenseCategory(category.id, req.body);
-      res.json(updatedCategory);
-    } catch (error) {
-      console.error("Error updating expense category:", error);
-      res.status(500).json({ message: "فشل في تحديث فئة المصروفات" });
-    }
-  });
-
-  app.delete("/api/expenses/categories/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const category = await storage.getExpenseCategory(Number(req.params.id));
-      if (!category || category.userId !== req.user!.id) {
-        return res.status(404).json({ message: "فئة المصروفات غير موجودة" });
-      }
-
-      await storage.deleteExpenseCategory(category.id);
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error deleting expense category:", error);
-      res.status(500).json({ message: "فشل في حذف فئة المصروفات" });
-    }
-  });
-
-  // Expenses Routes
+  // Expenses Routes (from edited snippet)
   app.get("/api/expenses", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
@@ -518,47 +480,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(expense);
     } catch (error) {
       console.error("Error creating expense:", error);
-      res.status(500).json({ message: "فشل في إنشاء المصروف" });
-    }
-  });
-
-  app.patch("/api/expenses/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const expense = await storage.getExpense(Number(req.params.id));
-      if (!expense || expense.userId !== req.user!.id) {
-        return res.status(404).json({ message: "المصروف غير موجود" });
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "فشل في إنشاء المصروف" });
       }
-
-      const updatedExpense = await storage.updateExpense(expense.id, req.body);
-      res.json(updatedExpense);
-    } catch (error) {
-      console.error("Error updating expense:", error);
-      res.status(500).json({ message: "فشل في تحديث المصروف" });
     }
   });
 
-  app.delete("/api/expenses/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const expense = await storage.getExpense(Number(req.params.id));
-      if (!expense || expense.userId !== req.user!.id) {
-        return res.status(404).json({ message: "المصروف غير موجود" });
-      }
-
-      await storage.deleteExpense(expense.id);
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error deleting expense:", error);
-      res.status(500).json({ message: "فشل في حذف المصروف" });
-    }
-  });
 
   const httpServer = createServer(app);
   return httpServer;
