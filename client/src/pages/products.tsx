@@ -65,32 +65,20 @@ export default function Products() {
                     {product.description}
                   </p>
                   <p className="text-sm">السعر: {product.priceIqd} د.ع</p>
+                  <p className="text-sm">المخزون: {product.stock}</p>
                 </div>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" className="flex items-center gap-2 px-4">
-                      <MdDelete className="h-5 w-5" />
-                      <span>حذف المنتج</span>
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>هل أنت متأكد من حذف هذا المنتج؟</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        هذا الإجراء لا يمكن التراجع عنه. سيتم حذف المنتج نهائياً.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        onClick={() => deleteMutation.mutate(product.id)}
-                      >
-                        حذف
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <Button 
+                  variant="destructive" 
+                  className="flex items-center gap-2"
+                  onClick={() => {
+                    if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
+                      deleteMutation.mutate(product.id);
+                    }
+                  }}
+                >
+                  <MdDelete className="h-5 w-5" />
+                  <span>حذف</span>
+                </Button>
               </div>
             ))}
           </div>
