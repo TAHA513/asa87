@@ -211,32 +211,56 @@ export class MemStorage implements IStorage {
   }
 
   async getProducts(): Promise<Product[]> {
-    return Array.from(this.products.values());
+    try {
+      return await dbStorage.getProducts();
+    } catch (error) {
+      console.error("خطأ في جلب المنتجات:", error);
+      return [];
+    }
   }
 
   async getProduct(id: number): Promise<Product | undefined> {
-    return this.products.get(id);
+    try {
+      return await dbStorage.getProduct(id);
+    } catch (error) {
+      console.error("خطأ في جلب المنتج:", error);
+      return undefined;
+    }
   }
 
   async createProduct(product: Product): Promise<Product> {
-    const id = this.currentId++;
-    const newProduct = { ...product, id };
-    this.products.set(id, newProduct);
-    return newProduct;
+    try {
+      const savedProduct = await dbStorage.createProduct(product);
+      if (savedProduct) {
+        return savedProduct;
+      }
+      throw new Error("فشل في حفظ المنتج");
+    } catch (error) {
+      console.error("خطأ في إنشاء المنتج:", error);
+      throw error;
+    }
   }
 
   async updateProduct(id: number, update: Partial<Product>): Promise<Product> {
-    const product = this.products.get(id);
-    if (!product) throw new Error("Product not found");
-    const updatedProduct = { ...product, ...update };
-    this.products.set(id, updatedProduct);
-    return updatedProduct;
+    try {
+      const updatedProduct = await dbStorage.updateProduct(id, update);
+      if (updatedProduct) {
+        return updatedProduct;
+      }
+      throw new Error("فشل في تحديث المنتج");
+    } catch (error) {
+      console.error("خطأ في تحديث المنتج:", error);
+      throw error;
+    }
   }
 
   async deleteProduct(id: number): Promise<void> {
-    const product = this.products.get(id);
-    if (!product) throw new Error("المنتج غير موجود");
-    this.products.delete(id);
+    try {
+      await dbStorage.deleteProduct(id);
+    } catch (error) {
+      console.error("خطأ في حذف المنتج:", error);
+      throw error;
+    }
   }
 
   async getSales(): Promise<Sale[]> {
