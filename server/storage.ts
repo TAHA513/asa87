@@ -9,6 +9,7 @@ import {
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import { dbStorage } from "./db-storage";
 
 const MemoryStore = createMemoryStore(session);
 
@@ -122,11 +123,45 @@ export class MemStorage implements IStorage {
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    // البحث أولاً في الذاكرة المحلية
+    const localUser = this.users.get(id);
+    if (localUser) return localUser;
+
+    // إذا لم يتم العثور على المستخدم محلياً، ابحث في قاعدة البيانات
+    try {
+      const dbUser = await dbStorage.getUser(id);
+      if (dbUser) {
+        // حفظ المستخدم في الذاكرة المحلية للوصول السريع في المرة القادمة
+        this.users.set(dbUser.id, dbUser);
+        return dbUser;
+      }
+    } catch (error) {
+      console.error("خطأ في البحث عن المستخدم في قاعدة البيانات:", error);
+    }
+
+    return undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find((user) => user.username === username);
+    // البحث أولاً في الذاكرة المحلية
+    const localUser = Array.from(this.users.values()).find(
+      (user) => user.username === username
+    );
+    if (localUser) return localUser;
+
+    // إذا لم يتم العثور على المستخدم محلياً، ابحث في قاعدة البيانات
+    try {
+      const dbUser = await dbStorage.getUserByUsername(username);
+      if (dbUser) {
+        // حفظ المستخدم في الذاكرة المحلية للوصول السريع في المرة القادمة
+        this.users.set(dbUser.id, dbUser);
+        return dbUser;
+      }
+    } catch (error) {
+      console.error("خطأ في البحث عن المستخدم في قاعدة البيانات:", error);
+    }
+
+    return undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -150,13 +185,16 @@ export class MemStorage implements IStorage {
     this.users.set(id, user);
 
     try {
-      // محاولة الحفظ في قاعدة البيانات إذا كان مطلوباً
-      // Placeholder for database interaction -  requires dbStorage object and saveNewUser function
+      // حفظ في قاعدة البيانات إذا كان مطلوباً
       if (insertUser.saveToDb) {
-        //const dbUser = await dbStorage.saveNewUser(insertUser);
-        //if (dbUser) {
-        //  console.log("تم حفظ المستخدم في قاعدة البيانات:", dbUser.id);
-        //}
+        const dbUser = await dbStorage.saveNewUser(insertUser);
+        if (dbUser) {
+          console.log("تم حفظ المستخدم في قاعدة البيانات:", dbUser.id);
+          // تحديث المعرف المحلي ليتطابق مع معرف قاعدة البيانات
+          user.id = dbUser.id;
+          this.users.set(dbUser.id, dbUser);
+          return dbUser;
+        }
       }
     } catch (error) {
       console.error("فشل في حفظ المستخدم في قاعدة البيانات:", error);
