@@ -79,6 +79,11 @@ export default function Staff() {
   const form = useForm<InsertUser>({
     resolver: zodResolver(insertUserSchema),
     defaultValues: {
+      username: "",
+      password: "",
+      fullName: "",
+      email: "",
+      phone: "",
       role: "staff",
       permissions: [],
     },
@@ -89,7 +94,7 @@ export default function Staff() {
       const response = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, saveToDb: true }), // إضافة علامة لحفظ البيانات في قاعدة البيانات
+        body: JSON.stringify({ ...data, saveToDb: true }),
       });
 
       if (!response.ok) throw new Error("فشل إنشاء الحساب");
