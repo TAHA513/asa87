@@ -72,6 +72,7 @@ export interface IStorage {
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
   updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment>;
   deleteAppointment(id: number): Promise<void>;
+  deleteProduct(id: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -230,6 +231,12 @@ export class MemStorage implements IStorage {
     const updatedProduct = { ...product, ...update };
     this.products.set(id, updatedProduct);
     return updatedProduct;
+  }
+
+  async deleteProduct(id: number): Promise<void> {
+    const product = this.products.get(id);
+    if (!product) throw new Error("المنتج غير موجود");
+    this.products.delete(id);
   }
 
   async getSales(): Promise<Sale[]> {
