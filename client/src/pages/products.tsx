@@ -1,17 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { MdDelete } from "react-icons/md";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -69,15 +58,15 @@ export default function Products() {
                 </div>
                 <Button 
                   variant="destructive" 
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 px-6 py-4 text-lg hover:bg-red-600 transition-colors"
                   onClick={() => {
                     if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
                       deleteMutation.mutate(product.id);
                     }
                   }}
                 >
-                  <MdDelete className="h-5 w-5" />
-                  <span>حذف</span>
+                  <MdDelete className="h-6 w-6" />
+                  <span>حذف المنتج</span>
                 </Button>
               </div>
             ))}
