@@ -89,7 +89,7 @@ export default function Staff() {
       const response = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, saveToDb: true }), // إضافة علامة لحفظ البيانات في قاعدة البيانات
       });
 
       if (!response.ok) throw new Error("فشل إنشاء الحساب");
@@ -198,10 +198,10 @@ export default function Staff() {
                         <FormItem>
                           <FormLabel>البريد الإلكتروني</FormLabel>
                           <FormControl>
-                            <Input 
-                              type="email" 
+                            <Input
+                              type="email"
                               {...field}
-                              value={field.value || ''}
+                              value={field.value || ""}
                             />
                           </FormControl>
                           <FormMessage />
@@ -215,9 +215,9 @@ export default function Staff() {
                         <FormItem>
                           <FormLabel>رقم الهاتف</FormLabel>
                           <FormControl>
-                            <Input 
+                            <Input
                               {...field}
-                              value={field.value || ''}
+                              value={field.value || ""}
                             />
                           </FormControl>
                           <FormMessage />

@@ -1,7 +1,7 @@
-import { 
-  User, Product, Sale, ExchangeRate, InsertUser, Installment, InstallmentPayment, 
-  Campaign, InsertCampaign, CampaignAnalytics, InsertCampaignAnalytics, 
-  SocialMediaAccount, apiKeys, type ApiKey, type InsertApiKey, 
+import {
+  User, Product, Sale, ExchangeRate, InsertUser, Installment, InstallmentPayment,
+  Campaign, InsertCampaign, CampaignAnalytics, InsertCampaignAnalytics,
+  SocialMediaAccount, apiKeys, type ApiKey, type InsertApiKey,
   InventoryTransaction, InsertInventoryTransaction,
   ExpenseCategory, InsertExpenseCategory, Expense, InsertExpense,
   Supplier, InsertSupplier, SupplierTransaction, InsertSupplierTransaction,
@@ -95,7 +95,6 @@ export class MemStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    // تهيئة جميع البيانات
     this.clearAllData();
     this.sessionStore = new MemoryStore({ checkPeriod: 86400000 });
   }
@@ -383,7 +382,7 @@ export class MemStorage implements IStorage {
   async updateExpenseCategory(id: number, update: Partial<ExpenseCategory>): Promise<ExpenseCategory> {
     const category = this.expenseCategories.get(id);
     if (!category) throw new Error("فئة المصروفات غير موجودة");
-    const updatedCategory = { 
+    const updatedCategory = {
       ...category,
       ...update,
       budgetAmount: update.budgetAmount?.toString() || category.budgetAmount
@@ -501,7 +500,7 @@ export class MemStorage implements IStorage {
     if (!search) return allCustomers;
 
     const searchLower = search.toLowerCase();
-    return allCustomers.filter(customer => 
+    return allCustomers.filter(customer =>
       customer.name.toLowerCase().includes(searchLower) ||
       customer.phone?.toLowerCase().includes(searchLower) ||
       customer.email?.toLowerCase().includes(searchLower)
@@ -559,8 +558,8 @@ export class MemStorage implements IStorage {
   async updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment> {
     const appointment = this.appointments.get(id);
     if (!appointment) throw new Error("الموعد غير موجود");
-    const updatedAppointment = { 
-      ...appointment, 
+    const updatedAppointment = {
+      ...appointment,
       ...update,
       updatedAt: new Date()
     };
