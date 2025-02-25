@@ -185,16 +185,14 @@ export class MemStorage implements IStorage {
     this.users.set(id, user);
 
     try {
-      // حفظ في قاعدة البيانات إذا كان مطلوباً
-      if (insertUser.saveToDb) {
-        const dbUser = await dbStorage.saveNewUser(insertUser);
-        if (dbUser) {
-          console.log("تم حفظ المستخدم في قاعدة البيانات:", dbUser.id);
-          // تحديث المعرف المحلي ليتطابق مع معرف قاعدة البيانات
-          user.id = dbUser.id;
-          this.users.set(dbUser.id, dbUser);
-          return dbUser;
-        }
+      // دائماً حفظ المستخدمين الجدد في قاعدة البيانات
+      const dbUser = await dbStorage.saveNewUser(insertUser);
+      if (dbUser) {
+        console.log("تم حفظ المستخدم في قاعدة البيانات:", dbUser.id);
+        // تحديث المعرف المحلي ليتطابق مع معرف قاعدة البيانات
+        user.id = dbUser.id;
+        this.users.set(dbUser.id, dbUser);
+        return dbUser;
       }
     } catch (error) {
       console.error("فشل في حفظ المستخدم في قاعدة البيانات:", error);
