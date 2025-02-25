@@ -57,7 +57,7 @@ export default function Products() {
             {products.map((product) => (
               <div
                 key={product.id}
-                className="flex items-center justify-between p-4 border rounded"
+                className="flex items-center justify-between p-4 border rounded hover:bg-gray-50"
               >
                 <div>
                   <h3 className="font-medium">{product.name}</h3>
@@ -68,8 +68,9 @@ export default function Products() {
                 </div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="icon">
-                      <MdDelete className="h-4 w-4" />
+                    <Button variant="destructive" size="icon" className="flex items-center gap-2">
+                      <MdDelete className="h-5 w-5" />
+                      <span>حذف</span>
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
