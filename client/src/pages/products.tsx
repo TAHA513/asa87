@@ -42,43 +42,38 @@ export default function Products() {
           <CardTitle>المنتجات</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="relative overflow-x-auto">
-            <table className="w-full text-right">
-              <thead className="text-sm bg-muted">
-                <tr>
-                  <th className="p-4">اسم المنتج</th>
-                  <th className="p-4">الوصف</th>
-                  <th className="p-4">السعر (د.ع)</th>
-                  <th className="p-4">المخزون</th>
-                  <th className="p-4">الإجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((product) => (
-                  <tr key={product.id} className="border-b hover:bg-gray-50">
-                    <td className="p-4 font-medium">{product.name}</td>
-                    <td className="p-4 text-gray-600">{product.description}</td>
-                    <td className="p-4">{product.priceIqd}</td>
-                    <td className="p-4">{product.stock}</td>
-                    <td className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {products.map((product) => (
+              <Card key={product.id}>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-xl font-bold">{product.name}</h3>
+                      <p className="text-gray-600 mt-1">{product.description}</p>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="font-semibold">{product.priceIqd} د.ع</p>
+                        <p className="text-sm text-gray-500">المخزون: {product.stock}</p>
+                      </div>
                       <Button 
                         variant="destructive"
                         size="lg"
-                        className="w-full flex items-center justify-center gap-2"
+                        className="bg-red-600 hover:bg-red-700 text-white px-8 py-6 text-lg rounded-lg shadow-lg"
                         onClick={() => {
                           if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
                             deleteMutation.mutate(product.id);
                           }
                         }}
                       >
-                        <MdDelete className="h-6 w-6" />
-                        <span>حذف</span>
+                        <MdDelete className="h-8 w-8 ml-2" />
+                        حذف
                       </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </CardContent>
       </Card>
