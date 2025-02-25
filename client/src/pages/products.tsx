@@ -68,9 +68,9 @@ export default function Products() {
                 </div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="icon" className="flex items-center gap-2">
+                    <Button variant="destructive" className="flex items-center gap-2 px-4">
                       <MdDelete className="h-5 w-5" />
-                      <span>حذف</span>
+                      <span>حذف المنتج</span>
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
