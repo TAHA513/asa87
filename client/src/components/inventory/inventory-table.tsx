@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Package, Plus } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Package, Plus, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -58,6 +58,27 @@ export default function InventoryTable() {
     },
   });
 
+  // إضافة mutation للحذف
+  const deleteMutation = useMutation({
+    mutationFn: async (productId: number) => {
+      await apiRequest("DELETE", `/api/products/${productId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({
+        title: "تم الحذف بنجاح",
+        description: "تم حذف المنتج بنجاح",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "خطأ",
+        description: "فشل في حذف المنتج",
+        variant: "destructive",
+      });
+    },
+  });
+
   const watchPriceIqd = form.watch("priceIqd");
   const priceUsd = exchangeRate && watchPriceIqd ? Number(watchPriceIqd) / Number(exchangeRate.usdToIqd) : 0;
 
@@ -91,6 +112,7 @@ export default function InventoryTable() {
     }
   }
 
+  // تعديل جدول المنتجات لإضافة عمود الإجراءات وزر الحذف
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -209,6 +231,7 @@ export default function InventoryTable() {
               <TableHead>الوصف</TableHead>
               <TableHead>السعر</TableHead>
               <TableHead>المخزون</TableHead>
+              <TableHead>الإجراءات</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -229,6 +252,20 @@ export default function InventoryTable() {
                     </span>
                   </TableCell>
                   <TableCell>{product.stock}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
+                          deleteMutation.mutate(product.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 ml-2" />
+                      حذف
+                    </Button>
+                  </TableCell>
                 </TableRow>
               );
             })}
