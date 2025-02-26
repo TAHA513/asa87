@@ -114,6 +114,40 @@ export class DatabaseStorage {
       throw error;
     }
   }
+
+  async saveTheme(userId: number, theme: any): Promise<void> {
+    try {
+      await db.insert(userSettings)
+        .values({
+          userId,
+          theme: JSON.stringify(theme),
+          updatedAt: new Date()
+        })
+        .onConflictDoUpdate({
+          target: userSettings.userId,
+          set: { 
+            theme: JSON.stringify(theme),
+            updatedAt: new Date()
+          }
+        });
+    } catch (error) {
+      console.error("خطأ في حفظ الثيم في قاعدة البيانات:", error);
+      throw error;
+    }
+  }
+
+  async getTheme(userId: number): Promise<any | null> {
+    try {
+      const [settings] = await db
+        .select()
+        .from(userSettings)
+        .where(eq(userSettings.userId, userId));
+      return settings?.theme ? JSON.parse(settings.theme) : null;
+    } catch (error) {
+      console.error("خطأ في جلب الثيم من قاعدة البيانات:", error);
+      return null;
+    }
+  }
 }
 
 export const dbStorage = new DatabaseStorage();

@@ -65,8 +65,7 @@ export default function ThemeSettings() {
 
     try {
       await apiRequest("POST", "/api/theme", newTheme);
-
-      localStorage.setItem("theme", JSON.stringify(newTheme));
+      // تم نقل التخزين إلى قاعدة البيانات
 
       toast({
         title: "تم الحفظ",
