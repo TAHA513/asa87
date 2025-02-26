@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
-import { users, products, sales, exchangeRates, expenseCategories } from "@shared/schema";
-import type { User, InsertUser, Product, Sale, ExchangeRate, ExpenseCategory } from "@shared/schema";
+import { users, products, sales, exchangeRates, expenseCategories, fileStorage } from "@shared/schema";
+import type { User, InsertUser, Product, Sale, ExchangeRate, ExpenseCategory, FileStorage, InsertFileStorage } from "@shared/schema";
 
 export class DatabaseStorage {
   // حفظ مستخدم جديد في قاعدة البيانات
@@ -177,6 +177,70 @@ export class DatabaseStorage {
     } catch (error) {
       console.error("خطأ في حفظ سعر الصرف في قاعدة البيانات:", error);
       return null;
+    }
+  }
+
+  // حفظ ملف جديد
+  async saveFile(file: InsertFileStorage): Promise<FileStorage> {
+    try {
+      console.log("Saving file:", file.filename);
+      const [savedFile] = await db
+        .insert(fileStorage)
+        .values({
+          filename: file.filename,
+          contentType: file.contentType,
+          size: file.size,
+          data: file.data,
+          userId: file.userId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning();
+
+      console.log("File saved successfully:", savedFile.id);
+      return savedFile;
+    } catch (error) {
+      console.error("خطأ في حفظ الملف:", error);
+      throw error;
+    }
+  }
+
+  // الحصول على ملف بواسطة المعرف
+  async getFileById(id: number): Promise<FileStorage | undefined> {
+    try {
+      const [file] = await db
+        .select()
+        .from(fileStorage)
+        .where(eq(fileStorage.id, id));
+      return file;
+    } catch (error) {
+      console.error("خطأ في جلب الملف:", error);
+      return undefined;
+    }
+  }
+
+  // الحصول على جميع ملفات المستخدم
+  async getUserFiles(userId: number): Promise<FileStorage[]> {
+    try {
+      return await db
+        .select()
+        .from(fileStorage)
+        .where(eq(fileStorage.userId, userId));
+    } catch (error) {
+      console.error("خطأ في جلب ملفات المستخدم:", error);
+      return [];
+    }
+  }
+
+  // حذف ملف
+  async deleteFile(id: number): Promise<void> {
+    try {
+      await db
+        .delete(fileStorage)
+        .where(eq(fileStorage.id, id));
+    } catch (error) {
+      console.error("خطأ في حذف الملف:", error);
+      throw error;
     }
   }
 }

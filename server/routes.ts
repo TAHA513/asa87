@@ -762,6 +762,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // File Storage Routes
+  app.post("/api/files", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const file = await storage.saveFile({
+        ...req.body,
+        userId: req.user!.id,
+      });
+      res.status(201).json(file);
+    } catch (error) {
+      console.error("Error saving file:", error);
+      res.status(500).json({ message: "فشل في حفظ الملف" });
+    }
+  });
+
+  app.get("/api/files/:id", async (req, res) => {
+    try {
+      const file = await storage.getFileById(Number(req.params.id));
+      if (!file) {
+        return res.status(404).json({ message: "الملف غير موجود" });
+      }
+      res.json(file);
+    } catch (error) {
+      console.error("Error fetching file:", error);
+      res.status(500).json({ message: "فشل في جلب الملف" });
+    }
+  });
+
+  app.get("/api/files/user", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const files = await storage.getUserFiles(req.user!.id);
+      res.json(files);
+    } catch (error) {
+      console.error("Error fetching user files:", error);
+      res.status(500).json({ message: "فشل في جلب ملفات المستخدم" });
+    }
+  });
+
+  app.delete("/api/files/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      await storage.deleteFile(Number(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      res.status(500).json({ message: "فشل في حذف الملف" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

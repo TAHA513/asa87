@@ -227,6 +227,17 @@ export const appointments = pgTable("appointments", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const fileStorage = pgTable("file_storage", {
+  id: serial("id").primaryKey(),
+  filename: text("filename").notNull(),
+  contentType: text("content_type").notNull(),
+  size: integer("size").notNull(),
+  data: text("data").notNull(),
+  userId: integer("user_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users)
   .pick({
     username: true,
@@ -410,6 +421,16 @@ export const insertAppointmentSchema = createInsertSchema(appointments)
     status: z.enum(["scheduled", "completed", "cancelled"]).default("scheduled"),
   });
 
+export const insertFileStorageSchema = createInsertSchema(fileStorage)
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .extend({
+    filename: z.string().min(1, "اسم الملف مطلوب"),
+    contentType: z.string().min(1, "نوع المحتوى مطلوب"),
+    size: z.number().min(0, "حجم الملف يجب أن يكون أكبر من 0"),
+    data: z.string().min(1, "محتوى الملف مطلوب"),
+    userId: z.number().min(1, "معرف المستخدم مطلوب"),
+  });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
@@ -447,3 +468,5 @@ export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 
 export type Appointment = typeof appointments.$inferSelect;
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
+export type FileStorage = typeof fileStorage.$inferSelect;
+export type InsertFileStorage = z.infer<typeof insertFileStorageSchema>;

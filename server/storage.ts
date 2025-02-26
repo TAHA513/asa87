@@ -1,5 +1,6 @@
 import {
-  User, Product, Sale, ExchangeRate, InsertUser, Installment, InstallmentPayment,
+  User, Product, Sale, ExchangeRate, InsertUser, FileStorage, InsertFileStorage,
+  Installment, InstallmentPayment,
   Campaign, InsertCampaign, CampaignAnalytics, InsertCampaignAnalytics,
   SocialMediaAccount, apiKeys, type ApiKey, type InsertApiKey,
   InventoryTransaction, InsertInventoryTransaction,
@@ -74,6 +75,10 @@ export interface IStorage {
   deleteAppointment(id: number): Promise<void>;
   deleteProduct(id: number): Promise<void>;
   deleteCustomer(id: number): Promise<void>;
+  saveFile(file: InsertFileStorage): Promise<FileStorage>;
+  getFileById(id: number): Promise<FileStorage | undefined>;
+  getUserFiles(userId: number): Promise<FileStorage[]>;
+  deleteFile(id: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -94,6 +99,7 @@ export class MemStorage implements IStorage {
   private supplierTransactions: Map<number, SupplierTransaction> = new Map();
   private customers: Map<number, Customer> = new Map();
   private appointments: Map<number, Appointment> = new Map();
+  private files: Map<number, FileStorage> = new Map(); // Added for file storage
   private currentId: number = 1;
   sessionStore: session.Store;
 
@@ -120,6 +126,7 @@ export class MemStorage implements IStorage {
     this.supplierTransactions.clear();
     this.customers.clear();
     this.appointments.clear();
+    this.files.clear(); // Added for file storage
     this.currentId = 1;
   }
 
@@ -649,6 +656,42 @@ export class MemStorage implements IStorage {
 
   async deleteCustomer(id: number): Promise<void> {
     this.customers.delete(id);
+  }
+
+  async saveFile(file: InsertFileStorage): Promise<FileStorage> {
+    try {
+      return await dbStorage.saveFile(file);
+    } catch (error) {
+      console.error("خطأ في حفظ الملف:", error);
+      throw error;
+    }
+  }
+
+  async getFileById(id: number): Promise<FileStorage | undefined> {
+    try {
+      return await dbStorage.getFileById(id);
+    } catch (error) {
+      console.error("خطأ في جلب الملف:", error);
+      return undefined;
+    }
+  }
+
+  async getUserFiles(userId: number): Promise<FileStorage[]> {
+    try {
+      return await dbStorage.getUserFiles(userId);
+    } catch (error) {
+      console.error("خطأ في جلب ملفات المستخدم:", error);
+      return [];
+    }
+  }
+
+  async deleteFile(id: number): Promise<void> {
+    try {
+      await dbStorage.deleteFile(id);
+    } catch (error) {
+      console.error("خطأ في حذف الملف:", error);
+      throw error;
+    }
   }
 }
 
