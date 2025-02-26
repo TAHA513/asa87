@@ -1,3 +1,4 @@
+
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 import { 
@@ -66,6 +67,24 @@ export class DatabaseStorage {
     }
   }
 
+  // تحديث المستخدم
+  async updateUser(id: number, update: Partial<User>): Promise<User> {
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          ...update,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, id))
+        .returning();
+      return updatedUser;
+    } catch (error) {
+      console.error("خطأ في تحديث المستخدم:", error);
+      throw error;
+    }
+  }
+
   // إضافة منتج جديد
   async createProduct(product: Product): Promise<Product | null> {
     try {
@@ -80,6 +99,20 @@ export class DatabaseStorage {
     }
   }
 
+  // الحصول على منتج محدد
+  async getProduct(id: number): Promise<Product | undefined> {
+    try {
+      const [product] = await db
+        .select()
+        .from(products)
+        .where(eq(products.id, id));
+      return product;
+    } catch (error) {
+      console.error("خطأ في جلب المنتج:", error);
+      return undefined;
+    }
+  }
+
   // الحصول على جميع المنتجات
   async getProducts(): Promise<Product[]> {
     try {
@@ -87,6 +120,21 @@ export class DatabaseStorage {
     } catch (error) {
       console.error("خطأ في جلب المنتجات من قاعدة البيانات:", error);
       return [];
+    }
+  }
+
+  // تحديث منتج
+  async updateProduct(id: number, update: Partial<Product>): Promise<Product> {
+    try {
+      const [updatedProduct] = await db
+        .update(products)
+        .set(update)
+        .where(eq(products.id, id))
+        .returning();
+      return updatedProduct;
+    } catch (error) {
+      console.error("خطأ في تحديث المنتج:", error);
+      throw error;
     }
   }
 
@@ -205,21 +253,55 @@ export class DatabaseStorage {
           contentType: file.contentType,
           size: file.size,
           data: file.data,
-
-  // تحديث المستخدم
-  async updateUser(id: number, update: Partial<User>): Promise<User> {
-    try {
-      const [updatedUser] = await db
-        .update(users)
-        .set({
-          ...update,
-          updatedAt: new Date()
+          userId: file.userId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         })
-        .where(eq(users.id, id))
         .returning();
-      return updatedUser;
+
+      console.log("File saved successfully:", savedFile.id);
+      return savedFile;
     } catch (error) {
-      console.error("خطأ في تحديث المستخدم:", error);
+      console.error("خطأ في حفظ الملف:", error);
+      throw error;
+    }
+  }
+
+  // الحصول على ملف بواسطة المعرف
+  async getFileById(id: number): Promise<FileStorage | undefined> {
+    try {
+      const [file] = await db
+        .select()
+        .from(fileStorage)
+        .where(eq(fileStorage.id, id));
+      return file;
+    } catch (error) {
+      console.error("خطأ في جلب الملف:", error);
+      return undefined;
+    }
+  }
+
+  // الحصول على جميع ملفات المستخدم
+  async getUserFiles(userId: number): Promise<FileStorage[]> {
+    try {
+      return await db
+        .select()
+        .from(fileStorage)
+        .where(eq(fileStorage.userId, userId));
+    } catch (error) {
+      console.error("خطأ في جلب ملفات المستخدم:", error);
+      return [];
+    }
+  }
+
+  // حذف ملف
+  async deleteFile(id: number): Promise<void> {
+    try {
+      await db
+        .delete(fileStorage)
+        .where(eq(fileStorage.id, id));
+    } catch (error) {
+      console.error("خطأ في حذف الملف:", error);
       throw error;
     }
   }
@@ -819,59 +901,6 @@ export class DatabaseStorage {
         .where(eq(appointments.id, id));
     } catch (error) {
       console.error("خطأ في حذف الموعد:", error);
-      throw error;
-    }
-  }
-
-          userId: file.userId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .returning();
-
-      console.log("File saved successfully:", savedFile.id);
-      return savedFile;
-    } catch (error) {
-      console.error("خطأ في حفظ الملف:", error);
-      throw error;
-    }
-  }
-
-  // الحصول على ملف بواسطة المعرف
-  async getFileById(id: number): Promise<FileStorage | undefined> {
-    try {
-      const [file] = await db
-        .select()
-        .from(fileStorage)
-        .where(eq(fileStorage.id, id));
-      return file;
-    } catch (error) {
-      console.error("خطأ في جلب الملف:", error);
-      return undefined;
-    }
-  }
-
-  // الحصول على جميع ملفات المستخدم
-  async getUserFiles(userId: number): Promise<FileStorage[]> {
-    try {
-      return await db
-        .select()
-        .from(fileStorage)
-        .where(eq(fileStorage.userId, userId));
-    } catch (error) {
-      console.error("خطأ في جلب ملفات المستخدم:", error);
-      return [];
-    }
-  }
-
-  // حذف ملف
-  async deleteFile(id: number): Promise<void> {
-    try {
-      await db
-        .delete(fileStorage)
-        .where(eq(fileStorage.id, id));
-    } catch (error) {
-      console.error("خطأ في حذف الملف:", error);
       throw error;
     }
   }
