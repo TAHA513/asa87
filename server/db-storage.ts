@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
-import { users, products, sales, exchangeRates, expenseCategories, fileStorage } from "@shared/schema";
-import type { User, InsertUser, Product, Sale, ExchangeRate, ExpenseCategory, FileStorage, InsertFileStorage } from "@shared/schema";
+import { users, products, sales, exchangeRates, expenseCategories, fileStorage, installments, installmentPayments } from "@shared/schema";
+import type { User, InsertUser, Product, Sale, ExchangeRate, ExpenseCategory, FileStorage, InsertFileStorage, Installment, InstallmentPayment } from "@shared/schema";
 
 export class DatabaseStorage {
   // حفظ مستخدم جديد في قاعدة البيانات
@@ -241,6 +241,101 @@ export class DatabaseStorage {
     } catch (error) {
       console.error("خطأ في حذف الملف:", error);
       throw error;
+    }
+  }
+
+  // الحصول على التقسيطات
+  async getInstallments(): Promise<Installment[]> {
+    try {
+      return await db.select().from(installments);
+    } catch (error) {
+      console.error("خطأ في جلب التقسيطات من قاعدة البيانات:", error);
+      return [];
+    }
+  }
+
+  // الحصول على تقسيط محدد
+  async getInstallment(id: number): Promise<Installment | undefined> {
+    try {
+      const [installment] = await db
+        .select()
+        .from(installments)
+        .where(eq(installments.id, id));
+      return installment;
+    } catch (error) {
+      console.error("خطأ في جلب التقسيط من قاعدة البيانات:", error);
+      return undefined;
+    }
+  }
+
+  // إنشاء تقسيط جديد
+  async createInstallment(installment: Installment): Promise<Installment | null> {
+    try {
+      const [savedInstallment] = await db
+        .insert(installments)
+        .values({
+          saleId: installment.saleId,
+          customerName: installment.customerName,
+          customerPhone: installment.customerPhone,
+          totalAmount: installment.totalAmount,
+          numberOfPayments: installment.numberOfPayments,
+          remainingAmount: installment.remainingAmount,
+          startDate: installment.startDate || new Date(),
+          nextPaymentDate: installment.nextPaymentDate,
+          status: installment.status || "active",
+        })
+        .returning();
+      return savedInstallment;
+    } catch (error) {
+      console.error("خطأ في حفظ التقسيط في قاعدة البيانات:", error);
+      return null;
+    }
+  }
+
+  // تحديث تقسيط
+  async updateInstallment(id: number, update: Partial<Installment>): Promise<Installment | null> {
+    try {
+      const [updatedInstallment] = await db
+        .update(installments)
+        .set(update)
+        .where(eq(installments.id, id))
+        .returning();
+      return updatedInstallment;
+    } catch (error) {
+      console.error("خطأ في تحديث التقسيط في قاعدة البيانات:", error);
+      return null;
+    }
+  }
+
+  // الحصول على دفعات التقسيط
+  async getInstallmentPayments(installmentId: number): Promise<InstallmentPayment[]> {
+    try {
+      return await db
+        .select()
+        .from(installmentPayments)
+        .where(eq(installmentPayments.installmentId, installmentId));
+    } catch (error) {
+      console.error("خطأ في جلب دفعات التقسيط من قاعدة البيانات:", error);
+      return [];
+    }
+  }
+
+  // إنشاء دفعة تقسيط جديدة
+  async createInstallmentPayment(payment: InstallmentPayment): Promise<InstallmentPayment | null> {
+    try {
+      const [savedPayment] = await db
+        .insert(installmentPayments)
+        .values({
+          installmentId: payment.installmentId,
+          amount: payment.amount,
+          paymentDate: payment.paymentDate || new Date(),
+          notes: payment.notes || null,
+        })
+        .returning();
+      return savedPayment;
+    } catch (error) {
+      console.error("خطأ في حفظ دفعة التقسيط في قاعدة البيانات:", error);
+      return null;
     }
   }
 }

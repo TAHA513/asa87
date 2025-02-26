@@ -290,47 +290,144 @@ export class MemStorage implements IStorage {
   }
 
   async getInstallments(): Promise<Installment[]> {
-    return Array.from(this.installments.values());
+    try {
+      const installments = await dbStorage.getInstallments();
+      // تحديث الذاكرة المؤقتة بالبيانات من قاعدة البيانات
+      installments.forEach(installment => {
+        this.installments.set(installment.id, installment);
+      });
+      return installments;
+    } catch (error) {
+      console.error("خطأ في جلب التقسيطات من قاعدة البيانات:", error);
+      return Array.from(this.installments.values());
+    }
   }
 
   async getInstallment(id: number): Promise<Installment | undefined> {
-    return this.installments.get(id);
+    try {
+      const installment = await dbStorage.getInstallment(id);
+      if (installment) {
+        this.installments.set(id, installment);
+        return installment;
+      }
+      return this.installments.get(id);
+    } catch (error) {
+      console.error("خطأ في جلب التقسيط من قاعدة البيانات:", error);
+      return this.installments.get(id);
+    }
   }
 
   async createInstallment(installment: Installment): Promise<Installment> {
-    const id = this.currentId++;
-    const newInstallment = { ...installment, id };
-    this.installments.set(id, newInstallment);
-    return newInstallment;
+    try {
+      const savedInstallment = await dbStorage.createInstallment(installment);
+      if (savedInstallment) {
+        this.installments.set(savedInstallment.id, savedInstallment);
+        return savedInstallment;
+      }
+      // احتياطي: استخدام التخزين المؤقت إذا فشل التخزين في قاعدة البيانات
+      const id = this.currentId++;
+      const newInstallment = { ...installment, id };
+      this.installments.set(id, newInstallment);
+      return newInstallment;
+    } catch (error) {
+      console.error("خطأ في إنشاء التقسيط في قاعدة البيانات:", error);
+      const id = this.currentId++;
+      const newInstallment = { ...installment, id };
+      this.installments.set(id, newInstallment);
+      return newInstallment;
+    }
   }
 
   async updateInstallment(id: number, update: Partial<Installment>): Promise<Installment> {
-    const installment = this.installments.get(id);
-    if (!installment) throw new Error("التقسيط غير موجود");
-    const updatedInstallment = { ...installment, ...update };
-    this.installments.set(id, updatedInstallment);
-    return updatedInstallment;
+    try {
+      const updatedInstallment = await dbStorage.updateInstallment(id, update);
+      if (updatedInstallment) {
+        this.installments.set(id, updatedInstallment);
+        return updatedInstallment;
+      }
+      // احتياطي: استخدام التخزين المؤقت إذا فشل التحديث في قاعدة البيانات
+      const installment = this.installments.get(id);
+      if (!installment) throw new Error("التقسيط غير موجود");
+      const localUpdatedInstallment = { ...installment, ...update };
+      this.installments.set(id, localUpdatedInstallment);
+      return localUpdatedInstallment;
+    } catch (error) {
+      console.error("خطأ في تحديث التقسيط في قاعدة البيانات:", error);
+      const installment = this.installments.get(id);
+      if (!installment) throw new Error("التقسيط غير موجود");
+      const updatedInstallment = { ...installment, ...update };
+      this.installments.set(id, updatedInstallment);
+      return updatedInstallment;
+    }
   }
 
   async getInstallmentPayments(installmentId: number): Promise<InstallmentPayment[]> {
-    return Array.from(this.installmentPayments.values()).filter(
-      (payment) => payment.installmentId === installmentId
-    );
+    try {
+      const payments = await dbStorage.getInstallmentPayments(installmentId);
+      // تحديث الذاكرة المؤقتة بالبيانات من قاعدة البيانات
+      payments.forEach(payment => {
+        this.installmentPayments.set(payment.id, payment);
+      });
+      return payments;
+    } catch (error) {
+      console.error("خطأ في جلب دفعات التقسيط من قاعدة البيانات:", error);
+      return Array.from(this.installmentPayments.values()).filter(
+        (payment) => payment.installmentId === installmentId
+      );
+    }
   }
 
   async createInstallmentPayment(payment: InstallmentPayment): Promise<InstallmentPayment> {
-    const id = this.currentId++;
-    const newPayment = { ...payment, id };
-    this.installmentPayments.set(id, newPayment);
-    const installment = await this.getInstallment(payment.installmentId);
-    if (installment) {
-      const remainingAmount = Number(installment.remainingAmount) - Number(payment.amount);
-      await this.updateInstallment(installment.id, {
-        remainingAmount: remainingAmount.toString(),
-        status: remainingAmount <= 0 ? "completed" : "active",
-      });
+    try {
+      const savedPayment = await dbStorage.createInstallmentPayment(payment);
+      if (savedPayment) {
+        this.installmentPayments.set(savedPayment.id, savedPayment);
+        
+        // تحديث بيانات التقسيط بعد إضافة دفعة
+        const installment = await this.getInstallment(payment.installmentId);
+        if (installment) {
+          const remainingAmount = Number(installment.remainingAmount) - Number(payment.amount);
+          await this.updateInstallment(installment.id, {
+            remainingAmount: remainingAmount.toString(),
+            status: remainingAmount <= 0 ? "completed" : "active",
+          });
+        }
+        
+        return savedPayment;
+      }
+      
+      // احتياطي: استخدام التخزين المؤقت إذا فشل التخزين في قاعدة البيانات
+      const id = this.currentId++;
+      const newPayment = { ...payment, id };
+      this.installmentPayments.set(id, newPayment);
+      
+      const installment = await this.getInstallment(payment.installmentId);
+      if (installment) {
+        const remainingAmount = Number(installment.remainingAmount) - Number(payment.amount);
+        await this.updateInstallment(installment.id, {
+          remainingAmount: remainingAmount.toString(),
+          status: remainingAmount <= 0 ? "completed" : "active",
+        });
+      }
+      
+      return newPayment;
+    } catch (error) {
+      console.error("خطأ في إنشاء دفعة التقسيط في قاعدة البيانات:", error);
+      const id = this.currentId++;
+      const newPayment = { ...payment, id };
+      this.installmentPayments.set(id, newPayment);
+      
+      const installment = await this.getInstallment(payment.installmentId);
+      if (installment) {
+        const remainingAmount = Number(installment.remainingAmount) - Number(payment.amount);
+        await this.updateInstallment(installment.id, {
+          remainingAmount: remainingAmount.toString(),
+          status: remainingAmount <= 0 ? "completed" : "active",
+        });
+      }
+      
+      return newPayment;
     }
-    return newPayment;
   }
 
   async getCampaigns(): Promise<Campaign[]> {
