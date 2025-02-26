@@ -388,13 +388,33 @@ export class DatabaseStorage {
   // البحث عن العملاء
   async searchCustomers(search?: string): Promise<Customer[]> {
     try {
-      let query = db.select().from(users);
+      console.log(`البحث عن العملاء: ${search || 'الكل'}`);
+      
+      let sql = `SELECT * FROM customers`;
+      let args: any[] = [];
+      
       if (search) {
-        // تنفيذ البحث (هذا مثال بسيط، قد تحتاج لتعديله حسب هيكل قاعدة البيانات)
-        // هنا نفترض أن الجدول "customers" موجود
-        // يمكن تعديل هذا الكود ليناسب هيكل قاعدة البيانات الخاصة بك
+        sql += ` WHERE name ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1`;
+        args.push(`%${search}%`);
       }
-      return [];
+      
+      sql += ` ORDER BY name ASC`;
+      
+      const result = await db.execute({
+        sql,
+        args
+      });
+      
+      return result.rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        phone: row.phone,
+        address: row.address || null,
+        notes: row.notes || null,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }));
     } catch (error) {
       console.error("خطأ في البحث عن العملاء:", error);
       return [];
@@ -404,8 +424,26 @@ export class DatabaseStorage {
   // الحصول على عميل محدد
   async getCustomer(id: number): Promise<Customer | undefined> {
     try {
-      // الحصول على العميل من قاعدة البيانات
-      // تحتاج إلى تعديل هذا الكود ليناسب هيكل قاعدة البيانات الخاصة بك
+      console.log(`جلب العميل رقم ${id}`);
+      
+      const result = await db.execute({
+        sql: `SELECT * FROM customers WHERE id = $1`,
+        args: [id]
+      });
+      
+      if (result.rows && result.rows.length > 0) {
+        return {
+          id: result.rows[0].id,
+          name: result.rows[0].name,
+          email: result.rows[0].email,
+          phone: result.rows[0].phone,
+          address: result.rows[0].address || null,
+          notes: result.rows[0].notes || null,
+          createdAt: result.rows[0].created_at,
+          updatedAt: result.rows[0].updated_at
+        };
+      }
+      
       return undefined;
     } catch (error) {
       console.error("خطأ في جلب العميل:", error);
@@ -417,23 +455,41 @@ export class DatabaseStorage {
   async createCustomer(customer: InsertCustomer): Promise<Customer | null> {
     try {
       console.log("إنشاء عميل جديد في قاعدة البيانات:", customer);
-      // افترض أن هناك جدول customers
-      const [savedCustomer] = await db
-        .insert({
-          table: 'customers',
-          values: {
-            name: customer.name,
-            email: customer.email,
-            phone: customer.phone,
-            address: customer.address || null,
-            notes: customer.notes || null,
-            createdAt: new Date(),
-            updatedAt: new Date()
-          },
-        })
-        .returning();
-      console.log("تم إنشاء العميل بنجاح:", savedCustomer);
-      return savedCustomer;
+      
+      // استخدام SQL مباشرة بدلاً من واجهة Drizzle لتجنب الأخطاء
+      const result = await db.execute({
+        sql: `
+          INSERT INTO customers (name, email, phone, address, notes, created_at, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          RETURNING *
+        `,
+        args: [
+          customer.name,
+          customer.email,
+          customer.phone,
+          customer.address || null,
+          customer.notes || null,
+          new Date(),
+          new Date()
+        ]
+      });
+      
+      if (result.rows && result.rows.length > 0) {
+        const savedCustomer = {
+          id: result.rows[0].id,
+          name: result.rows[0].name,
+          email: result.rows[0].email,
+          phone: result.rows[0].phone,
+          address: result.rows[0].address || null,
+          notes: result.rows[0].notes || null,
+          createdAt: result.rows[0].created_at,
+          updatedAt: result.rows[0].updated_at
+        };
+        console.log("تم إنشاء العميل بنجاح:", savedCustomer);
+        return savedCustomer;
+      }
+      
+      throw new Error("لم يتم إرجاع بيانات العميل من قاعدة البيانات");
     } catch (error) {
       console.error("خطأ في إنشاء العميل:", error);
       // قم بإنشاء كائن عميل مؤقت للتغلب على الخطأ (حل مؤقت)
@@ -453,8 +509,14 @@ export class DatabaseStorage {
   // حذف عميل
   async deleteCustomer(id: number): Promise<void> {
     try {
-      // حذف العميل من قاعدة البيانات
-      // تحتاج إلى تعديل هذا الكود ليناسب هيكل قاعدة البيانات الخاصة بك
+      console.log(`حذف العميل رقم ${id}`);
+      
+      await db.execute({
+        sql: `DELETE FROM customers WHERE id = $1`,
+        args: [id]
+      });
+      
+      console.log(`تم حذف العميل رقم ${id} بنجاح`);
     } catch (error) {
       console.error("خطأ في حذف العميل:", error);
       throw error;
