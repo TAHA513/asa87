@@ -269,10 +269,19 @@ export class MemStorage implements IStorage {
   }
 
   async createSale(sale: Sale): Promise<Sale> {
-    const id = this.currentId++;
-    const newSale = { ...sale, id, date: new Date() };
-    this.sales.set(id, newSale);
-    return newSale;
+    try {
+      // حفظ في قاعدة البيانات أولاً
+      const savedSale = await dbStorage.createSale(sale);
+      if (savedSale) {
+        // ثم حفظ في الذاكرة المؤقتة
+        this.sales.set(savedSale.id, savedSale);
+        return savedSale;
+      }
+      throw new Error("فشل في حفظ عملية البيع");
+    } catch (error) {
+      console.error("خطأ في حفظ عملية البيع:", error);
+      throw error;
+    }
   }
 
   async getCurrentExchangeRate(): Promise<ExchangeRate> {
