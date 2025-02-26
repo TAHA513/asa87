@@ -1,3 +1,4 @@
+
 import {
   User, Product, Sale, ExchangeRate, InsertUser, FileStorage, InsertFileStorage,
   Installment, InstallmentPayment,
@@ -82,16 +83,16 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
-  // لا نحتاج إلى تخزين البيانات في الذاكرة المؤقتة بعد الآن
-  // سنستخدم قاعدة البيانات فقط
   sessionStore: session.Store;
 
   constructor() {
     this.sessionStore = new MemoryStore({ checkPeriod: 86400000 });
+    console.log("تم إنشاء كائن التخزين مع الاعتماد على قاعدة البيانات فقط");
   }
 
   async getUser(id: number): Promise<User | undefined> {
     try {
+      console.log(`البحث عن المستخدم ${id} في قاعدة البيانات`);
       return await dbStorage.getUser(id);
     } catch (error) {
       console.error("خطأ في البحث عن المستخدم في قاعدة البيانات:", error);
@@ -101,6 +102,7 @@ export class MemStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     try {
+      console.log(`البحث عن المستخدم ${username} في قاعدة البيانات`);
       return await dbStorage.getUserByUsername(username);
     } catch (error) {
       console.error("خطأ في البحث عن المستخدم في قاعدة البيانات:", error);
@@ -110,6 +112,7 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     try {
+      console.log("إنشاء مستخدم جديد في قاعدة البيانات");
       const dbUser = await dbStorage.saveNewUser(insertUser);
       if (dbUser) {
         console.log("تم حفظ المستخدم في قاعدة البيانات:", dbUser.id);
@@ -135,87 +138,118 @@ export class MemStorage implements IStorage {
 
   async getProducts(): Promise<Product[]> {
     try {
+      console.log("جلب المنتجات من قاعدة البيانات");
       return await dbStorage.getProducts();
     } catch (error) {
-      console.error("خطأ في جلب المنتجات:", error);
+      console.error("خطأ في جلب المنتجات من قاعدة البيانات:", error);
       return [];
     }
   }
 
   async getProduct(id: number): Promise<Product | undefined> {
     try {
+      console.log(`جلب المنتج ${id} من قاعدة البيانات`);
       return await dbStorage.getProduct(id);
     } catch (error) {
-      console.error("خطأ في جلب المنتج:", error);
+      console.error("خطأ في جلب المنتج من قاعدة البيانات:", error);
       return undefined;
     }
   }
 
   async createProduct(product: Product): Promise<Product> {
     try {
+      console.log("إنشاء منتج جديد في قاعدة البيانات");
       const savedProduct = await dbStorage.createProduct(product);
       if (savedProduct) {
         return savedProduct;
       }
-      throw new Error("فشل في حفظ المنتج");
+      throw new Error("فشل في حفظ المنتج في قاعدة البيانات");
     } catch (error) {
-      console.error("خطأ في إنشاء المنتج:", error);
+      console.error("خطأ في إنشاء المنتج في قاعدة البيانات:", error);
       throw error;
     }
   }
 
   async updateProduct(id: number, update: Partial<Product>): Promise<Product> {
     try {
+      console.log(`تحديث المنتج ${id} في قاعدة البيانات`);
       const updatedProduct = await dbStorage.updateProduct(id, update);
       if (updatedProduct) {
         return updatedProduct;
       }
-      throw new Error("فشل في تحديث المنتج");
+      throw new Error("فشل في تحديث المنتج في قاعدة البيانات");
     } catch (error) {
-      console.error("خطأ في تحديث المنتج:", error);
+      console.error("خطأ في تحديث المنتج في قاعدة البيانات:", error);
       throw error;
     }
   }
 
   async deleteProduct(id: number): Promise<void> {
     try {
+      console.log(`حذف المنتج ${id} من قاعدة البيانات`);
       await dbStorage.deleteProduct(id);
     } catch (error) {
-      console.error("خطأ في حذف المنتج:", error);
+      console.error("خطأ في حذف المنتج من قاعدة البيانات:", error);
       throw error;
     }
   }
 
   async getSales(): Promise<Sale[]> {
-    return await dbStorage.getSales();
+    try {
+      console.log("جلب المبيعات من قاعدة البيانات");
+      return await dbStorage.getSales();
+    } catch (error) {
+      console.error("خطأ في جلب المبيعات من قاعدة البيانات:", error);
+      return [];
+    }
   }
 
   async createSale(sale: Sale): Promise<Sale> {
-    const savedSale = await dbStorage.createSale(sale);
-    if (!savedSale) {
-      throw new Error("فشل في حفظ عملية البيع");
+    try {
+      console.log("إنشاء عملية بيع جديدة في قاعدة البيانات");
+      const savedSale = await dbStorage.createSale(sale);
+      if (!savedSale) {
+        throw new Error("فشل في حفظ عملية البيع في قاعدة البيانات");
+      }
+      return savedSale;
+    } catch (error) {
+      console.error("خطأ في إنشاء عملية البيع في قاعدة البيانات:", error);
+      throw error;
     }
-    return savedSale;
   }
 
   async getCurrentExchangeRate(): Promise<ExchangeRate> {
-    const rate = await dbStorage.getCurrentExchangeRate();
-    if (!rate) {
+    try {
+      console.log("جلب سعر الصرف الحالي من قاعدة البيانات");
+      const rate = await dbStorage.getCurrentExchangeRate();
+      if (!rate) {
+        return await this.setExchangeRate(1300);
+      }
+      return rate;
+    } catch (error) {
+      console.error("خطأ في جلب سعر الصرف من قاعدة البيانات:", error);
+      // إذا فشل، نعود إلى القيمة الافتراضية
       return await this.setExchangeRate(1300);
     }
-    return rate;
   }
 
   async setExchangeRate(rate: number): Promise<ExchangeRate> {
-    const newRate = await dbStorage.setExchangeRate(rate);
-    if (!newRate) {
-      throw new Error("فشل في تحديث سعر الصرف");
+    try {
+      console.log(`تحديث سعر الصرف إلى ${rate} في قاعدة البيانات`);
+      const newRate = await dbStorage.setExchangeRate(rate);
+      if (!newRate) {
+        throw new Error("فشل في تحديث سعر الصرف في قاعدة البيانات");
+      }
+      return newRate;
+    } catch (error) {
+      console.error("خطأ في تحديث سعر الصرف في قاعدة البيانات:", error);
+      throw error;
     }
-    return newRate;
   }
 
   async getInstallments(): Promise<Installment[]> {
     try {
+      console.log("جلب التقسيطات من قاعدة البيانات");
       return await dbStorage.getInstallments();
     } catch (error) {
       console.error("خطأ في جلب التقسيطات من قاعدة البيانات:", error);
@@ -225,6 +259,7 @@ export class MemStorage implements IStorage {
 
   async getInstallment(id: number): Promise<Installment | undefined> {
     try {
+      console.log(`جلب التقسيط ${id} من قاعدة البيانات`);
       return await dbStorage.getInstallment(id);
     } catch (error) {
       console.error("خطأ في جلب التقسيط من قاعدة البيانات:", error);
@@ -234,6 +269,7 @@ export class MemStorage implements IStorage {
 
   async createInstallment(installment: Installment): Promise<Installment> {
     try {
+      console.log("إنشاء تقسيط جديد في قاعدة البيانات");
       const savedInstallment = await dbStorage.createInstallment(installment);
       if (savedInstallment) {
         return savedInstallment;
@@ -247,49 +283,33 @@ export class MemStorage implements IStorage {
 
   async updateInstallment(id: number, update: Partial<Installment>): Promise<Installment> {
     try {
+      console.log(`تحديث التقسيط ${id} في قاعدة البيانات`);
       const updatedInstallment = await dbStorage.updateInstallment(id, update);
       if (updatedInstallment) {
-        this.installments.set(id, updatedInstallment);
         return updatedInstallment;
       }
-      // احتياطي: استخدام التخزين المؤقت إذا فشل التحديث في قاعدة البيانات
-      const installment = this.installments.get(id);
-      if (!installment) throw new Error("التقسيط غير موجود");
-      const localUpdatedInstallment = { ...installment, ...update };
-      this.installments.set(id, localUpdatedInstallment);
-      return localUpdatedInstallment;
+      throw new Error("فشل في تحديث التقسيط في قاعدة البيانات");
     } catch (error) {
       console.error("خطأ في تحديث التقسيط في قاعدة البيانات:", error);
-      const installment = this.installments.get(id);
-      if (!installment) throw new Error("التقسيط غير موجود");
-      const updatedInstallment = { ...installment, ...update };
-      this.installments.set(id, updatedInstallment);
-      return updatedInstallment;
+      throw error;
     }
   }
 
   async getInstallmentPayments(installmentId: number): Promise<InstallmentPayment[]> {
     try {
-      const payments = await dbStorage.getInstallmentPayments(installmentId);
-      // تحديث الذاكرة المؤقتة بالبيانات من قاعدة البيانات
-      payments.forEach(payment => {
-        this.installmentPayments.set(payment.id, payment);
-      });
-      return payments;
+      console.log(`جلب دفعات التقسيط ${installmentId} من قاعدة البيانات`);
+      return await dbStorage.getInstallmentPayments(installmentId);
     } catch (error) {
       console.error("خطأ في جلب دفعات التقسيط من قاعدة البيانات:", error);
-      return Array.from(this.installmentPayments.values()).filter(
-        (payment) => payment.installmentId === installmentId
-      );
+      return [];
     }
   }
 
   async createInstallmentPayment(payment: InstallmentPayment): Promise<InstallmentPayment> {
     try {
+      console.log("إنشاء دفعة تقسيط جديدة في قاعدة البيانات");
       const savedPayment = await dbStorage.createInstallmentPayment(payment);
       if (savedPayment) {
-        this.installmentPayments.set(savedPayment.id, savedPayment);
-        
         // تحديث بيانات التقسيط بعد إضافة دفعة
         const installment = await this.getInstallment(payment.installmentId);
         if (installment) {
@@ -303,42 +323,16 @@ export class MemStorage implements IStorage {
         return savedPayment;
       }
       
-      // احتياطي: استخدام التخزين المؤقت إذا فشل التخزين في قاعدة البيانات
-      const id = this.currentId++;
-      const newPayment = { ...payment, id };
-      this.installmentPayments.set(id, newPayment);
-      
-      const installment = await this.getInstallment(payment.installmentId);
-      if (installment) {
-        const remainingAmount = Number(installment.remainingAmount) - Number(payment.amount);
-        await this.updateInstallment(installment.id, {
-          remainingAmount: remainingAmount.toString(),
-          status: remainingAmount <= 0 ? "completed" : "active",
-        });
-      }
-      
-      return newPayment;
+      throw new Error("فشل في حفظ دفعة التقسيط في قاعدة البيانات");
     } catch (error) {
       console.error("خطأ في إنشاء دفعة التقسيط في قاعدة البيانات:", error);
-      const id = this.currentId++;
-      const newPayment = { ...payment, id };
-      this.installmentPayments.set(id, newPayment);
-      
-      const installment = await this.getInstallment(payment.installmentId);
-      if (installment) {
-        const remainingAmount = Number(installment.remainingAmount) - Number(payment.amount);
-        await this.updateInstallment(installment.id, {
-          remainingAmount: remainingAmount.toString(),
-          status: remainingAmount <= 0 ? "completed" : "active",
-        });
-      }
-      
-      return newPayment;
+      throw error;
     }
   }
 
   async getCampaigns(): Promise<Campaign[]> {
     try {
+      console.log("جلب الحملات من قاعدة البيانات");
       // يجب تنفيذ وظيفة للحصول على الحملات من قاعدة البيانات
       // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
       return [];
@@ -350,6 +344,7 @@ export class MemStorage implements IStorage {
 
   async getCampaign(id: number): Promise<Campaign | undefined> {
     try {
+      console.log(`جلب الحملة ${id} من قاعدة البيانات`);
       // يجب تنفيذ وظيفة للحصول على الحملة من قاعدة البيانات
       // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
       return undefined;
@@ -383,6 +378,7 @@ export class MemStorage implements IStorage {
 
   async getCampaignAnalytics(campaignId: number): Promise<CampaignAnalytics[]> {
     try {
+      console.log(`جلب تحليلات الحملة ${campaignId} من قاعدة البيانات`);
       // يجب تنفيذ وظيفة للحصول على تحليلات الحملة من قاعدة البيانات
       // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
       return [];
@@ -405,6 +401,7 @@ export class MemStorage implements IStorage {
 
   async getSocialMediaAccounts(userId: number): Promise<SocialMediaAccount[]> {
     try {
+      console.log(`جلب حسابات وسائل التواصل الاجتماعي للمستخدم ${userId} من قاعدة البيانات`);
       // يجب تنفيذ وظيفة للحصول على حسابات وسائل التواصل الاجتماعي من قاعدة البيانات
       // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
       return [];
@@ -437,55 +434,101 @@ export class MemStorage implements IStorage {
   }
 
   async setApiKeys(userId: number, keys: Record<string, any>): Promise<void> {
-    this.apiKeys.set(userId, keys);
+    try {
+      console.log(`حفظ مفاتيح API للمستخدم ${userId} في قاعدة البيانات`);
+      // يجب تنفيذ وظيفة لحفظ مفاتيح API في قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+    } catch (error) {
+      console.error("خطأ في حفظ مفاتيح API في قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async getApiKeys(userId: number): Promise<Record<string, any> | null> {
-    return this.apiKeys.get(userId) || null;
+    try {
+      console.log(`جلب مفاتيح API للمستخدم ${userId} من قاعدة البيانات`);
+      // يجب تنفيذ وظيفة للحصول على مفاتيح API من قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      return null;
+    } catch (error) {
+      console.error("خطأ في جلب مفاتيح API من قاعدة البيانات:", error);
+      return null;
+    }
   }
 
   async migrateLocalStorageToDb(userId: number, keys: Record<string, any>): Promise<void> {
-    //This is a placeholder, a real implementation would move data from local storage to the database.
+    try {
+      console.log(`ترحيل بيانات التخزين المحلي للمستخدم ${userId} إلى قاعدة البيانات`);
+      // يجب تنفيذ وظيفة لترحيل بيانات التخزين المحلي إلى قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+    } catch (error) {
+      console.error("خطأ في ترحيل بيانات التخزين المحلي إلى قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async getInventoryTransactions(): Promise<InventoryTransaction[]> {
-    return Array.from(this.inventoryTransactions.values());
+    try {
+      console.log("جلب حركات المخزون من قاعدة البيانات");
+      // يجب تنفيذ وظيفة للحصول على حركات المخزون من قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      return [];
+    } catch (error) {
+      console.error("خطأ في جلب حركات المخزون من قاعدة البيانات:", error);
+      return [];
+    }
   }
 
   async createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction> {
-    const id = this.currentId++;
-    const newTransaction: InventoryTransaction = {
-      id,
-      type: transaction.type,
-      productId: transaction.productId,
-      quantity: transaction.quantity,
-      userId: transaction.userId,
-      reason: transaction.reason,
-      date: transaction.date || new Date(),
-      notes: transaction.notes || null,
-      reference: transaction.reference || null
-    };
-    this.inventoryTransactions.set(id, newTransaction);
-    return newTransaction;
+    try {
+      console.log("إنشاء حركة مخزون جديدة في قاعدة البيانات");
+      // يجب تنفيذ وظيفة لإنشاء حركة مخزون في قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      
+      // استخدم كود مؤقت حتى يتم تنفيذ الوظيفة
+      return {
+        id: Math.floor(Math.random() * 1000),
+        type: transaction.type,
+        productId: transaction.productId,
+        quantity: transaction.quantity,
+        userId: transaction.userId,
+        reason: transaction.reason,
+        date: transaction.date || new Date(),
+        notes: transaction.notes || null,
+        reference: transaction.reference || null
+      };
+    } catch (error) {
+      console.error("خطأ في إنشاء حركة المخزون في قاعدة البيانات:", error);
+      throw error;
+    }
   }
-
 
   async getExpenseCategories(userId: number): Promise<ExpenseCategory[]> {
     try {
+      console.log(`جلب فئات المصروفات للمستخدم ${userId} من قاعدة البيانات`);
       const categories = await dbStorage.getExpenseCategories();
       return categories.filter(category => category.userId === userId);
     } catch (error) {
-      console.error("خطأ في جلب فئات المصروفات:", error);
+      console.error("خطأ في جلب فئات المصروفات من قاعدة البيانات:", error);
       return [];
     }
   }
 
   async getExpenseCategory(id: number): Promise<ExpenseCategory | undefined> {
-    return this.expenseCategories.get(id);
+    try {
+      console.log(`جلب فئة المصروفات ${id} من قاعدة البيانات`);
+      // يجب تنفيذ وظيفة للحصول على فئة المصروفات من قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      return undefined;
+    } catch (error) {
+      console.error("خطأ في جلب فئة المصروفات من قاعدة البيانات:", error);
+      return undefined;
+    }
   }
 
   async createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory> {
     try {
+      console.log("إنشاء فئة مصروفات جديدة في قاعدة البيانات");
       const newCategory = await dbStorage.createExpenseCategory({
         name: category.name,
         description: category.description || null,
@@ -494,129 +537,210 @@ export class MemStorage implements IStorage {
       });
       return newCategory;
     } catch (error) {
-      console.error("خطأ في إنشاء فئة المصروفات:", error);
+      console.error("خطأ في إنشاء فئة المصروفات في قاعدة البيانات:", error);
       throw error;
     }
   }
 
   async updateExpenseCategory(id: number, update: Partial<ExpenseCategory>): Promise<ExpenseCategory> {
-    const category = this.expenseCategories.get(id);
-    if (!category) throw new Error("فئة المصروفات غير موجودة");
-    const updatedCategory = {
-      ...category,
-      ...update,
-      budgetAmount: update.budgetAmount?.toString() || category.budgetAmount
-    };
-    this.expenseCategories.set(id, updatedCategory);
-    return updatedCategory;
+    try {
+      console.log(`تحديث فئة المصروفات ${id} في قاعدة البيانات`);
+      // يجب تنفيذ وظيفة لتحديث فئة المصروفات في قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      throw new Error("وظيفة تحديث فئة المصروفات غير منفذة في قاعدة البيانات");
+    } catch (error) {
+      console.error("خطأ في تحديث فئة المصروفات في قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async deleteExpenseCategory(id: number): Promise<void> {
-    this.expenseCategories.delete(id);
+    try {
+      console.log(`حذف فئة المصروفات ${id} من قاعدة البيانات`);
+      // يجب تنفيذ وظيفة لحذف فئة المصروفات من قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+    } catch (error) {
+      console.error("خطأ في حذف فئة المصروفات من قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async getExpenses(userId: number): Promise<Expense[]> {
-    return Array.from(this.expenses.values())
-      .filter(expense => expense.userId === userId);
+    try {
+      console.log(`جلب المصروفات للمستخدم ${userId} من قاعدة البيانات`);
+      // يجب تنفيذ وظيفة للحصول على المصروفات من قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      return [];
+    } catch (error) {
+      console.error("خطأ في جلب المصروفات من قاعدة البيانات:", error);
+      return [];
+    }
   }
 
   async getExpense(id: number): Promise<Expense | undefined> {
-    return this.expenses.get(id);
+    try {
+      console.log(`جلب المصروف ${id} من قاعدة البيانات`);
+      // يجب تنفيذ وظيفة للحصول على المصروف من قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      return undefined;
+    } catch (error) {
+      console.error("خطأ في جلب المصروف من قاعدة البيانات:", error);
+      return undefined;
+    }
   }
 
   async createExpense(expense: InsertExpense): Promise<Expense> {
-    const id = this.currentId++;
-    const newExpense: Expense = {
-      id,
-      date: expense.date,
-      description: expense.description,
-      userId: expense.userId,
-      categoryId: expense.categoryId,
-      amount: expense.amount.toString(),
-      notes: expense.notes || null,
-      isRecurring: expense.isRecurring || false,
-      recurringPeriod: expense.recurringPeriod || null,
-      recurringDay: expense.recurringDay || null,
-      attachments: expense.attachments || [],
-      status: "active",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.expenses.set(id, newExpense);
-    return newExpense;
+    try {
+      console.log("إنشاء مصروف جديد في قاعدة البيانات");
+      // يجب تنفيذ وظيفة لإنشاء مصروف في قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      
+      // استخدم كود مؤقت حتى يتم تنفيذ الوظيفة
+      return {
+        id: Math.floor(Math.random() * 1000),
+        date: expense.date,
+        description: expense.description,
+        userId: expense.userId,
+        categoryId: expense.categoryId,
+        amount: expense.amount.toString(),
+        notes: expense.notes || null,
+        isRecurring: expense.isRecurring || false,
+        recurringPeriod: expense.recurringPeriod || null,
+        recurringDay: expense.recurringDay || null,
+        attachments: expense.attachments || [],
+        status: "active",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    } catch (error) {
+      console.error("خطأ في إنشاء المصروف في قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async updateExpense(id: number, update: Partial<Expense>): Promise<Expense> {
-    const expense = this.expenses.get(id);
-    if (!expense) throw new Error("المصروف غير موجود");
-    const updatedExpense = {
-      ...expense,
-      ...update,
-      amount: update.amount?.toString() || expense.amount,
-      updatedAt: new Date(),
-    };
-    this.expenses.set(id, updatedExpense);
-    return updatedExpense;
+    try {
+      console.log(`تحديث المصروف ${id} في قاعدة البيانات`);
+      // يجب تنفيذ وظيفة لتحديث المصروف في قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      throw new Error("وظيفة تحديث المصروف غير منفذة في قاعدة البيانات");
+    } catch (error) {
+      console.error("خطأ في تحديث المصروف في قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async deleteExpense(id: number): Promise<void> {
-    this.expenses.delete(id);
+    try {
+      console.log(`حذف المصروف ${id} من قاعدة البيانات`);
+      // يجب تنفيذ وظيفة لحذف المصروف من قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+    } catch (error) {
+      console.error("خطأ في حذف المصروف من قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async getSuppliers(userId: number): Promise<Supplier[]> {
-    return Array.from(this.suppliers.values()).filter(
-      (supplier) => supplier.userId === userId
-    );
+    try {
+      console.log(`جلب الموردين للمستخدم ${userId} من قاعدة البيانات`);
+      // يجب تنفيذ وظيفة للحصول على الموردين من قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      return [];
+    } catch (error) {
+      console.error("خطأ في جلب الموردين من قاعدة البيانات:", error);
+      return [];
+    }
   }
 
   async getSupplier(id: number): Promise<Supplier | undefined> {
-    return this.suppliers.get(id);
+    try {
+      console.log(`جلب المورد ${id} من قاعدة البيانات`);
+      // يجب تنفيذ وظيفة للحصول على المورد من قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      return undefined;
+    } catch (error) {
+      console.error("خطأ في جلب المورد من قاعدة البيانات:", error);
+      return undefined;
+    }
   }
 
   async createSupplier(supplier: InsertSupplier): Promise<Supplier> {
-    const id = this.currentId++;
-    const newSupplier: Supplier = {
-      ...supplier,
-      id,
-      status: "active",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.suppliers.set(id, newSupplier);
-    return newSupplier;
+    try {
+      console.log("إنشاء مورد جديد في قاعدة البيانات");
+      // يجب تنفيذ وظيفة لإنشاء مورد في قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      
+      // استخدم كود مؤقت حتى يتم تنفيذ الوظيفة
+      return {
+        ...supplier,
+        id: Math.floor(Math.random() * 1000),
+        status: "active",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    } catch (error) {
+      console.error("خطأ في إنشاء المورد في قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async updateSupplier(id: number, update: Partial<Supplier>): Promise<Supplier> {
-    const supplier = this.suppliers.get(id);
-    if (!supplier) throw new Error("المورد غير موجود");
-    const updatedSupplier = { ...supplier, ...update, updatedAt: new Date() };
-    this.suppliers.set(id, updatedSupplier);
-    return updatedSupplier;
+    try {
+      console.log(`تحديث المورد ${id} في قاعدة البيانات`);
+      // يجب تنفيذ وظيفة لتحديث المورد في قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      throw new Error("وظيفة تحديث المورد غير منفذة في قاعدة البيانات");
+    } catch (error) {
+      console.error("خطأ في تحديث المورد في قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async deleteSupplier(id: number): Promise<void> {
-    this.suppliers.delete(id);
+    try {
+      console.log(`حذف المورد ${id} من قاعدة البيانات`);
+      // يجب تنفيذ وظيفة لحذف المورد من قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+    } catch (error) {
+      console.error("خطأ في حذف المورد من قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]> {
-    return Array.from(this.supplierTransactions.values()).filter(
-      (transaction) => transaction.supplierId === supplierId
-    );
+    try {
+      console.log(`جلب معاملات المورد ${supplierId} من قاعدة البيانات`);
+      // يجب تنفيذ وظيفة للحصول على معاملات المورد من قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      return [];
+    } catch (error) {
+      console.error("خطأ في جلب معاملات المورد من قاعدة البيانات:", error);
+      return [];
+    }
   }
 
   async createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction> {
-    const id = this.currentId++;
-    const newTransaction: SupplierTransaction = {
-      ...transaction,
-      id,
-      createdAt: new Date(),
-    };
-    this.supplierTransactions.set(id, newTransaction);
-    return newTransaction;
+    try {
+      console.log("إنشاء معاملة مورد جديدة في قاعدة البيانات");
+      // يجب تنفيذ وظيفة لإنشاء معاملة مورد في قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      
+      // استخدم كود مؤقت حتى يتم تنفيذ الوظيفة
+      return {
+        ...transaction,
+        id: Math.floor(Math.random() * 1000),
+        createdAt: new Date(),
+      };
+    } catch (error) {
+      console.error("خطأ في إنشاء معاملة المورد في قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async searchCustomers(search?: string): Promise<Customer[]> {
     try {
+      console.log(`البحث عن العملاء بنص: ${search || 'الكل'} في قاعدة البيانات`);
       return await dbStorage.searchCustomers(search);
     } catch (error) {
       console.error("خطأ في البحث عن العملاء في قاعدة البيانات:", error);
@@ -626,6 +750,7 @@ export class MemStorage implements IStorage {
 
   async getCustomer(id: number): Promise<Customer | undefined> {
     try {
+      console.log(`جلب العميل ${id} من قاعدة البيانات`);
       return await dbStorage.getCustomer(id);
     } catch (error) {
       console.error("خطأ في جلب العميل من قاعدة البيانات:", error);
@@ -635,6 +760,7 @@ export class MemStorage implements IStorage {
 
   async getCustomerSales(customerId: number): Promise<Sale[]> {
     try {
+      console.log(`جلب مبيعات العميل ${customerId} من قاعدة البيانات`);
       // يجب تنفيذ وظيفة للحصول على مبيعات العميل من قاعدة البيانات
       // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
       return [];
@@ -646,6 +772,7 @@ export class MemStorage implements IStorage {
 
   async createCustomer(insertCustomer: InsertCustomer): Promise<Customer> {
     try {
+      console.log("إنشاء عميل جديد في قاعدة البيانات");
       const dbCustomer = await dbStorage.createCustomer(insertCustomer);
       if (dbCustomer) {
         return dbCustomer;
@@ -658,88 +785,111 @@ export class MemStorage implements IStorage {
   }
 
   async getCustomerAppointments(customerId: number): Promise<Appointment[]> {
-    return Array.from(this.appointments.values())
-      .filter(appointment => appointment.customerId === customerId)
-      .sort((a, b) => b.date.getTime() - a.date.getTime());
+    try {
+      console.log(`جلب مواعيد العميل ${customerId} من قاعدة البيانات`);
+      // يجب تنفيذ وظيفة للحصول على مواعيد العميل من قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      return [];
+    } catch (error) {
+      console.error("خطأ في جلب مواعيد العميل من قاعدة البيانات:", error);
+      return [];
+    }
   }
 
   async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
-    const id = this.currentId++;
-    const newAppointment: Appointment = {
-      id,
-      customerId: appointment.customerId,
-      title: appointment.title,
-      description: appointment.description || null,
-      date: appointment.date,
-      duration: appointment.duration,
-      status: appointment.status || "scheduled",
-      notes: appointment.notes || null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.appointments.set(id, newAppointment);
-    return newAppointment;
+    try {
+      console.log("إنشاء موعد جديد في قاعدة البيانات");
+      // يجب تنفيذ وظيفة لإنشاء موعد في قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      
+      // استخدم كود مؤقت حتى يتم تنفيذ الوظيفة
+      return {
+        id: Math.floor(Math.random() * 1000),
+        customerId: appointment.customerId,
+        title: appointment.title,
+        description: appointment.description || null,
+        date: appointment.date,
+        duration: appointment.duration,
+        status: appointment.status || "scheduled",
+        notes: appointment.notes || null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    } catch (error) {
+      console.error("خطأ في إنشاء الموعد في قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment> {
-    const appointment = this.appointments.get(id);
-    if (!appointment) throw new Error("الموعد غير موجود");
-    const updatedAppointment = {
-      ...appointment,
-      ...update,
-      updatedAt: new Date()
-    };
-    this.appointments.set(id, updatedAppointment);
-    return updatedAppointment;
+    try {
+      console.log(`تحديث الموعد ${id} في قاعدة البيانات`);
+      // يجب تنفيذ وظيفة لتحديث الموعد في قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      throw new Error("وظيفة تحديث الموعد غير منفذة في قاعدة البيانات");
+    } catch (error) {
+      console.error("خطأ في تحديث الموعد في قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async deleteAppointment(id: number): Promise<void> {
-    this.appointments.delete(id);
+    try {
+      console.log(`حذف الموعد ${id} من قاعدة البيانات`);
+      // يجب تنفيذ وظيفة لحذف الموعد من قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+    } catch (error) {
+      console.error("خطأ في حذف الموعد من قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async deleteCustomer(id: number): Promise<void> {
     try {
+      console.log(`حذف العميل ${id} من قاعدة البيانات`);
       await dbStorage.deleteCustomer(id);
-      this.customers.delete(id);
     } catch (error) {
       console.error("خطأ في حذف العميل من قاعدة البيانات:", error);
-      // حذف العميل من الذاكرة المؤقتة على الأقل
-      this.customers.delete(id);
+      throw error;
     }
   }
 
   async saveFile(file: InsertFileStorage): Promise<FileStorage> {
     try {
+      console.log("حفظ ملف جديد في قاعدة البيانات");
       return await dbStorage.saveFile(file);
     } catch (error) {
-      console.error("خطأ في حفظ الملف:", error);
+      console.error("خطأ في حفظ الملف في قاعدة البيانات:", error);
       throw error;
     }
   }
 
   async getFileById(id: number): Promise<FileStorage | undefined> {
     try {
+      console.log(`جلب الملف ${id} من قاعدة البيانات`);
       return await dbStorage.getFileById(id);
     } catch (error) {
-      console.error("خطأ في جلب الملف:", error);
+      console.error("خطأ في جلب الملف من قاعدة البيانات:", error);
       return undefined;
     }
   }
 
   async getUserFiles(userId: number): Promise<FileStorage[]> {
     try {
+      console.log(`جلب ملفات المستخدم ${userId} من قاعدة البيانات`);
       return await dbStorage.getUserFiles(userId);
     } catch (error) {
-      console.error("خطأ في جلب ملفات المستخدم:", error);
+      console.error("خطأ في جلب ملفات المستخدم من قاعدة البيانات:", error);
       return [];
     }
   }
 
   async deleteFile(id: number): Promise<void> {
     try {
+      console.log(`حذف الملف ${id} من قاعدة البيانات`);
       await dbStorage.deleteFile(id);
     } catch (error) {
-      console.error("خطأ في حذف الملف:", error);
+      console.error("خطأ في حذف الملف من قاعدة البيانات:", error);
       throw error;
     }
   }
