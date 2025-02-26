@@ -459,15 +459,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const validatedData = insertExpenseCategorySchema.parse(req.body);
+      console.log("Received category data:", req.body); // للتأكد من البيانات المستلمة
+      const validatedData = insertExpenseCategorySchema.parse({
+        name: req.body.name,
+        description: req.body.description,
+        budgetAmount: req.body.budgetAmount ? Number(req.body.budgetAmount) : null,
+      });
+
       const category = await storage.createExpenseCategory({
         ...validatedData,
         userId: req.user!.id,
       });
+
+      console.log("Created category:", category); // للتأكد من نجاح العملية
       res.status(201).json(category);
     } catch (error) {
       console.error("Error creating expense category:", error);
-      res.status(500).json({ message: "فشل في إنشاء فئة المصروفات" });
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "فشل في إنشاء فئة المصروفات" });
+      }
     }
   });
 

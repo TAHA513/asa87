@@ -1,7 +1,7 @@
 import { db } from "./db";
-import { eq } from "drizzle-orm";
-import { users, products } from "@shared/schema";
-import type { User, InsertUser, Product } from "@shared/schema";
+import { eq, desc } from "drizzle-orm";
+import { users, products, sales, exchangeRates } from "@shared/schema";
+import type { User, InsertUser, Product, Sale, ExchangeRate } from "@shared/schema";
 
 export class DatabaseStorage {
   // حفظ مستخدم جديد في قاعدة البيانات
@@ -115,6 +115,61 @@ export class DatabaseStorage {
     }
   }
 
+  // إضافة عملية بيع
+  async createSale(sale: Sale): Promise<Sale | null> {
+    try {
+      const [savedSale] = await db
+        .insert(sales)
+        .values(sale)
+        .returning();
+      return savedSale;
+    } catch (error) {
+      console.error("خطأ في حفظ عملية البيع في قاعدة البيانات:", error);
+      return null;
+    }
+  }
+
+  // الحصول على جميع المبيعات
+  async getSales(): Promise<Sale[]> {
+    try {
+      return await db.select().from(sales);
+    } catch (error) {
+      console.error("خطأ في جلب المبيعات من قاعدة البيانات:", error);
+      return [];
+    }
+  }
+
+  // الحصول على سعر الصرف الحالي
+  async getCurrentExchangeRate(): Promise<ExchangeRate | null> {
+    try {
+      const [rate] = await db
+        .select()
+        .from(exchangeRates)
+        .orderBy(desc(exchangeRates.date))
+        .limit(1);
+      return rate;
+    } catch (error) {
+      console.error("خطأ في جلب سعر الصرف من قاعدة البيانات:", error);
+      return null;
+    }
+  }
+
+  // تعيين سعر الصرف
+  async setExchangeRate(rate: number): Promise<ExchangeRate | null> {
+    try {
+      const [newRate] = await db
+        .insert(exchangeRates)
+        .values({
+          usdToIqd: rate.toString(),
+          date: new Date()
+        })
+        .returning();
+      return newRate;
+    } catch (error) {
+      console.error("خطأ في حفظ سعر الصرف في قاعدة البيانات:", error);
+      return null;
+    }
+  }
   async saveTheme(userId: number, theme: any): Promise<void> {
     try {
       await db.insert(userSettings)
@@ -125,7 +180,7 @@ export class DatabaseStorage {
         })
         .onConflictDoUpdate({
           target: userSettings.userId,
-          set: { 
+          set: {
             theme: JSON.stringify(theme),
             updatedAt: new Date()
           }
@@ -151,54 +206,3 @@ export class DatabaseStorage {
 }
 
 export const dbStorage = new DatabaseStorage();
-async createSale(sale: Sale): Promise<Sale | null> {
-  try {
-    const [savedSale] = await db
-      .insert(sales)
-      .values(sale)
-      .returning();
-    return savedSale;
-  } catch (error) {
-    console.error("خطأ في حفظ عملية البيع في قاعدة البيانات:", error);
-    return null;
-  }
-}
-
-async getSales(): Promise<Sale[]> {
-  try {
-    return await db.select().from(sales);
-  } catch (error) {
-    console.error("خطأ في جلب المبيعات من قاعدة البيانات:", error);
-    return [];
-  }
-}
-
-async getCurrentExchangeRate(): Promise<ExchangeRate | null> {
-  try {
-    const [rate] = await db
-      .select()
-      .from(exchangeRates)
-      .orderBy(desc(exchangeRates.date))
-      .limit(1);
-    return rate;
-  } catch (error) {
-    console.error("خطأ في جلب سعر الصرف من قاعدة البيانات:", error);
-    return null;
-  }
-}
-
-async setExchangeRate(rate: number): Promise<ExchangeRate | null> {
-  try {
-    const [newRate] = await db
-      .insert(exchangeRates)
-      .values({
-        usdToIqd: rate.toString(),
-        date: new Date()
-      })
-      .returning();
-    return newRate;
-  } catch (error) {
-    console.error("خطأ في حفظ سعر الصرف في قاعدة البيانات:", error);
-    return null;
-  }
-}

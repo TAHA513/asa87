@@ -64,28 +64,18 @@ export default function ExpensesPage() {
     },
   });
 
-  const expenseForm = useForm<InsertExpenseForm>({
-    resolver: zodResolver(insertExpenseSchema),
-    defaultValues: {
-      description: "",
-      amount: undefined,
-      date: new Date(),
-      categoryId: undefined,
-      isRecurring: false,
-      recurringPeriod: undefined,
-      recurringDay: undefined,
-      notes: "",
-    },
-  });
-
   const createCategoryMutation = useMutation({
     mutationFn: async (data: InsertExpenseCategoryForm) => {
-      if (!user) throw new Error("يجب تسجيل الدخول أولاً");
+      console.log("Submitting category data:", data); // للتأكد من البيانات قبل الإرسال
 
       const response = await fetch("/api/expenses/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, userId: user.id }),
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description,
+          budgetAmount: data.budgetAmount ? Number(data.budgetAmount) : null,
+        }),
       });
 
       if (!response.ok) {
@@ -110,6 +100,20 @@ export default function ExpensesPage() {
         description: error.message,
         variant: "destructive",
       });
+    },
+  });
+
+  const expenseForm = useForm<InsertExpenseForm>({
+    resolver: zodResolver(insertExpenseSchema),
+    defaultValues: {
+      description: "",
+      amount: undefined,
+      date: new Date(),
+      categoryId: undefined,
+      isRecurring: false,
+      recurringPeriod: undefined,
+      recurringDay: undefined,
+      notes: "",
     },
   });
 
