@@ -142,11 +142,9 @@ export class DatabaseStorage {
   async getSales(): Promise<Sale[]> {
     try {
       // استخدام جملة SQL مخصصة للتوافق مع هيكل الجدول
-      const result = await db.execute({
-        sql: `SELECT * FROM sales`
-      });
+      const result = await db.query(`SELECT * FROM sales`);
       
-      return result.rows.map(row => ({
+      return result.map(row => ({
         id: row.id,
         productId: row.product_id,
         quantity: row.quantity,
@@ -390,31 +388,38 @@ export class DatabaseStorage {
     try {
       console.log(`البحث عن العملاء: ${search || 'الكل'}`);
       
-      let sql = `SELECT * FROM customers`;
-      let args: any[] = [];
-      
       if (search) {
-        sql += ` WHERE name ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1`;
-        args.push(`%${search}%`);
+        const result = await db.query(
+          `SELECT * FROM customers WHERE name ILIKE $1 OR email ILIKE $1 OR phone ILIKE $1 ORDER BY name ASC`,
+          [`%${search}%`]
+        );
+        
+        return result.map(row => ({
+          id: row.id,
+          name: row.name,
+          email: row.email,
+          phone: row.phone,
+          address: row.address || null,
+          notes: row.notes || null,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
+        }));
+      } else {
+        const result = await db.query(
+          `SELECT * FROM customers ORDER BY name ASC`
+        );
+        
+        return result.map(row => ({
+          id: row.id,
+          name: row.name,
+          email: row.email,
+          phone: row.phone,
+          address: row.address || null,
+          notes: row.notes || null,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
+        }));
       }
-      
-      sql += ` ORDER BY name ASC`;
-      
-      const result = await db.execute({
-        sql,
-        args
-      });
-      
-      return result.rows.map(row => ({
-        id: row.id,
-        name: row.name,
-        email: row.email,
-        phone: row.phone,
-        address: row.address || null,
-        notes: row.notes || null,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at
-      }));
     } catch (error) {
       console.error("خطأ في البحث عن العملاء:", error);
       return [];
@@ -426,21 +431,21 @@ export class DatabaseStorage {
     try {
       console.log(`جلب العميل رقم ${id}`);
       
-      const result = await db.execute({
-        sql: `SELECT * FROM customers WHERE id = $1`,
-        args: [id]
-      });
+      const result = await db.query(
+        `SELECT * FROM customers WHERE id = $1`,
+        [id]
+      );
       
-      if (result.rows && result.rows.length > 0) {
+      if (result.length > 0) {
         return {
-          id: result.rows[0].id,
-          name: result.rows[0].name,
-          email: result.rows[0].email,
-          phone: result.rows[0].phone,
-          address: result.rows[0].address || null,
-          notes: result.rows[0].notes || null,
-          createdAt: result.rows[0].created_at,
-          updatedAt: result.rows[0].updated_at
+          id: result[0].id,
+          name: result[0].name,
+          email: result[0].email,
+          phone: result[0].phone,
+          address: result[0].address || null,
+          notes: result[0].notes || null,
+          createdAt: result[0].created_at,
+          updatedAt: result[0].updated_at
         };
       }
       
@@ -457,13 +462,13 @@ export class DatabaseStorage {
       console.log("إنشاء عميل جديد في قاعدة البيانات:", customer);
       
       // استخدام SQL مباشرة بدلاً من واجهة Drizzle لتجنب الأخطاء
-      const result = await db.execute({
-        sql: `
+      const result = await db.query(
+        `
           INSERT INTO customers (name, email, phone, address, notes, created_at, updated_at)
           VALUES ($1, $2, $3, $4, $5, $6, $7)
           RETURNING *
         `,
-        args: [
+        [
           customer.name,
           customer.email,
           customer.phone,
@@ -472,18 +477,18 @@ export class DatabaseStorage {
           new Date(),
           new Date()
         ]
-      });
+      );
       
-      if (result.rows && result.rows.length > 0) {
+      if (result.length > 0) {
         const savedCustomer = {
-          id: result.rows[0].id,
-          name: result.rows[0].name,
-          email: result.rows[0].email,
-          phone: result.rows[0].phone,
-          address: result.rows[0].address || null,
-          notes: result.rows[0].notes || null,
-          createdAt: result.rows[0].created_at,
-          updatedAt: result.rows[0].updated_at
+          id: result[0].id,
+          name: result[0].name,
+          email: result[0].email,
+          phone: result[0].phone,
+          address: result[0].address || null,
+          notes: result[0].notes || null,
+          createdAt: result[0].created_at,
+          updatedAt: result[0].updated_at
         };
         console.log("تم إنشاء العميل بنجاح:", savedCustomer);
         return savedCustomer;
@@ -511,10 +516,10 @@ export class DatabaseStorage {
     try {
       console.log(`حذف العميل رقم ${id}`);
       
-      await db.execute({
-        sql: `DELETE FROM customers WHERE id = $1`,
-        args: [id]
-      });
+      await db.query(
+        `DELETE FROM customers WHERE id = $1`,
+        [id]
+      );
       
       console.log(`تم حذف العميل رقم ${id} بنجاح`);
     } catch (error) {
