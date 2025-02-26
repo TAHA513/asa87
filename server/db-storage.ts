@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { eq } from "drizzle-orm";
-import { users, products } from "@shared/schema";
-import type { User, InsertUser, Product } from "@shared/schema";
+import { users, products, customers } from "@shared/schema";
+import type { User, InsertUser, Product, Customer } from "@shared/schema";
 
 export class DatabaseStorage {
   // حفظ مستخدم جديد في قاعدة البيانات
@@ -111,6 +111,40 @@ export class DatabaseStorage {
       await db.delete(products).where(eq(products.id, id));
     } catch (error) {
       console.error("خطأ في حذف المنتج من قاعدة البيانات:", error);
+      throw error;
+    }
+  }
+
+  // إنشاء عميل جديد
+  async createCustomer(customer: Customer): Promise<Customer | null> {
+    try {
+      const [savedCustomer] = await db
+        .insert(customers)
+        .values(customer)
+        .returning();
+      return savedCustomer;
+    } catch (error) {
+      console.error("خطأ في حفظ العميل في قاعدة البيانات:", error);
+      return null;
+    }
+  }
+
+  // الحصول على جميع العملاء
+  async getCustomers(): Promise<Customer[]> {
+    try {
+      return await db.select().from(customers);
+    } catch (error) {
+      console.error("خطأ في جلب العملاء من قاعدة البيانات:", error);
+      return [];
+    }
+  }
+
+  // حذف عميل
+  async deleteCustomer(id: number): Promise<void> {
+    try {
+      await db.delete(customers).where(eq(customers.id, id));
+    } catch (error) {
+      console.error("خطأ في حذف العميل من قاعدة البيانات:", error);
       throw error;
     }
   }
