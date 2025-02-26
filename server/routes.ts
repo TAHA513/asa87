@@ -39,6 +39,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(product);
   });
 
+  app.delete("/api/products/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      await storage.deleteProduct(Number(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      res.status(500).json({ message: "فشل في حذف المنتج" });
+    }
+  });
+
+
   // Sales
   app.get("/api/sales", async (_req, res) => {
     const sales = await storage.getSales();
