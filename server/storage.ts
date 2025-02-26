@@ -265,43 +265,31 @@ export class MemStorage implements IStorage {
   }
 
   async getSales(): Promise<Sale[]> {
-    return Array.from(this.sales.values());
+    return await dbStorage.getSales();
   }
 
   async createSale(sale: Sale): Promise<Sale> {
-    try {
-      // حفظ في قاعدة البيانات أولاً
-      const savedSale = await dbStorage.createSale(sale);
-      if (savedSale) {
-        // ثم حفظ في الذاكرة المؤقتة
-        this.sales.set(savedSale.id, savedSale);
-        return savedSale;
-      }
+    const savedSale = await dbStorage.createSale(sale);
+    if (!savedSale) {
       throw new Error("فشل في حفظ عملية البيع");
-    } catch (error) {
-      console.error("خطأ في حفظ عملية البيع:", error);
-      throw error;
     }
+    return savedSale;
   }
 
   async getCurrentExchangeRate(): Promise<ExchangeRate> {
-    const rates = Array.from(this.exchangeRates.values());
-    if (rates.length === 0) {
-      return this.setExchangeRate(1300);
+    const rate = await dbStorage.getCurrentExchangeRate();
+    if (!rate) {
+      return await this.setExchangeRate(1300);
     }
-    return rates[rates.length - 1];
+    return rate;
   }
 
   async setExchangeRate(rate: number): Promise<ExchangeRate> {
-    const id = this.currentId++;
-    const exchangeRate: ExchangeRate = {
-      id,
-      usdToIqd: rate.toString(),
-      date: new Date(),
-    };
-    this.exchangeRates.set(id, exchangeRate);
-    console.log("Storage: Exchange rate updated to:", exchangeRate);
-    return exchangeRate;
+    const newRate = await dbStorage.setExchangeRate(rate);
+    if (!newRate) {
+      throw new Error("فشل في تحديث سعر الصرف");
+    }
+    return newRate;
   }
 
   async getInstallments(): Promise<Installment[]> {

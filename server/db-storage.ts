@@ -117,3 +117,54 @@ export class DatabaseStorage {
 }
 
 export const dbStorage = new DatabaseStorage();
+async createSale(sale: Sale): Promise<Sale | null> {
+  try {
+    const [savedSale] = await db
+      .insert(sales)
+      .values(sale)
+      .returning();
+    return savedSale;
+  } catch (error) {
+    console.error("خطأ في حفظ عملية البيع في قاعدة البيانات:", error);
+    return null;
+  }
+}
+
+async getSales(): Promise<Sale[]> {
+  try {
+    return await db.select().from(sales);
+  } catch (error) {
+    console.error("خطأ في جلب المبيعات من قاعدة البيانات:", error);
+    return [];
+  }
+}
+
+async getCurrentExchangeRate(): Promise<ExchangeRate | null> {
+  try {
+    const [rate] = await db
+      .select()
+      .from(exchangeRates)
+      .orderBy(desc(exchangeRates.date))
+      .limit(1);
+    return rate;
+  } catch (error) {
+    console.error("خطأ في جلب سعر الصرف من قاعدة البيانات:", error);
+    return null;
+  }
+}
+
+async setExchangeRate(rate: number): Promise<ExchangeRate | null> {
+  try {
+    const [newRate] = await db
+      .insert(exchangeRates)
+      .values({
+        usdToIqd: rate.toString(),
+        date: new Date()
+      })
+      .returning();
+    return newRate;
+  } catch (error) {
+    console.error("خطأ في حفظ سعر الصرف في قاعدة البيانات:", error);
+    return null;
+  }
+}
