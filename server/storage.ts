@@ -82,130 +82,55 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<number, User> = new Map();
-  private products: Map<number, Product> = new Map();
-  private sales: Map<number, Sale> = new Map();
-  private exchangeRates: Map<number, ExchangeRate> = new Map();
-  private installments: Map<number, Installment> = new Map();
-  private installmentPayments: Map<number, InstallmentPayment> = new Map();
-  private campaigns: Map<number, Campaign> = new Map();
-  private campaignAnalytics: Map<number, CampaignAnalytics> = new Map();
-  private socialMediaAccounts: Map<number, SocialMediaAccount> = new Map();
-  private apiKeys: Map<number, Record<string, any>> = new Map();
-  private inventoryTransactions: Map<number, InventoryTransaction> = new Map();
-  private expenseCategories: Map<number, ExpenseCategory> = new Map();
-  private expenses: Map<number, Expense> = new Map();
-  private suppliers: Map<number, Supplier> = new Map();
-  private supplierTransactions: Map<number, SupplierTransaction> = new Map();
-  private customers: Map<number, Customer> = new Map();
-  private appointments: Map<number, Appointment> = new Map();
-  private files: Map<number, FileStorage> = new Map(); // Added for file storage
-  private currentId: number = 1;
+  // لا نحتاج إلى تخزين البيانات في الذاكرة المؤقتة بعد الآن
+  // سنستخدم قاعدة البيانات فقط
   sessionStore: session.Store;
 
   constructor() {
-    this.clearAllData();
     this.sessionStore = new MemoryStore({ checkPeriod: 86400000 });
   }
 
-  private clearAllData() {
-    this.users.clear();
-    this.products.clear();
-    this.sales.clear();
-    this.exchangeRates.clear();
-    this.installments.clear();
-    this.installmentPayments.clear();
-    this.campaigns.clear();
-    this.campaignAnalytics.clear();
-    this.socialMediaAccounts.clear();
-    this.apiKeys.clear();
-    this.inventoryTransactions.clear();
-    this.expenseCategories.clear();
-    this.expenses.clear();
-    this.suppliers.clear();
-    this.supplierTransactions.clear();
-    this.customers.clear();
-    this.appointments.clear();
-    this.files.clear(); // Added for file storage
-    this.currentId = 1;
-  }
-
   async getUser(id: number): Promise<User | undefined> {
-    const localUser = this.users.get(id);
-    if (localUser) return localUser;
-
     try {
-      const dbUser = await dbStorage.getUser(id);
-      if (dbUser) {
-        this.users.set(dbUser.id, dbUser);
-        return dbUser;
-      }
+      return await dbStorage.getUser(id);
     } catch (error) {
       console.error("خطأ في البحث عن المستخدم في قاعدة البيانات:", error);
+      return undefined;
     }
-
-    return undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const localUser = Array.from(this.users.values()).find(
-      (user) => user.username === username
-    );
-    if (localUser) return localUser;
-
     try {
-      const dbUser = await dbStorage.getUserByUsername(username);
-      if (dbUser) {
-        this.users.set(dbUser.id, dbUser);
-        return dbUser;
-      }
+      return await dbStorage.getUserByUsername(username);
     } catch (error) {
       console.error("خطأ في البحث عن المستخدم في قاعدة البيانات:", error);
+      return undefined;
     }
-
-    return undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
-    const user: User = {
-      id,
-      username: insertUser.username,
-      password: insertUser.password,
-      fullName: insertUser.fullName,
-      role: insertUser.role || "staff",
-      email: insertUser.email || null,
-      phone: insertUser.phone || null,
-      isActive: true,
-      lastLoginAt: null,
-      permissions: insertUser.permissions || [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    this.users.set(id, user);
-
     try {
       const dbUser = await dbStorage.saveNewUser(insertUser);
       if (dbUser) {
         console.log("تم حفظ المستخدم في قاعدة البيانات:", dbUser.id);
-        user.id = dbUser.id;
-        this.users.set(dbUser.id, dbUser);
         return dbUser;
       }
+      throw new Error("فشل في حفظ المستخدم في قاعدة البيانات");
     } catch (error) {
       console.error("فشل في حفظ المستخدم في قاعدة البيانات:", error);
+      throw error;
     }
-
-    return user;
   }
 
   async updateUser(id: number, update: Partial<User>): Promise<User> {
-    const user = this.users.get(id);
-    if (!user) throw new Error("User not found");
-    const updatedUser = { ...user, ...update, updatedAt: new Date() };
-    this.users.set(id, updatedUser);
-    return updatedUser;
+    try {
+      // تنفيذ وظيفة تحديث المستخدم في dbStorage
+      // يمكن إضافتها في ملف db-storage.ts
+      throw new Error("وظيفة تحديث المستخدم غير منفذة في قاعدة البيانات");
+    } catch (error) {
+      console.error("خطأ في تحديث المستخدم في قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async getProducts(): Promise<Product[]> {
@@ -291,29 +216,19 @@ export class MemStorage implements IStorage {
 
   async getInstallments(): Promise<Installment[]> {
     try {
-      const installments = await dbStorage.getInstallments();
-      // تحديث الذاكرة المؤقتة بالبيانات من قاعدة البيانات
-      installments.forEach(installment => {
-        this.installments.set(installment.id, installment);
-      });
-      return installments;
+      return await dbStorage.getInstallments();
     } catch (error) {
       console.error("خطأ في جلب التقسيطات من قاعدة البيانات:", error);
-      return Array.from(this.installments.values());
+      return [];
     }
   }
 
   async getInstallment(id: number): Promise<Installment | undefined> {
     try {
-      const installment = await dbStorage.getInstallment(id);
-      if (installment) {
-        this.installments.set(id, installment);
-        return installment;
-      }
-      return this.installments.get(id);
+      return await dbStorage.getInstallment(id);
     } catch (error) {
       console.error("خطأ في جلب التقسيط من قاعدة البيانات:", error);
-      return this.installments.get(id);
+      return undefined;
     }
   }
 
@@ -321,20 +236,12 @@ export class MemStorage implements IStorage {
     try {
       const savedInstallment = await dbStorage.createInstallment(installment);
       if (savedInstallment) {
-        this.installments.set(savedInstallment.id, savedInstallment);
         return savedInstallment;
       }
-      // احتياطي: استخدام التخزين المؤقت إذا فشل التخزين في قاعدة البيانات
-      const id = this.currentId++;
-      const newInstallment = { ...installment, id };
-      this.installments.set(id, newInstallment);
-      return newInstallment;
+      throw new Error("فشل في حفظ التقسيط في قاعدة البيانات");
     } catch (error) {
       console.error("خطأ في إنشاء التقسيط في قاعدة البيانات:", error);
-      const id = this.currentId++;
-      const newInstallment = { ...installment, id };
-      this.installments.set(id, newInstallment);
-      return newInstallment;
+      throw error;
     }
   }
 
@@ -431,69 +338,102 @@ export class MemStorage implements IStorage {
   }
 
   async getCampaigns(): Promise<Campaign[]> {
-    return Array.from(this.campaigns.values());
+    try {
+      // يجب تنفيذ وظيفة للحصول على الحملات من قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      return [];
+    } catch (error) {
+      console.error("خطأ في جلب الحملات من قاعدة البيانات:", error);
+      return [];
+    }
   }
 
   async getCampaign(id: number): Promise<Campaign | undefined> {
-    return this.campaigns.get(id);
+    try {
+      // يجب تنفيذ وظيفة للحصول على الحملة من قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      return undefined;
+    } catch (error) {
+      console.error("خطأ في جلب الحملة من قاعدة البيانات:", error);
+      return undefined;
+    }
   }
 
   async createCampaign(campaign: InsertCampaign): Promise<Campaign> {
-    const id = this.currentId++;
-    const newCampaign: Campaign = {
-      ...campaign,
-      id,
-      status: "draft",
-      metrics: null,
-      description: campaign.description || null,
-      endDate: campaign.endDate || null,
-      budget: campaign.budget.toString(),
-      createdAt: new Date(),
-    };
-    this.campaigns.set(id, newCampaign);
-    return newCampaign;
+    try {
+      // يجب تنفيذ وظيفة لإنشاء حملة في قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      throw new Error("وظيفة إنشاء الحملة غير منفذة في قاعدة البيانات");
+    } catch (error) {
+      console.error("خطأ في إنشاء الحملة في قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async updateCampaign(id: number, update: Partial<Campaign>): Promise<Campaign> {
-    const campaign = this.campaigns.get(id);
-    if (!campaign) throw new Error("الحملة غير موجودة");
-    const updatedCampaign = { ...campaign, ...update };
-    this.campaigns.set(id, updatedCampaign);
-    return updatedCampaign;
+    try {
+      // يجب تنفيذ وظيفة لتحديث الحملة في قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      throw new Error("وظيفة تحديث الحملة غير منفذة في قاعدة البيانات");
+    } catch (error) {
+      console.error("خطأ في تحديث الحملة في قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async getCampaignAnalytics(campaignId: number): Promise<CampaignAnalytics[]> {
-    return Array.from(this.campaignAnalytics.values()).filter(
-      (analytics) => analytics.campaignId === campaignId
-    );
+    try {
+      // يجب تنفيذ وظيفة للحصول على تحليلات الحملة من قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      return [];
+    } catch (error) {
+      console.error("خطأ في جلب تحليلات الحملة من قاعدة البيانات:", error);
+      return [];
+    }
   }
 
   async createCampaignAnalytics(analytics: InsertCampaignAnalytics): Promise<CampaignAnalytics> {
-    const id = this.currentId++;
-    const newAnalytics: CampaignAnalytics = {
-      ...analytics,
-      id,
-      spend: analytics.spend.toString(),
-    };
-    this.campaignAnalytics.set(id, newAnalytics);
-    return newAnalytics;
+    try {
+      // يجب تنفيذ وظيفة لإنشاء تحليلات الحملة في قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      throw new Error("وظيفة إنشاء تحليلات الحملة غير منفذة في قاعدة البيانات");
+    } catch (error) {
+      console.error("خطأ في إنشاء تحليلات الحملة في قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async getSocialMediaAccounts(userId: number): Promise<SocialMediaAccount[]> {
-    return Array.from(this.socialMediaAccounts.values()).filter(
-      (account) => account.userId === userId
-    );
+    try {
+      // يجب تنفيذ وظيفة للحصول على حسابات وسائل التواصل الاجتماعي من قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      return [];
+    } catch (error) {
+      console.error("خطأ في جلب حسابات وسائل التواصل الاجتماعي من قاعدة البيانات:", error);
+      return [];
+    }
   }
 
   async createSocialMediaAccount(account: SocialMediaAccount): Promise<SocialMediaAccount> {
-    const id = this.currentId++;
-    const newAccount = { ...account, id };
-    this.socialMediaAccounts.set(id, newAccount);
-    return newAccount;
+    try {
+      // يجب تنفيذ وظيفة لإنشاء حساب وسائل التواصل الاجتماعي في قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      throw new Error("وظيفة إنشاء حساب وسائل التواصل الاجتماعي غير منفذة في قاعدة البيانات");
+    } catch (error) {
+      console.error("خطأ في إنشاء حساب وسائل التواصل الاجتماعي في قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async deleteSocialMediaAccount(id: number): Promise<void> {
-    this.socialMediaAccounts.delete(id);
+    try {
+      // يجب تنفيذ وظيفة لحذف حساب وسائل التواصل الاجتماعي من قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      throw new Error("وظيفة حذف حساب وسائل التواصل الاجتماعي غير منفذة في قاعدة البيانات");
+    } catch (error) {
+      console.error("خطأ في حذف حساب وسائل التواصل الاجتماعي من قاعدة البيانات:", error);
+      throw error;
+    }
   }
 
   async setApiKeys(userId: number, keys: Record<string, any>): Promise<void> {
@@ -677,73 +617,44 @@ export class MemStorage implements IStorage {
 
   async searchCustomers(search?: string): Promise<Customer[]> {
     try {
-      const dbCustomers = await dbStorage.searchCustomers(search);
-      if (dbCustomers && dbCustomers.length > 0) {
-        // تحديث الذاكرة المؤقتة بالبيانات من قاعدة البيانات
-        dbCustomers.forEach(customer => {
-          this.customers.set(customer.id, customer);
-        });
-        return dbCustomers;
-      }
+      return await dbStorage.searchCustomers(search);
     } catch (error) {
       console.error("خطأ في البحث عن العملاء في قاعدة البيانات:", error);
+      return [];
     }
-    
-    // استخدام التخزين المؤقت إذا فشل البحث في قاعدة البيانات
-    const allCustomers = Array.from(this.customers.values());
-    if (!search) return allCustomers;
-
-    const searchLower = search.toLowerCase();
-    return allCustomers.filter(customer =>
-      customer.name.toLowerCase().includes(searchLower) ||
-      customer.phone?.toLowerCase().includes(searchLower) ||
-      customer.email?.toLowerCase().includes(searchLower)
-    );
   }
 
   async getCustomer(id: number): Promise<Customer | undefined> {
     try {
-      const dbCustomer = await dbStorage.getCustomer(id);
-      if (dbCustomer) {
-        this.customers.set(id, dbCustomer);
-        return dbCustomer;
-      }
+      return await dbStorage.getCustomer(id);
     } catch (error) {
       console.error("خطأ في جلب العميل من قاعدة البيانات:", error);
+      return undefined;
     }
-    
-    return this.customers.get(id);
   }
 
   async getCustomerSales(customerId: number): Promise<Sale[]> {
-    return Array.from(this.sales.values())
-      .filter(sale => sale.customerId === customerId);
+    try {
+      // يجب تنفيذ وظيفة للحصول على مبيعات العميل من قاعدة البيانات
+      // تحتاج إلى إضافة هذه الوظيفة في db-storage.ts
+      return [];
+    } catch (error) {
+      console.error("خطأ في جلب مبيعات العميل من قاعدة البيانات:", error);
+      return [];
+    }
   }
 
   async createCustomer(insertCustomer: InsertCustomer): Promise<Customer> {
     try {
       const dbCustomer = await dbStorage.createCustomer(insertCustomer);
       if (dbCustomer) {
-        this.customers.set(dbCustomer.id, dbCustomer);
         return dbCustomer;
       }
+      throw new Error("فشل في إنشاء العميل في قاعدة البيانات");
     } catch (error) {
       console.error("خطأ في إنشاء العميل في قاعدة البيانات:", error);
+      throw error;
     }
-    
-    // استخدام التخزين المؤقت إذا فشل الإنشاء في قاعدة البيانات
-    const id = this.currentId++;
-    const customer: Customer = {
-      id,
-      name: insertCustomer.name,
-      phone: insertCustomer.phone || null,
-      email: insertCustomer.email || null,
-      address: insertCustomer.address || null,
-      notes: insertCustomer.notes || null,
-      createdAt: new Date()
-    };
-    this.customers.set(id, customer);
-    return customer;
   }
 
   async getCustomerAppointments(customerId: number): Promise<Appointment[]> {
