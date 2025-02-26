@@ -73,6 +73,7 @@ export interface IStorage {
   updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment>;
   deleteAppointment(id: number): Promise<void>;
   deleteProduct(id: number): Promise<void>;
+  deleteCustomer(id: number): Promise<void>;  // إضافة دالة حذف العميل
 }
 
 export class MemStorage implements IStorage {
@@ -652,6 +653,10 @@ export class MemStorage implements IStorage {
 
   async deleteAppointment(id: number): Promise<void> {
     this.appointments.delete(id);
+  }
+
+  async deleteCustomer(id: number): Promise<void> {
+    this.customers.delete(id);
   }
 }
 

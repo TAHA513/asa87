@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Search, UserRound, FileText, Calendar, Plus } from "lucide-react";
+import { Search, UserRound, FileText, Calendar, Plus, Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -41,21 +41,7 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 
-type NewCustomerForm = {
-  name: string;
-  phone?: string;
-  email?: string;
-  address?: string;
-  notes?: string;
-};
-
-type NewAppointmentForm = {
-  title: string;
-  description?: string;
-  date: Date;
-  duration: number;
-  notes?: string;
-};
+// ... (previous type definitions remain the same)
 
 export default function CustomersPage() {
   const [search, setSearch] = useState("");
@@ -184,6 +170,33 @@ export default function CustomersPage() {
       toast({
         title: "خطأ",
         description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // إضافة mutation لحذف العميل
+  const deleteCustomerMutation = useMutation({
+    mutationFn: async (customerId: number) => {
+      const response = await fetch(`/api/customers/${customerId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('فشل في حذف العميل');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      setSelectedCustomer(null);
+      toast({
+        title: "تم الحذف بنجاح",
+        description: "تم حذف العميل بنجاح",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "خطأ",
+        description: error instanceof Error ? error.message : "فشل في حذف العميل",
         variant: "destructive",
       });
     },
@@ -466,9 +479,23 @@ export default function CustomersPage() {
                         </p>
                       )}
                     </div>
-                    <Button variant="ghost" size="icon">
-                      <FileText className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm('هل أنت متأكد من حذف هذا العميل؟')) {
+                            deleteCustomerMutation.mutate(customer.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                      <Button variant="ghost" size="icon">
+                        <FileText className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
 

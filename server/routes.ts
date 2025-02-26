@@ -673,6 +673,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // إضافة مسار حذف العميل
+  app.delete("/api/customers/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const customerId = Number(req.params.id);
+      await storage.deleteCustomer(customerId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting customer:", error);
+      res.status(500).json({ message: "فشل في حذف العميل" });
+    }
+  });
+
   // Appointment Routes
   app.get("/api/customers/:id/appointments", async (req, res) => {
     try {
