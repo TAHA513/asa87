@@ -676,6 +676,20 @@ export class MemStorage implements IStorage {
   }
 
   async searchCustomers(search?: string): Promise<Customer[]> {
+    try {
+      const dbCustomers = await dbStorage.searchCustomers(search);
+      if (dbCustomers && dbCustomers.length > 0) {
+        // تحديث الذاكرة المؤقتة بالبيانات من قاعدة البيانات
+        dbCustomers.forEach(customer => {
+          this.customers.set(customer.id, customer);
+        });
+        return dbCustomers;
+      }
+    } catch (error) {
+      console.error("خطأ في البحث عن العملاء في قاعدة البيانات:", error);
+    }
+    
+    // استخدام التخزين المؤقت إذا فشل البحث في قاعدة البيانات
     const allCustomers = Array.from(this.customers.values());
     if (!search) return allCustomers;
 
@@ -688,6 +702,16 @@ export class MemStorage implements IStorage {
   }
 
   async getCustomer(id: number): Promise<Customer | undefined> {
+    try {
+      const dbCustomer = await dbStorage.getCustomer(id);
+      if (dbCustomer) {
+        this.customers.set(id, dbCustomer);
+        return dbCustomer;
+      }
+    } catch (error) {
+      console.error("خطأ في جلب العميل من قاعدة البيانات:", error);
+    }
+    
     return this.customers.get(id);
   }
 
@@ -697,6 +721,17 @@ export class MemStorage implements IStorage {
   }
 
   async createCustomer(insertCustomer: InsertCustomer): Promise<Customer> {
+    try {
+      const dbCustomer = await dbStorage.createCustomer(insertCustomer);
+      if (dbCustomer) {
+        this.customers.set(dbCustomer.id, dbCustomer);
+        return dbCustomer;
+      }
+    } catch (error) {
+      console.error("خطأ في إنشاء العميل في قاعدة البيانات:", error);
+    }
+    
+    // استخدام التخزين المؤقت إذا فشل الإنشاء في قاعدة البيانات
     const id = this.currentId++;
     const customer: Customer = {
       id,
@@ -752,7 +787,14 @@ export class MemStorage implements IStorage {
   }
 
   async deleteCustomer(id: number): Promise<void> {
-    this.customers.delete(id);
+    try {
+      await dbStorage.deleteCustomer(id);
+      this.customers.delete(id);
+    } catch (error) {
+      console.error("خطأ في حذف العميل من قاعدة البيانات:", error);
+      // حذف العميل من الذاكرة المؤقتة على الأقل
+      this.customers.delete(id);
+    }
   }
 
   async saveFile(file: InsertFileStorage): Promise<FileStorage> {

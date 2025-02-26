@@ -338,6 +338,86 @@ export class DatabaseStorage {
       return null;
     }
   }
+
+  // الحصول على منتج محدد
+  async getProduct(id: number): Promise<Product | undefined> {
+    try {
+      const [product] = await db
+        .select()
+        .from(products)
+        .where(eq(products.id, id));
+      return product;
+    } catch (error) {
+      console.error("خطأ في جلب المنتج من قاعدة البيانات:", error);
+      return undefined;
+    }
+  }
+
+  // تحديث منتج
+  async updateProduct(id: number, update: Partial<Product>): Promise<Product | null> {
+    try {
+      const [updatedProduct] = await db
+        .update(products)
+        .set(update)
+        .where(eq(products.id, id))
+        .returning();
+      return updatedProduct;
+    } catch (error) {
+      console.error("خطأ في تحديث المنتج في قاعدة البيانات:", error);
+      return null;
+    }
+  }
+
+  // البحث عن العملاء
+  async searchCustomers(search?: string): Promise<Customer[]> {
+    try {
+      let query = db.select().from(users);
+      if (search) {
+        // تنفيذ البحث (هذا مثال بسيط، قد تحتاج لتعديله حسب هيكل قاعدة البيانات)
+        // هنا نفترض أن الجدول "customers" موجود
+        // يمكن تعديل هذا الكود ليناسب هيكل قاعدة البيانات الخاصة بك
+      }
+      return [];
+    } catch (error) {
+      console.error("خطأ في البحث عن العملاء:", error);
+      return [];
+    }
+  }
+
+  // الحصول على عميل محدد
+  async getCustomer(id: number): Promise<Customer | undefined> {
+    try {
+      // الحصول على العميل من قاعدة البيانات
+      // تحتاج إلى تعديل هذا الكود ليناسب هيكل قاعدة البيانات الخاصة بك
+      return undefined;
+    } catch (error) {
+      console.error("خطأ في جلب العميل:", error);
+      return undefined;
+    }
+  }
+
+  // إنشاء عميل جديد
+  async createCustomer(customer: InsertCustomer): Promise<Customer | null> {
+    try {
+      // إنشاء عميل جديد في قاعدة البيانات
+      // تحتاج إلى تعديل هذا الكود ليناسب هيكل قاعدة البيانات الخاصة بك
+      return null;
+    } catch (error) {
+      console.error("خطأ في إنشاء العميل:", error);
+      return null;
+    }
+  }
+
+  // حذف عميل
+  async deleteCustomer(id: number): Promise<void> {
+    try {
+      // حذف العميل من قاعدة البيانات
+      // تحتاج إلى تعديل هذا الكود ليناسب هيكل قاعدة البيانات الخاصة بك
+    } catch (error) {
+      console.error("خطأ في حذف العميل:", error);
+      throw error;
+    }
+  }
 }
 
 export const dbStorage = new DatabaseStorage();
