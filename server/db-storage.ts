@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
-import { users, products, sales, exchangeRates } from "@shared/schema";
-import type { User, InsertUser, Product, Sale, ExchangeRate } from "@shared/schema";
+import { users, products, sales, exchangeRates, expenseCategories } from "@shared/schema";
+import type { User, InsertUser, Product, Sale, ExchangeRate, ExpenseCategory } from "@shared/schema";
 
 export class DatabaseStorage {
   // حفظ مستخدم جديد في قاعدة البيانات
@@ -76,35 +76,6 @@ export class DatabaseStorage {
     }
   }
 
-  // الحصول على منتج بواسطة المعرف
-  async getProduct(id: number): Promise<Product | undefined> {
-    try {
-      const [product] = await db
-        .select()
-        .from(products)
-        .where(eq(products.id, id));
-      return product;
-    } catch (error) {
-      console.error("خطأ في البحث عن المنتج في قاعدة البيانات:", error);
-      return undefined;
-    }
-  }
-
-  // تحديث منتج
-  async updateProduct(id: number, update: Partial<Product>): Promise<Product | null> {
-    try {
-      const [updatedProduct] = await db
-        .update(products)
-        .set(update)
-        .where(eq(products.id, id))
-        .returning();
-      return updatedProduct;
-    } catch (error) {
-      console.error("خطأ في تحديث المنتج في قاعدة البيانات:", error);
-      return null;
-    }
-  }
-
   // حذف منتج
   async deleteProduct(id: number): Promise<void> {
     try {
@@ -112,6 +83,44 @@ export class DatabaseStorage {
     } catch (error) {
       console.error("خطأ في حذف المنتج من قاعدة البيانات:", error);
       throw error;
+    }
+  }
+
+  // إضافة فئة مصروفات جديدة
+  async createExpenseCategory(data: {
+    name: string;
+    description?: string | null;
+    budgetAmount?: number | null;
+    userId: number;
+  }): Promise<ExpenseCategory> {
+    try {
+      console.log("Creating expense category with data:", data);
+      const [category] = await db
+        .insert(expenseCategories)
+        .values({
+          name: data.name,
+          description: data.description,
+          budgetAmount: data.budgetAmount?.toString(),
+          userId: data.userId,
+          createdAt: new Date(),
+        })
+        .returning();
+
+      console.log("Created expense category:", category);
+      return category;
+    } catch (error) {
+      console.error("خطأ في إنشاء فئة المصروفات:", error);
+      throw error;
+    }
+  }
+
+  // الحصول على فئات المصروفات
+  async getExpenseCategories(): Promise<ExpenseCategory[]> {
+    try {
+      return await db.select().from(expenseCategories);
+    } catch (error) {
+      console.error("خطأ في جلب فئات المصروفات:", error);
+      return [];
     }
   }
 
@@ -167,39 +176,6 @@ export class DatabaseStorage {
       return newRate;
     } catch (error) {
       console.error("خطأ في حفظ سعر الصرف في قاعدة البيانات:", error);
-      return null;
-    }
-  }
-  async saveTheme(userId: number, theme: any): Promise<void> {
-    try {
-      await db.insert(userSettings)
-        .values({
-          userId,
-          theme: JSON.stringify(theme),
-          updatedAt: new Date()
-        })
-        .onConflictDoUpdate({
-          target: userSettings.userId,
-          set: {
-            theme: JSON.stringify(theme),
-            updatedAt: new Date()
-          }
-        });
-    } catch (error) {
-      console.error("خطأ في حفظ الثيم في قاعدة البيانات:", error);
-      throw error;
-    }
-  }
-
-  async getTheme(userId: number): Promise<any | null> {
-    try {
-      const [settings] = await db
-        .select()
-        .from(userSettings)
-        .where(eq(userSettings.userId, userId));
-      return settings?.theme ? JSON.parse(settings.theme) : null;
-    } catch (error) {
-      console.error("خطأ في جلب الثيم من قاعدة البيانات:", error);
       return null;
     }
   }

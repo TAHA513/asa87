@@ -30,7 +30,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { insertExpenseCategorySchema, insertExpenseSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -64,23 +63,40 @@ export default function ExpensesPage() {
     },
   });
 
+  const expenseForm = useForm<InsertExpenseForm>({
+    resolver: zodResolver(insertExpenseSchema),
+    defaultValues: {
+      description: "",
+      amount: undefined,
+      date: new Date(),
+      categoryId: undefined,
+      isRecurring: false,
+      recurringPeriod: undefined,
+      recurringDay: undefined,
+      notes: "",
+    },
+  });
+
   const createCategoryMutation = useMutation({
     mutationFn: async (data: InsertExpenseCategoryForm) => {
-      console.log("Submitting category data:", data); // للتأكد من البيانات قبل الإرسال
+      if (!user) throw new Error("يجب تسجيل الدخول أولاً");
+
+      console.log("Submitting category data:", data);
 
       const response = await fetch("/api/expenses/categories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: data.name,
-          description: data.description,
+          description: data.description || null,
           budgetAmount: data.budgetAmount ? Number(data.budgetAmount) : null,
+          userId: user.id,
         }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to create category");
+        throw new Error(error.message || "فشل في إنشاء فئة المصروفات");
       }
 
       return response.json();
@@ -95,25 +111,12 @@ export default function ExpensesPage() {
       });
     },
     onError: (error: Error) => {
+      console.error("Error creating category:", error);
       toast({
         title: "خطأ",
         description: error.message,
         variant: "destructive",
       });
-    },
-  });
-
-  const expenseForm = useForm<InsertExpenseForm>({
-    resolver: zodResolver(insertExpenseSchema),
-    defaultValues: {
-      description: "",
-      amount: undefined,
-      date: new Date(),
-      categoryId: undefined,
-      isRecurring: false,
-      recurringPeriod: undefined,
-      recurringDay: undefined,
-      notes: "",
     },
   });
 
@@ -207,7 +210,7 @@ export default function ExpensesPage() {
                             <FormItem>
                               <FormLabel>اسم الفئة</FormLabel>
                               <FormControl>
-                                <Input {...field} />
+                                <Input {...field} value={field.value || ""} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -220,7 +223,7 @@ export default function ExpensesPage() {
                             <FormItem>
                               <FormLabel>الوصف</FormLabel>
                               <FormControl>
-                                <Input {...field} />
+                                <Input {...field} value={field.value || ""} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -236,6 +239,7 @@ export default function ExpensesPage() {
                                 <Input
                                   type="number"
                                   {...field}
+                                  value={field.value || ""}
                                   onChange={(e) => field.onChange(e.target.valueAsNumber)}
                                 />
                               </FormControl>
@@ -279,7 +283,7 @@ export default function ExpensesPage() {
                             <FormItem>
                               <FormLabel>الوصف</FormLabel>
                               <FormControl>
-                                <Input {...field} />
+                                <Input {...field} value={field.value || ""} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -295,6 +299,7 @@ export default function ExpensesPage() {
                                 <Input
                                   type="number"
                                   {...field}
+                                  value={field.value || ""}
                                   onChange={(e) => field.onChange(e.target.valueAsNumber)}
                                 />
                               </FormControl>
@@ -377,7 +382,7 @@ export default function ExpensesPage() {
                             <FormItem>
                               <FormLabel>ملاحظات</FormLabel>
                               <FormControl>
-                                <Textarea {...field} />
+                                <Textarea {...field} value={field.value || ""} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>

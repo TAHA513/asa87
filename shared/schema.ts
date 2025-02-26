@@ -160,7 +160,7 @@ export const expenseCategories = pgTable("expense_categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
-  parentId: integer("parent_id").references(() => expenseCategories.id),
+  parentId: integer("parent_id"),
   budgetAmount: decimal("budget_amount", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   userId: integer("user_id").notNull(),
@@ -356,8 +356,8 @@ export const insertExpenseCategorySchema = createInsertSchema(expenseCategories)
   .omit({ id: true, createdAt: true })
   .extend({
     name: z.string().min(1, "اسم الفئة مطلوب"),
-    parentId: z.number().optional(),
-    budgetAmount: z.number().min(0, "الميزانية يجب أن تكون 0 على الأقل").optional(),
+    description: z.string().optional().nullable(),
+    budgetAmount: z.number().min(0, "الميزانية يجب أن تكون 0 على الأقل").optional().nullable(),
   });
 
 export const insertExpenseSchema = createInsertSchema(expenses)

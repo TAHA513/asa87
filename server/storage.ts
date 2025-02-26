@@ -73,7 +73,7 @@ export interface IStorage {
   updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment>;
   deleteAppointment(id: number): Promise<void>;
   deleteProduct(id: number): Promise<void>;
-  deleteCustomer(id: number): Promise<void>;  // إضافة دالة حذف العميل
+  deleteCustomer(id: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -102,7 +102,6 @@ export class MemStorage implements IStorage {
     this.sessionStore = new MemoryStore({ checkPeriod: 86400000 });
   }
 
-  // إضافة دالة لمسح جميع البيانات
   private clearAllData() {
     this.users.clear();
     this.products.clear();
@@ -125,15 +124,12 @@ export class MemStorage implements IStorage {
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    // البحث أولاً في الذاكرة المحلية
     const localUser = this.users.get(id);
     if (localUser) return localUser;
 
-    // إذا لم يتم العثور على المستخدم محلياً، ابحث في قاعدة البيانات
     try {
       const dbUser = await dbStorage.getUser(id);
       if (dbUser) {
-        // حفظ المستخدم في الذاكرة المحلية للوصول السريع في المرة القادمة
         this.users.set(dbUser.id, dbUser);
         return dbUser;
       }
@@ -145,17 +141,14 @@ export class MemStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    // البحث أولاً في الذاكرة المحلية
     const localUser = Array.from(this.users.values()).find(
       (user) => user.username === username
     );
     if (localUser) return localUser;
 
-    // إذا لم يتم العثور على المستخدم محلياً، ابحث في قاعدة البيانات
     try {
       const dbUser = await dbStorage.getUserByUsername(username);
       if (dbUser) {
-        // حفظ المستخدم في الذاكرة المحلية للوصول السريع في المرة القادمة
         this.users.set(dbUser.id, dbUser);
         return dbUser;
       }
@@ -183,15 +176,12 @@ export class MemStorage implements IStorage {
       updatedAt: new Date(),
     };
 
-    // حفظ في الذاكرة المحلية
     this.users.set(id, user);
 
     try {
-      // دائماً حفظ المستخدمين الجدد في قاعدة البيانات
       const dbUser = await dbStorage.saveNewUser(insertUser);
       if (dbUser) {
         console.log("تم حفظ المستخدم في قاعدة البيانات:", dbUser.id);
-        // تحديث المعرف المحلي ليتطابق مع معرف قاعدة البيانات
         user.id = dbUser.id;
         this.users.set(dbUser.id, dbUser);
         return dbUser;
@@ -437,8 +427,13 @@ export class MemStorage implements IStorage {
 
 
   async getExpenseCategories(userId: number): Promise<ExpenseCategory[]> {
-    return Array.from(this.expenseCategories.values())
-      .filter(category => category.userId === userId);
+    try {
+      const categories = await dbStorage.getExpenseCategories();
+      return categories.filter(category => category.userId === userId);
+    } catch (error) {
+      console.error("خطأ في جلب فئات المصروفات:", error);
+      return [];
+    }
   }
 
   async getExpenseCategory(id: number): Promise<ExpenseCategory | undefined> {
@@ -446,18 +441,18 @@ export class MemStorage implements IStorage {
   }
 
   async createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory> {
-    const id = this.currentId++;
-    const newCategory: ExpenseCategory = {
-      id,
-      name: category.name,
-      description: category.description || null,
-      userId: category.userId,
-      parentId: category.parentId || null,
-      budgetAmount: category.budgetAmount?.toString() || null,
-      createdAt: new Date(),
-    };
-    this.expenseCategories.set(id, newCategory);
-    return newCategory;
+    try {
+      const newCategory = await dbStorage.createExpenseCategory({
+        name: category.name,
+        description: category.description || null,
+        budgetAmount: category.budgetAmount || null,
+        userId: category.userId,
+      });
+      return newCategory;
+    } catch (error) {
+      console.error("خطأ في إنشاء فئة المصروفات:", error);
+      throw error;
+    }
   }
 
   async updateExpenseCategory(id: number, update: Partial<ExpenseCategory>): Promise<ExpenseCategory> {
