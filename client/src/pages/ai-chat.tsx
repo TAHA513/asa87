@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/layout/sidebar";
 import { Bot, Send } from "lucide-react";
@@ -17,7 +16,7 @@ export default function AiChat() {
     // التحقق من وجود مفتاح API
     const checkApiKey = async () => {
       try {
-        const response = await fetch("/api/settings/api-keys");
+        const response = await fetch("/api/settings/api-keys", { method: 'GET' });
         const data = await response.json();
         setApiKey(data.apiKeys.groq || "");
       } catch (error) {
@@ -30,7 +29,7 @@ export default function AiChat() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!prompt.trim()) {
       toast({
         title: "خطأ",
@@ -67,7 +66,7 @@ export default function AiChat() {
 
       const data = await result.json();
       setResponse(data.modifiedCode);
-      
+
       toast({
         title: "تم!",
         description: "تم استلام الرد بنجاح",

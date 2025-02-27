@@ -880,20 +880,30 @@ export async function registerRoutes(app: any): Promise<Server> {
   });
 
   // إضافة API للتحقق من مفتاح Groq
-  router.get("/settings/api-keys", (req, res) => {
-    res.json({
-      apiKeys: {
-        groq: process.env.GROQ_API_KEY || ""
-      }
-    });
+  router.get("/settings/api-keys", (_req, res) => {
+    try {
+      res.json({
+        apiKeys: {
+          groq: process.env.GROQ_API_KEY || ""
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching API keys:", error);
+      res.status(500).json({ message: "فشل في جلب مفاتيح API" });
+    }
   });
 
   // API لتحديث مفتاح Groq
   router.post("/settings/api-keys", (req, res) => {
-    const { groqApiKey } = req.body;
-    // في حالة استخدام مشروع حقيقي، يجب تخزين المفتاح في قاعدة البيانات أو .env
-    // هنا يتم إرجاع استجابة فقط للاختبار
-    res.json({ success: true, message: "تم تحديث مفتاح API بنجاح" });
+    try {
+      const { groqApiKey } = req.body;
+      // في حالة استخدام مشروع حقيقي، يجب تخزين المفتاح في قاعدة البيانات أو .env
+      // هنا يتم إرجاع استجابة فقط للاختبار
+      res.json({ success: true, message: "تم تحديث مفتاح API بنجاح" });
+    } catch (error) {
+      console.error("Error updating API key:", error);
+      res.status(500).json({ message: "فشل في تحديث مفتاح API" });
+    }
   });
 
   // API لتعديل الكود باستخدام Groq
