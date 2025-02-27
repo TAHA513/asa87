@@ -1,54 +1,83 @@
 
-import { useState } from "react";
-import { Send } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import Sidebar from "@/components/layout/sidebar";
+import { Bot, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function AiChat() {
-  const [message, setMessage] = useState("");
-  const [conversation, setConversation] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [prompt, setPrompt] = useState("");
+  const [response, setResponse] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [apiKey, setApiKey] = useState("");
+  const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    // التحقق من وجود مفتاح API
+    const checkApiKey = async () => {
+      try {
+        const response = await fetch("/api/settings/api-keys");
+        const data = await response.json();
+        setApiKey(data.apiKeys.groq || "");
+      } catch (error) {
+        console.log("خطأ في التحقق من مفتاح API:", error);
+      }
+    };
+
+    checkApiKey();
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!message.trim() || isLoading) return;
+    
+    if (!prompt.trim()) {
+      toast({
+        title: "خطأ",
+        description: "الرجاء إدخال نص قبل الإرسال",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!apiKey) {
+      toast({
+        title: "تنبيه",
+        description: "يرجى إضافة مفتاح Groq API في صفحة الإعدادات أولاً",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    setResponse("");
 
     try {
-      // Add user message to conversation
-      const userMessage = { role: "user" as const, content: message };
-      setConversation(prev => [...prev, userMessage]);
-      setIsLoading(true);
-      setMessage("");
-
-      // Send message to API
-      const response = await fetch("/api/ai/chat", {
+      const result = await fetch("/api/modify-code", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: userMessage.content }),
+        body: JSON.stringify({ request: prompt }),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "فشل في الاتصال بالذكاء الاصطناعي");
+      if (!result.ok) {
+        throw new Error("فشل في الحصول على استجابة من الخادم");
       }
 
-      // Add AI response to conversation
-      setConversation(prev => [
-        ...prev,
-        { role: "assistant", content: data.response }
-      ]);
-    } catch (error) {
-      console.error("Error in AI chat:", error);
+      const data = await result.json();
+      setResponse(data.modifiedCode);
+      
       toast({
-        variant: "destructive",
+        title: "تم!",
+        description: "تم استلام الرد بنجاح",
+      });
+    } catch (error) {
+      console.error("خطأ:", error);
+      toast({
         title: "خطأ",
-        description: error instanceof Error ? error.message : "حدث خطأ أثناء التواصل مع الذكاء الاصطناعي"
+        description: "حدث خطأ أثناء معالجة طلبك. حاول مرة أخرى.",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -56,53 +85,64 @@ export default function AiChat() {
   };
 
   return (
-    <div className="container py-6">
-      <div className="grid gap-6">
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle>المساعد الذكي</CardTitle>
-            <CardDescription>استخدم المساعد الذكي للمساعدة في إدارة متجرك والإجابة عن أسئلتك</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="h-[400px] overflow-y-auto border rounded-md p-4">
-                {conversation.length === 0 ? (
-                  <div className="h-full flex items-center justify-center text-muted-foreground">
-                    ابدأ محادثة جديدة مع المساعد الذكي
-                  </div>
+    <div className="flex h-screen">
+      <div className="w-64 h-full">
+        <Sidebar />
+      </div>
+      <main className="flex-1 p-8 overflow-auto">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center gap-3 mb-8">
+            <Bot className="h-6 w-6" />
+            <h1 className="text-3xl font-bold">مساعد تعديل الأكواد</h1>
+          </div>
+
+          {!apiKey && (
+            <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 rounded">
+              <p className="font-bold">تنبيه!</p>
+              <p>لم يتم العثور على مفتاح Groq API. يرجى إضافته في صفحة الإعدادات لاستخدام هذه الميزة.</p>
+            </div>
+          )}
+
+          <div className="grid gap-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid gap-2">
+                <label htmlFor="prompt" className="text-lg font-medium">
+                  أدخل طلبك هنا:
+                </label>
+                <Textarea
+                  id="prompt"
+                  placeholder="مثال: قم بإضافة تعليقات للكود التالي..."
+                  className="min-h-[120px] text-right"
+                  dir="rtl"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                />
+              </div>
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isLoading || !prompt.trim() || !apiKey}
+              >
+                {isLoading ? "جاري المعالجة..." : "إرسال الطلب"}
+                <Send className="ml-2 h-4 w-4" />
+              </Button>
+            </form>
+
+            {(isLoading || response) && (
+              <div className="mt-6">
+                <h2 className="text-xl font-semibold mb-2">الاستجابة:</h2>
+                {isLoading ? (
+                  <div className="animate-pulse p-4 rounded bg-gray-100 h-32"></div>
                 ) : (
-                  <div className="space-y-4">
-                    {conversation.map((msg, index) => (
-                      <div
-                        key={index}
-                        className={`p-3 rounded-lg ${
-                          msg.role === "user"
-                            ? "bg-muted mr-12 text-left"
-                            : "bg-primary/10 ml-12 text-right"
-                        }`}
-                      >
-                        {msg.content}
-                      </div>
-                    ))}
-                  </div>
+                  <pre className="bg-gray-100 p-4 rounded-lg overflow-auto max-h-[400px] text-left whitespace-pre-wrap" dir="ltr">
+                    {response}
+                  </pre>
                 )}
               </div>
-              <form onSubmit={handleSubmit} className="flex space-x-2 space-x-reverse">
-                <Input
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="اكتب رسالتك هنا..."
-                  className="flex-1"
-                  disabled={isLoading}
-                />
-                <Button type="submit" size="icon" disabled={isLoading}>
-                  <Send className="h-4 w-4" />
-                </Button>
-              </form>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            )}
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
