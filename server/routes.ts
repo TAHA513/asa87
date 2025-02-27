@@ -412,6 +412,138 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get platform-specific statistics
+  app.get("/api/marketing/platform-stats", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const apiKeys = await storage.getApiKeys(req.user!.id);
+      const accounts = await storage.getSocialMediaAccounts(req.user!.id);
+
+      if (!apiKeys || !accounts.length) {
+        return res.json([]);
+      }
+
+      const platformStats = [];
+      const platformColors = {
+        facebook: '#1877F2',
+        twitter: '#1DA1F2',
+        instagram: '#E4405F',
+        tiktok: '#000000',
+        snapchat: '#FFFC00',
+        linkedin: '#0A66C2'
+      };
+
+      for (const account of accounts) {
+        const platformKeys = apiKeys[account.platform];
+        if (!platformKeys) continue;
+
+        try {
+          let stats;
+          switch (account.platform) {
+            case 'facebook':
+              stats = await fetchFacebookStats(account, platformKeys);
+              break;
+            case 'twitter':
+              stats = await fetchTwitterStats(account, platformKeys);
+              break;
+            case 'instagram':
+              stats = await fetchInstagramStats(account, platformKeys);
+              break;
+            case 'tiktok':
+              stats = await fetchTikTokStats(account, platformKeys);
+              break;
+            case 'snapchat':
+              stats = await fetchSnapchatStats(account, platformKeys);
+              break;
+            case 'linkedin':
+              stats = await fetchLinkedInStats(account, platformKeys);
+              break;
+          }
+
+          if (stats) {
+            platformStats.push({
+              platform: account.platform,
+              name: account.accountName,
+              color: platformColors[account.platform as keyof typeof platformColors],
+              ...stats
+            });
+          }
+        } catch (error) {
+          console.error(`Error fetching ${account.platform} stats:`, error);
+        }
+      }
+
+      res.json(platformStats);
+    } catch (error) {
+      console.error("Error fetching platform stats:", error);
+      res.status(500).json({ message: "فشل في جلب إحصائيات المنصات" });
+    }
+  });
+
+  // Get historical analytics data
+  app.get("/api/marketing/historical-stats", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const timeRange = req.query.range || '30d'; // Default to last 30 days
+      const now = new Date();
+      let startDate = new Date();
+
+      switch (timeRange) {
+        case '7d':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case '30d':
+          startDate.setDate(now.getDate() - 30);
+          break;
+        case '90d':
+          startDate.setDate(now.getDate() - 90);
+          break;
+        default:
+          startDate.setDate(now.getDate() - 30);
+      }
+
+      // Fetch analytics from database
+      const analytics = await storage.getCampaignAnalytics(0); // 0 for general platform analytics
+      const filteredAnalytics = analytics
+        .filter(a => new Date(a.date) >= startDate)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      // Group by date
+      const dailyStats = filteredAnalytics.reduce((acc: any[], curr) => {
+        const date = new Date(curr.date).toISOString().split('T')[0];
+        const existingDay = acc.find(d => d.date === date);
+
+        if (existingDay) {
+          existingDay.impressions += curr.impressions;
+          existingDay.engagements += curr.clicks;
+          existingDay.spend += Number(curr.spend);
+          existingDay[curr.platform] = curr.impressions;
+        } else {
+          acc.push({
+            date,
+            impressions: curr.impressions,
+            engagements: curr.clicks,
+            spend: Number(curr.spend),
+            [curr.platform]: curr.impressions
+          });
+        }
+
+        return acc;
+      }, []);
+
+      res.json(dailyStats);
+    } catch (error) {
+      console.error("Error fetching historical stats:", error);
+      res.status(500).json({ message: "فشل في جلب البيانات التاريخية" });
+    }
+  });
+
   // API Key routes
   app.post("/api/settings/api-keys", async (req, res) => {
     if (!req.isAuthenticated()) {

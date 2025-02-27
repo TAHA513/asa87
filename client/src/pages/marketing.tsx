@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import Sidebar from "@/components/layout/sidebar";
 import CampaignForm from "@/components/marketing/campaign-form";
 import SocialAccounts from "@/components/marketing/social-accounts";
+import { PlatformPerformanceGraphs } from "@/components/marketing/analytics-graphs";
 
 export default function MarketingPage() {
   const [showNewCampaign, setShowNewCampaign] = useState(false);
@@ -127,6 +128,9 @@ export default function MarketingPage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* الرسوم البيانية للتحليلات */}
+            <PlatformPerformanceGraphs />
 
             {/* قائمة الحملات النشطة */}
             <Card>
