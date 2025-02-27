@@ -858,7 +858,7 @@ export async function registerRoutes(app: any): Promise<Server> {
           messages: [
             { role: "system", content: "أنت مساعد ذكي يساعد في إدارة المتجر وخدمة العملاء." },
             { role: "user", content: message }
-          ],
+                    ],
           temperature: 0.7,
           max_tokens: 1000
         })
@@ -920,7 +920,7 @@ export async function registerRoutes(app: any): Promise<Server> {
       }
 
       console.log('🚀 جاري إرسال الطلب إلى Groq API...');
-      
+
       const response = await axios.post(
         GROQ_ENDPOINT,
         {
@@ -939,9 +939,9 @@ export async function registerRoutes(app: any): Promise<Server> {
           },
         }
       );
-      
+
       console.log('✅ تم استلام الرد من Groq API بنجاح');
-      
+
       if (response.data.error) {
         console.error('❌ خطأ في استجابة Groq API:', response.data.error);
         return res.status(500).json({ message: "خطأ في خدمة الذكاء الاصطناعي", error: response.data.error });
@@ -955,7 +955,65 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  // إنشاء الخادم وإعادته دون تشغيله هنا
+  // File Storage Routes
+  router.post("/files", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const file = await storage.saveFile({
+        ...req.body,
+        userId: req.user!.id,
+      });
+      res.status(201).json(file);
+    } catch (error) {
+      console.error("Error saving file:", error);
+      res.status(500).json({ message: "فشل في حفظ الملف" });
+    }
+  });
+
+  router.get("/files/:id", async (req, res) => {
+    try {
+      const file = await storage.getFileById(Number(req.params.id));
+      if (!file) {
+        return res.status(404).json({ message: "الملف غير موجود" });
+      }
+      res.json(file);
+    } catch (error) {
+      console.error("Error fetching file:", error);
+      res.status(500).json({ message: "فشل في جلب الملف" });
+    }
+  });
+
+  router.get("/files/user", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const files = await storage.getUserFiles(req.user!.id);
+      res.json(files);
+    } catch (error) {
+      console.error("Error fetching user files:", error);
+      res.status(500).json({ message: "فشل في جلب ملفات المستخدم" });
+    }
+  });
+
+  router.delete("/files/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      await storage.deleteFile(Number(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      res.status(500).json({ message: "فشل في حذف الملف" });
+    }
+  });
+
   const server = createServer(app);
   log(`🚀 تم تكوين خادم API بنجاح`);
   return server;
