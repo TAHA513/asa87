@@ -821,6 +821,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Chat Routes
+  app.post("/api/ai/chat", async (req, res) => {
+    try {
+      const { message } = req.body;
+      
+      if (!message) {
+        return res.status(400).json({ message: "الرسالة مطلوبة" });
+      }
+      
+      // Get Groq API key from environment
+      const apiKey = process.env.GROQ_API_KEY;
+      
+      if (!apiKey) {
+        return res.status(500).json({ message: "مفتاح API غير مكوّن" });
+      }
+      
+      // Call Groq API
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "llama3-70b-8192",
+          messages: [
+            { role: "system", content: "أنت مساعد ذكي يساعد في إدارة المتجر وخدمة العملاء." },
+            { role: "user", content: message }
+          ],
+          temperature: 0.7,
+          max_tokens: 1000
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        console.error("Groq API error:", data.error);
+        return res.status(500).json({ message: "خطأ في خدمة الذكاء الاصطناعي", error: data.error });
+      }
+      
+      const aiResponse = data.choices[0].message.content;
+      res.json({ response: aiResponse });
+    } catch (error) {
+      console.error("AI chat error:", error);
+      res.status(500).json({ message: "فشل في معالجة طلب المحادثة الذكية" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

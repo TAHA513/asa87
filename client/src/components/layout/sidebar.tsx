@@ -95,3 +95,13 @@ export default function Sidebar() {
     </div>
   );
 }
+import { AIIcon } from "lucide-react";
+
+// ... other imports
+
+// Inside your sidebar items, add:
+{
+  name: "المساعد الذكي",
+  href: "/ai-chat",
+  icon: AIIcon,
+},
