@@ -1,4 +1,3 @@
-
 import { Groq } from "groq-sdk";
 import dotenv from 'dotenv';
 
@@ -30,8 +29,14 @@ export async function getGroqCompletion(options: GroqCompletionOptions) {
   } = options;
 
   try {
+    console.log("Sending request to Groq API:", { model, maxTokens, temperature });
+
     const completion = await groq.chat.completions.create({
       messages: [
+        {
+          role: "system",
+          content: "أنت مساعد ذكي يساعد في إدارة الأعمال باللغة العربية.",
+        },
         {
           role: "user",
           content: prompt,
@@ -42,6 +47,7 @@ export async function getGroqCompletion(options: GroqCompletionOptions) {
       temperature,
     });
 
+    console.log("Received response from Groq API");
     return completion.choices[0]?.message?.content || "";
   } catch (error) {
     console.error("خطأ في استدعاء Groq API:", error);
