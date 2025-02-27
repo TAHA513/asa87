@@ -21,12 +21,63 @@ import {
 } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+
+type PasswordStrength = {
+  score: number;
+  message: string;
+  color: string;
+};
+
+function getPasswordStrength(password: string): PasswordStrength {
+  let score = 0;
+  let message = "ضعيف جداً";
+  let color = "bg-red-500";
+
+  if (password.length >= 8) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[a-z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+
+  switch (score) {
+    case 0:
+    case 1:
+      message = "ضعيف جداً";
+      color = "bg-red-500";
+      break;
+    case 2:
+      message = "ضعيف";
+      color = "bg-orange-500";
+      break;
+    case 3:
+      message = "متوسط";
+      color = "bg-yellow-500";
+      break;
+    case 4:
+      message = "قوي";
+      color = "bg-lime-500";
+      break;
+    case 5:
+      message = "قوي جداً";
+      color = "bg-green-500";
+      break;
+  }
+
+  return { score, message, color };
+}
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState("login");
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>({
+    score: 0,
+    message: "ضعيف جداً",
+    color: "bg-red-500",
+  });
 
   useEffect(() => {
     if (user) {
@@ -63,6 +114,10 @@ export default function AuthPage() {
   const onRegisterSuccess = () => {
     registerForm.reset();
     setActiveTab("login");
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setPasswordStrength(getPasswordStrength(value));
   };
 
   if (user) {
@@ -118,13 +173,44 @@ export default function AuthPage() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>كلمة المرور</FormLabel>
-                            <FormControl>
-                              <Input type="password" {...field} />
-                            </FormControl>
+                            <div className="relative">
+                              <FormControl>
+                                <Input
+                                  type={showPassword ? "text" : "password"}
+                                  {...field}
+                                  onChange={(e) => {
+                                    field.onChange(e);
+                                    handlePasswordChange(e.target.value);
+                                  }}
+                                />
+                              </FormControl>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="absolute left-2 top-1/2 -translate-y-1/2 h-auto py-1"
+                                onClick={() => setShowPassword(!showPassword)}
+                              >
+                                {showPassword ? (
+                                  <EyeOff className="h-4 w-4" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
+                      <div className="space-y-2">
+                        <div className="text-sm text-muted-foreground">
+                          قوة كلمة المرور: {passwordStrength.message}
+                        </div>
+                        <Progress
+                          value={(passwordStrength.score / 5) * 100}
+                          className={`h-2 ${passwordStrength.color}`}
+                        />
+                      </div>
                       <Button
                         type="submit"
                         className="w-full"
@@ -181,13 +267,44 @@ export default function AuthPage() {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>كلمة المرور</FormLabel>
-                            <FormControl>
-                              <Input type="password" {...field} />
-                            </FormControl>
+                            <div className="relative">
+                              <FormControl>
+                                <Input
+                                  type={showPassword ? "text" : "password"}
+                                  {...field}
+                                  onChange={(e) => {
+                                    field.onChange(e);
+                                    handlePasswordChange(e.target.value);
+                                  }}
+                                />
+                              </FormControl>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="absolute left-2 top-1/2 -translate-y-1/2 h-auto py-1"
+                                onClick={() => setShowPassword(!showPassword)}
+                              >
+                                {showPassword ? (
+                                  <EyeOff className="h-4 w-4" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
+                      <div className="space-y-2">
+                        <div className="text-sm text-muted-foreground">
+                          قوة كلمة المرور: {passwordStrength.message}
+                        </div>
+                        <Progress
+                          value={(passwordStrength.score / 5) * 100}
+                          className={`h-2 ${passwordStrength.color}`}
+                        />
+                      </div>
                       <FormField
                         control={registerForm.control}
                         name="email"
