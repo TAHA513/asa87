@@ -60,16 +60,33 @@ app.use((req, res, next) => {
   // this serves both the API and the client
   const port = 5000;
   
-  // نتحقق من حالة الاستماع قبل تشغيل الخادم
-  if (!server.listening) {
-    server.listen({
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
-      log(`🚀 الخادم يعمل على http://0.0.0.0:${port}`);
-    });
-  } else {
-    log(`🚀 الخادم يعمل بالفعل على http://0.0.0.0:${port}`);
+  // التعامل مع احتمالية أن المنفذ مشغول
+  try {
+    if (!server.listening) {
+      server.listen({
+        port,
+        host: "0.0.0.0",
+        reusePort: true,
+      }, () => {
+        log(`🚀 الخادم يعمل على http://0.0.0.0:${port}`);
+      });
+    } else {
+      log(`🚀 الخادم يعمل بالفعل على http://0.0.0.0:${port}`);
+    }
+  } catch (error) {
+    if (error.code === 'EADDRINUSE') {
+      log(`⚠️ المنفذ ${port} مشغول بالفعل، جاري محاولة استخدام منفذ آخر...`);
+      // محاولة استخدام منفذ آخر
+      server.listen({
+        port: 0, // سيختار النظام منفذ متاح تلقائياً
+        host: "0.0.0.0",
+      }, () => {
+        const address = server.address();
+        const actualPort = typeof address === 'object' ? address.port : port;
+        log(`🚀 الخادم يعمل على http://0.0.0.0:${actualPort}`);
+      });
+    } else {
+      throw error;
+    }
   }
 })();
