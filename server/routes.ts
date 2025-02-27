@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { z } from "zod";
+import { analyzeText, generateMarketingContent, translateText, getGroqCompletion } from "./groq-service";
 import {
   insertProductSchema,
   insertSaleSchema,
@@ -822,8 +823,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Groq AI Routes
-  import { analyzeText, generateMarketingContent, translateText } from "./groq-service";
-  
   app.post("/api/ai/analyze", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
@@ -878,6 +877,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error translating text:", error);
       res.status(500).json({ message: "فشل في ترجمة النص" });
+    }
+  });
+
+  // مسار الدردشة مع Groq AI
+  app.post("/api/ai/chat", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const { message, model } = req.body;
+      if (!message) {
+        return res.status(400).json({ message: "الرسالة مطلوبة" });
+      }
+      
+      const response = await getGroqCompletion({
+        prompt: message,
+        model: model || "llama3-8b-8192",
+      });
+      
+      res.json({ response });
+    } catch (error) {
+      console.error("Error chatting with AI:", error);
+      res.status(500).json({ message: "فشل في الدردشة مع الذكاء الاصطناعي" });
     }
   });
 
