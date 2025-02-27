@@ -19,6 +19,8 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { insertAppointmentSchema } from "@shared/schema"; // Added import
+import { users } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -118,10 +120,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Theme Settings
-  app.post("/api/theme", async (req, res) => {
+  // Add new routes for user preferences
+  app.get("/api/user/preferences", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
     try {
-      // التحقق من صحة البيانات
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ message: "المستخدم غير موجود" });
+      }
+      res.json(user.preferences);
+    } catch (error) {
+      console.error("Error fetching user preferences:", error);
+      res.status(500).json({ message: "فشل في جلب تفضيلات المستخدم" });
+    }
+  });
+
+  app.post("/api/user/preferences", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ message: "المستخدم غير موجود" });
+      }
+
+      // دمج التفضيلات الجديدة مع الموجودة
+      const updatedPreferences = {
+        ...user.preferences,
+        ...req.body
+      };
+
+      // تحديث تفضيلات المستخدم في قاعدة البيانات
+      await storage.updateUser(user.id, {
+        preferences: updatedPreferences,
+        updatedAt: new Date()
+      });
+
+      res.json(updatedPreferences);
+    } catch (error) {
+      console.error("Error updating user preferences:", error);
+      res.status(500).json({ message: "فشل في تحديث تفضيلات المستخدم" });
+    }
+  });
+
+  // Update theme route to store in user preferences
+  app.post("/api/theme", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
       const themeSchema = z.object({
         primary: z.string(),
         variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic"]),
@@ -131,17 +184,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const theme = themeSchema.parse(req.body);
+      const user = await storage.getUser(req.user!.id);
 
-      // حفظ الثيم في ملف theme.json
-      await fs.writeFile(
-        path.join(process.cwd(), "theme.json"),
-        JSON.stringify(theme, null, 2)
-      );
+      if (!user) {
+        return res.status(404).json({ message: "المستخدم غير موجود" });
+      }
+
+      // تحديث تفضيلات المستخدم مع إعدادات السمة الجديدة
+      await storage.updateUser(user.id, {
+        preferences: {
+          ...user.preferences,
+          theme
+        },
+        updatedAt: new Date()
+      });
 
       res.json({ success: true });
     } catch (error) {
       console.error("Error updating theme:", error);
       res.status(500).json({ message: "فشل في تحديث المظهر" });
+    }
+  });
+
+  // Add route for saving sidebar state
+  app.post("/api/sidebar-state", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ message: "المستخدم غير موجود" });
+      }
+
+      // تحديث حالة الشريط الجانبي في تفضيلات المستخدم
+      await storage.updateUser(user.id, {
+        preferences: {
+          ...user.preferences,
+          sidebar: {
+            isOpen: req.body.isOpen
+          }
+        },
+        updatedAt: new Date()
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating sidebar state:", error);
+      res.status(500).json({ message: "فشل في حفظ حالة الشريط الجانبي" });
     }
   });
 
@@ -759,8 +850,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting appointment:", error);
-      res.status(500).json({ message: "فشل في حذف الموعد" });
-    }
+      res.status(500).json({ message: "فشل في حذف الموعد" });    }
   });
 
   // File Storage Routes

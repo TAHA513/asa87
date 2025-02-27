@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { apiRequest } from "@/lib/queryClient";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 const themeColors = [
   // الألوان الحالية
@@ -61,42 +62,47 @@ const fontStyles = [
 
 export default function ThemeSettings() {
   const { toast } = useToast();
-  const [theme, setTheme] = useState({
+  const [isLoading, setIsLoading] = useState(false);
+
+  // استخدام React Query لجلب إعدادات السمة من قاعدة البيانات
+  const { data: theme = {
     primary: "hsl(142.1 76.2% 36.3%)",
     appearance: "system",
     variant: "vibrant",
     fontStyle: "traditional",
     radius: 0.75,
+  }} = useQuery({
+    queryKey: ["/api/theme"],
+    // Add a query function here to fetch from your API
   });
-  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme) {
-      setTheme(JSON.parse(savedTheme));
-    }
-  }, []);
-
-  const saveTheme = async (updates: Partial<typeof theme>) => {
-    const newTheme = { ...theme, ...updates };
-    setTheme(newTheme);
-    setIsLoading(true);
-
-    try {
-      await apiRequest("POST", "/api/theme", newTheme);
-
+  // استخدام React Query mutation لحفظ التغييرات في قاعدة البيانات
+  const themeMutation = useMutation({
+    mutationFn: async (newTheme: typeof theme) => {
+      const response = await apiRequest("POST", "/api/theme", newTheme);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/theme"] });
       toast({
         title: "تم الحفظ",
         description: "تم تحديث المظهر بنجاح",
       });
-
       window.location.reload();
-    } catch (error) {
+    },
+    onError: () => {
       toast({
         title: "خطأ",
         description: "فشل في حفظ التغييرات",
         variant: "destructive",
       });
+    },
+  });
+
+  const saveTheme = async (updates: Partial<typeof theme>) => {
+    setIsLoading(true);
+    try {
+      await themeMutation.mutateAsync({ ...theme, ...updates });
     } finally {
       setIsLoading(false);
     }

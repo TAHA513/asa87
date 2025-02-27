@@ -1,7 +1,6 @@
-import { pgTable, text, serial, timestamp, boolean, decimal, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, decimal, integer, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { jsonb } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -14,6 +13,7 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").notNull().default(true),
   lastLoginAt: timestamp("last_login_at"),
   permissions: text("permissions").array(),
+  preferences: jsonb("preferences").default({}).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -247,6 +247,7 @@ export const insertUserSchema = createInsertSchema(users)
     phone: true,
     role: true,
     permissions: true,
+    preferences: true,
   })
   .extend({
     username: z.string().min(1, "اسم المستخدم مطلوب"),
@@ -256,6 +257,18 @@ export const insertUserSchema = createInsertSchema(users)
     phone: z.string().optional().nullable(),
     role: z.enum(["admin", "staff"]).default("staff"),
     permissions: z.array(z.string()).default([]),
+    preferences: z.object({
+      theme: z.object({
+        primary: z.string(),
+        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic"]),
+        appearance: z.enum(["light", "dark", "system"]),
+        fontStyle: z.enum(["traditional", "modern", "minimal"]),
+        radius: z.number(),
+      }).optional(),
+      sidebar: z.object({
+        isOpen: z.boolean(),
+      }).optional(),
+    }).optional().default({}),
   });
 
 export const insertProductSchema = createInsertSchema(products).extend({

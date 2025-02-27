@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-export const LOCAL_STORAGE_KEY = 'social_media_api_keys';
-
 // تكوين المنصات
 export const platformConfig = {
   facebook: {
