@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getApiKeys } from '@/api/settings';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-import Sidebar from '@/components/sidebar';
+import Sidebar from '@/components/layout/sidebar';
 
 interface Message {
   role: 'assistant' | 'user';
@@ -27,7 +26,7 @@ export default function AssistantPage() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   const { data: apiKeys } = useQuery({
     queryKey: ['apiKeys'],
     queryFn: getApiKeys,
@@ -45,18 +44,18 @@ export default function AssistantPage() {
 
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
-    
+
     // Add user message
     const userMessage: Message = {
       role: 'user',
       content: input,
       timestamp: new Date(),
     };
-    
+
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
-    
+
     try {
       // Call API to get response from AI
       if (hasHuggingFaceKey) {
@@ -70,9 +69,9 @@ export default function AssistantPage() {
             message: input,
           }),
         });
-        
+
         const data = await response.json();
-        
+
         // Add AI response
         setMessages(prev => [
           ...prev,
@@ -98,7 +97,7 @@ export default function AssistantPage() {
       }
     } catch (error) {
       console.error('Error fetching AI response:', error);
-      
+
       setMessages(prev => [
         ...prev,
         {
@@ -127,7 +126,7 @@ export default function AssistantPage() {
       <main className="flex-1 p-8 overflow-y-auto">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold mb-6">المساعد الذكي</h1>
-          
+
           {!hasHuggingFaceKey && (
             <Alert variant="destructive" className="mb-4">
               <AlertCircle className="h-4 w-4" />
@@ -138,7 +137,7 @@ export default function AssistantPage() {
               </AlertDescription>
             </Alert>
           )}
-          
+
           <Card className="mb-4">
             <CardContent className="p-6">
               <div className="h-[60vh] overflow-y-auto mb-4">
@@ -172,7 +171,7 @@ export default function AssistantPage() {
                 ))}
                 <div ref={messagesEndRef} />
               </div>
-              
+
               <div className="flex gap-2">
                 <Input
                   value={input}
@@ -190,7 +189,7 @@ export default function AssistantPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <h3 className="text-xl font-medium mb-2">كيف يمكن للمساعد الذكي مساعدتك</h3>
