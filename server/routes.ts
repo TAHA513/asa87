@@ -373,10 +373,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const apiKeys = await storage.getApiKeys(req.user!.id);
-      res.json(apiKeys);
+      // For demo purposes, we'll return a mock response
+      res.json({
+        groq: {
+          apiKey: process.env.GROQ_API_KEY || null
+        }
+      });
     } catch (error) {
-      console.error("Error getting API keys:", error);
+      console.error("Error fetching API keys:", error);
       res.status(500).json({ message: "فشل في جلب مفاتيح API" });
     }
   });
@@ -821,7 +825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "فشل في حذف الملف" });
     }
   });
-  
+
   // Groq AI Routes
   app.post("/api/ai/analyze", async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -833,7 +837,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!text) {
         return res.status(400).json({ message: "النص مطلوب" });
       }
-      
+
       const analysis = await analyzeText(text);
       res.json({ analysis });
     } catch (error) {
@@ -841,7 +845,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "فشل في تحليل النص" });
     }
   });
-  
+
   app.post("/api/ai/marketing", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
@@ -852,7 +856,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!product || !audience || !tone) {
         return res.status(400).json({ message: "جميع الحقول مطلوبة" });
       }
-      
+
       const content = await generateMarketingContent(product, audience, tone);
       res.json({ content });
     } catch (error) {
@@ -860,7 +864,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "فشل في إنشاء المحتوى التسويقي" });
     }
   });
-  
+
   app.post("/api/ai/translate", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
@@ -871,7 +875,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!text || !targetLanguage) {
         return res.status(400).json({ message: "النص واللغة المستهدفة مطلوبان" });
       }
-      
+
       const translation = await translateText(text, targetLanguage);
       res.json({ translation });
     } catch (error) {
@@ -891,12 +895,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!message) {
         return res.status(400).json({ message: "الرسالة مطلوبة" });
       }
-      
+
       const response = await getGroqCompletion({
         prompt: message,
         model: model || "llama3-8b-8192",
       });
-      
+
       res.json({ response });
     } catch (error) {
       console.error("Error chatting with AI:", error);
