@@ -58,8 +58,12 @@ export default function AiChatPage() {
     // طلب التأكد من تكوين المفتاح عند تحميل الصفحة
     const checkApiKey = async () => {
       try {
-        const response = await apiRequest("/api/settings/api-keys");
-        if (!response.data?.groq?.apiKey) {
+        const response = await apiRequest("/api/settings/api-keys", {
+          method: "GET"
+        });
+
+        const data = await response.json();
+        if (!data?.groq?.apiKey) {
           toast({
             title: "تنبيه",
             description: "تحتاج إلى إعداد مفتاح Groq API للاستخدام الكامل للدردشة",
@@ -99,11 +103,13 @@ export default function AiChatPage() {
         }
       });
 
+      const data = await response.json();
+
       // إضافة رد المساعد
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: response.data.response,
+        content: data.response,
         timestamp: new Date()
       };
 
