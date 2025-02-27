@@ -373,7 +373,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      // For demo purposes, we'll return a mock response
+      // Mock response for demo purposes
       res.json({
         groq: {
           apiKey: process.env.GROQ_API_KEY || null
@@ -919,7 +919,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error in AI chat:", error);
       res.status(500).json({ 
         message: "حدث خطأ أثناء معالجة طلب الدردشة",
-        error: error.message 
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
@@ -1444,7 +1444,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error in AI chat:", error);
       res.status(500).json({ 
         message: "حدث خطأ أثناء معالجة طلب الدردشة",
-        error: error.message 
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });

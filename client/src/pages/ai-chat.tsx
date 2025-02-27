@@ -19,7 +19,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bot, SendIcon, Loader2 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import Sidebar from "@/components/layout/sidebar";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -55,7 +55,6 @@ export default function AiChatPage() {
   };
 
   useEffect(() => {
-    // طلب التأكد من تكوين المفتاح عند تحميل الصفحة
     const checkApiKey = async () => {
       try {
         const response = await apiRequest("/api/settings/api-keys", {
@@ -67,7 +66,7 @@ export default function AiChatPage() {
           toast({
             title: "تنبيه",
             description: "تحتاج إلى إعداد مفتاح Groq API للاستخدام الكامل للدردشة",
-            variant: "warning"
+            variant: "destructive"
           });
         }
       } catch (error) {
@@ -81,7 +80,6 @@ export default function AiChatPage() {
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
 
-    // إضافة رسالة المستخدم
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -94,7 +92,6 @@ export default function AiChatPage() {
     setIsLoading(true);
 
     try {
-      // إرسال الرسالة إلى الـ API
       const response = await apiRequest("/api/ai/chat", {
         method: "POST",
         body: {
@@ -105,7 +102,6 @@ export default function AiChatPage() {
 
       const data = await response.json();
 
-      // إضافة رد المساعد
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
