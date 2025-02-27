@@ -113,11 +113,8 @@ export const socialMediaAccounts = pgTable("social_media_accounts", {
 export const apiKeys = pgTable("api_keys", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
-  platform: text("platform").notNull(),
-  keyType: text("key_type").notNull(),
-  keyValue: text("key_value").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  keyData: jsonb("key_data").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const inventoryTransactions = pgTable("inventory_transactions", {
@@ -447,7 +444,7 @@ export type InsertCampaignAnalytics = z.infer<typeof insertAnalyticsSchema>;
 export type SocialMediaAccount = typeof socialMediaAccounts.$inferSelect;
 export type InsertSocialMediaAccount = z.infer<typeof insertSocialMediaAccountSchema>;
 export type ApiKey = typeof apiKeys.$inferSelect;
-export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
+export type InsertApiKey = typeof apiKeys.$inferInsert;
 
 export type InventoryTransaction = typeof inventoryTransactions.$inferSelect;
 export type InsertInventoryTransaction = z.infer<typeof insertInventoryTransactionSchema>;
@@ -470,3 +467,10 @@ export type Appointment = typeof appointments.$inferSelect;
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 export type FileStorage = typeof fileStorage.$inferSelect;
 export type InsertFileStorage = z.infer<typeof insertFileStorageSchema>;
+
+
+// مخطط مفتاح Hugging Face API
+export const huggingFaceApiSchema = z.object({
+  apiKey: z.string().min(1, "API Key مطلوب"),
+  modelId: z.string().optional(),
+});

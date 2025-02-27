@@ -572,6 +572,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedSupplier);
     } catch (error) {
       console.error("Error updating supplier:", error);
+
+  // مسار إرسال طلبات إلى Hugging Face API
+  app.post("/api/assistant/chat", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const { message } = req.body;
+      
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({ message: "الرسالة غير صالحة" });
+      }
+
+      // احصل على مفتاح API من الإعدادات المخزنة في قاعدة البيانات
+      const apiKeys = await storage.getApiKeys(req.user!.id);
+      const huggingFaceKey = apiKeys?.huggingface?.apiKey;
+
+      if (!huggingFaceKey) {
+        return res.status(400).json({ message: "مفتاح Hugging Face API غير متوفر. يرجى إضافته في الإعدادات." });
+      }
+
+      // اتصال بـ Hugging Face API - هذا نموذج للمحاكاة
+      // في بيئة حقيقية، ستقوم بإرسال طلب إلى Hugging Face API
+      /*
+      const response = await fetch('https://api-inference.huggingface.co/models/YOUR_MODEL_ID', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${huggingFaceKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ inputs: message }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`فشل الاتصال بـ API: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      const reply = result[0].generated_text || 'عذراً، لم أتمكن من فهم ذلك.';
+      */
+
+      // محاكاة الاستجابة للاختبار
+      const reply = `هذه استجابة محاكاة للرسالة: "${message}"`;
+
+      res.json({ reply });
+    } catch (error) {
+      console.error("Error in chatbot API:", error);
+      res.status(500).json({ message: "حدث خطأ أثناء معالجة طلبك" });
+    }
+  });
+
       res.status(500).json({ message: "فشل في تحديث المورد" });
     }
   });

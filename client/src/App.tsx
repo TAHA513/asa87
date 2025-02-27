@@ -21,6 +21,8 @@ import Suppliers from "@/pages/suppliers";
 import Barcodes from "@/pages/barcodes";
 import DiscountCodes from "@/pages/discount-codes";
 import Customers from "@/pages/customers";
+import AssistantPage from "@/pages/assistant"; // Added import for AssistantPage
+
 
 function Router() {
   return (
@@ -40,6 +42,7 @@ function Router() {
       <ProtectedRoute path="/barcodes" component={Barcodes} />
       <ProtectedRoute path="/discount-codes" component={DiscountCodes} />
       <ProtectedRoute path="/customers" component={Customers} />
+      <ProtectedRoute path="/assistant" component={AssistantPage} /> {/* Added route for assistant page */}
       <Route component={NotFound} />
     </Switch>
   );
