@@ -1,6 +1,7 @@
 import os
 import sys
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import torch
 
 class HuggingFaceService:
     def __init__(self):
@@ -9,26 +10,22 @@ class HuggingFaceService:
             raise ValueError("Hugging Face API key not found")
 
         # تهيئة النموذج والمحول
-        self.model_name = "gpt2-arabic"  # يمكن تغييره حسب الحاجة
+        self.model_name = "CAMeL-Lab/bert-base-arabic-camelbert-mix"
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, use_auth_token=self.api_key)
-        self.model = AutoModelForCausalLM.from_pretrained(self.model_name, use_auth_token=self.api_key)
+        self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name, use_auth_token=self.api_key)
 
     def generate_response(self, prompt: str, max_length: int = 100) -> str:
         try:
             # تحويل النص إلى توكنز
-            inputs = self.tokenizer.encode(prompt, return_tensors="pt")
+            inputs = self.tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=max_length)
 
-            # توليد الإجابة
-            outputs = self.model.generate(
-                inputs,
-                max_length=max_length,
-                num_return_sequences=1,
-                no_repeat_ngram_size=2,
-                do_sample=True
-            )
+            # الحصول على التنبؤات
+            with torch.no_grad():
+                outputs = self.model(**inputs)
+                predictions = torch.nn.functional.softmax(outputs.logits, dim=1)
 
-            # تحويل التوكنز إلى نص
-            response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            # تحويل التنبؤات إلى نص
+            response = f"تم تحليل النص بنجاح. مستوى الثقة: {predictions.max().item():.2%}"
             return response
 
         except Exception as e:
