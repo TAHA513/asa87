@@ -821,28 +821,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // مسار API للدردشة مع Hugging Face
-  app.post("/api/chat", async (req, res) => {
-    try {
-      const { message } = req.body;
-      
-      if (!message) {
-        return res.status(400).json({ message: "يجب توفير رسالة للدردشة" });
-      }
-
-      // استيراد وظيفة التواصل مع Hugging Face
-      const { chatWithHuggingFace } = await import('./huggingface');
-      
-      const response = await chatWithHuggingFace(message);
-      res.json({ response });
-    } catch (error) {
-      console.error("خطأ في طلب الدردشة:", error);
-      res.status(500).json({ 
-        message: error instanceof Error ? error.message : "حدث خطأ في خدمة الدردشة" 
-      });
-    }
-  });
-
   const httpServer = createServer(app);
   return httpServer;
 }
