@@ -12,15 +12,56 @@ export default function StatsCards() {
     queryKey: ["/api/sales"],
   });
 
+  // حساب إجمالي المبيعات بالدينار العراقي
   const totalSales = sales.reduce((sum, sale) => {
-    return sale.currency === "USD" 
-      ? sum + Number(sale.priceUsd) * sale.quantity
-      : sum + Number(sale.priceUsd) * sale.quantity;
+    return sum + Number(sale.priceIqd) * sale.quantity;
   }, 0);
+
+  // حساب النمو في المبيعات مقارنة بالشهر الماضي
+  const currentMonthSales = sales.filter(sale => {
+    const saleDate = new Date(sale.date);
+    const now = new Date();
+    return saleDate.getMonth() === now.getMonth() && 
+           saleDate.getFullYear() === now.getFullYear();
+  }).reduce((sum, sale) => sum + Number(sale.priceIqd) * sale.quantity, 0);
+
+  const lastMonthSales = sales.filter(sale => {
+    const saleDate = new Date(sale.date);
+    const now = new Date();
+    const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+    const lastMonthYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+    return saleDate.getMonth() === lastMonth && 
+           saleDate.getFullYear() === lastMonthYear;
+  }).reduce((sum, sale) => sum + Number(sale.priceIqd) * sale.quantity, 0);
+
+  const salesGrowth = lastMonthSales === 0 ? 100 : 
+    ((currentMonthSales - lastMonthSales) / lastMonthSales) * 100;
 
   const totalProducts = products.length;
   const lowStock = products.filter(p => p.stock < 10).length;
   const totalTransactions = sales.length;
+
+  // حساب نمو المعاملات مقارنة بالساعة الماضية
+  const currentHourTransactions = sales.filter(sale => {
+    const saleDate = new Date(sale.date);
+    const now = new Date();
+    return saleDate.getHours() === now.getHours() &&
+           saleDate.getDate() === now.getDate() &&
+           saleDate.getMonth() === now.getMonth() &&
+           saleDate.getFullYear() === now.getFullYear();
+  }).length;
+
+  const lastHourTransactions = sales.filter(sale => {
+    const saleDate = new Date(sale.date);
+    const now = new Date();
+    const lastHour = now.getHours() === 0 ? 23 : now.getHours() - 1;
+    return saleDate.getHours() === lastHour &&
+           saleDate.getDate() === now.getDate() &&
+           saleDate.getMonth() === now.getMonth() &&
+           saleDate.getFullYear() === now.getFullYear();
+  }).length;
+
+  const transactionGrowth = currentHourTransactions - lastHourTransactions;
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -30,9 +71,9 @@ export default function StatsCards() {
           <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">${totalSales.toFixed(2)}</div>
+          <div className="text-2xl font-bold">{totalSales.toLocaleString()} د.ع</div>
           <p className="text-xs text-muted-foreground">
-            +20.1% عن الشهر الماضي
+            {salesGrowth >= 0 ? "+" : ""}{salesGrowth.toFixed(1)}% عن الشهر الماضي
           </p>
         </CardContent>
       </Card>
@@ -58,7 +99,7 @@ export default function StatsCards() {
         <CardContent>
           <div className="text-2xl font-bold">{totalTransactions}</div>
           <p className="text-xs text-muted-foreground">
-            +12 منذ الساعة الماضية
+            {transactionGrowth >= 0 ? "+" : ""}{transactionGrowth} منذ الساعة الماضية
           </p>
         </CardContent>
       </Card>
@@ -69,9 +110,26 @@ export default function StatsCards() {
           <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">3</div>
+          <div className="text-2xl font-bold">
+            {sales
+              .filter(sale => {
+                const saleDate = new Date(sale.date);
+                const today = new Date();
+                return saleDate.getDate() === today.getDate() &&
+                       saleDate.getMonth() === today.getMonth() &&
+                       saleDate.getFullYear() === today.getFullYear();
+              })
+              .reduce((acc, sale) => {
+                if (!acc.includes(sale.userId)) {
+                  acc.push(sale.userId);
+                }
+                return acc;
+              }, [] as number[])
+              .length
+            }
+          </div>
           <p className="text-xs text-muted-foreground">
-            +2 منذ الشهر الماضي
+            موظفون نشطون اليوم
           </p>
         </CardContent>
       </Card>
