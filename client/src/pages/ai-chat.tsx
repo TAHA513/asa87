@@ -1,16 +1,14 @@
 
-import { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import Sidebar from "@/components/layout/sidebar";
 import { 
   Card, 
-  CardContent, 
   CardHeader, 
   CardTitle, 
+  CardContent, 
   CardFooter 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { 
   Select, 
@@ -19,12 +17,12 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { Loader2, Send, Bot } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { api } from "@/lib/api";
+import { Bot, SendIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Sidebar from "@/components/sidebar";
+import { api } from "@/lib/api";
 
 interface Message {
   id: string;
@@ -56,6 +54,22 @@ export default function AiChatPage() {
       }
     }
   };
+
+  useEffect(() => {
+    // طلب التأكد من تكوين المفتاح عند تحميل الصفحة
+    const checkApiKey = async () => {
+      try {
+        const response = await api.get("/api/settings/api-keys");
+        if (!response.data?.groq?.apiKey) {
+          toast.warning("تحتاج إلى إعداد مفتاح Groq API للاستخدام الكامل للدردشة");
+        }
+      } catch (error) {
+        console.error("خطأ في التحقق من مفتاح API:", error);
+      }
+    };
+    
+    checkApiKey();
+  }, []);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
@@ -133,32 +147,30 @@ export default function AiChatPage() {
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                   <Bot size={50} />
-                  <p className="mt-2">ابدأ محادثة مع المساعد الذكي</p>
+                  <p className="mt-4">أرسل رسالة للبدء في الدردشة مع المساعد الذكي</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="flex flex-col gap-4">
                   {messages.map(message => (
-                    <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`flex items-start gap-3 max-w-[80%] ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                        <Avatar className="mt-1">
-                          {message.role === 'user' ? (
-                            <AvatarFallback>
-                              {user?.username.charAt(0).toUpperCase() || 'U'}
-                            </AvatarFallback>
-                          ) : (
+                    <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <div className="flex items-start gap-3 max-w-[80%]">
+                        {message.role === "assistant" && (
+                          <Avatar className="mt-1">
                             <AvatarFallback>AI</AvatarFallback>
-                          )}
-                        </Avatar>
+                          </Avatar>
+                        )}
                         <div className={`rounded-lg p-3 ${
-                          message.role === 'user' 
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'bg-muted'
+                          message.role === "user" 
+                            ? "bg-primary text-primary-foreground" 
+                            : "bg-muted"
                         }`}>
-                          <p className="whitespace-pre-wrap">{message.content}</p>
-                          <p className="text-xs opacity-70 mt-1">
-                            {message.timestamp.toLocaleTimeString()}
-                          </p>
+                          <div className="whitespace-pre-wrap">{message.content}</div>
                         </div>
+                        {message.role === "user" && (
+                          <Avatar className="mt-1">
+                            <AvatarFallback>{user?.username?.substring(0, 2).toUpperCase() || "U"}</AvatarFallback>
+                          </Avatar>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -199,7 +211,10 @@ export default function AiChatPage() {
                 disabled={isLoading || !inputMessage.trim()}
                 variant="default"
               >
-                {isLoading ? <Loader2 className="animate-spin" /> : <Send />}
+                {isLoading ? 
+                  <Loader2 className="h-4 w-4 animate-spin" /> : 
+                  <SendIcon className="h-4 w-4" />
+                }
               </Button>
             </div>
           </CardFooter>
