@@ -312,10 +312,10 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>البريد الإلكتروني</FormLabel>
                             <FormControl>
-                              <Input 
-                                type="email" 
+                              <Input
+                                type="email"
                                 {...field}
-                                value={field.value || ''}
+                                value={field.value || ""}
                               />
                             </FormControl>
                             <FormMessage />
@@ -329,9 +329,9 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>رقم الهاتف</FormLabel>
                             <FormControl>
-                              <Input 
+                              <Input
                                 {...field}
-                                value={field.value || ''}
+                                value={field.value || ""}
                               />
                             </FormControl>
                             <FormMessage />
@@ -358,14 +358,7 @@ export default function AuthPage() {
 
         <div className="hidden md:flex items-center justify-center">
           <div className="text-center">
-            <h2 className="text-2xl font-semibold mb-4">المميزات الرئيسية</h2>
-            <ul className="space-y-2 text-muted-foreground">
-              <li>إدارة المبيعات الشاملة</li>
-              <li>تتبع المخزون</li>
-              <li>دعم العملات المتعددة (USD/IQD)</li>
-              <li>إدارة الموظفين</li>
-              <li>لوحة التحليلات</li>
-            </ul>
+            <h2 className="text-8xl font-bold text-black">SAS</h2>
           </div>
         </div>
       </div>
