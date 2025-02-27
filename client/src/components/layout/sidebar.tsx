@@ -19,7 +19,6 @@ import {
   MdSupervisorAccount,
   MdSettings,
 } from "react-icons/md";
-import { Bot } from "lucide-react"; // Added import for Bot icon
 
 const navigation = [
   { name: "لوحة التحكم", href: "/", icon: MdDashboard, color: "#4285F4" },
@@ -36,7 +35,6 @@ const navigation = [
   { name: "أكواد الخصم", href: "/discount-codes", icon: MdLocalOffer, color: "#FBBC05" },
   { name: "الموظفين", href: "/staff", icon: MdSupervisorAccount, color: "#4285F4" },
   { name: "الإعدادات", href: "/settings", icon: MdSettings, color: "#34A853" },
-  { name: "الدردشة مع الذكاء", href: "/ai-chat", icon: Bot, color: "#007bff" }, // Added AI chat navigation item
 ];
 
 export default function Sidebar() {
@@ -71,7 +69,7 @@ export default function Sidebar() {
                   asChild
                 >
                   <Link href={item.href}>
-                    <Icon
+                    <Icon 
                       className="h-5 w-5"
                       style={{ color: item.color }}
                     />
