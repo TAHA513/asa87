@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, AIIcon } from "lucide-react";
 import {
   MdDashboard,
   MdInventory2,
@@ -35,6 +35,7 @@ const navigation = [
   { name: "أكواد الخصم", href: "/discount-codes", icon: MdLocalOffer, color: "#FBBC05" },
   { name: "الموظفين", href: "/staff", icon: MdSupervisorAccount, color: "#4285F4" },
   { name: "الإعدادات", href: "/settings", icon: MdSettings, color: "#34A853" },
+  { name: "المساعد الذكي", href: "/ai-chat", icon: AIIcon, color: "#007bff" }, // Added AI chat item
 ];
 
 export default function Sidebar() {
@@ -69,7 +70,7 @@ export default function Sidebar() {
                   asChild
                 >
                   <Link href={item.href}>
-                    <Icon 
+                    <Icon
                       className="h-5 w-5"
                       style={{ color: item.color }}
                     />
@@ -95,13 +96,3 @@ export default function Sidebar() {
     </div>
   );
 }
-import { AIIcon } from "lucide-react";
-
-// ... other imports
-
-// Inside your sidebar items, add:
-{
-  name: "المساعد الذكي",
-  href: "/ai-chat",
-  icon: AIIcon,
-},

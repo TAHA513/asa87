@@ -43,11 +43,7 @@ function Router() {
       <ProtectedRoute path="/customers" component={Customers} />
       <Route component={NotFound} />
 
-        <Route path="/ai-chat">
-          <ProtectedRoute>
-            <AiChat />
-          </ProtectedRoute>
-        </Route>
+        <ProtectedRoute path="/ai-chat" component={AiChat} />
 
     </Switch>
   );

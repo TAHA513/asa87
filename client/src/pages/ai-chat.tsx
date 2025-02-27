@@ -5,13 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "@/components/ui/use-toast";
 
 export default function AiChat() {
   const [message, setMessage] = useState("");
   const [conversation, setConversation] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +29,7 @@ export default function AiChat() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message: userMessage.content }),
       });
 
       const data = await response.json();
@@ -82,23 +81,22 @@ export default function AiChat() {
                             : "bg-primary/10 ml-12 text-right"
                         }`}
                       >
-                        <p className="text-sm">{msg.content}</p>
+                        {msg.content}
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-
-              <form onSubmit={handleSubmit} className="flex gap-2">
+              <form onSubmit={handleSubmit} className="flex space-x-2 space-x-reverse">
                 <Input
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="اكتب رسالتك هنا..."
-                  disabled={isLoading}
                   className="flex-1"
+                  disabled={isLoading}
                 />
-                <Button type="submit" disabled={isLoading || !message.trim()}>
-                  {isLoading ? "جاري الإرسال..." : <Send className="h-4 w-4" />}
+                <Button type="submit" size="icon" disabled={isLoading}>
+                  <Send className="h-4 w-4" />
                 </Button>
               </form>
             </div>
