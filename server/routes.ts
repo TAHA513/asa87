@@ -416,7 +416,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API Key routes
-  app.post("/api/settings/api-keys", async (req, res) => {
+  app.post("/api/user/api-keys", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -458,7 +458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/settings/api-keys", async (req, res) => {
+  app.get("/api/user/api-keys", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -469,20 +469,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting API keys:", error);
       res.status(500).json({ message: "فشل في جلب مفاتيح API" });
-    }
-  });
-
-  app.post("/api/settings/api-keys/migrate", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      await storage.migrateLocalStorageToDb(req.user!.id, req.body);
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error migrating API keys:", error);
-      res.status(500).json({ message: "فشل في ترحيل مفاتيح API" });
     }
   });
 

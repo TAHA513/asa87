@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LOCAL_STORAGE_KEY, platformConfig, formSchema } from "./api-keys.config";
+import { platformConfig, formSchema } from "./api-keys.config";
 import type { FormData } from "./api-keys.config";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Form,
   FormControl,
@@ -26,9 +28,18 @@ export default function ApiKeysForm() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // جلب مفاتيح API من قاعدة البيانات
+  const { data: savedApiKeys } = useQuery({
+    queryKey: ["/api/user/api-keys"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/user/api-keys");
+      return response.json();
+    },
+  });
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: Object.fromEntries(
+    defaultValues: savedApiKeys || Object.fromEntries(
       Object.entries(platformConfig).map(([platform, config]) => [
         platform,
         Object.fromEntries(
@@ -38,36 +49,32 @@ export default function ApiKeysForm() {
     ),
   });
 
-  // استرجاع البيانات المحفوظة عند تحميل النموذج
-  useEffect(() => {
-    const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (savedData) {
-      try {
-        const parsedData = JSON.parse(savedData);
-        form.reset(parsedData);
-      } catch (error) {
-        console.error("Error loading saved API keys:", error);
-      }
-    }
-  }, [form]);
-
-  async function onSubmit(data: FormData) {
-    setIsSubmitting(true);
-    try {
-      // حفظ البيانات في LocalStorage
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
-
+  // استخدام React Query mutation لحفظ المفاتيح في قاعدة البيانات
+  const saveApiKeysMutation = useMutation({
+    mutationFn: async (data: FormData) => {
+      const response = await apiRequest("POST", "/api/user/api-keys", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/api-keys"] });
       toast({
         title: "تم الحفظ بنجاح",
-        description: "تم حفظ مفاتيح API في المتصفح",
+        description: "تم حفظ مفاتيح API في قاعدة البيانات",
       });
-    } catch (error) {
-      console.error("Error saving API keys:", error);
+    },
+    onError: (error) => {
       toast({
         title: "خطأ",
         description: error instanceof Error ? error.message : "فشل في حفظ مفاتيح API",
         variant: "destructive",
       });
+    },
+  });
+
+  async function onSubmit(data: FormData) {
+    setIsSubmitting(true);
+    try {
+      await saveApiKeysMutation.mutateAsync(data);
     } finally {
       setIsSubmitting(false);
     }
