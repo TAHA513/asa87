@@ -27,10 +27,17 @@ dotenv.config();
 const log = (message: string) => console.log(message);
 
 
+const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
+
 export async function registerRoutes(app: any): Promise<Server> {
   const router = Router();
   app.use("/api", router);
   setupAuth(app);
+
+  // Add health check endpoint at the top of registerRoutes function
+  router.get("/health", (_req, res) => {
+    res.json({ status: "ok", message: "الخادم يعمل بشكل صحيح" });
+  });
 
   // Products
   router.get("/products", async (_req, res) => {
@@ -834,20 +841,20 @@ export async function registerRoutes(app: any): Promise<Server> {
   router.post("/ai/chat", async (req, res) => {
     try {
       const { message } = req.body;
+      console.log("📝 Received chat request:", message);
 
       if (!message) {
         return res.status(400).json({ message: "الرسالة مطلوبة" });
       }
 
-      // Get Groq API key from environment
       const apiKey = process.env.GROQ_API_KEY;
-
       if (!apiKey) {
+        console.error("❌ مفتاح API غير موجود");
         return res.status(500).json({ message: "مفتاح API غير مكوّن" });
       }
 
-      // Call Groq API
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      console.log("🔄 جاري الاتصال بـ Groq API...");
+      const response = await fetch(GROQ_ENDPOINT, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -856,26 +863,37 @@ export async function registerRoutes(app: any): Promise<Server> {
         body: JSON.stringify({
           model: "llama3-70b-8192",
           messages: [
-            { role: "system", content: "أنت مساعد ذكي يساعد في إدارة المتجر وخدمة العملاء." },
+            { 
+              role: "system", 
+              content: "أنت مساعد ذكي يساعد في إدارة المتجر وخدمة العملاء. قم بالرد باللغة العربية." 
+            },
             { role: "user", content: message }
           ],
           temperature: 0.7,
           max_tokens: 1000
-        })      })
-    });
+        })
+      });
 
-      const data = await response.json();
-
-      if (data.error) {
-        console.error("Groq API error:", data.error);
-        return res.status(500).json({ message: "خطأ في خدمة الذكاء الاصطناعي", error: data.error });
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("❌ خطأ في استجابة Groq API:", errorData);
+        return res.status(response.status).json({
+          message: "خطأ في خدمة الذكاء الاصطناعي",
+          error: errorData.error?.message || "خطأ غير معروف"
+        });
       }
 
+      const data = await response.json();
       const aiResponse = data.choices[0].message.content;
+      console.log("✅ تم استلام الرد بنجاح");
+
       res.json({ response: aiResponse });
     } catch (error) {
-      console.error("AI chat error:", error);
-      res.status(500).json({ message: "فشل في معالجة طلب المحادثة الذكية" });
+      console.error("❌ خطأ في المحادثة الذكية:", error);
+      res.status(500).json({ 
+        message: "فشل في معالجة طلب المحادثة الذكية",
+        error: error instanceof Error ? error.message : "خطأ غير معروف"
+      });
     }
   });
 

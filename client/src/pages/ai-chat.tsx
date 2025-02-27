@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AiChat() {
-  const [prompt, setPrompt] = useState("");
+  const [message, setMessage] = useState("");
   const [response, setResponse] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [apiKey, setApiKey] = useState("");
@@ -30,10 +30,10 @@ export default function AiChat() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!prompt.trim()) {
+    if (!message.trim()) {
       toast({
         title: "خطأ",
-        description: "الرجاء إدخال نص",
+        description: "الرجاء إدخال رسالة",
         variant: "destructive",
       });
       return;
@@ -43,12 +43,12 @@ export default function AiChat() {
     setResponse("");
 
     try {
-      const result = await fetch("/api/modify-code", {
+      const result = await fetch("/api/ai/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ request: prompt }),
+        body: JSON.stringify({ message: message.trim() }),
       });
 
       const data = await result.json();
@@ -57,8 +57,8 @@ export default function AiChat() {
         throw new Error(data.message || "فشل في الاتصال بالخدمة");
       }
 
-      setResponse(data.modifiedCode);
-      setPrompt("");
+      setResponse(data.response);
+      setMessage("");
 
       toast({
         title: "تم!",
@@ -85,7 +85,7 @@ export default function AiChat() {
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-3 mb-8">
             <Bot className="h-6 w-6" />
-            <h1 className="text-3xl font-bold">مساعد تعديل الأكواد</h1>
+            <h1 className="text-3xl font-bold">المساعد الذكي</h1>
           </div>
 
           {!apiKey && (
@@ -98,37 +98,37 @@ export default function AiChat() {
           <div className="grid gap-4">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid gap-2">
-                <label htmlFor="prompt" className="text-lg font-medium">
-                  أدخل طلبك هنا:
+                <label htmlFor="message" className="text-lg font-medium">
+                  كيف يمكنني مساعدتك؟
                 </label>
                 <Textarea
-                  id="prompt"
-                  placeholder="مثال: قم بإضافة تعليقات للكود التالي..."
+                  id="message"
+                  placeholder="اكتب سؤالك هنا..."
                   className="min-h-[120px] text-right"
                   dir="rtl"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
                 />
               </div>
               <Button 
                 type="submit" 
                 className="w-full" 
-                disabled={isLoading || !prompt.trim() || !apiKey}
+                disabled={isLoading || !message.trim() || !apiKey}
               >
-                {isLoading ? "جاري المعالجة..." : "إرسال الطلب"}
+                {isLoading ? "جاري المعالجة..." : "إرسال"}
                 <Send className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
               </Button>
             </form>
 
             {(isLoading || response) && (
               <div className="mt-6">
-                <h2 className="text-xl font-semibold mb-2">الاستجابة:</h2>
+                <h2 className="text-xl font-semibold mb-2">الرد:</h2>
                 {isLoading ? (
                   <div className="animate-pulse p-4 rounded bg-gray-100 h-32"></div>
                 ) : (
-                  <pre className="bg-gray-100 p-4 rounded-lg overflow-auto max-h-[400px] text-left whitespace-pre-wrap" dir="ltr">
+                  <div className="bg-gray-100 p-4 rounded-lg overflow-auto max-h-[400px]" dir="rtl">
                     {response}
-                  </pre>
+                  </div>
                 )}
               </div>
             )}
