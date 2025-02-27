@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Package, ShoppingCart, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import type { Product, Sale } from "@shared/schema";
+import type { Product, Sale, Customer } from "@shared/schema";
 
 export default function StatsCards() {
   const { data: products = [] } = useQuery<Product[]>({
@@ -10,6 +10,10 @@ export default function StatsCards() {
 
   const { data: sales = [] } = useQuery<Sale[]>({
     queryKey: ["/api/sales"],
+  });
+
+  const { data: customers = [] } = useQuery<Customer[]>({
+    queryKey: ["/api/customers"],
   });
 
   // حساب إجمالي المبيعات بالدينار العراقي
@@ -63,6 +67,18 @@ export default function StatsCards() {
 
   const transactionGrowth = currentHourTransactions - lastHourTransactions;
 
+  // حساب العملاء النشطين (الذين لديهم مشتريات هذا الشهر)
+  const activeCustomers = new Set(
+    sales
+      .filter(sale => {
+        const saleDate = new Date(sale.date);
+        const now = new Date();
+        return saleDate.getMonth() === now.getMonth() && 
+               saleDate.getFullYear() === now.getFullYear();
+      })
+      .map(sale => sale.customerId)
+  ).size;
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
@@ -106,30 +122,13 @@ export default function StatsCards() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">الموظفون النشطون</CardTitle>
+          <CardTitle className="text-sm font-medium">العملاء النشطون</CardTitle>
           <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
-            {sales
-              .filter(sale => {
-                const saleDate = new Date(sale.date);
-                const today = new Date();
-                return saleDate.getDate() === today.getDate() &&
-                       saleDate.getMonth() === today.getMonth() &&
-                       saleDate.getFullYear() === today.getFullYear();
-              })
-              .reduce((acc, sale) => {
-                if (!acc.includes(sale.userId)) {
-                  acc.push(sale.userId);
-                }
-                return acc;
-              }, [] as number[])
-              .length
-            }
-          </div>
+          <div className="text-2xl font-bold">{activeCustomers}</div>
           <p className="text-xs text-muted-foreground">
-            موظفون نشطون اليوم
+            عملاء نشطون هذا الشهر
           </p>
         </CardContent>
       </Card>
