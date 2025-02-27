@@ -1,12 +1,16 @@
 import {
-  User, Product, Sale, ExchangeRate, InsertUser, FileStorage, InsertFileStorage,
-  Installment, InstallmentPayment,
-  Campaign, InsertCampaign, CampaignAnalytics, InsertCampaignAnalytics,
-  SocialMediaAccount, apiKeys, type ApiKey, type InsertApiKey,
-  InventoryTransaction, InsertInventoryTransaction,
-  ExpenseCategory, InsertExpenseCategory, Expense, InsertExpense,
-  Supplier, InsertSupplier, SupplierTransaction, InsertSupplierTransaction,
-  Customer, InsertCustomer, Appointment, InsertAppointment, users, fileStorage
+  users, products, sales, exchangeRates, installments, installmentPayments,
+  marketingCampaigns as campaigns, campaignAnalytics, socialMediaAccounts, inventoryTransactions,
+  expenseCategories, expenses, suppliers, supplierTransactions, customers,
+  appointments, fileStorage,
+  type User, type Product, type Sale, type ExchangeRate, type InsertUser, type FileStorage, type InsertFileStorage,
+  type Installment, type InstallmentPayment,
+  type Campaign, type InsertCampaign, type CampaignAnalytics, type InsertCampaignAnalytics,
+  type SocialMediaAccount, type ApiKey, type InsertApiKey,
+  type InventoryTransaction, type InsertInventoryTransaction,
+  type ExpenseCategory, type InsertExpenseCategory, type Expense, type InsertExpense,
+  type Supplier, type InsertSupplier, type SupplierTransaction, type InsertSupplierTransaction,
+  type Customer, type InsertCustomer, type Appointment, type InsertAppointment
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -15,73 +19,6 @@ import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 
 const PostgresSessionStore = connectPg(session);
-
-export interface IStorage {
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  updateUser(id: number, update: Partial<User>): Promise<User>;
-  getProducts(): Promise<Product[]>;
-  getProduct(id: number): Promise<Product | undefined>;
-  createProduct(product: Product): Promise<Product>;
-  updateProduct(id: number, product: Partial<Product>): Promise<Product>;
-  getSales(): Promise<Sale[]>;
-  createSale(sale: Sale): Promise<Sale>;
-  getCurrentExchangeRate(): Promise<ExchangeRate>;
-  setExchangeRate(rate: number): Promise<ExchangeRate>;
-  getInstallments(): Promise<Installment[]>;
-  getInstallment(id: number): Promise<Installment | undefined>;
-  createInstallment(installment: Installment): Promise<Installment>;
-  updateInstallment(id: number, update: Partial<Installment>): Promise<Installment>;
-  getInstallmentPayments(installmentId: number): Promise<InstallmentPayment[]>;
-  createInstallmentPayment(payment: InstallmentPayment): Promise<InstallmentPayment>;
-  getCampaigns(): Promise<Campaign[]>;
-  getCampaign(id: number): Promise<Campaign | undefined>;
-  createCampaign(campaign: InsertCampaign): Promise<Campaign>;
-  updateCampaign(id: number, update: Partial<Campaign>): Promise<Campaign>;
-  getCampaignAnalytics(campaignId: number): Promise<CampaignAnalytics[]>;
-  createCampaignAnalytics(analytics: InsertCampaignAnalytics): Promise<CampaignAnalytics>;
-  getSocialMediaAccounts(userId: number): Promise<SocialMediaAccount[]>;
-  createSocialMediaAccount(account: SocialMediaAccount): Promise<SocialMediaAccount>;
-  deleteSocialMediaAccount(id: number): Promise<void>;
-  setApiKeys(userId: number, keys: Record<string, any>): Promise<void>;
-  getApiKeys(userId: number): Promise<Record<string, any> | null>;
-  migrateLocalStorageToDb(userId: number, keys: Record<string, any>): Promise<void>;
-  sessionStore: session.Store;
-  getInventoryTransactions(): Promise<InventoryTransaction[]>;
-  createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction>;
-  getExpenseCategories(userId: number): Promise<ExpenseCategory[]>;
-  getExpenseCategory(id: number): Promise<ExpenseCategory | undefined>;
-  createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory>;
-  updateExpenseCategory(id: number, update: Partial<ExpenseCategory>): Promise<ExpenseCategory>;
-  deleteExpenseCategory(id: number): Promise<void>;
-  getExpenses(userId: number): Promise<Expense[]>;
-  getExpense(id: number): Promise<Expense | undefined>;
-  createExpense(expense: InsertExpense): Promise<Expense>;
-  updateExpense(id: number, update: Partial<Expense>): Promise<Expense>;
-  deleteExpense(id: number): Promise<void>;
-  getSuppliers(userId: number): Promise<Supplier[]>;
-  getSupplier(id: number): Promise<Supplier | undefined>;
-  createSupplier(supplier: InsertSupplier): Promise<Supplier>;
-  updateSupplier(id: number, update: Partial<Supplier>): Promise<Supplier>;
-  deleteSupplier(id: number): Promise<void>;
-  getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]>;
-  createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction>;
-  searchCustomers(search?: string): Promise<Customer[]>;
-  getCustomer(id: number): Promise<Customer | undefined>;
-  getCustomerSales(customerId: number): Promise<Sale[]>;
-  createCustomer(customer: InsertCustomer): Promise<Customer>;
-  getCustomerAppointments(customerId: number): Promise<Appointment[]>;
-  createAppointment(appointment: InsertAppointment): Promise<Appointment>;
-  updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment>;
-  deleteAppointment(id: number): Promise<void>;
-  deleteProduct(id: number): Promise<void>;
-  deleteCustomer(id: number): Promise<void>;
-  saveFile(file: InsertFileStorage): Promise<FileStorage>;
-  getFileById(id: number): Promise<FileStorage | undefined>;
-  getUserFiles(userId: number): Promise<FileStorage[]>;
-  deleteFile(id: number): Promise<void>;
-}
 
 export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
@@ -94,27 +31,59 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    console.log("Getting user by ID:", id);
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      console.log("Found user:", user ? "yes" : "no", user?.id);
+      return user;
+    } catch (error) {
+      console.error("Error getting user by ID:", error);
+      throw error;
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
+    console.log("Getting user by username:", username);
+    try {
+      const [user] = await db.select().from(users).where(eq(users.username, username));
+      console.log("Found user by username:", user ? "yes" : "no", user?.id);
+      return user;
+    } catch (error) {
+      console.error("Error getting user by username:", error);
+      throw error;
+    }
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const [newUser] = await db.insert(users).values(user).returning();
-    return newUser;
+    console.log("Creating new user:", user.username);
+    try {
+      const [newUser] = await db.insert(users).values({
+        ...user,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }).returning();
+      console.log("Created user with ID:", newUser.id);
+      return newUser;
+    } catch (error) {
+      console.error("Error creating user:", error);
+      throw error;
+    }
   }
 
   async updateUser(id: number, update: Partial<User>): Promise<User> {
-    const [updatedUser] = await db
-      .update(users)
-      .set({ ...update, updatedAt: new Date() })
-      .where(eq(users.id, id))
-      .returning();
-    return updatedUser;
+    console.log("Updating user:", id);
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set({ ...update, updatedAt: new Date() })
+        .where(eq(users.id, id))
+        .returning();
+      console.log("Updated user:", updatedUser.id);
+      return updatedUser;
+    } catch (error) {
+      console.error("Error updating user:", error);
+      throw error;
+    }
   }
 
   async getProducts(): Promise<Product[]> {
@@ -153,7 +122,6 @@ export class DatabaseStorage implements IStorage {
     const [rate] = await db.select().from(exchangeRates).orderBy(exchangeRates.createdAt, 'desc').limit(1);
     return rate || await this.setExchangeRate(1300);
   }
-
 
   async setExchangeRate(rate: number): Promise<ExchangeRate> {
     const [newRate] = await db.insert(exchangeRates).values({ rate, createdAt: new Date() }).returning();

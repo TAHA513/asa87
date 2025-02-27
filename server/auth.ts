@@ -4,7 +4,13 @@ import { Express } from "express";
 import session from "express-session";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
-import { insertUserSchema } from "@shared/schema";
+import { insertUserSchema, type User } from "@shared/schema";
+
+declare global {
+  namespace Express {
+    interface User extends User {}
+  }
+}
 
 async function hashPassword(password: string) {
   const salt = await bcrypt.genSalt(10);
@@ -28,7 +34,7 @@ export function setupAuth(app: Express) {
       sameSite: 'strict',
       path: '/'
     },
-    name: 'sid' // تغيير اسم الكوكي الافتراضي
+    name: 'sid'
   };
 
   app.set("trust proxy", 1);
@@ -39,45 +45,58 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
+        console.log("Attempting login for user:", username);
         const user = await storage.getUserByUsername(username);
+
         if (!user) {
+          console.log("User not found:", username);
           return done(null, false, { message: "اسم المستخدم غير موجود" });
         }
 
         const isValidPassword = await comparePasswords(password, user.password);
         if (!isValidPassword) {
+          console.log("Invalid password for user:", username);
           return done(null, false, { message: "كلمة المرور غير صحيحة" });
         }
 
+        console.log("Login successful for user:", username);
         return done(null, user);
       } catch (err) {
+        console.error("Login error:", err);
         return done(err);
       }
     })
   );
 
-  passport.serializeUser((user, done) => {
+  passport.serializeUser((user: Express.User, done) => {
+    console.log("Serializing user:", user.id);
     done(null, user.id);
   });
 
   passport.deserializeUser(async (id: number, done) => {
     try {
+      console.log("Deserializing user:", id);
       const user = await storage.getUser(id);
       if (!user) {
+        console.log("User not found during deserialization:", id);
         return done(null, false);
       }
+      console.log("User deserialized successfully:", id);
       done(null, user);
     } catch (err) {
+      console.error("Deserialization error:", err);
       done(err);
     }
   });
 
   app.post("/api/auth/register", async (req, res) => {
     try {
+      console.log("Registration attempt:", req.body.username);
       const validatedData = insertUserSchema.parse(req.body);
 
       const existingUser = await storage.getUserByUsername(validatedData.username);
       if (existingUser) {
+        console.log("Username already exists:", validatedData.username);
         return res.status(400).json({ message: "اسم المستخدم موجود بالفعل" });
       }
 
@@ -87,6 +106,8 @@ export function setupAuth(app: Express) {
         password: hashedPassword,
       });
 
+      console.log("User registered successfully:", user.id);
+
       req.login(user, (err) => {
         if (err) {
           console.error("Login error after registration:", err);
@@ -94,7 +115,17 @@ export function setupAuth(app: Express) {
             message: "فشل في تسجيل الدخول بعد إنشاء الحساب",
           });
         }
-        res.status(201).json(user);
+        res.status(201).json({
+          id: user.id,
+          username: user.username,
+          fullName: user.fullName,
+          role: user.role,
+          email: user.email,
+          phone: user.phone,
+          isActive: user.isActive,
+          permissions: user.permissions,
+          preferences: user.preferences
+        });
       });
     } catch (err) {
       console.error("Registration error:", err);
@@ -107,13 +138,16 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/auth/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    console.log("Login attempt:", req.body.username);
+
+    passport.authenticate("local", (err: Error | null, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) {
         console.error("Login error:", err);
         return res.status(500).json({ message: "حدث خطأ أثناء تسجيل الدخول" });
       }
 
       if (!user) {
+        console.log("Authentication failed:", info?.message);
         return res.status(401).json({
           message: info?.message || "فشل تسجيل الدخول",
         });
@@ -126,13 +160,24 @@ export function setupAuth(app: Express) {
             message: "فشل في إنشاء جلسة المستخدم",
           });
         }
-        res.json(user);
+        console.log("Login successful:", user.id);
+        res.json({
+          id: user.id,
+          username: user.username,
+          fullName: user.fullName,
+          role: user.role,
+          email: user.email,
+          phone: user.phone,
+          isActive: user.isActive,
+          permissions: user.permissions,
+          preferences: user.preferences
+        });
       });
     })(req, res, next);
   });
 
   app.post("/api/auth/logout", (req, res) => {
-    // حفظ معرف الجلسة قبل تسجيل الخروج
+    console.log("Logout attempt for user:", req.user?.id);
     const sessionId = req.sessionID;
 
     req.logout((err) => {
@@ -143,7 +188,6 @@ export function setupAuth(app: Express) {
         });
       }
 
-      // تدمير الجلسة بالكامل
       req.session.destroy((err) => {
         if (err) {
           console.error("Session destruction error:", err);
@@ -152,10 +196,8 @@ export function setupAuth(app: Express) {
           });
         }
 
-        // مسح الكوكي من المتصفح
         res.clearCookie('sid');
-
-        // إرسال استجابة نجاح
+        console.log("Logout successful");
         res.json({ success: true });
       });
     });
@@ -163,10 +205,12 @@ export function setupAuth(app: Express) {
 
   app.get("/api/auth/user", (req, res) => {
     if (!req.isAuthenticated()) {
+      console.log("Unauthorized access attempt to /api/auth/user");
       return res.status(401).json({
         message: "يجب تسجيل الدخول أولاً",
       });
     }
+    console.log("Current user data retrieved:", req.user?.id);
     res.json(req.user);
   });
 }

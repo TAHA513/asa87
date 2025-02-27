@@ -18,6 +18,45 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// تعريف نوع المستخدم الأساسي
+export type User = typeof users.$inferSelect;
+
+// مخطط إدخال المستخدم
+export const insertUserSchema = createInsertSchema(users)
+  .pick({
+    username: true,
+    password: true,
+    fullName: true,
+    email: true,
+    phone: true,
+    role: true,
+    permissions: true,
+    preferences: true,
+  })
+  .extend({
+    username: z.string().min(1, "اسم المستخدم مطلوب"),
+    password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
+    fullName: z.string().min(1, "الاسم الكامل مطلوب"),
+    email: z.string().email("البريد الإلكتروني غير صالح").optional().nullable(),
+    phone: z.string().optional().nullable(),
+    role: z.enum(["admin", "staff"]).default("staff"),
+    permissions: z.array(z.string()).default([]),
+    preferences: z.object({
+      theme: z.object({
+        primary: z.string(),
+        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic"]),
+        appearance: z.enum(["light", "dark", "system"]),
+        fontStyle: z.enum(["traditional", "modern", "minimal"]),
+        radius: z.number(),
+      }).optional(),
+      sidebar: z.object({
+        isOpen: z.boolean(),
+      }).optional(),
+    }).optional().default({}),
+  });
+
+export type InsertUser = z.infer<typeof insertUserSchema>;
+
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -238,39 +277,6 @@ export const fileStorage = pgTable("file_storage", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users)
-  .pick({
-    username: true,
-    password: true,
-    fullName: true,
-    email: true,
-    phone: true,
-    role: true,
-    permissions: true,
-    preferences: true,
-  })
-  .extend({
-    username: z.string().min(1, "اسم المستخدم مطلوب"),
-    password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
-    fullName: z.string().min(1, "الاسم الكامل مطلوب"),
-    email: z.string().email("البريد الإلكتروني غير صالح").optional().nullable(),
-    phone: z.string().optional().nullable(),
-    role: z.enum(["admin", "staff"]).default("staff"),
-    permissions: z.array(z.string()).default([]),
-    preferences: z.object({
-      theme: z.object({
-        primary: z.string(),
-        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic"]),
-        appearance: z.enum(["light", "dark", "system"]),
-        fontStyle: z.enum(["traditional", "modern", "minimal"]),
-        radius: z.number(),
-      }).optional(),
-      sidebar: z.object({
-        isOpen: z.boolean(),
-      }).optional(),
-    }).optional().default({}),
-  });
-
 export const insertProductSchema = createInsertSchema(products).extend({
   name: z.string().min(1, "اسم المنتج مطلوب"),
   description: z.string().optional(),
@@ -444,8 +450,6 @@ export const insertFileStorageSchema = createInsertSchema(fileStorage)
     userId: z.number().min(1, "معرف المستخدم مطلوب"),
   });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Sale = typeof sales.$inferSelect;
 export type ExchangeRate = typeof exchangeRates.$inferSelect;
