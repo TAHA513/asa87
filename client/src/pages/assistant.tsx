@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Bot, User } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { getApiKeys } from '@/api/settings';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -15,11 +14,11 @@ interface Message {
   timestamp: Date;
 }
 
-export default function AssistantPage() {
+const AssistantPage = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'مرحباً! أنا المساعد الذكي الخاص بإدارة متجرك. كيف يمكنني مساعدتك اليوم؟',
+      content: 'مرحباً، كيف يمكنني مساعدتك اليوم؟',
       timestamp: new Date(),
     },
   ]);
@@ -32,15 +31,15 @@ export default function AssistantPage() {
     queryFn: getApiKeys,
   });
 
-  const hasHuggingFaceKey = apiKeys?.huggingFaceApiKey;
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const hasHuggingFaceKey = apiKeys?.huggingface?.apiKey;
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
@@ -59,7 +58,6 @@ export default function AssistantPage() {
     try {
       // Call API to get response from AI
       if (hasHuggingFaceKey) {
-        // Actual API call would go here
         const response = await fetch('/api/assistant/chat', {
           method: 'POST',
           headers: {
@@ -77,23 +75,20 @@ export default function AssistantPage() {
           ...prev,
           {
             role: 'assistant',
-            content: data.response || 'عذراً، حدث خطأ في معالجة طلبك.',
+            content: data.response || 'عذراً، لم أستطع فهم طلبك.',
             timestamp: new Date(),
           },
         ]);
       } else {
-        // If no API key, simulate response
-        setTimeout(() => {
-          setMessages(prev => [
-            ...prev,
-            {
-              role: 'assistant',
-              content: 'لم يتم تكوين مفتاح API الخاص بهاغينغ فيس. يرجى إضافة المفتاح في صفحة الإعدادات.',
-              timestamp: new Date(),
-            },
-          ]);
-          setIsLoading(false);
-        }, 1000);
+        // No API key set
+        setMessages(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: 'لم يتم تكوين مفتاح API للمساعد الذكي. يرجى إضافة مفتاح Hugging Face API في صفحة الإعدادات.',
+            timestamp: new Date(),
+          },
+        ]);
       }
     } catch (error) {
       console.error('Error fetching AI response:', error);
@@ -102,7 +97,7 @@ export default function AssistantPage() {
         ...prev,
         {
           role: 'assistant',
-          content: 'عذراً، حدث خطأ أثناء محاولة الاتصال بالخدمة. يرجى المحاولة مرة أخرى.',
+          content: 'عذراً، حدث خطأ أثناء معالجة طلبك. يرجى المحاولة مرة أخرى.',
           timestamp: new Date(),
         },
       ]);
@@ -111,18 +106,9 @@ export default function AssistantPage() {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
   return (
-    <div className="flex h-screen overflow-hidden">
-      <div className="w-64 h-full">
-        <Sidebar />
-      </div>
+    <div className="flex h-screen">
+      <Sidebar />
       <main className="flex-1 p-8 overflow-y-auto">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold mb-6">المساعد الذكي</h1>
@@ -132,8 +118,7 @@ export default function AssistantPage() {
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>تنبيه</AlertTitle>
               <AlertDescription>
-                لم يتم تكوين مفتاح API الخاص بهاغينغ فيس. يرجى إضافة المفتاح في{' '}
-                <a href="/settings" className="underline">صفحة الإعدادات</a>.
+                لم يتم تكوين مفتاح Hugging Face API. توجه إلى صفحة الإعدادات لإضافة المفتاح.
               </AlertDescription>
             </Alert>
           )}
@@ -141,32 +126,17 @@ export default function AssistantPage() {
           <Card className="mb-4">
             <CardContent className="p-6">
               <div className="h-[60vh] overflow-y-auto mb-4">
-                {messages.map((msg, index) => (
+                {messages.map((message, index) => (
                   <div
                     key={index}
-                    className={`mb-4 flex ${msg.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
+                    className={`mb-4 ${
+                      message.role === 'assistant' ? 'bg-muted p-3 rounded-lg' : ''
+                    }`}
                   >
-                    <div
-                      className={`flex p-3 rounded-lg max-w-[80%] ${
-                        msg.role === 'assistant'
-                          ? 'bg-secondary text-secondary-foreground'
-                          : 'bg-primary text-primary-foreground'
-                      }`}
-                    >
-                      <div className="mr-2 mt-1">
-                        {msg.role === 'assistant' ? (
-                          <Bot className="h-5 w-5" />
-                        ) : (
-                          <User className="h-5 w-5" />
-                        )}
-                      </div>
-                      <div>
-                        <div className="whitespace-pre-wrap">{msg.content}</div>
-                        <div className="text-xs opacity-70 mt-1">
-                          {new Date(msg.timestamp).toLocaleTimeString()}
-                        </div>
-                      </div>
-                    </div>
+                    <p className="text-sm font-medium mb-1">
+                      {message.role === 'assistant' ? 'المساعد' : 'أنت'}
+                    </p>
+                    <p>{message.content}</p>
                   </div>
                 ))}
                 <div ref={messagesEndRef} />
@@ -176,15 +146,18 @@ export default function AssistantPage() {
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyPress}
                   placeholder="اكتب رسالتك هنا..."
-                  disabled={isLoading || !hasHuggingFaceKey}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSendMessage();
+                    }
+                  }}
                 />
-                <Button 
-                  onClick={handleSendMessage} 
-                  disabled={isLoading || !input.trim() || !hasHuggingFaceKey}
+                <Button
+                  onClick={handleSendMessage}
+                  disabled={isLoading}
                 >
-                  <Send className="h-4 w-4" />
+                  {isLoading ? 'جاري الإرسال...' : 'إرسال'}
                 </Button>
               </div>
             </CardContent>
@@ -193,12 +166,11 @@ export default function AssistantPage() {
           <Card>
             <CardContent className="p-6">
               <h3 className="text-xl font-medium mb-2">كيف يمكن للمساعد الذكي مساعدتك</h3>
-              <ul className="list-disc list-inside space-y-1">
-                <li>الإجابة على الأسئلة المتعلقة بإدارة المتجر</li>
-                <li>مساعدتك في فهم تقارير المبيعات والمخزون</li>
-                <li>اقتراح استراتيجيات للتسويق والمبيعات</li>
-                <li>مساعدتك في إدارة العملاء والموردين</li>
-                <li>توفير نصائح لزيادة الإنتاجية وتحسين الأداء</li>
+              <ul className="list-disc list-inside space-y-2">
+                <li>استفسارات عن المنتجات والمخزون</li>
+                <li>معلومات عن المبيعات والإيرادات</li>
+                <li>نصائح لتحسين أداء المتجر</li>
+                <li>المساعدة في حل المشكلات الشائعة</li>
               </ul>
             </CardContent>
           </Card>
@@ -206,4 +178,6 @@ export default function AssistantPage() {
       </main>
     </div>
   );
-}
+};
+
+export default AssistantPage;
