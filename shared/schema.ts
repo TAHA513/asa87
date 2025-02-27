@@ -20,17 +20,8 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// العلاقات للمستخدمين
-export const usersRelations = relations(users, ({ many }) => ({
-  sales: many(sales),
-  campaigns: many(marketingCampaigns),
-  expenses: many(expenses),
-  suppliers: many(suppliers),
-}));
-
 // تعريف نوع المستخدم
 export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
 
 // مخطط إدخال المستخدم
 export const insertUserSchema = createInsertSchema(users)
@@ -66,15 +57,9 @@ export const insertUserSchema = createInsertSchema(users)
     }).optional().default({}),
   });
 
-// تعريف باقي الجداول
-export const products = pgTable("products", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description"),
-  priceIqd: decimal("price_iqd", { precision: 10, scale: 2 }).notNull(),
-  stock: integer("stock").notNull().default(0),
-});
+export type InsertUser = z.infer<typeof insertUserSchema>;
 
+// تعريف باقي الجداول
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -85,18 +70,30 @@ export const customers = pgTable("customers", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const products = pgTable("products", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  priceIqd: decimal("price_iqd", { precision: 10, scale: 2 }).notNull(),
+  stock: integer("stock").notNull().default(0),
+});
+
 export const sales = pgTable("sales", {
   id: serial("id").primaryKey(),
-  productId: integer("product_id").notNull(),
-  customerRef: integer("customer_ref"),
+  productId: integer("product_id").notNull().references(() => products.id),
+  customerRef: integer("customer_ref").references(() => customers.id),
   quantity: integer("quantity").notNull(),
   priceIqd: decimal("price_iqd").notNull(),
   date: timestamp("date").notNull().defaultNow(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
   isInstallment: boolean("is_installment").notNull().default(false),
 });
 
-// العلاقات للمبيعات
+// العلاقات بين الجداول
+export const usersRelations = relations(users, ({ many }) => ({
+  sales: many(sales)
+}));
+
 export const salesRelations = relations(sales, ({ one }) => ({
   product: one(products, {
     fields: [sales.productId],
@@ -311,13 +308,19 @@ export const insertProductSchema = createInsertSchema(products).extend({
   stock: z.number().min(0, "المخزون يجب أن يكون 0 على الأقل"),
 });
 
-export const insertSaleSchema = createInsertSchema(sales).pick({
-  productId: true,
-  quantity: true,
-}).extend({
-  productId: z.number().min(1, "يجب اختيار منتج"),
-  quantity: z.number().min(1, "الكمية يجب أن تكون 1 على الأقل"),
-});
+export const insertSaleSchema = createInsertSchema(sales)
+  .pick({
+    productId: true,
+    customerRef: true,
+    quantity: true,
+    priceIqd: true,
+  })
+  .extend({
+    productId: z.number().min(1, "يجب اختيار منتج"),
+    customerRef: z.number().optional(),
+    quantity: z.number().min(1, "الكمية يجب أن تكون 1 على الأقل"),
+    priceIqd: z.number().min(0, "السعر يجب أن يكون أكبر من 0"),
+  });
 
 export const insertExchangeRateSchema = createInsertSchema(exchangeRates).pick({
   usdToIqd: true,
