@@ -21,36 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import Sidebar from "@/components/layout/sidebar";
 import CampaignForm from "@/components/marketing/campaign-form";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-} from "recharts";
 import SocialAccounts from "@/components/marketing/social-accounts";
-
-// بيانات تجريبية للرسوم البيانية
-const performanceData = [
-  { name: "يناير", انطباعات: 4000, نقرات: 2400, تحويلات: 400 },
-  { name: "فبراير", انطباعات: 3000, نقرات: 1398, تحويلات: 210 },
-  { name: "مارس", انطباعات: 2000, نقرات: 9800, تحويلات: 290 },
-  { name: "أبريل", انطباعات: 2780, نقرات: 3908, تحويلات: 300 },
-];
-
-const platformData = [
-  { name: "فيسبوك", قيمة: 4000 },
-  { name: "انستغرام", قيمة: 3000 },
-  { name: "تويتر", قيمة: 2000 },
-  { name: "لينكد إن", قيمة: 2780 },
-  { name: "سناب شات", قيمة: 1890 },
-  { name: "تيك توك", قيمة: 2390 },
-];
 
 export default function MarketingPage() {
   const [showNewCampaign, setShowNewCampaign] = useState(false);
@@ -65,6 +36,12 @@ export default function MarketingPage() {
 
   // تصفية الحملات النشطة
   const activeCampaigns = campaigns.filter(campaign => campaign.status === "active");
+
+  // تجميع الإحصائيات من API منصات التواصل الاجتماعي
+  const { data: socialStats = { impressions: 0, engagement: 0, spend: 0 } } = useQuery({
+    queryKey: ["/api/marketing/social-stats"],
+    refetchInterval: 300000, // تحديث كل 5 دقائق
+  });
 
   return (
     <div className="flex h-screen">
@@ -118,18 +95,22 @@ export default function MarketingPage() {
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">48.2K</div>
+                  <div className="text-2xl font-bold">
+                    {socialStats.impressions.toLocaleString()}
+                  </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    معدل التحويل
+                    معدل التفاعل
                   </CardTitle>
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">2.4%</div>
+                  <div className="text-2xl font-bold">
+                    {(socialStats.engagement * 100).toFixed(1)}%
+                  </div>
                 </CardContent>
               </Card>
               <Card>
@@ -140,68 +121,50 @@ export default function MarketingPage() {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">$4,325</div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2 mb-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle>أداء الحملات</CardTitle>
-                  <CardDescription>
-                    تحليل الانطباعات والنقرات والتحويلات
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={performanceData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Line
-                          type="monotone"
-                          dataKey="انطباعات"
-                          stroke="#8884d8"
-                        />
-                        <Line type="monotone" dataKey="نقرات" stroke="#82ca9d" />
-                        <Line
-                          type="monotone"
-                          dataKey="تحويلات"
-                          stroke="#ffc658"
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>أداء المنصات</CardTitle>
-                  <CardDescription>
-                    مقارنة الأداء بين منصات التواصل الاجتماعي
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={platformData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="قيمة" fill="#8884d8" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <div className="text-2xl font-bold">
+                    ${socialStats.spend.toLocaleString()}
                   </div>
                 </CardContent>
               </Card>
             </div>
+
+            {/* قائمة الحملات النشطة */}
+            <Card>
+              <CardHeader>
+                <CardTitle>الحملات النشطة</CardTitle>
+                <CardDescription>
+                  قائمة بجميع الحملات الإعلانية النشطة حالياً
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {activeCampaigns.map(campaign => (
+                    <Card key={campaign.id}>
+                      <CardHeader>
+                        <CardTitle>{campaign.name}</CardTitle>
+                        <CardDescription>{campaign.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <p className="text-sm text-muted-foreground">المنصات</p>
+                            <p>{campaign.platforms.join(", ")}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">الميزانية</p>
+                            <p>${Number(campaign.budget).toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">تاريخ البدء</p>
+                            <p>{new Date(campaign.startDate).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </main>

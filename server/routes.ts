@@ -257,7 +257,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
   // Social Media Auth Routes
   app.get("/api/marketing/social-accounts", async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -321,6 +320,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting social account:", error);
       res.status(500).json({ message: "فشل في إلغاء ربط الحساب" });
+    }
+  });
+
+  // Get aggregated social media statistics from all connected platforms
+  app.get("/api/marketing/social-stats", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      // Get user's API keys and social media accounts
+      const apiKeys = await storage.getApiKeys(req.user!.id);
+      const accounts = await storage.getSocialMediaAccounts(req.user!.id);
+
+      if (!apiKeys || !accounts.length) {
+        return res.json({
+          impressions: 0,
+          engagement: 0,
+          spend: 0
+        });
+      }
+
+      let totalImpressions = 0;
+      let totalEngagements = 0;
+      let totalSpend = 0;
+
+      // Fetch data from each connected platform
+      for (const account of accounts) {
+        const platformKeys = apiKeys[account.platform];
+        if (!platformKeys) continue;
+
+        try {
+          let platformStats;
+          switch (account.platform) {
+            case 'facebook':
+              platformStats = await fetchFacebookStats(account, platformKeys);
+              break;
+            case 'twitter':
+              platformStats = await fetchTwitterStats(account, platformKeys);
+              break;
+            case 'instagram':
+              platformStats = await fetchInstagramStats(account, platformKeys);
+              break;
+            case 'tiktok':
+              platformStats = await fetchTikTokStats(account, platformKeys);
+              break;
+            case 'snapchat':
+              platformStats = await fetchSnapchatStats(account, platformKeys);
+              break;
+            case 'linkedin':
+              platformStats = await fetchLinkedInStats(account, platformKeys);
+              break;
+          }
+
+          if (platformStats) {
+            totalImpressions += platformStats.impressions;
+            totalEngagements += platformStats.engagements;
+            totalSpend += platformStats.spend;
+
+            // Save analytics to database
+            await storage.createCampaignAnalytics({
+              campaignId: 0, // General platform analytics
+              platform: account.platform,
+              impressions: platformStats.impressions,
+              clicks: platformStats.engagements,
+              conversions: 0,
+              spend: platformStats.spend.toString(),
+              date: new Date()
+            });
+          }
+        } catch (error) {
+          console.error(`Error fetching ${account.platform} stats:`, error);
+          // Continue with other platforms if one fails
+        }
+      }
+
+      // Calculate engagement rate
+      const engagement = totalImpressions > 0 ? 
+        totalEngagements / totalImpressions : 0;
+
+      res.json({
+        impressions: totalImpressions,
+        engagement,
+        spend: totalSpend
+      });
+
+    } catch (error) {
+      console.error("Error fetching social media stats:", error);
+      res.status(500).json({ message: "فشل في جلب إحصائيات وسائل التواصل الاجتماعي" });
     }
   });
 
@@ -770,8 +858,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const file = await storage.saveFile({
-        ...req.body,
+      const file = await storage.saveFile({        ...req.body,
         userId: req.user!.id,
       });
       res.status(201).json(file);
@@ -824,4 +911,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   return httpServer;
+}
+
+// Helper functions to fetch stats from different platforms
+async function fetchFacebookStats(account: any, keys: any) {
+  // Using Facebook Graph API
+  const { accessToken } = account;
+  const { appId, appSecret } = keys;
+
+  // TODO: Implement real Facebook API calls
+  // This is a placeholder that would be replaced with actual API implementation
+  return {
+    impressions: 0,
+    engagements: 0,
+    spend: 0
+  };
+}
+
+async function fetchTwitterStats(account: any, keys: any) {
+  // Using Twitter API v2
+  const { accessToken } = account;
+  const { apiKey, apiSecret } = keys;
+
+  // TODO: Implement real Twitter API calls
+  return {
+    impressions: 0,
+    engagements: 0,
+    spend: 0
+  };
+}
+
+async function fetchInstagramStats(account: any, keys: any) {
+  // Using Instagram Graph API
+  const { accessToken } = account;
+  const { appId, appSecret } = keys;
+
+  // TODO: Implement real Instagram API calls
+  return {
+    impressions: 0,
+    engagements: 0,
+    spend: 0
+  };
+}
+
+async function fetchTikTokStats(account: any, keys: any) {
+  // Using TikTok Marketing API
+  const { accessToken } = account;
+  const { clientKey, clientSecret } = keys;
+
+  // TODO: Implement real TikTok API calls
+  return {
+    impressions: 0,
+    engagements: 0,
+    spend: 0
+  };
+}
+
+async function fetchSnapchatStats(account: any, keys: any) {
+  // Using Snapchat Marketing API
+  const { accessToken } = account;
+  const { clientId, clientSecret } = keys;
+
+  // TODO: Implement real Snapchat API calls
+  return {
+    impressions: 0,
+    engagements: 0,
+    spend: 0
+  };
+}
+
+async function fetchLinkedInStats(account: any, keys: any) {
+  // Using LinkedIn Marketing API
+  const { accessToken } = account;
+  const { clientId, clientSecret } = keys;
+
+  // TODO: Implement real LinkedIn API calls
+  return {
+    impressions: 0,
+    engagements: 0,
+    spend: 0
+  };
 }
