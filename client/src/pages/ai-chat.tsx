@@ -10,6 +10,7 @@ export default function AiChat() {
   const [response, setResponse] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [apiKey, setApiKey] = useState("");
+  const [messages, setMessages] = useState([]); // Added state for messages
   const { toast } = useToast();
 
   useEffect(() => {
@@ -20,7 +21,8 @@ export default function AiChat() {
         const data = await response.json();
         setApiKey(data.apiKeys.groq || "");
       } catch (error) {
-        console.log("خطأ في التحقق من مفتاح API:", error);
+        console.error("خطأ في التحقق من مفتاح API:", error);
+        setApiKey(""); // تعيين قيمة فارغة في حالة الخطأ
       }
     };
 
@@ -33,25 +35,23 @@ export default function AiChat() {
     if (!prompt.trim()) {
       toast({
         title: "خطأ",
-        description: "الرجاء إدخال نص قبل الإرسال",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!apiKey) {
-      toast({
-        title: "تنبيه",
-        description: "يرجى إضافة مفتاح Groq API في صفحة الإعدادات أولاً",
+        description: "الرجاء إدخال نص",
         variant: "destructive",
       });
       return;
     }
 
     setIsLoading(true);
-    setResponse("");
+    const newUserMessage = { role: 'user', content: prompt };
+    setMessages(prev => [...prev, newUserMessage]);
 
     try {
+      // التحقق من وجود مفتاح API
+      if (!apiKey) {
+        await checkApiKey();
+      }
+
+      // استخدام Groq API
       const result = await fetch("/api/modify-code", {
         method: "POST",
         headers: {
@@ -61,7 +61,8 @@ export default function AiChat() {
       });
 
       if (!result.ok) {
-        throw new Error("فشل في الحصول على استجابة من الخادم");
+        const errorData = await result.json();
+        throw new Error(errorData.message || "فشل في الاتصال بـ API");
       }
 
       const data = await result.json();
@@ -71,11 +72,16 @@ export default function AiChat() {
         title: "تم!",
         description: "تم استلام الرد بنجاح",
       });
+
+      // إضافة رد الذكاء الصناعي إلى المحادثة
+      const newAssistantMessage = { role: 'assistant', content: data.modifiedCode };
+      setMessages(prev => [...prev, newAssistantMessage]);
+      setPrompt("");
     } catch (error) {
-      console.error("خطأ:", error);
+      console.error("Error:", error);
       toast({
         title: "خطأ",
-        description: "حدث خطأ أثناء معالجة طلبك. حاول مرة أخرى.",
+        description: error.message || "حدث خطأ أثناء معالجة الطلب",
         variant: "destructive",
       });
     } finally {

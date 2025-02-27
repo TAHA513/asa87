@@ -911,20 +911,24 @@ export async function registerRoutes(app: any): Promise<Server> {
     try {
       const { request } = req.body;
       const GROQ_API_KEY = process.env.GROQ_API_KEY;
-      const GROQ_ENDPOINT = 'https://api.groq.com/v1/chat/completions';
+      const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions'; // تصحيح المسار
 
       if (!GROQ_API_KEY) {
-        return res.status(400).json({ error: "مفتاح Groq API غير متوفر" });
+        return res.status(400).json({ message: "مفتاح Groq API غير متوفر" });
       }
 
+      console.log('🚀 جاري إرسال الطلب إلى Groq API...');
+      
       const response = await axios.post(
         GROQ_ENDPOINT,
         {
-          model: "llama-3.3-70b-versatile",
+          model: "llama3-70b-8192", // استخدام النموذج الصحيح كما في الصورة
           messages: [
             { role: "system", content: "أنت مساعد برمجي محترف، قم بتحليل الطلب وتحسين الكود البرمجي مع الحفاظ على تنسيقه." },
             { role: "user", content: request }
           ],
+          temperature: 0.7,
+          max_tokens: 1000
         },
         {
           headers: {
@@ -933,11 +937,19 @@ export async function registerRoutes(app: any): Promise<Server> {
           },
         }
       );
+      
+      console.log('✅ تم استلام الرد من Groq API بنجاح');
+      
+      if (response.data.error) {
+        console.error('❌ خطأ في استجابة Groq API:', response.data.error);
+        return res.status(500).json({ message: "خطأ في خدمة الذكاء الاصطناعي", error: response.data.error });
+      }
 
-      res.json({ modifiedCode: response.data.choices[0].message.content });
+      const aiResponse = response.data.choices[0].message.content;
+      res.json({ modifiedCode: aiResponse });
     } catch (error) {
-      console.error('❌ خطأ في تعديل الكود:', error);
-      res.status(500).json({ error: "حدث خطأ أثناء تعديل الكود" });
+      console.error('❌ خطأ في تعديل الكود:', error.response?.data || error.message || error);
+      res.status(500).json({ message: "حدث خطأ أثناء تعديل الكود", error: error.message });
     }
   });
 
