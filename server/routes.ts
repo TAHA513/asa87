@@ -820,6 +820,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "فشل في حذف الملف" });
     }
   });
+  
+  // Groq AI Routes
+  import { analyzeText, generateMarketingContent, translateText } from "./groq-service";
+  
+  app.post("/api/ai/analyze", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const { text } = req.body;
+      if (!text) {
+        return res.status(400).json({ message: "النص مطلوب" });
+      }
+      
+      const analysis = await analyzeText(text);
+      res.json({ analysis });
+    } catch (error) {
+      console.error("Error analyzing text:", error);
+      res.status(500).json({ message: "فشل في تحليل النص" });
+    }
+  });
+  
+  app.post("/api/ai/marketing", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const { product, audience, tone } = req.body;
+      if (!product || !audience || !tone) {
+        return res.status(400).json({ message: "جميع الحقول مطلوبة" });
+      }
+      
+      const content = await generateMarketingContent(product, audience, tone);
+      res.json({ content });
+    } catch (error) {
+      console.error("Error generating marketing content:", error);
+      res.status(500).json({ message: "فشل في إنشاء المحتوى التسويقي" });
+    }
+  });
+  
+  app.post("/api/ai/translate", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const { text, targetLanguage } = req.body;
+      if (!text || !targetLanguage) {
+        return res.status(400).json({ message: "النص واللغة المستهدفة مطلوبان" });
+      }
+      
+      const translation = await translateText(text, targetLanguage);
+      res.json({ translation });
+    } catch (error) {
+      console.error("Error translating text:", error);
+      res.status(500).json({ message: "فشل في ترجمة النص" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
