@@ -16,7 +16,6 @@ import {
   insertCustomerSchema,
   type Customer,
 } from "@shared/schema";
-import { chatWithModel } from "./huggingface";
 import fs from "fs/promises";
 import path from "path";
 import { insertAppointmentSchema } from "@shared/schema"; // Added import
@@ -819,29 +818,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting file:", error);
       res.status(500).json({ message: "فشل في حذف الملف" });
-    }
-  });
-  
-  // مسار API للدردشة مع نموذج Hugging Face
-  app.post("/api/ai/chat", async (req, res) => {
-    try {
-      const { prompt, modelId } = req.body;
-      
-      if (!prompt) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "يجب توفير نص المحادثة (prompt)" 
-        });
-      }
-      
-      const response = await chatWithModel(prompt, modelId);
-      res.json(response);
-    } catch (error) {
-      console.error("خطأ في الدردشة مع النموذج:", error);
-      res.status(500).json({ 
-        success: false, 
-        message: "حدث خطأ أثناء معالجة طلب الدردشة" 
-      });
     }
   });
 
