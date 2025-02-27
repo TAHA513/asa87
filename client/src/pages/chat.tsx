@@ -75,6 +75,8 @@ export default function ChatPage() {
         <CardFooter className="text-xs text-muted-foreground">
           يعتمد هذا المحادثة على نموذج Hugging Face للذكاء الاصطناعي
         </CardFooter>
+          يعتمد هذا المحادثة على نموذج Hugging Face للذكاء الاصطناعي
+        </CardFooter>
       </Card>
     </div>
   );

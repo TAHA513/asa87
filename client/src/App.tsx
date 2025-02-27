@@ -1,3 +1,4 @@
+import React, { Suspense } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
@@ -24,9 +25,10 @@ import Customers from "@/pages/customers";
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute path="/" component={Dashboard} />
+    <Suspense fallback={<div className="p-8 text-center">جاري التحميل...</div>}>
+      <Switch>
+        <Route path="/auth" component={AuthPage} />
+        <ProtectedRoute path="/" component={Dashboard} />
       <ProtectedRoute path="/inventory" component={Inventory} />
       <ProtectedRoute path="/sales" component={Sales} />
       <ProtectedRoute path="/invoices" component={Invoices} />
@@ -40,6 +42,7 @@ function Router() {
       <ProtectedRoute path="/barcodes" component={Barcodes} />
       <ProtectedRoute path="/discount-codes" component={DiscountCodes} />
       <ProtectedRoute path="/customers" component={Customers} />
+      <ProtectedRoute path="/chat" component={React.lazy(() => import("@/pages/chat"))} />
       <Route component={NotFound} />
     </Switch>
   );
