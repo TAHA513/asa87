@@ -99,7 +99,7 @@ export class MemStorage implements IStorage {
   private supplierTransactions: Map<number, SupplierTransaction> = new Map();
   private customers: Map<number, Customer> = new Map();
   private appointments: Map<number, Appointment> = new Map();
-  private files: Map<number, FileStorage> = new Map(); // Added for file storage
+  private files: Map<number, FileStorage> = new Map();
   private currentId: number = 1;
   sessionStore: session.Store;
 
@@ -126,151 +126,181 @@ export class MemStorage implements IStorage {
     this.supplierTransactions.clear();
     this.customers.clear();
     this.appointments.clear();
-    this.files.clear(); // Added for file storage
+    this.files.clear();
     this.currentId = 1;
   }
 
-  async getUser(id: number): Promise<User | undefined> {
-    const localUser = this.users.get(id);
-    if (localUser) return localUser;
-
+  async migrateAllDataToDatabase(): Promise<void> {
     try {
-      const dbUser = await dbStorage.getUser(id);
-      if (dbUser) {
-        this.users.set(dbUser.id, dbUser);
-        return dbUser;
+      for (const user of this.users.values()) {
+        try {
+          await dbStorage.saveNewUser({
+            username: user.username,
+            password: user.password,
+            fullName: user.fullName,
+            role: user.role,
+            email: user.email,
+            phone: user.phone,
+            permissions: user.permissions,
+          });
+        } catch (error) {
+          console.error("خطأ في ترحيل بيانات المستخدم:", error);
+        }
       }
-    } catch (error) {
-      console.error("خطأ في البحث عن المستخدم في قاعدة البيانات:", error);
-    }
 
-    return undefined;
+      for (const installment of this.installments.values()) {
+        try {
+          await dbStorage.createInstallment(installment);
+        } catch (error) {
+          console.error("خطأ في ترحيل بيانات التقسيط:", error);
+        }
+      }
+
+      for (const payment of this.installmentPayments.values()) {
+        try {
+          await dbStorage.createInstallmentPayment(payment);
+        } catch (error) {
+          console.error("خطأ في ترحيل بيانات دفعات التقسيط:", error);
+        }
+      }
+
+      for (const campaign of this.campaigns.values()) {
+        try {
+          await dbStorage.createCampaign({
+            name: campaign.name,
+            description: campaign.description,
+            platforms: campaign.platforms,
+            budget: Number(campaign.budget),
+            startDate: campaign.startDate,
+            endDate: campaign.endDate,
+            userId: campaign.userId,
+          });
+        } catch (error) {
+          console.error("خطأ في ترحيل بيانات الحملات:", error);
+        }
+      }
+
+      for (const analytics of this.campaignAnalytics.values()) {
+        try {
+          await dbStorage.createCampaignAnalytics({
+            campaignId: analytics.campaignId,
+            platform: analytics.platform,
+            impressions: analytics.impressions,
+            clicks: analytics.clicks,
+            conversions: analytics.conversions,
+            spend: Number(analytics.spend),
+            date: analytics.date,
+          });
+        } catch (error) {
+          console.error("خطأ في ترحيل بيانات تحليلات الحملات:", error);
+        }
+      }
+
+      for (const account of this.socialMediaAccounts.values()) {
+        try {
+          await dbStorage.createSocialMediaAccount(account);
+        } catch (error) {
+          console.error("خطأ في ترحيل بيانات حسابات التواصل الاجتماعي:", error);
+        }
+      }
+
+      for (const [userId, keys] of this.apiKeys.entries()) {
+        try {
+          await dbStorage.setApiKeys(userId, keys);
+        } catch (error) {
+          console.error("خطأ في ترحيل بيانات مفاتيح API:", error);
+        }
+      }
+
+      for (const transaction of this.inventoryTransactions.values()) {
+        try {
+          await dbStorage.createInventoryTransaction(transaction);
+        } catch (error) {
+          console.error("خطأ في ترحيل بيانات حركات المخزون:", error);
+        }
+      }
+
+      for (const expense of this.expenses.values()) {
+        try {
+          await dbStorage.createExpense(expense);
+        } catch (error) {
+          console.error("خطأ في ترحيل بيانات المصروفات:", error);
+        }
+      }
+
+      for (const supplier of this.suppliers.values()) {
+        try {
+          await dbStorage.createSupplier(supplier);
+        } catch (error) {
+          console.error("خطأ في ترحيل بيانات الموردين:", error);
+        }
+      }
+
+      for (const transaction of this.supplierTransactions.values()) {
+        try {
+          await dbStorage.createSupplierTransaction(transaction);
+        } catch (error) {
+          console.error("خطأ في ترحيل بيانات معاملات الموردين:", error);
+        }
+      }
+
+      for (const appointment of this.appointments.values()) {
+        try {
+          await dbStorage.createAppointment(appointment);
+        } catch (error) {
+          console.error("خطأ في ترحيل بيانات المواعيد:", error);
+        }
+      }
+
+      console.log("تم ترحيل جميع البيانات بنجاح إلى قاعدة البيانات");
+    } catch (error) {
+      console.error("خطأ في عملية ترحيل البيانات:", error);
+      throw error;
+    }
+  }
+
+  async getUser(id: number): Promise<User | undefined> {
+    return dbStorage.getUser(id);
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const localUser = Array.from(this.users.values()).find(
-      (user) => user.username === username
-    );
-    if (localUser) return localUser;
-
-    try {
-      const dbUser = await dbStorage.getUserByUsername(username);
-      if (dbUser) {
-        this.users.set(dbUser.id, dbUser);
-        return dbUser;
-      }
-    } catch (error) {
-      console.error("خطأ في البحث عن المستخدم في قاعدة البيانات:", error);
-    }
-
-    return undefined;
+    return dbStorage.getUserByUsername(username);
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
-    const user: User = {
-      id,
-      username: insertUser.username,
-      password: insertUser.password,
-      fullName: insertUser.fullName,
-      role: insertUser.role || "staff",
-      email: insertUser.email || null,
-      phone: insertUser.phone || null,
-      isActive: true,
-      lastLoginAt: null,
-      permissions: insertUser.permissions || [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    this.users.set(id, user);
-
-    try {
-      const dbUser = await dbStorage.saveNewUser(insertUser);
-      if (dbUser) {
-        console.log("تم حفظ المستخدم في قاعدة البيانات:", dbUser.id);
-        user.id = dbUser.id;
-        this.users.set(dbUser.id, dbUser);
-        return dbUser;
-      }
-    } catch (error) {
-      console.error("فشل في حفظ المستخدم في قاعدة البيانات:", error);
-    }
-
-    return user;
+    return dbStorage.saveNewUser(insertUser);
   }
 
   async updateUser(id: number, update: Partial<User>): Promise<User> {
-    const user = this.users.get(id);
-    if (!user) throw new Error("User not found");
-    const updatedUser = { ...user, ...update, updatedAt: new Date() };
-    this.users.set(id, updatedUser);
-    return updatedUser;
+    return dbStorage.updateUser(id, update);
   }
 
   async getProducts(): Promise<Product[]> {
-    try {
-      return await dbStorage.getProducts();
-    } catch (error) {
-      console.error("خطأ في جلب المنتجات:", error);
-      return [];
-    }
+    return dbStorage.getProducts();
   }
 
   async getProduct(id: number): Promise<Product | undefined> {
-    try {
-      return await dbStorage.getProduct(id);
-    } catch (error) {
-      console.error("خطأ في جلب المنتج:", error);
-      return undefined;
-    }
+    return dbStorage.getProduct(id);
   }
 
   async createProduct(product: Product): Promise<Product> {
-    try {
-      const savedProduct = await dbStorage.createProduct(product);
-      if (savedProduct) {
-        return savedProduct;
-      }
-      throw new Error("فشل في حفظ المنتج");
-    } catch (error) {
-      console.error("خطأ في إنشاء المنتج:", error);
-      throw error;
-    }
+    return dbStorage.createProduct(product);
   }
 
   async updateProduct(id: number, update: Partial<Product>): Promise<Product> {
-    try {
-      const updatedProduct = await dbStorage.updateProduct(id, update);
-      if (updatedProduct) {
-        return updatedProduct;
-      }
-      throw new Error("فشل في تحديث المنتج");
-    } catch (error) {
-      console.error("خطأ في تحديث المنتج:", error);
-      throw error;
-    }
+    return dbStorage.updateProduct(id, update);
   }
 
   async deleteProduct(id: number): Promise<void> {
-    try {
-      await dbStorage.deleteProduct(id);
-    } catch (error) {
-      console.error("خطأ في حذف المنتج:", error);
-      throw error;
-    }
+    return dbStorage.deleteProduct(id);
   }
 
   async getSales(): Promise<Sale[]> {
-    return await dbStorage.getSales();
+    return dbStorage.getSales();
   }
 
   async createSale(sale: Sale): Promise<Sale> {
-    const savedSale = await dbStorage.createSale(sale);
-    if (!savedSale) {
-      throw new Error("فشل في حفظ عملية البيع");
-    }
-    return savedSale;
+    return dbStorage.createSale(sale);
   }
 
   async getCurrentExchangeRate(): Promise<ExchangeRate> {
@@ -282,129 +312,75 @@ export class MemStorage implements IStorage {
   }
 
   async setExchangeRate(rate: number): Promise<ExchangeRate> {
-    const newRate = await dbStorage.setExchangeRate(rate);
-    if (!newRate) {
-      throw new Error("فشل في تحديث سعر الصرف");
-    }
-    return newRate;
+    return dbStorage.setExchangeRate(rate);
   }
 
   async getInstallments(): Promise<Installment[]> {
-    return Array.from(this.installments.values());
+    return dbStorage.getInstallments();
   }
 
   async getInstallment(id: number): Promise<Installment | undefined> {
-    return this.installments.get(id);
+    return dbStorage.getInstallment(id);
   }
 
   async createInstallment(installment: Installment): Promise<Installment> {
-    const id = this.currentId++;
-    const newInstallment = { ...installment, id };
-    this.installments.set(id, newInstallment);
-    return newInstallment;
+    return dbStorage.createInstallment(installment);
   }
 
   async updateInstallment(id: number, update: Partial<Installment>): Promise<Installment> {
-    const installment = this.installments.get(id);
-    if (!installment) throw new Error("التقسيط غير موجود");
-    const updatedInstallment = { ...installment, ...update };
-    this.installments.set(id, updatedInstallment);
-    return updatedInstallment;
+    return dbStorage.updateInstallment(id, update);
   }
 
   async getInstallmentPayments(installmentId: number): Promise<InstallmentPayment[]> {
-    return Array.from(this.installmentPayments.values()).filter(
-      (payment) => payment.installmentId === installmentId
-    );
+    return dbStorage.getInstallmentPayments(installmentId);
   }
 
   async createInstallmentPayment(payment: InstallmentPayment): Promise<InstallmentPayment> {
-    const id = this.currentId++;
-    const newPayment = { ...payment, id };
-    this.installmentPayments.set(id, newPayment);
-    const installment = await this.getInstallment(payment.installmentId);
-    if (installment) {
-      const remainingAmount = Number(installment.remainingAmount) - Number(payment.amount);
-      await this.updateInstallment(installment.id, {
-        remainingAmount: remainingAmount.toString(),
-        status: remainingAmount <= 0 ? "completed" : "active",
-      });
-    }
-    return newPayment;
+    return dbStorage.createInstallmentPayment(payment);
   }
 
   async getCampaigns(): Promise<Campaign[]> {
-    return Array.from(this.campaigns.values());
+    return dbStorage.getCampaigns();
   }
 
   async getCampaign(id: number): Promise<Campaign | undefined> {
-    return this.campaigns.get(id);
+    return dbStorage.getCampaign(id);
   }
 
   async createCampaign(campaign: InsertCampaign): Promise<Campaign> {
-    const id = this.currentId++;
-    const newCampaign: Campaign = {
-      ...campaign,
-      id,
-      status: "draft",
-      metrics: null,
-      description: campaign.description || null,
-      endDate: campaign.endDate || null,
-      budget: campaign.budget.toString(),
-      createdAt: new Date(),
-    };
-    this.campaigns.set(id, newCampaign);
-    return newCampaign;
+    return dbStorage.createCampaign(campaign);
   }
 
   async updateCampaign(id: number, update: Partial<Campaign>): Promise<Campaign> {
-    const campaign = this.campaigns.get(id);
-    if (!campaign) throw new Error("الحملة غير موجودة");
-    const updatedCampaign = { ...campaign, ...update };
-    this.campaigns.set(id, updatedCampaign);
-    return updatedCampaign;
+    return dbStorage.updateCampaign(id, update);
   }
 
   async getCampaignAnalytics(campaignId: number): Promise<CampaignAnalytics[]> {
-    return Array.from(this.campaignAnalytics.values()).filter(
-      (analytics) => analytics.campaignId === campaignId
-    );
+    return dbStorage.getCampaignAnalytics(campaignId);
   }
 
   async createCampaignAnalytics(analytics: InsertCampaignAnalytics): Promise<CampaignAnalytics> {
-    const id = this.currentId++;
-    const newAnalytics: CampaignAnalytics = {
-      ...analytics,
-      id,
-      spend: analytics.spend.toString(),
-    };
-    this.campaignAnalytics.set(id, newAnalytics);
-    return newAnalytics;
+    return dbStorage.createCampaignAnalytics(analytics);
   }
 
   async getSocialMediaAccounts(userId: number): Promise<SocialMediaAccount[]> {
-    return Array.from(this.socialMediaAccounts.values()).filter(
-      (account) => account.userId === userId
-    );
+    return dbStorage.getSocialMediaAccounts(userId);
   }
 
   async createSocialMediaAccount(account: SocialMediaAccount): Promise<SocialMediaAccount> {
-    const id = this.currentId++;
-    const newAccount = { ...account, id };
-    this.socialMediaAccounts.set(id, newAccount);
-    return newAccount;
+    return dbStorage.createSocialMediaAccount(account);
   }
 
   async deleteSocialMediaAccount(id: number): Promise<void> {
-    this.socialMediaAccounts.delete(id);
+    return dbStorage.deleteSocialMediaAccount(id);
   }
 
   async setApiKeys(userId: number, keys: Record<string, any>): Promise<void> {
-    this.apiKeys.set(userId, keys);
+    return dbStorage.setApiKeys(userId, keys);
   }
 
   async getApiKeys(userId: number): Promise<Record<string, any> | null> {
-    return this.apiKeys.get(userId) || null;
+    return dbStorage.getApiKeys(userId);
   }
 
   async migrateLocalStorageToDb(userId: number, keys: Record<string, any>): Promise<void> {
@@ -412,287 +388,132 @@ export class MemStorage implements IStorage {
   }
 
   async getInventoryTransactions(): Promise<InventoryTransaction[]> {
-    return Array.from(this.inventoryTransactions.values());
+    return dbStorage.getInventoryTransactions();
   }
 
   async createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction> {
-    const id = this.currentId++;
-    const newTransaction: InventoryTransaction = {
-      id,
-      type: transaction.type,
-      productId: transaction.productId,
-      quantity: transaction.quantity,
-      userId: transaction.userId,
-      reason: transaction.reason,
-      date: transaction.date || new Date(),
-      notes: transaction.notes || null,
-      reference: transaction.reference || null
-    };
-    this.inventoryTransactions.set(id, newTransaction);
-    return newTransaction;
+    return dbStorage.createInventoryTransaction(transaction);
   }
 
-
   async getExpenseCategories(userId: number): Promise<ExpenseCategory[]> {
-    try {
-      const categories = await dbStorage.getExpenseCategories();
-      return categories.filter(category => category.userId === userId);
-    } catch (error) {
-      console.error("خطأ في جلب فئات المصروفات:", error);
-      return [];
-    }
+    return dbStorage.getExpenseCategories(userId);
   }
 
   async getExpenseCategory(id: number): Promise<ExpenseCategory | undefined> {
-    return this.expenseCategories.get(id);
+    return dbStorage.getExpenseCategory(id);
   }
 
   async createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory> {
-    try {
-      const newCategory = await dbStorage.createExpenseCategory({
-        name: category.name,
-        description: category.description || null,
-        budgetAmount: category.budgetAmount || null,
-        userId: category.userId,
-      });
-      return newCategory;
-    } catch (error) {
-      console.error("خطأ في إنشاء فئة المصروفات:", error);
-      throw error;
-    }
+    return dbStorage.createExpenseCategory(category);
   }
 
   async updateExpenseCategory(id: number, update: Partial<ExpenseCategory>): Promise<ExpenseCategory> {
-    const category = this.expenseCategories.get(id);
-    if (!category) throw new Error("فئة المصروفات غير موجودة");
-    const updatedCategory = {
-      ...category,
-      ...update,
-      budgetAmount: update.budgetAmount?.toString() || category.budgetAmount
-    };
-    this.expenseCategories.set(id, updatedCategory);
-    return updatedCategory;
+    return dbStorage.updateExpenseCategory(id, update);
   }
 
   async deleteExpenseCategory(id: number): Promise<void> {
-    this.expenseCategories.delete(id);
+    return dbStorage.deleteExpenseCategory(id);
   }
 
   async getExpenses(userId: number): Promise<Expense[]> {
-    return Array.from(this.expenses.values())
-      .filter(expense => expense.userId === userId);
+    return dbStorage.getExpenses(userId);
   }
 
   async getExpense(id: number): Promise<Expense | undefined> {
-    return this.expenses.get(id);
+    return dbStorage.getExpense(id);
   }
 
   async createExpense(expense: InsertExpense): Promise<Expense> {
-    const id = this.currentId++;
-    const newExpense: Expense = {
-      id,
-      date: expense.date,
-      description: expense.description,
-      userId: expense.userId,
-      categoryId: expense.categoryId,
-      amount: expense.amount.toString(),
-      notes: expense.notes || null,
-      isRecurring: expense.isRecurring || false,
-      recurringPeriod: expense.recurringPeriod || null,
-      recurringDay: expense.recurringDay || null,
-      attachments: expense.attachments || [],
-      status: "active",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.expenses.set(id, newExpense);
-    return newExpense;
+    return dbStorage.createExpense(expense);
   }
 
   async updateExpense(id: number, update: Partial<Expense>): Promise<Expense> {
-    const expense = this.expenses.get(id);
-    if (!expense) throw new Error("المصروف غير موجود");
-    const updatedExpense = {
-      ...expense,
-      ...update,
-      amount: update.amount?.toString() || expense.amount,
-      updatedAt: new Date(),
-    };
-    this.expenses.set(id, updatedExpense);
-    return updatedExpense;
+    return dbStorage.updateExpense(id, update);
   }
 
   async deleteExpense(id: number): Promise<void> {
-    this.expenses.delete(id);
+    return dbStorage.deleteExpense(id);
   }
 
   async getSuppliers(userId: number): Promise<Supplier[]> {
-    return Array.from(this.suppliers.values()).filter(
-      (supplier) => supplier.userId === userId
-    );
+    return dbStorage.getSuppliers(userId);
   }
 
   async getSupplier(id: number): Promise<Supplier | undefined> {
-    return this.suppliers.get(id);
+    return dbStorage.getSupplier(id);
   }
 
   async createSupplier(supplier: InsertSupplier): Promise<Supplier> {
-    const id = this.currentId++;
-    const newSupplier: Supplier = {
-      ...supplier,
-      id,
-      status: "active",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.suppliers.set(id, newSupplier);
-    return newSupplier;
+    return dbStorage.createSupplier(supplier);
   }
 
   async updateSupplier(id: number, update: Partial<Supplier>): Promise<Supplier> {
-    const supplier = this.suppliers.get(id);
-    if (!supplier) throw new Error("المورد غير موجود");
-    const updatedSupplier = { ...supplier, ...update, updatedAt: new Date() };
-    this.suppliers.set(id, updatedSupplier);
-    return updatedSupplier;
+    return dbStorage.updateSupplier(id, update);
   }
 
   async deleteSupplier(id: number): Promise<void> {
-    this.suppliers.delete(id);
+    return dbStorage.deleteSupplier(id);
   }
 
   async getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]> {
-    return Array.from(this.supplierTransactions.values()).filter(
-      (transaction) => transaction.supplierId === supplierId
-    );
+    return dbStorage.getSupplierTransactions(supplierId);
   }
 
   async createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction> {
-    const id = this.currentId++;
-    const newTransaction: SupplierTransaction = {
-      ...transaction,
-      id,
-      createdAt: new Date(),
-    };
-    this.supplierTransactions.set(id, newTransaction);
-    return newTransaction;
+    return dbStorage.createSupplierTransaction(transaction);
   }
 
   async searchCustomers(search?: string): Promise<Customer[]> {
-    const allCustomers = Array.from(this.customers.values());
-    if (!search) return allCustomers;
-
-    const searchLower = search.toLowerCase();
-    return allCustomers.filter(customer =>
-      customer.name.toLowerCase().includes(searchLower) ||
-      customer.phone?.toLowerCase().includes(searchLower) ||
-      customer.email?.toLowerCase().includes(searchLower)
-    );
+    return dbStorage.searchCustomers(search);
   }
 
   async getCustomer(id: number): Promise<Customer | undefined> {
-    return this.customers.get(id);
+    return dbStorage.getCustomer(id);
   }
 
   async getCustomerSales(customerId: number): Promise<Sale[]> {
-    return Array.from(this.sales.values())
-      .filter(sale => sale.customerId === customerId);
+    return dbStorage.getCustomerSales(customerId);
   }
 
   async createCustomer(insertCustomer: InsertCustomer): Promise<Customer> {
-    const id = this.currentId++;
-    const customer: Customer = {
-      id,
-      name: insertCustomer.name,
-      phone: insertCustomer.phone || null,
-      email: insertCustomer.email || null,
-      address: insertCustomer.address || null,
-      notes: insertCustomer.notes || null,
-      createdAt: new Date()
-    };
-    this.customers.set(id, customer);
-    return customer;
+    return dbStorage.createCustomer(insertCustomer);
   }
 
   async getCustomerAppointments(customerId: number): Promise<Appointment[]> {
-    return Array.from(this.appointments.values())
-      .filter(appointment => appointment.customerId === customerId)
-      .sort((a, b) => b.date.getTime() - a.date.getTime());
+    return dbStorage.getCustomerAppointments(customerId);
   }
 
   async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
-    const id = this.currentId++;
-    const newAppointment: Appointment = {
-      id,
-      customerId: appointment.customerId,
-      title: appointment.title,
-      description: appointment.description || null,
-      date: appointment.date,
-      duration: appointment.duration,
-      status: appointment.status || "scheduled",
-      notes: appointment.notes || null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.appointments.set(id, newAppointment);
-    return newAppointment;
+    return dbStorage.createAppointment(appointment);
   }
 
   async updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment> {
-    const appointment = this.appointments.get(id);
-    if (!appointment) throw new Error("الموعد غير موجود");
-    const updatedAppointment = {
-      ...appointment,
-      ...update,
-      updatedAt: new Date()
-    };
-    this.appointments.set(id, updatedAppointment);
-    return updatedAppointment;
+    return dbStorage.updateAppointment(id, update);
   }
 
   async deleteAppointment(id: number): Promise<void> {
-    this.appointments.delete(id);
+    return dbStorage.deleteAppointment(id);
   }
 
   async deleteCustomer(id: number): Promise<void> {
-    this.customers.delete(id);
+    return dbStorage.deleteCustomer(id);
   }
 
   async saveFile(file: InsertFileStorage): Promise<FileStorage> {
-    try {
-      return await dbStorage.saveFile(file);
-    } catch (error) {
-      console.error("خطأ في حفظ الملف:", error);
-      throw error;
-    }
+    return dbStorage.saveFile(file);
   }
 
   async getFileById(id: number): Promise<FileStorage | undefined> {
-    try {
-      return await dbStorage.getFileById(id);
-    } catch (error) {
-      console.error("خطأ في جلب الملف:", error);
-      return undefined;
-    }
+    return dbStorage.getFileById(id);
   }
 
   async getUserFiles(userId: number): Promise<FileStorage[]> {
-    try {
-      return await dbStorage.getUserFiles(userId);
-    } catch (error) {
-      console.error("خطأ في جلب ملفات المستخدم:", error);
-      return [];
-    }
+    return dbStorage.getUserFiles(userId);
   }
 
   async deleteFile(id: number): Promise<void> {
-    try {
-      await dbStorage.deleteFile(id);
-    } catch (error) {
-      console.error("خطأ في حذف الملف:", error);
-      throw error;
-    }
+    return dbStorage.deleteFile(id);
   }
 }
 
-export const storage = new MemStorage();
+export const storage = dbStorage;

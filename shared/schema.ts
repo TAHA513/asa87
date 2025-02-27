@@ -39,9 +39,9 @@ export const customers = pgTable("customers", {
 export const sales = pgTable("sales", {
   id: serial("id").primaryKey(),
   productId: integer("product_id").notNull(),
-  customerId: integer("customer_id").references(() => customers.id),
+  customerId: integer("customer_id").notNull().references(() => customers.id),
   quantity: integer("quantity").notNull(),
-  priceIqd: decimal("price_iqd").notNull(),
+  priceIqd: decimal("price_iqd", { precision: 10, scale: 2 }).notNull(),
   date: timestamp("date").notNull().defaultNow(),
   userId: integer("user_id").notNull(),
   isInstallment: boolean("is_installment").notNull().default(false),
