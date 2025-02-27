@@ -953,10 +953,8 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
+  // إنشاء الخادم وإعادته دون تشغيله هنا
   const server = createServer(app);
-  server.listen(5000, "0.0.0.0", () => {
-    log(`🚀 الخادم يعمل على http://0.0.0.0:5000`);
-  });
-
+  log(`🚀 تم تكوين خادم API بنجاح`);
   return server;
 }

@@ -17,7 +17,12 @@ export default function AiChat() {
     // التحقق من وجود مفتاح API
     const checkApiKey = async () => {
       try {
-        const response = await fetch("/api/settings/api-keys", { method: 'GET' });
+        const response = await fetch("/api/settings/api-keys", {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
         const data = await response.json();
         setApiKey(data.apiKeys.groq || "");
       } catch (error) {

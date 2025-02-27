@@ -59,11 +59,17 @@ app.use((req, res, next) => {
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client
   const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  
+  // تأكد من أن الخادم لم يبدأ بالفعل
+  if (!server.listening) {
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`🚀 الخادم يعمل على http://0.0.0.0:${port}`);
+    });
+  } else {
+    log(`🚀 الخادم يعمل بالفعل على http://0.0.0.0:${port}`);
+  }
 })();
