@@ -21,6 +21,7 @@ import Suppliers from "@/pages/suppliers";
 import Barcodes from "@/pages/barcodes";
 import DiscountCodes from "@/pages/discount-codes";
 import Customers from "@/pages/customers";
+import Assistant from "@/pages/assistant"; // إضافة صفحة المساعد
 
 function Router() {
   return (
@@ -40,6 +41,7 @@ function Router() {
       <ProtectedRoute path="/barcodes" component={Barcodes} />
       <ProtectedRoute path="/discount-codes" component={DiscountCodes} />
       <ProtectedRoute path="/customers" component={Customers} />
+      <ProtectedRoute path="/assistant" component={Assistant} /> {/* إضافة مسار المساعد */}
       <Route component={NotFound} />
     </Switch>
   );
