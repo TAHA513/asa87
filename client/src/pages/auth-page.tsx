@@ -126,14 +126,12 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="max-w-5xl w-full grid md:grid-cols-2 gap-8">
+      <div className="max-w-5xl w-full grid grid-cols-1 gap-8">
         <div className="flex flex-col justify-center">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent mb-4">
-            نظام إدارة الأعمال
-          </h1>
-          <p className="text-muted-foreground text-lg mb-8">
-            حل متكامل لإدارة أعمالك يشمل المبيعات والمخزون وإدارة الموظفين
-          </p>
+          <div className="text-center mb-8">
+            <h1 className="text-6xl font-black mb-4" style={{ fontFamily: 'Arial Black, sans-serif' }}>SAS</h1>
+            <div className="w-24 h-24 mx-auto bg-black rounded-full mb-4 animate-bounce"></div>
+          </div>
 
           <Card>
             <CardHeader>
@@ -357,15 +355,8 @@ export default function AuthPage() {
         </div>
 
         <div className="hidden md:flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl font-semibold mb-4">المميزات الرئيسية</h2>
-            <ul className="space-y-2 text-muted-foreground">
-              <li>إدارة المبيعات الشاملة</li>
-              <li>تتبع المخزون</li>
-              <li>دعم العملات المتعددة (USD/IQD)</li>
-              <li>إدارة الموظفين</li>
-              <li>لوحة التحليلات</li>
-            </ul>
+          <div className="text-9xl font-black" style={{ fontFamily: 'Arial Black, sans-serif' }}>
+            SAS
           </div>
         </div>
       </div>
