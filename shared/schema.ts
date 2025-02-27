@@ -1,7 +1,9 @@
 import { pgTable, text, serial, timestamp, boolean, decimal, integer, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
+// تعريف جدول المستخدمين
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -18,8 +20,17 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// تعريف نوع المستخدم الأساسي
+// العلاقات للمستخدمين
+export const usersRelations = relations(users, ({ many }) => ({
+  sales: many(sales),
+  campaigns: many(marketingCampaigns),
+  expenses: many(expenses),
+  suppliers: many(suppliers),
+}));
+
+// تعريف نوع المستخدم
 export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 
 // مخطط إدخال المستخدم
 export const insertUserSchema = createInsertSchema(users)
@@ -55,8 +66,7 @@ export const insertUserSchema = createInsertSchema(users)
     }).optional().default({}),
   });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-
+// تعريف باقي الجداول
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -78,13 +88,30 @@ export const customers = pgTable("customers", {
 export const sales = pgTable("sales", {
   id: serial("id").primaryKey(),
   productId: integer("product_id").notNull(),
-  customerId: integer("customer_id").references(() => customers.id),
+  customerRef: integer("customer_ref"),
   quantity: integer("quantity").notNull(),
   priceIqd: decimal("price_iqd").notNull(),
   date: timestamp("date").notNull().defaultNow(),
   userId: integer("user_id").notNull(),
   isInstallment: boolean("is_installment").notNull().default(false),
 });
+
+// العلاقات للمبيعات
+export const salesRelations = relations(sales, ({ one }) => ({
+  product: one(products, {
+    fields: [sales.productId],
+    references: [products.id],
+  }),
+  user: one(users, {
+    fields: [sales.userId],
+    references: [users.id],
+  }),
+  customer: one(customers, {
+    fields: [sales.customerRef],
+    references: [customers.id],
+  }),
+}));
+
 
 export const installments = pgTable("installments", {
   id: serial("id").primaryKey(),
