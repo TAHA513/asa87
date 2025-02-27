@@ -1,9 +1,8 @@
-import { pgTable, text, serial, timestamp, boolean, decimal, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, decimal, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { relations } from "drizzle-orm";
+import { jsonb } from "drizzle-orm/pg-core";
 
-// تعريف جدول المستخدمين
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -15,59 +14,8 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").notNull().default(true),
   lastLoginAt: timestamp("last_login_at"),
   permissions: text("permissions").array(),
-  preferences: jsonb("preferences").default({}).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
-// تعريف نوع المستخدم
-export type User = typeof users.$inferSelect;
-
-// مخطط إدخال المستخدم
-export const insertUserSchema = createInsertSchema(users)
-  .pick({
-    username: true,
-    password: true,
-    fullName: true,
-    email: true,
-    phone: true,
-    role: true,
-    permissions: true,
-    preferences: true,
-  })
-  .extend({
-    username: z.string().min(1, "اسم المستخدم مطلوب"),
-    password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
-    fullName: z.string().min(1, "الاسم الكامل مطلوب"),
-    email: z.string().email("البريد الإلكتروني غير صالح").optional().nullable(),
-    phone: z.string().optional().nullable(),
-    role: z.enum(["admin", "staff"]).default("staff"),
-    permissions: z.array(z.string()).default([]),
-    preferences: z.object({
-      theme: z.object({
-        primary: z.string(),
-        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic"]),
-        appearance: z.enum(["light", "dark", "system"]),
-        fontStyle: z.enum(["traditional", "modern", "minimal"]),
-        radius: z.number(),
-      }).optional(),
-      sidebar: z.object({
-        isOpen: z.boolean(),
-      }).optional(),
-    }).optional().default({}),
-  });
-
-export type InsertUser = z.infer<typeof insertUserSchema>;
-
-// تعريف باقي الجداول
-export const customers = pgTable("customers", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  phone: text("phone"),
-  email: text("email"),
-  address: text("address"),
-  notes: text("notes"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const products = pgTable("products", {
@@ -78,37 +26,26 @@ export const products = pgTable("products", {
   stock: integer("stock").notNull().default(0),
 });
 
+export const customers = pgTable("customers", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  email: text("email"),
+  address: text("address"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const sales = pgTable("sales", {
   id: serial("id").primaryKey(),
-  productId: integer("product_id").notNull().references(() => products.id),
-  customerRef: integer("customer_ref").references(() => customers.id),
+  productId: integer("product_id").notNull(),
+  customerId: integer("customer_id").references(() => customers.id),
   quantity: integer("quantity").notNull(),
   priceIqd: decimal("price_iqd").notNull(),
   date: timestamp("date").notNull().defaultNow(),
-  userId: integer("user_id").notNull().references(() => users.id),
+  userId: integer("user_id").notNull(),
   isInstallment: boolean("is_installment").notNull().default(false),
 });
-
-// العلاقات بين الجداول
-export const usersRelations = relations(users, ({ many }) => ({
-  sales: many(sales)
-}));
-
-export const salesRelations = relations(sales, ({ one }) => ({
-  product: one(products, {
-    fields: [sales.productId],
-    references: [products.id],
-  }),
-  user: one(users, {
-    fields: [sales.userId],
-    references: [users.id],
-  }),
-  customer: one(customers, {
-    fields: [sales.customerRef],
-    references: [customers.id],
-  }),
-}));
-
 
 export const installments = pgTable("installments", {
   id: serial("id").primaryKey(),
@@ -301,6 +238,26 @@ export const fileStorage = pgTable("file_storage", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const insertUserSchema = createInsertSchema(users)
+  .pick({
+    username: true,
+    password: true,
+    fullName: true,
+    email: true,
+    phone: true,
+    role: true,
+    permissions: true,
+  })
+  .extend({
+    username: z.string().min(1, "اسم المستخدم مطلوب"),
+    password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
+    fullName: z.string().min(1, "الاسم الكامل مطلوب"),
+    email: z.string().email("البريد الإلكتروني غير صالح").optional().nullable(),
+    phone: z.string().optional().nullable(),
+    role: z.enum(["admin", "staff"]).default("staff"),
+    permissions: z.array(z.string()).default([]),
+  });
+
 export const insertProductSchema = createInsertSchema(products).extend({
   name: z.string().min(1, "اسم المنتج مطلوب"),
   description: z.string().optional(),
@@ -308,19 +265,13 @@ export const insertProductSchema = createInsertSchema(products).extend({
   stock: z.number().min(0, "المخزون يجب أن يكون 0 على الأقل"),
 });
 
-export const insertSaleSchema = createInsertSchema(sales)
-  .pick({
-    productId: true,
-    customerRef: true,
-    quantity: true,
-    priceIqd: true,
-  })
-  .extend({
-    productId: z.number().min(1, "يجب اختيار منتج"),
-    customerRef: z.number().optional(),
-    quantity: z.number().min(1, "الكمية يجب أن تكون 1 على الأقل"),
-    priceIqd: z.number().min(0, "السعر يجب أن يكون أكبر من 0"),
-  });
+export const insertSaleSchema = createInsertSchema(sales).pick({
+  productId: true,
+  quantity: true,
+}).extend({
+  productId: z.number().min(1, "يجب اختيار منتج"),
+  quantity: z.number().min(1, "الكمية يجب أن تكون 1 على الأقل"),
+});
 
 export const insertExchangeRateSchema = createInsertSchema(exchangeRates).pick({
   usdToIqd: true,
@@ -480,6 +431,8 @@ export const insertFileStorageSchema = createInsertSchema(fileStorage)
     userId: z.number().min(1, "معرف المستخدم مطلوب"),
   });
 
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Sale = typeof sales.$inferSelect;
 export type ExchangeRate = typeof exchangeRates.$inferSelect;
