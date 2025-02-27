@@ -48,6 +48,7 @@ export default function Settings() {
   const huggingFaceFormSchema = z.object({
     apiKey: z.string().min(1, "مفتاح API مطلوب"),
     modelId: z.string().optional(),
+    huggingFaceApiKey: z.string().optional(), // Added Hugging Face API Key field
   });
 
   // استخدام النموذج في الصفحة
@@ -56,6 +57,7 @@ export default function Settings() {
     defaultValues: {
       apiKey: "",
       modelId: "",
+      huggingFaceApiKey: "", // Added default value
     },
   });
 
@@ -66,6 +68,7 @@ export default function Settings() {
         huggingface: {
           apiKey: values.apiKey,
           modelId: values.modelId || "",
+          huggingFaceApiKey: values.huggingFaceApiKey, // Added Hugging Face API Key to payload
         },
       });
       toast({
@@ -158,6 +161,22 @@ export default function Settings() {
                             </FormControl>
                             <FormDescription>
                               معرّف النموذج الذي ترغب في استخدامه للمساعد الذكي
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={huggingFaceForm.control}
+                        name="huggingFaceApiKey"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Hugging Face API Key</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Your Hugging Face API Key" {...field} type="password" />
+                            </FormControl>
+                            <FormDescription>
+                              Required to run the assistant. Obtain a key from <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener noreferrer" className="text-primary underline">huggingface.co</a>
                             </FormDescription>
                             <FormMessage />
                           </FormItem>

@@ -444,7 +444,7 @@ export type InsertCampaignAnalytics = z.infer<typeof insertAnalyticsSchema>;
 export type SocialMediaAccount = typeof socialMediaAccounts.$inferSelect;
 export type InsertSocialMediaAccount = z.infer<typeof insertSocialMediaAccountSchema>;
 export type ApiKey = typeof apiKeys.$inferSelect;
-export type InsertApiKey = typeof apiKeys.$inferInsert;
+export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
 
 export type InventoryTransaction = typeof inventoryTransactions.$inferSelect;
 export type InsertInventoryTransaction = z.infer<typeof insertInventoryTransactionSchema>;
@@ -474,3 +474,24 @@ export const huggingFaceApiSchema = z.object({
   apiKey: z.string().min(1, "API Key مطلوب"),
   modelId: z.string().optional(),
 });
+
+// نموذج بيانات مفاتيح API للخدمات المختلفة
+export interface ApiKeys {
+  id?: number;
+  userId: number;
+  huggingFaceApiKey?: string;
+  openaiApiKey?: string;
+  googleMapsApiKey?: string;
+  facebookApiKey?: string;
+  instagramApiKey?: string;
+  tiktokApiKey?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export type InsertApiKey2 = {
+  userId: number;
+  key: string;
+  service: string;
+  createdAt?: Date;
+};

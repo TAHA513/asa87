@@ -1,168 +1,210 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import { Loader2, Send } from "lucide-react";
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Send, Bot, User } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { getApiKeys } from '@/api/settings';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
+import Sidebar from '@/components/sidebar';
 
 interface Message {
-  id: string;
+  role: 'assistant' | 'user';
   content: string;
-  isUser: boolean;
   timestamp: Date;
 }
 
-export function AssistantPage() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputMessage, setInputMessage] = useState('');
+export default function AssistantPage() {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: 'assistant',
+      content: 'مرحباً! أنا المساعد الذكي الخاص بإدارة متجرك. كيف يمكنني مساعدتك اليوم؟',
+      timestamp: new Date(),
+    },
+  ]);
+  const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const apiKey = ""; // هنا يمكن إضافة مفتاح الـ API الخاص بك
+  
+  const { data: apiKeys } = useQuery({
+    queryKey: ['apiKeys'],
+    queryFn: getApiKeys,
+  });
 
-  // تمرير الصفحة لأسفل عند إضافة رسائل جديدة
-  useEffect(() => {
+  const hasHuggingFaceKey = apiKeys?.huggingFaceApiKey;
+
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
   }, [messages]);
 
-  // إضافة رسالة ترحيبية عند بدء المحادثة
-  useEffect(() => {
-    if (messages.length === 0) {
-      setMessages([
-        {
-          id: '1',
-          content: 'مرحباً! أنا المساعد الذكي الخاص بك. كيف يمكنني مساعدتك اليوم؟',
-          isUser: false,
-          timestamp: new Date(),
-        }
-      ]);
-    }
-  }, []);
-
-  // إرسال الرسالة إلى API
-  const sendMessage = async () => {
-    if (!inputMessage.trim()) return;
-
+  const handleSendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+    
+    // Add user message
     const userMessage: Message = {
-      id: Date.now().toString(),
-      content: inputMessage,
-      isUser: true,
+      role: 'user',
+      content: input,
       timestamp: new Date(),
     };
-
+    
     setMessages(prev => [...prev, userMessage]);
-    setInputMessage('');
+    setInput('');
     setIsLoading(true);
-
+    
     try {
-      // الاتصال بالخادم الخلفي الذي يتواصل مع Hugging Face
-      const response = await fetch('/api/assistant/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message: userMessage.content }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'فشل الاتصال بالخدمة');
+      // Call API to get response from AI
+      if (hasHuggingFaceKey) {
+        // Actual API call would go here
+        const response = await fetch('/api/assistant/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: input,
+          }),
+        });
+        
+        const data = await response.json();
+        
+        // Add AI response
+        setMessages(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: data.response || 'عذراً، حدث خطأ في معالجة طلبك.',
+            timestamp: new Date(),
+          },
+        ]);
+      } else {
+        // If no API key, simulate response
+        setTimeout(() => {
+          setMessages(prev => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: 'لم يتم تكوين مفتاح API الخاص بهاغينغ فيس. يرجى إضافة المفتاح في صفحة الإعدادات.',
+              timestamp: new Date(),
+            },
+          ]);
+          setIsLoading(false);
+        }, 1000);
       }
-
-      const result = await response.json();
-      
-      const botResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        content: result.reply || 'عذراً، لم أتمكن من فهم ذلك.',
-        isUser: false,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, botResponse]);
     } catch (error) {
-      console.error('Error:', error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: 'عذراً، حدث خطأ في معالجة طلبك. الرجاء المحاولة مرة أخرى.',
-        isUser: false,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, errorMessage]);
+      console.error('Error fetching AI response:', error);
+      
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: 'عذراً، حدث خطأ أثناء محاولة الاتصال بالخدمة. يرجى المحاولة مرة أخرى.',
+          timestamp: new Date(),
+        },
+      ]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      handleSendMessage();
     }
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
-      <Card className="h-[calc(100vh-8rem)] flex flex-col">
-        <CardHeader className="bg-primary/5">
-          <CardTitle className="text-2xl flex items-center gap-2">
-            <Avatar>
-              <AvatarImage src="/robot.png" />
-              <AvatarFallback>AI</AvatarFallback>
-            </Avatar>
-            المساعد الذكي
-          </CardTitle>
-        </CardHeader>
-        
-        <CardContent className="flex-1 overflow-auto p-4">
-          <div className="space-y-4">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-3/4 rounded-lg p-3 ${
-                    msg.isUser
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted'
-                  }`}
-                >
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
-                  <p className="text-xs opacity-70 mt-1 text-left">
-                    {msg.timestamp.toLocaleTimeString()}
-                  </p>
-                </div>
+    <div className="flex h-screen overflow-hidden">
+      <div className="w-64 h-full">
+        <Sidebar />
+      </div>
+      <main className="flex-1 p-8 overflow-y-auto">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-3xl font-bold mb-6">المساعد الذكي</h1>
+          
+          {!hasHuggingFaceKey && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>تنبيه</AlertTitle>
+              <AlertDescription>
+                لم يتم تكوين مفتاح API الخاص بهاغينغ فيس. يرجى إضافة المفتاح في{' '}
+                <a href="/settings" className="underline">صفحة الإعدادات</a>.
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          <Card className="mb-4">
+            <CardContent className="p-6">
+              <div className="h-[60vh] overflow-y-auto mb-4">
+                {messages.map((msg, index) => (
+                  <div
+                    key={index}
+                    className={`mb-4 flex ${msg.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
+                  >
+                    <div
+                      className={`flex p-3 rounded-lg max-w-[80%] ${
+                        msg.role === 'assistant'
+                          ? 'bg-secondary text-secondary-foreground'
+                          : 'bg-primary text-primary-foreground'
+                      }`}
+                    >
+                      <div className="mr-2 mt-1">
+                        {msg.role === 'assistant' ? (
+                          <Bot className="h-5 w-5" />
+                        ) : (
+                          <User className="h-5 w-5" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                        <div className="text-xs opacity-70 mt-1">
+                          {new Date(msg.timestamp).toLocaleTimeString()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
               </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-        </CardContent>
-        
-        <Separator />
-        
-        <CardFooter className="p-4">
-          <div className="flex w-full items-center space-x-2 rtl:space-x-reverse">
-            <Input
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="اكتب رسالتك هنا..."
-              disabled={isLoading}
-              className="flex-1"
-            />
-            <Button 
-              onClick={sendMessage} 
-              disabled={isLoading || !inputMessage.trim()}
-              size="icon"
-            >
-              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-            </Button>
-          </div>
-        </CardFooter>
-      </Card>
+              
+              <div className="flex gap-2">
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder="اكتب رسالتك هنا..."
+                  disabled={isLoading || !hasHuggingFaceKey}
+                />
+                <Button 
+                  onClick={handleSendMessage} 
+                  disabled={isLoading || !input.trim() || !hasHuggingFaceKey}
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-xl font-medium mb-2">كيف يمكن للمساعد الذكي مساعدتك</h3>
+              <ul className="list-disc list-inside space-y-1">
+                <li>الإجابة على الأسئلة المتعلقة بإدارة المتجر</li>
+                <li>مساعدتك في فهم تقارير المبيعات والمخزون</li>
+                <li>اقتراح استراتيجيات للتسويق والمبيعات</li>
+                <li>مساعدتك في إدارة العملاء والموردين</li>
+                <li>توفير نصائح لزيادة الإنتاجية وتحسين الأداء</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
     </div>
   );
 }
-
-export default AssistantPage;
