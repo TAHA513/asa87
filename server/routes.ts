@@ -1,5 +1,4 @@
 import type { Express } from "express";
-import { Router } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
@@ -19,43 +18,28 @@ import {
 } from "@shared/schema";
 import fs from "fs/promises";
 import path from "path";
-import { insertAppointmentSchema } from "@shared/schema";
-import axios from "axios";
-import dotenv from "dotenv";
+import { insertAppointmentSchema } from "@shared/schema"; // Added import
 
-dotenv.config();
-const log = (message: string) => console.log(message);
-
-
-const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
-
-export async function registerRoutes(app: any): Promise<Server> {
-  const router = Router();
-  app.use("/api", router);
+export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
-  // Add health check endpoint at the top of registerRoutes function
-  router.get("/health", (_req, res) => {
-    res.json({ status: "ok", message: "الخادم يعمل بشكل صحيح" });
-  });
-
   // Products
-  router.get("/products", async (_req, res) => {
+  app.get("/api/products", async (_req, res) => {
     const products = await storage.getProducts();
     res.json(products);
   });
 
-  router.post("/products", async (req, res) => {
+  app.post("/api/products", async (req, res) => {
     const product = await storage.createProduct(req.body);
     res.status(201).json(product);
   });
 
-  router.patch("/products/:id", async (req, res) => {
+  app.patch("/api/products/:id", async (req, res) => {
     const product = await storage.updateProduct(Number(req.params.id), req.body);
     res.json(product);
   });
 
-  router.delete("/products/:id", async (req, res) => {
+  app.delete("/api/products/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -71,12 +55,12 @@ export async function registerRoutes(app: any): Promise<Server> {
 
 
   // Sales
-  router.get("/sales", async (_req, res) => {
+  app.get("/api/sales", async (_req, res) => {
     const sales = await storage.getSales();
     res.json(sales);
   });
 
-  router.post("/sales", async (req, res) => {
+  app.post("/api/sales", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
@@ -103,7 +87,7 @@ export async function registerRoutes(app: any): Promise<Server> {
   });
 
   // Exchange Rates  
-  router.get("/exchange-rate", async (_req, res) => {
+  app.get("/api/exchange-rate", async (_req, res) => {
     try {
       const rate = await storage.getCurrentExchangeRate();
       res.json(rate);
@@ -113,7 +97,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.post("/exchange-rate", async (req, res) => {
+  app.post("/api/exchange-rate", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول لتحديث سعر الصرف" });
     }
@@ -135,7 +119,7 @@ export async function registerRoutes(app: any): Promise<Server> {
   });
 
   // Theme Settings
-  router.post("/theme", async (req, res) => {
+  app.post("/api/theme", async (req, res) => {
     try {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
@@ -161,12 +145,12 @@ export async function registerRoutes(app: any): Promise<Server> {
   });
 
   // طرق التقسيط
-  router.get("/installments", async (_req, res) => {
+  app.get("/api/installments", async (_req, res) => {
     const installments = await storage.getInstallments();
     res.json(installments);
   });
 
-  router.get("/installments/:id", async (req, res) => {
+  app.get("/api/installments/:id", async (req, res) => {
     const installment = await storage.getInstallment(Number(req.params.id));
     if (!installment) {
       return res.status(404).json({ message: "التقسيط غير موجود" });
@@ -174,7 +158,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     res.json(installment);
   });
 
-  router.post("/installments", async (req, res) => {
+  app.post("/api/installments", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -193,12 +177,12 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.get("/installments/:id/payments", async (req, res) => {
+  app.get("/api/installments/:id/payments", async (req, res) => {
     const payments = await storage.getInstallmentPayments(Number(req.params.id));
     res.json(payments);
   });
 
-  router.post("/installments/:id/payments", async (req, res) => {
+  app.post("/api/installments/:id/payments", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -218,12 +202,12 @@ export async function registerRoutes(app: any): Promise<Server> {
   });
 
   // Marketing Campaign Routes
-  router.get("/marketing/campaigns", async (_req, res) => {
+  app.get("/api/marketing/campaigns", async (_req, res) => {
     const campaigns = await storage.getCampaigns();
     res.json(campaigns);
   });
 
-  router.get("/marketing/campaigns/:id", async (req, res) => {
+  app.get("/api/marketing/campaigns/:id", async (req, res) => {
     const campaign = await storage.getCampaign(Number(req.params.id));
     if (!campaign) {
       return res.status(404).json({ message: "الحملة غير موجودة" });
@@ -231,7 +215,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     res.json(campaign);
   });
 
-  router.post("/marketing/campaigns", async (req, res) => {
+  app.post("/api/marketing/campaigns", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -249,12 +233,12 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.get("/marketing/campaigns/:id/analytics", async (req, res) => {
+  app.get("/api/marketing/campaigns/:id/analytics", async (req, res) => {
     const analytics = await storage.getCampaignAnalytics(Number(req.params.id));
     res.json(analytics);
   });
 
-  router.post("/marketing/campaigns/:id/analytics", async (req, res) => {
+  app.post("/api/marketing/campaigns/:id/analytics", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -274,7 +258,7 @@ export async function registerRoutes(app: any): Promise<Server> {
 
 
   // Social Media Auth Routes
-  router.get("/marketing/social-accounts", async (req, res) => {
+  app.get("/api/marketing/social-accounts", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -282,7 +266,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     res.json(accounts);
   });
 
-  router.get("/marketing/social-auth/:platform", async (req, res) => {
+  app.get("/api/marketing/social-auth/:platform", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -325,7 +309,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.delete("/marketing/social-accounts/:id", async (req, res) => {
+  app.delete("/api/marketing/social-accounts/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -340,7 +324,7 @@ export async function registerRoutes(app: any): Promise<Server> {
   });
 
   // API Key routes
-  router.post("/settings/api-keys", async (req, res) => {
+  app.post("/api/settings/api-keys", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -382,7 +366,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.get("/settings/api-keys", async (req, res) => {
+  app.get("/api/settings/api-keys", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -396,7 +380,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.post("/settings/api-keys/migrate", async (req, res) => {
+  app.post("/api/settings/api-keys/migrate", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -411,7 +395,7 @@ export async function registerRoutes(app: any): Promise<Server> {
   });
 
   // Inventory Transaction Routes
-  router.get("/inventory/transactions", async (req, res) => {
+  app.get("/api/inventory/transactions", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -425,7 +409,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.post("/inventory/transactions", async (req, res) => {
+  app.post("/api/inventory/transactions", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -455,7 +439,7 @@ export async function registerRoutes(app: any): Promise<Server> {
   });
 
   // Expense Categories Routes
-  router.get("/expenses/categories", async (req, res) => {
+  app.get("/api/expenses/categories", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -469,7 +453,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.post("/expenses/categories", async (req, res) => {
+  app.post("/api/expenses/categories", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -500,7 +484,7 @@ export async function registerRoutes(app: any): Promise<Server> {
   });
 
   // Expenses Routes
-  router.get("/expenses", async (req, res) => {
+  app.get("/api/expenses", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -514,7 +498,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.post("/expenses", async (req, res) => {
+  app.post("/api/expenses", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -537,7 +521,7 @@ export async function registerRoutes(app: any): Promise<Server> {
   });
 
   // Suppliers Routes
-  router.get("/suppliers", async (req, res) => {
+  app.get("/api/suppliers", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -551,7 +535,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.post("/suppliers", async (req, res) => {
+  app.post("/api/suppliers", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -573,7 +557,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.patch("/suppliers/:id", async (req, res) => {
+  app.patch("/api/suppliers/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -592,7 +576,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.delete("/suppliers/:id", async (req, res) => {
+  app.delete("/api/suppliers/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -610,7 +594,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.get("/suppliers/:id/transactions", async (req, res) => {
+  app.get("/api/suppliers/:id/transactions", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -624,7 +608,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.post("/suppliers/:id/transactions", async (req, res) => {
+  app.post("/api/suppliers/:id/transactions", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -648,7 +632,7 @@ export async function registerRoutes(app: any): Promise<Server> {
   });
 
   // Customer Routes
-  router.get("/customers", async (req, res) => {
+  app.get("/api/customers", async (req, res) => {
     try {
       const search = req.query.search as string;
       const customers = await storage.searchCustomers(search);
@@ -659,7 +643,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.get("/customers/:id", async (req, res) => {
+  app.get("/api/customers/:id", async (req, res) => {
     try {
       const customer = await storage.getCustomer(Number(req.params.id));
       if (!customer) {
@@ -672,7 +656,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.get("/customers/:id/sales", async (req, res) => {
+  app.get("/api/customers/:id/sales", async (req, res) => {
     try {
       const sales = await storage.getCustomerSales(Number(req.params.id));
       res.json(sales);
@@ -682,7 +666,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.post("/customers", async (req, res) => {
+  app.post("/api/customers", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -702,7 +686,7 @@ export async function registerRoutes(app: any): Promise<Server> {
   });
 
   // إضافة مسار حذف العميل
-  router.delete("/customers/:id", async (req, res) => {
+  app.delete("/api/customers/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -718,7 +702,7 @@ export async function registerRoutes(app: any): Promise<Server> {
   });
 
   // Appointment Routes
-  router.get("/customers/:id/appointments", async (req, res) => {
+  app.get("/api/customers/:id/appointments", async (req, res) => {
     try {
       const appointments = await storage.getCustomerAppointments(Number(req.params.id));
       res.json(appointments);
@@ -728,7 +712,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.post("/customers/:id/appointments", async (req, res) => {
+  app.post("/api/customers/:id/appointments", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -750,7 +734,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.patch("/appointments/:id", async (req, res) => {
+  app.patch("/api/appointments/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -764,7 +748,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.delete("/appointments/:id", async (req, res) => {
+  app.delete("/api/appointments/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -779,7 +763,7 @@ export async function registerRoutes(app: any): Promise<Server> {
   });
 
   // File Storage Routes
-  router.post("/files", async (req, res) => {
+  app.post("/api/files", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -796,7 +780,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.get("/files/:id", async (req, res) => {
+  app.get("/api/files/:id", async (req, res) => {
     try {
       const file = await storage.getFileById(Number(req.params.id));
       if (!file) {
@@ -809,7 +793,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.get("/files/user", async (req, res) => {
+  app.get("/api/files/user", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -823,7 +807,7 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  router.delete("/files/:id", async (req, res) => {
+  app.delete("/api/files/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -837,152 +821,6 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  // AI Chat Routes
-  router.post("/ai/chat", async (req, res) => {
-    try {
-      const { message } = req.body;
-      console.log("📝 Received chat request:", message);
-
-      if (!message) {
-        return res.status(400).json({ message: "الرسالة مطلوبة" });
-      }
-
-      const apiKey = process.env.GROQ_API_KEY;
-      if (!apiKey) {
-        console.error("❌ مفتاح API غير موجود");
-        return res.status(500).json({ message: "مفتاح API غير مكوّن" });
-      }
-
-      console.log("🔄 جاري الاتصال بـ Groq API...");
-      const response = await fetch(GROQ_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: "llama3-70b-8192",
-          messages: [
-            { 
-              role: "system", 
-              content: "أنت مساعد ذكي يساعد في إدارة المتجر وخدمة العملاء. قم بالرد باللغة العربية." 
-            },
-            { role: "user", content: message }
-          ],
-          temperature: 0.7,
-          max_tokens: 1000
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("❌ خطأ في استجابة Groq API:", errorData);
-        return res.status(response.status).json({
-          message: "خطأ في خدمة الذكاء الاصطناعي",
-          error: errorData.error?.message || "خطأ غير معروف"
-        });
-      }
-
-      const data = await response.json();
-      const aiResponse = data.choices[0].message.content;
-      console.log("✅ تم استلام الرد بنجاح");
-
-      res.json({ response: aiResponse });
-    } catch (error) {
-      console.error("❌ خطأ في المحادثة الذكية:", error);
-      res.status(500).json({ 
-        message: "فشل في معالجة طلب المحادثة الذكية",
-        error: error instanceof Error ? error.message : "خطأ غير معروف"
-      });
-    }
-  });
-
-  // إضافة API للتحقق من مفتاح Groq
-  router.get("/settings/api-keys", (_req, res) => {
-    try {
-      console.log("تم استدعاء API للحصول على مفاتيح API");
-      res.json({
-        apiKeys: {
-          groq: process.env.GROQ_API_KEY || ""
-        },
-        success: true
-      });
-    } catch (error) {
-      console.error("Error fetching API keys:", error);
-      res.status(500).json({ message: "فشل في جلب مفاتيح API" });
-    }
-  });
-
-  // API لتحديث مفتاح Groq
-  router.post("/settings/api-keys", (req, res) => {
-    try {
-      const { groqApiKey } = req.body;
-      // في حالة استخدام مشروع حقيقي، يجب تخزين المفتاح في قاعدة البيانات أو .env
-      // هنا يتم إرجاع استجابة فقط للاختبار
-      res.json({ success: true, message: "تم تحديث مفتاح API بنجاح" });
-    } catch (error) {
-      console.error("Error updating API key:", error);
-      res.status(500).json({ message: "فشل في تحديث مفتاح API" });
-    }
-  });
-
-  // تعديل مسار AI Chat للتعامل مع الأخطاء بشكل أفضل
-  router.post("/modify-code", async (req, res) => {
-    try {
-      const { request } = req.body;
-      const GROQ_API_KEY = process.env.GROQ_API_KEY;
-
-      if (!GROQ_API_KEY) {
-        return res.status(400).json({ message: "مفتاح Groq API غير متوفر" });
-      }
-
-      console.log('🚀 جاري إرسال الطلب إلى Groq API...');
-      console.log('الطلب:', request);
-
-      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${GROQ_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: "llama3-70b-8192",
-          messages: [
-            { role: "system", content: "أنت مساعد برمجي محترف، قم بتحليل الطلب وتحسين الكود البرمجي مع الحفاظ على تنسيقه." },
-            { role: "user", content: request }
-          ],
-          temperature: 0.7,
-          max_tokens: 1000
-        })
-      });
-
-      console.log('✅ تم استلام الرد من Groq API');
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('❌ خطأ في استجابة Groq API:', errorData);
-        return res.status(response.status).json({ 
-          message: "خطأ في خدمة الذكاء الاصطناعي", 
-          error: errorData.error?.message || "خطأ غير معروف" 
-        });
-      }
-
-      const data = await response.json();
-      const aiResponse = data.choices[0].message.content;
-
-      console.log('✅ تم معالجة الرد بنجاح');
-      res.json({ modifiedCode: aiResponse });
-
-    } catch (error) {
-      console.error('❌ خطأ في تعديل الكود:', error);
-      res.status(500).json({ 
-        message: "حدث خطأ أثناء تعديل الكود",
-        error: error instanceof Error ? error.message : "خطأ غير معروف"
-      });
-    }
-  });
-
-  const server = createServer(app);
-  log(`🚀 تم تكوين خادم API بنجاح`);
-  return server;
+  const httpServer = createServer(app);
+  return httpServer;
 }

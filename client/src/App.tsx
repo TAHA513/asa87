@@ -21,7 +21,6 @@ import Suppliers from "@/pages/suppliers";
 import Barcodes from "@/pages/barcodes";
 import DiscountCodes from "@/pages/discount-codes";
 import Customers from "@/pages/customers";
-import AiChat from "@/pages/ai-chat";
 
 function Router() {
   return (
@@ -42,9 +41,6 @@ function Router() {
       <ProtectedRoute path="/discount-codes" component={DiscountCodes} />
       <ProtectedRoute path="/customers" component={Customers} />
       <Route component={NotFound} />
-
-        <ProtectedRoute path="/ai-chat" component={AiChat} />
-
     </Switch>
   );
 }
