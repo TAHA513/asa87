@@ -1,0 +1,158 @@
+لتضمين خيار الدردشة داخل أدوات موقع Replit بحيث يمكنك إرسال الطلبات واستلام الردود من Groq API مباشرة داخل Replit، سنقوم بالتالي:
+
+✅ 1. إضافة Webview داخل Replit
+✅ 2. تضمين زر لفتح الدردشة مباشرة من قائمة أدوات Replit
+✅ 3. تشغيل الخادم الخلفي على المنفذ 5000
+✅ 4. استخدام Replit Tools API لدمج الأداة
+
+
+---
+
+🔹 1. إعداد خادم Express.js لدمج الدردشة في Replit
+
+📌 افتح server.js وأضف الكود التالي:
+
+require('dotenv').config();
+const axios = require('axios');
+const express = require('express');
+const cors = require('cors');
+
+const app = express();
+app.use(express.json());
+app.use(cors());
+
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const GROQ_ENDPOINT = 'https://api.groq.com/v1/chat/completions';
+
+// دالة لإرسال طلب تعديل الكود إلى الذكاء الاصطناعي
+async function modifyCode(userRequest) {
+    try {
+        const response = await axios.post(
+            GROQ_ENDPOINT,
+            {
+                model: "llama-3.3-70b-versatile",
+                messages: [
+                    { role: "system", content: "أنت مساعد برمجي محترف، قم بتحليل الطلب وتحسين الكود البرمجي مع الحفاظ على تنسيقه." },
+                    { role: "user", content: userRequest }
+                ],
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${GROQ_API_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+            }
+        );
+
+        return response.data.choices[0].message.content;
+    } catch (error) {
+        console.error('❌ خطأ في تعديل الكود:', error);
+        return "❌ حدث خطأ أثناء تعديل الكود.";
+    }
+}
+
+// API لاستقبال الطلبات وتعديل الأكواد
+app.post('/api/modify-code', async (req, res) => {
+    const { request } = req.body;
+    const modifiedCode = await modifyCode(request);
+    res.json({ modifiedCode });
+});
+
+// تشغيل الخادم على المنفذ 5000
+const PORT = 5000;
+app.listen(PORT, () => {
+    console.log(`✅ الخادم يعمل على: https://your-replit-project-name.replit.app`);
+});
+
+
+---
+
+🔹 2. إنشاء صفحة دردشة مدمجة في Replit
+
+📌 افتح chat.html وأضف الكود التالي:
+
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دردشة مساعد البرمجة</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+        textarea { width: 80%; height: 100px; margin-bottom: 10px; }
+        button { padding: 10px 20px; font-size: 16px; }
+        pre { background: #f4f4f4; padding: 10px; text-align: left; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+
+    <h2>🔧 مساعد تعديل الأكواد</h2>
+    <textarea id="userInput" placeholder="اكتب طلب تعديل الكود هنا..."></textarea><br>
+    <button onclick="sendRequest()">✏️ أرسل التعديل</button>
+    <pre id="response"></pre>
+
+    <script>
+        async function sendRequest() {
+            const userInput = document.getElementById('userInput').value;
+            const res = await fetch('/api/modify-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ request: userInput }),
+            });
+
+            const data = await res.json();
+            document.getElementById('response').textContent = data.modifiedCode;
+        }
+    </script>
+
+</body>
+</html>
+
+
+---
+
+🔹 3. إضافة الدردشة إلى قائمة أدوات Replit
+
+📌 افتح replit-tool.json وأضف الكود التالي:
+
+{
+    "title": "مساعد البرمجة AI",
+    "description": "دردشة ذكية لتعديل الأكواد تلقائيًا",
+    "icon": "⚡",
+    "view": {
+        "default": "chat.html"
+    },
+    "permissions": [
+        "network"
+    ]
+}
+
+
+---
+
+🔹 4. تشغيل الخادم وإضافة الدردشة في Replit
+
+📌 في ملف package.json، أضف:
+
+"scripts": {
+    "start": "node server.js"
+}
+
+📌 ثم شغل المشروع باستخدام:
+
+npm start
+
+📌 بعد ذلك، في Replit، قم بفتح قائمة الأدوات (Tools) وستجد مساعد البرمجة متاحًا كأداة داخلية.
+
+
+---
+
+🎯 النتيجة النهائية
+
+✔️ تمت إضافة مساعد الذكاء الاصطناعي داخل Replit Tools
+✔️ يمكنك تعديل الأكواد مباشرة داخل Replit من خلال الدردشة
+✔️ يمكنك تشغيل المساعد على المنفذ 5000 والتواصل مع Groq API
+✔️ الدردشة مدمجة بالكامل في بيئة العمل الخاصة بك
+
+💡 إذا كنت تريد تخصيص الأداة أو تحسين شكل الدردشة، أخبرني وسأساعدك في ذلك! 🚀
+
