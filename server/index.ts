@@ -60,7 +60,7 @@ app.use((req, res, next) => {
   // this serves both the API and the client
   const port = 5000;
   
-  // تأكد من أن الخادم لم يبدأ بالفعل
+  // نتحقق من حالة الاستماع قبل تشغيل الخادم
   if (!server.listening) {
     server.listen({
       port,

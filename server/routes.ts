@@ -882,10 +882,12 @@ export async function registerRoutes(app: any): Promise<Server> {
   // إضافة API للتحقق من مفتاح Groq
   router.get("/settings/api-keys", (_req, res) => {
     try {
+      console.log("تم استدعاء API للحصول على مفاتيح API");
       res.json({
         apiKeys: {
           groq: process.env.GROQ_API_KEY || ""
-        }
+        },
+        success: true
       });
     } catch (error) {
       console.error("Error fetching API keys:", error);
