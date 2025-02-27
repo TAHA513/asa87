@@ -352,9 +352,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           clientId: z.string().min(1, "Client ID مطلوب"),
           clientSecret: z.string().min(1, "Client Secret مطلوب"),
         }),
-        huggingface: z.object({
-          apiKey: z.string().min(1, "Hugging Face API Key مطلوب"),
-        }),
       });
 
       const apiKeys = apiKeysSchema.parse(req.body);
@@ -821,99 +818,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting file:", error);
       res.status(500).json({ message: "فشل في حذف الملف" });
-    }
-  });
-
-  // صفحة الإعدادات
-  app.get("/api/settings/api-keys", async (req, res) => {
-    const userId = req.session.userId;
-    if (!userId) {
-      return res.status(401).json({ error: "غير مصرح" });
-    }
-
-    try {
-      const keys = await storage.getApiKeys(userId);
-      res.json(keys || {});
-    } catch (error) {
-      console.error("خطأ في استرجاع مفاتيح API:", error);
-      res.status(500).json({ error: "فشل في استرجاع مفاتيح API" });
-    }
-  });
-
-  // مسارات المساعد الذكي
-  app.post("/api/assistant/chat", async (req, res) => {
-    const userId = req.session.userId;
-    if (!userId) {
-      return res.status(401).json({ error: "غير مصرح" });
-    }
-
-    try {
-      const { message } = req.body;
-      if (!message) {
-        return res.status(400).json({ error: "لم يتم تقديم رسالة" });
-      }
-
-      // الحصول على مفتاح API من قاعدة البيانات
-      const apiKeys = await storage.getApiKeys(userId);
-      const huggingFaceApiKey = apiKeys?.huggingFaceApiKey;
-
-      if (!huggingFaceApiKey) {
-        return res.status(400).json({ error: "لم يتم تكوين مفتاح API للمساعد الذكي" });
-      }
-
-      // الاتصال بـ Hugging Face API
-      try {
-        const response = await fetch("https://api-inference.huggingface.co/models/arabicnlp/bert-base-Arabic-camelbert-ca-sentiment", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${huggingFaceApiKey}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ inputs: message }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`فشل الاتصال بخدمة الذكاء الاصطناعي: ${response.statusText}`);
-        }
-
-        // نستخدم نموذج بسيط للتجربة، في الواقع سنحتاج لنموذج محادثة أكثر تطوراً
-        // سنقوم بتحليل المشاعر فقط كتجربة
-        const data = await response.json();
-
-        // إنشاء رد من المساعد باستخدام البيانات المستلمة
-        let assistantResponse = "عذراً، لم أستطع فهم طلبك.";
-
-        if (Array.isArray(data) && data[0] && Array.isArray(data[0])) {
-          const sentiments = data[0];
-          let sentiment = "محايد";
-
-          // العثور على العاطفة ذات النسبة الأعلى
-          if (sentiments.find(s => s.label === "positive" && s.score > 0.5)) {
-            sentiment = "إيجابي";
-          } else if (sentiments.find(s => s.label === "negative" && s.score > 0.5)) {
-            sentiment = "سلبي";
-          }
-
-          assistantResponse = `تحليل رسالتك: نبرة الرسالة ${sentiment}. كيف يمكنني مساعدتك أكثر؟`;
-        } else {
-          // استخدام استجابة عامة عند عدم توفر تحليل مناسب
-          assistantResponse = "تلقيت رسالتك. ماذا تود أن تعرف عن إدارة متجرك؟";
-        }
-
-        res.json({ response: assistantResponse });
-      } catch (error) {
-        console.error("خطأ في الاتصال بخدمة الذكاء الاصطناعي:", error);
-        res.status(500).json({ 
-          error: "فشل في معالجة الرسالة",
-          response: "حدث خطأ أثناء الاتصال بخدمة الذكاء الاصطناعي. يرجى المحاولة مرة أخرى لاحقاً."
-        });
-      }
-    } catch (error) {
-      console.error("خطأ في معالجة طلب الدردشة:", error);
-      res.status(500).json({ 
-        error: "خطأ في المعالجة",
-        response: "حدث خطأ داخلي. يرجى المحاولة مرة أخرى."
-      });
     }
   });
 

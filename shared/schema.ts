@@ -113,8 +113,11 @@ export const socialMediaAccounts = pgTable("social_media_accounts", {
 export const apiKeys = pgTable("api_keys", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
-  keyData: jsonb("key_data").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  platform: text("platform").notNull(),
+  keyType: text("key_type").notNull(),
+  keyValue: text("key_value").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const inventoryTransactions = pgTable("inventory_transactions", {
@@ -467,31 +470,3 @@ export type Appointment = typeof appointments.$inferSelect;
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 export type FileStorage = typeof fileStorage.$inferSelect;
 export type InsertFileStorage = z.infer<typeof insertFileStorageSchema>;
-
-
-// مخطط مفتاح Hugging Face API
-export const huggingFaceApiSchema = z.object({
-  apiKey: z.string().min(1, "API Key مطلوب"),
-  modelId: z.string().optional(),
-});
-
-// نموذج بيانات مفاتيح API للخدمات المختلفة
-export interface ApiKeys {
-  id?: number;
-  userId: number;
-  huggingFaceApiKey?: string;
-  openaiApiKey?: string;
-  googleMapsApiKey?: string;
-  facebookApiKey?: string;
-  instagramApiKey?: string;
-  tiktokApiKey?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-
-export type InsertApiKey2 = {
-  userId: number;
-  key: string;
-  service: string;
-  createdAt?: Date;
-};
