@@ -1,7 +1,7 @@
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
-import { users, products, sales, exchangeRates, expenseCategories, fileStorage } from "@shared/schema";
-import type { User, InsertUser, Product, Sale, ExchangeRate, ExpenseCategory, FileStorage, InsertFileStorage } from "@shared/schema";
+import { eq, desc, sql } from "drizzle-orm";
+import { users, products, sales, exchangeRates, expenseCategories, fileStorage, customers } from "@shared/schema";
+import type { User, InsertUser, Product, Sale, ExchangeRate, ExpenseCategory, FileStorage, InsertFileStorage, Customer, InsertCustomer } from "@shared/schema";
 
 export class DatabaseStorage {
   // حفظ مستخدم جديد في قاعدة البيانات
@@ -148,6 +148,19 @@ export class DatabaseStorage {
     }
   }
 
+  // الحصول على مبيعات عميل معين
+  async getCustomerSales(customerId: number): Promise<Sale[]> {
+    try {
+      return await db
+        .select()
+        .from(sales)
+        .where(eq(sales.customerId, customerId));
+    } catch (error) {
+      console.error("خطأ في جلب مبيعات العميل من قاعدة البيانات:", error);
+      return [];
+    }
+  }
+
   // الحصول على سعر الصرف الحالي
   async getCurrentExchangeRate(): Promise<ExchangeRate | null> {
     try {
@@ -241,6 +254,59 @@ export class DatabaseStorage {
     } catch (error) {
       console.error("خطأ في حذف الملف:", error);
       throw error;
+    }
+  }
+
+  // البحث عن العملاء
+  async searchCustomers(search?: string): Promise<Customer[]> {
+    try {
+      if (!search) {
+        return await db.select().from(customers);
+      }
+      
+      const searchLower = `%${search.toLowerCase()}%`;
+      return await db
+        .select()
+        .from(customers)
+        .where(
+          sql`LOWER(${customers.name}) LIKE ${searchLower} OR 
+              LOWER(${customers.phone}) LIKE ${searchLower} OR 
+              LOWER(${customers.email}) LIKE ${searchLower}`
+        );
+    } catch (error) {
+      console.error("خطأ في البحث عن العملاء:", error);
+      return [];
+    }
+  }
+
+  // الحصول على عميل بواسطة المعرف
+  async getCustomer(id: number): Promise<Customer | undefined> {
+    try {
+      const [customer] = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.id, id));
+      return customer;
+    } catch (error) {
+      console.error("خطأ في البحث عن العميل:", error);
+      return undefined;
+    }
+  }
+
+  // إنشاء عميل جديد
+  async createCustomer(customer: InsertCustomer): Promise<Customer | null> {
+    try {
+      const [newCustomer] = await db
+        .insert(customers)
+        .values({
+          ...customer,
+          createdAt: new Date(),
+        })
+        .returning();
+      return newCustomer;
+    } catch (error) {
+      console.error("خطأ في إنشاء العميل:", error);
+      return null;
     }
   }
 }
