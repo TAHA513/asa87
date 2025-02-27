@@ -3,7 +3,6 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { z } from "zod";
-import { spawn } from "child_process";
 import {
   insertProductSchema,
   insertSaleSchema,
@@ -19,33 +18,7 @@ import {
 } from "@shared/schema";
 import fs from "fs/promises";
 import path from "path";
-import { insertAppointmentSchema } from "@shared/schema";
-
-// Function to call Python assistant
-async function callPythonAssistant(prompt: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const pythonProcess = spawn('python3', ['server/huggingface_service.py', prompt]);
-    let result = '';
-    let error = '';
-
-    pythonProcess.stdout.on('data', (data) => {
-      result += data.toString();
-    });
-
-    pythonProcess.stderr.on('data', (data) => {
-      error += data.toString();
-    });
-
-    pythonProcess.on('close', (code) => {
-      if (code !== 0) {
-        console.error('Python process error:', error);
-        reject(new Error(error || 'حدث خطأ في معالجة الطلب'));
-      } else {
-        resolve(result.trim());
-      }
-    });
-  });
-}
+import { insertAppointmentSchema } from "@shared/schema"; // Added import
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -845,26 +818,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting file:", error);
       res.status(500).json({ message: "فشل في حذف الملف" });
-    }
-  });
-
-  // Hugging Face Assistant Route
-  app.post("/api/assistant/chat", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const { prompt } = req.body;
-      if (!prompt) {
-        return res.status(400).json({ message: "الرجاء إدخال نص" });
-      }
-
-      const response = await callPythonAssistant(prompt);
-      res.json({ response });
-    } catch (error) {
-      console.error("Error in assistant chat:", error);
-      res.status(500).json({ message: "حدث خطأ أثناء معالجة طلبك" });
     }
   });
 

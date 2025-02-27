@@ -18,7 +18,6 @@ import {
   MdLocalOffer,
   MdSupervisorAccount,
   MdSettings,
-  MdOutlineSmartToy, // إضافة أيقونة المساعد الذكي
 } from "react-icons/md";
 
 const navigation = [
@@ -35,7 +34,6 @@ const navigation = [
   { name: "الباركود", href: "/barcodes", icon: MdQrCode2, color: "#EA4335" },
   { name: "أكواد الخصم", href: "/discount-codes", icon: MdLocalOffer, color: "#FBBC05" },
   { name: "الموظفين", href: "/staff", icon: MdSupervisorAccount, color: "#4285F4" },
-  { name: "المساعد الذكي", href: "/assistant", icon: MdOutlineSmartToy, color: "#34A853" }, // إضافة المساعد الذكي
   { name: "الإعدادات", href: "/settings", icon: MdSettings, color: "#34A853" },
 ];
 
