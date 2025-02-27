@@ -850,7 +850,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { message } = req.body;
       if (!message) {
-        return res.status<400).json({ error: "لم يتم تقديم رسالة" });
+        return res.status(400).json({ error: "لم يتم تقديم رسالة" });
       }
 
       // الحصول على مفتاح API من قاعدة البيانات
