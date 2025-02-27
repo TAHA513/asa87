@@ -858,11 +858,11 @@ export async function registerRoutes(app: any): Promise<Server> {
           messages: [
             { role: "system", content: "أنت مساعد ذكي يساعد في إدارة المتجر وخدمة العملاء." },
             { role: "user", content: message }
-                    ],
+          ],
           temperature: 0.7,
           max_tokens: 1000
-        })
-      });
+        })      })
+    });
 
       const data = await response.json();
 
@@ -908,109 +908,59 @@ export async function registerRoutes(app: any): Promise<Server> {
     }
   });
 
-  // API لتعديل الكود باستخدام Groq
+  // تعديل مسار AI Chat للتعامل مع الأخطاء بشكل أفضل
   router.post("/modify-code", async (req, res) => {
     try {
       const { request } = req.body;
       const GROQ_API_KEY = process.env.GROQ_API_KEY;
-      const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions'; // تصحيح المسار
 
       if (!GROQ_API_KEY) {
         return res.status(400).json({ message: "مفتاح Groq API غير متوفر" });
       }
 
       console.log('🚀 جاري إرسال الطلب إلى Groq API...');
+      console.log('الطلب:', request);
 
-      const response = await axios.post(
-        GROQ_ENDPOINT,
-        {
-          model: "llama3-70b-8192", // استخدام النموذج الصحيح كما في الصورة
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "llama3-70b-8192",
           messages: [
             { role: "system", content: "أنت مساعد برمجي محترف، قم بتحليل الطلب وتحسين الكود البرمجي مع الحفاظ على تنسيقه." },
             { role: "user", content: request }
           ],
           temperature: 0.7,
           max_tokens: 1000
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${GROQ_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      console.log('✅ تم استلام الرد من Groq API بنجاح');
-
-      if (response.data.error) {
-        console.error('❌ خطأ في استجابة Groq API:', response.data.error);
-        return res.status(500).json({ message: "خطأ في خدمة الذكاء الاصطناعي", error: response.data.error });
-      }
-
-      const aiResponse = response.data.choices[0].message.content;
-      res.json({ modifiedCode: aiResponse });
-    } catch (error) {
-      console.error('❌ خطأ في تعديل الكود:', error.response?.data || error.message || error);
-      res.status(500).json({ message: "حدث خطأ أثناء تعديل الكود", error: error.message });
-    }
-  });
-
-  // File Storage Routes
-  router.post("/files", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const file = await storage.saveFile({
-        ...req.body,
-        userId: req.user!.id,
+        })
       });
-      res.status(201).json(file);
-    } catch (error) {
-      console.error("Error saving file:", error);
-      res.status(500).json({ message: "فشل في حفظ الملف" });
-    }
-  });
 
-  router.get("/files/:id", async (req, res) => {
-    try {
-      const file = await storage.getFileById(Number(req.params.id));
-      if (!file) {
-        return res.status(404).json({ message: "الملف غير موجود" });
+      console.log('✅ تم استلام الرد من Groq API');
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ خطأ في استجابة Groq API:', errorData);
+        return res.status(response.status).json({ 
+          message: "خطأ في خدمة الذكاء الاصطناعي", 
+          error: errorData.error?.message || "خطأ غير معروف" 
+        });
       }
-      res.json(file);
+
+      const data = await response.json();
+      const aiResponse = data.choices[0].message.content;
+
+      console.log('✅ تم معالجة الرد بنجاح');
+      res.json({ modifiedCode: aiResponse });
+
     } catch (error) {
-      console.error("Error fetching file:", error);
-      res.status(500).json({ message: "فشل في جلب الملف" });
-    }
-  });
-
-  router.get("/files/user", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const files = await storage.getUserFiles(req.user!.id);
-      res.json(files);
-    } catch (error) {
-      console.error("Error fetching user files:", error);
-      res.status(500).json({ message: "فشل في جلب ملفات المستخدم" });
-    }
-  });
-
-  router.delete("/files/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      await storage.deleteFile(Number(req.params.id));
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error deleting file:", error);
-      res.status(500).json({ message: "فشل في حذف الملف" });
+      console.error('❌ خطأ في تعديل الكود:', error);
+      res.status(500).json({ 
+        message: "حدث خطأ أثناء تعديل الكود",
+        error: error instanceof Error ? error.message : "خطأ غير معروف"
+      });
     }
   });
 

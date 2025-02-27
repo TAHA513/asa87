@@ -1,41 +1,33 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/layout/sidebar";
-import { Bot, Send, Brain } from "lucide-react"; // Replaced AIIcon with Brain
+import { Bot, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AiChat() {
   const [prompt, setPrompt] = useState("");
   const [response, setResponse] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [apiKey, setApiKey] = useState("");
-  const [messages, setMessages] = useState([]); // Added state for messages
   const { toast } = useToast();
 
   useEffect(() => {
-    // التحقق من وجود مفتاح API
     const checkApiKey = async () => {
       try {
-        const response = await fetch("/api/settings/api-keys", { 
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
+        const response = await fetch("/api/settings/api-keys");
         const data = await response.json();
         setApiKey(data.apiKeys?.groq || "");
-        console.log("تم التحقق من مفتاح API بنجاح:", data);
       } catch (error) {
         console.error("خطأ في التحقق من مفتاح API:", error);
-        setApiKey(""); // تعيين قيمة فارغة في حالة الخطأ
+        setApiKey("");
       }
     };
 
     checkApiKey();
   }, []);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!prompt.trim()) {
@@ -48,16 +40,9 @@ export default function AiChat() {
     }
 
     setIsLoading(true);
-    const newUserMessage = { role: 'user', content: prompt };
-    setMessages(prev => [...prev, newUserMessage]);
+    setResponse("");
 
     try {
-      // التحقق من وجود مفتاح API
-      if (!apiKey) {
-        await checkApiKey();
-      }
-
-      // استخدام Groq API
       const result = await fetch("/api/modify-code", {
         method: "POST",
         headers: {
@@ -66,28 +51,24 @@ export default function AiChat() {
         body: JSON.stringify({ request: prompt }),
       });
 
+      const data = await result.json();
+
       if (!result.ok) {
-        const errorData = await result.json();
-        throw new Error(errorData.message || "فشل في الاتصال بـ API");
+        throw new Error(data.message || "فشل في الاتصال بالخدمة");
       }
 
-      const data = await result.json();
       setResponse(data.modifiedCode);
+      setPrompt("");
 
       toast({
         title: "تم!",
         description: "تم استلام الرد بنجاح",
       });
-
-      // إضافة رد الذكاء الصناعي إلى المحادثة
-      const newAssistantMessage = { role: 'assistant', content: data.modifiedCode };
-      setMessages(prev => [...prev, newAssistantMessage]);
-      setPrompt("");
     } catch (error) {
       console.error("Error:", error);
       toast({
         title: "خطأ",
-        description: error.message || "حدث خطأ أثناء معالجة الطلب",
+        description: error instanceof Error ? error.message : "حدث خطأ أثناء معالجة الطلب",
         variant: "destructive",
       });
     } finally {
@@ -135,7 +116,7 @@ export default function AiChat() {
                 disabled={isLoading || !prompt.trim() || !apiKey}
               >
                 {isLoading ? "جاري المعالجة..." : "إرسال الطلب"}
-                <Send className="ml-2 h-4 w-4" />
+                <Send className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
               </Button>
             </form>
 
