@@ -128,16 +128,12 @@ export default function AuthPage() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="max-w-5xl w-full grid md:grid-cols-2 gap-8">
         <div className="flex flex-col justify-center">
-          <div className="mb-8 text-center">
-            <img 
-              src="/attached_assets/Capture.PNG" 
-              alt="SAS Logo" 
-              className="mx-auto h-24 w-auto mb-4"
-            />
-            <p className="text-muted-foreground text-lg">
-              حل متكامل لإدارة أعمالك يشمل المبيعات والمخزون وإدارة الموظفين
-            </p>
-          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent mb-4">
+            نظام إدارة الأعمال
+          </h1>
+          <p className="text-muted-foreground text-lg mb-8">
+            حل متكامل لإدارة أعمالك يشمل المبيعات والمخزون وإدارة الموظفين
+          </p>
 
           <Card>
             <CardHeader>
