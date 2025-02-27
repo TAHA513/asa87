@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/layout/sidebar";
-import { Bot, Send } from "lucide-react";
+import { Bot, Send, Brain } from "lucide-react"; // Replaced AIIcon with Brain
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
