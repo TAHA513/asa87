@@ -89,14 +89,20 @@ export default function ThemeSettings() {
       const [_, hue, saturation, lightness] = hslMatch;
 
       // تطبيق مكونات اللون الرئيسي
-      root.style.setProperty('--primary-hue', hue);
-      root.style.setProperty('--primary-saturation', saturation + '%');
-      root.style.setProperty('--primary-lightness', lightness + '%');
-
-      // تحديث الألوان المشتقة
       root.style.setProperty('--primary', settings.primary);
+      root.style.setProperty('--primary-hue', hue);
+      root.style.setProperty('--primary-saturation', `${saturation}%`);
+      root.style.setProperty('--primary-lightness', `${lightness}%`);
+
+      // تطبيق الألوان المشتقة
       root.style.setProperty('--primary-foreground', 
-        `hsl(var(--primary-hue) var(--primary-saturation) 98%)`
+        `hsl(${hue} ${saturation}% 98%)`
+      );
+
+      // تطبيق الألوان على عناصر التصميم
+      document.body.style.setProperty('--theme-primary', settings.primary);
+      document.body.style.setProperty('--theme-primary-foreground', 
+        `hsl(${hue} ${saturation}% 98%)`
       );
     }
 
@@ -128,10 +134,14 @@ export default function ThemeSettings() {
         break;
     }
 
-    // تحديث متغيرات التصميم
+    // إعادة تطبيق التغييرات على المتغيرات العامة
     document.documentElement.style.setProperty('--theme-primary', settings.primary);
     document.documentElement.style.setProperty('--theme-variant', settings.variant);
     document.documentElement.style.setProperty('--theme-font', settings.fontStyle);
+
+    // تحديث كل العناصر التي تستخدم الألوان الرئيسية
+    document.documentElement.style.setProperty('--background', 'hsl(0 0% 100%)');
+    document.documentElement.style.setProperty('--foreground', `hsl(${hslMatch ? hue : 0} 10% 10%)`);
   };
 
   const saveSettings = async (updates: Partial<typeof themeSettings>) => {
@@ -140,8 +150,11 @@ export default function ThemeSettings() {
     setIsLoading(true);
 
     try {
-      localStorage.setItem("themeSettings", JSON.stringify(newSettings));
+      // تطبيق التغييرات فوراً
       applyThemeSettings(newSettings);
+
+      // حفظ الإعدادات
+      localStorage.setItem("themeSettings", JSON.stringify(newSettings));
 
       toast({
         title: "تم الحفظ",
