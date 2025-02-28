@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { apiRequest } from "@/lib/queryClient";
+import { useTheme } from "@/hooks/use-theme";
 
 const themeColors = [
   // الألوان الحالية
@@ -40,7 +40,7 @@ const themeColors = [
 const appearances = [
   { name: "فاتح", value: "light" },
   { name: "داكن", value: "dark" },
-  { name: "تلقائي", value: "system" },
+  { name: "تركيز", value: "focus" },
 ];
 
 const variants = [
@@ -69,9 +69,9 @@ const fontStyles = [
 
 export default function ThemeSettings() {
   const { toast } = useToast();
-  const [theme, setTheme] = useState({
+  const { theme: currentTheme, setTheme } = useTheme();
+  const [themeSettings, setThemeSettings] = useState({
     primary: "hsl(142.1 76.2% 36.3%)",
-    appearance: "system",
     variant: "vibrant",
     fontStyle: "traditional",
     radius: 0.75,
@@ -79,19 +79,23 @@ export default function ThemeSettings() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme) {
-      setTheme(JSON.parse(savedTheme));
+    try {
+      const savedSettings = localStorage.getItem("themeSettings");
+      if (savedSettings) {
+        setThemeSettings(JSON.parse(savedSettings));
+      }
+    } catch (e) {
+      console.error('Error loading theme settings:', e);
     }
   }, []);
 
-  const saveTheme = async (updates: Partial<typeof theme>) => {
-    const newTheme = { ...theme, ...updates };
-    setTheme(newTheme);
+  const saveSettings = async (updates: Partial<typeof themeSettings>) => {
+    const newSettings = { ...themeSettings, ...updates };
+    setThemeSettings(newSettings);
     setIsLoading(true);
 
     try {
-      await apiRequest("POST", "/api/theme", newTheme);
+      localStorage.setItem("themeSettings", JSON.stringify(newSettings));
 
       toast({
         title: "تم الحفظ",
@@ -113,7 +117,7 @@ export default function ThemeSettings() {
     }
   };
 
-  const selectedFont = fontStyles.find(font => font.value === theme.fontStyle);
+  const selectedFont = fontStyles.find(font => font.value === themeSettings.fontStyle);
 
   return (
     <Card>
@@ -127,8 +131,8 @@ export default function ThemeSettings() {
         <div className="space-y-2">
           <Label>اللون الرئيسي</Label>
           <RadioGroup
-            value={theme.primary}
-            onValueChange={(value) => saveTheme({ primary: value })}
+            value={themeSettings.primary}
+            onValueChange={(value) => saveSettings({ primary: value })}
             className="grid grid-cols-2 gap-4"
             disabled={isLoading}
           >
@@ -151,8 +155,8 @@ export default function ThemeSettings() {
         <div className="space-y-2">
           <Label>نمط المظهر</Label>
           <Select
-            value={theme.variant}
-            onValueChange={(value) => saveTheme({ variant: value })}
+            value={themeSettings.variant}
+            onValueChange={(value) => saveSettings({ variant: value })}
             disabled={isLoading}
           >
             <SelectTrigger>
@@ -171,8 +175,8 @@ export default function ThemeSettings() {
         <div className="space-y-2">
           <Label>نمط الخط</Label>
           <Select
-            value={theme.fontStyle}
-            onValueChange={(value) => saveTheme({ fontStyle: value })}
+            value={themeSettings.fontStyle}
+            onValueChange={(value) => saveSettings({ fontStyle: value })}
             disabled={isLoading}
           >
             <SelectTrigger>
@@ -200,8 +204,8 @@ export default function ThemeSettings() {
         <div className="space-y-2">
           <Label>وضع السطوع</Label>
           <Select
-            value={theme.appearance}
-            onValueChange={(value) => saveTheme({ appearance: value })}
+            value={currentTheme}
+            onValueChange={(value) => setTheme(value as 'light' | 'dark' | 'focus')}
             disabled={isLoading}
           >
             <SelectTrigger>
