@@ -28,7 +28,15 @@ export interface IStorage {
   createProduct(product: Product): Promise<Product>;
   updateProduct(id: number, product: Partial<Product>): Promise<Product>;
   getSales(): Promise<Sale[]>;
-  createSale(sale: Sale): Promise<Sale>;
+  createSale(sale: {
+    productId: number;
+    quantity: number;
+    priceIqd: string;
+    userId: number;
+    isInstallment: boolean;
+    date: Date;
+    customerName?: string;
+  }): Promise<Sale>;
   getCurrentExchangeRate(): Promise<ExchangeRate>;
   setExchangeRate(rate: number): Promise<ExchangeRate>;
   getInstallments(): Promise<Installment[]>;
@@ -307,18 +315,41 @@ export class DatabaseStorage implements IStorage {
     return dbStorage.getSales();
   }
 
-  async createSale(sale: Sale): Promise<Sale> {
+  async createSale(sale: {
+    productId: number;
+    quantity: number;
+    priceIqd: string;
+    userId: number;
+    isInstallment: boolean;
+    date: Date;
+    customerName?: string;
+  }): Promise<Sale> {
+    // First create a customer if customerName is provided
+    let customerId = 1; // Default customer ID for walk-in customers
+    if (sale.customerName) {
+      const [customer] = await db
+        .insert(customers)
+        .values({
+          name: sale.customerName,
+          createdAt: new Date(),
+        })
+        .returning();
+      customerId = customer.id;
+    }
+
     const [newSale] = await db
       .insert(sales)
       .values({
         productId: sale.productId,
-        customerId: sale.customerId,
+        customerId: customerId,
         quantity: sale.quantity,
         priceIqd: sale.priceIqd,
-        userId: sale.userId,
+        userId: sale.userId || 1, // Default user ID if not provided
         isInstallment: sale.isInstallment,
+        date: sale.date,
       })
       .returning();
+
     return newSale;
   }
 

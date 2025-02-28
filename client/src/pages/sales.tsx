@@ -99,8 +99,8 @@ export default function Sales() {
         quantity: data.quantity,
         date: saleDate,
         isInstallment: data.isInstallment,
-        priceIqd: selectedProduct.priceIqd, // Add the price from selected product
-        customerId: null, // Add this if required by your schema
+        priceIqd: selectedProduct.priceIqd,
+        customerName: data.customerName, // Add customer name to create customer
       });
 
       const saleData = await sale.json();
@@ -118,7 +118,7 @@ export default function Sales() {
       if (data.printInvoice) {
         setSelectedSale({
           ...saleData,
-          customerName: data.customerName, // Add this for the invoice display
+          customerName: data.customerName,
         });
         setTimeout(handlePrint, 100);
       }
