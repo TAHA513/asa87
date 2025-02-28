@@ -23,7 +23,6 @@ import Sidebar from "@/components/layout/sidebar";
 import CampaignForm from "@/components/marketing/campaign-form";
 import SocialAccounts from "@/components/marketing/social-accounts";
 import { PlatformPerformanceGraphs } from "@/components/marketing/analytics-graphs";
-import { PixelTracker } from "@/components/marketing/pixel-tracker";
 
 export default function MarketingPage() {
   const [showNewCampaign, setShowNewCampaign] = useState(false);
@@ -47,7 +46,6 @@ export default function MarketingPage() {
 
   return (
     <div className="flex h-screen">
-      <PixelTracker />
       <div className="w-64 h-full">
         <Sidebar />
       </div>

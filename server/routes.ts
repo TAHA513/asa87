@@ -1,4 +1,3 @@
-import axios from 'axios';
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
@@ -20,10 +19,6 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { insertAppointmentSchema } from "@shared/schema"; // Added import
-import { Cache } from "./cache";
-
-// Initialize cache
-const statsCache = new Cache();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -335,6 +330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      // Get user's API keys and social media accounts
       const apiKeys = await storage.getApiKeys(req.user!.id);
       const accounts = await storage.getSocialMediaAccounts(req.user!.id);
 
@@ -346,85 +342,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // First check cache for total stats
-      const cacheKey = `total_stats_${req.user!.id}`;
-      const cachedStats = statsCache.get(cacheKey);
-      if (cachedStats) {
-        return res.json(cachedStats);
-      }
-
       let totalImpressions = 0;
       let totalEngagements = 0;
       let totalSpend = 0;
 
       // Fetch data from each connected platform
-      const fetchPromises = accounts.map(async (account) => {
+      for (const account of accounts) {
         const platformKeys = apiKeys[account.platform];
-        if (!platformKeys) return null;
+        if (!platformKeys) continue;
 
         try {
-          let stats;
+          let platformStats;
           switch (account.platform) {
             case 'facebook':
-              stats = await fetchFacebookStats(account, platformKeys);
+              platformStats = await fetchFacebookStats(account, platformKeys);
               break;
             case 'twitter':
-              stats = await fetchTwitterStats(account, platformKeys);
+              platformStats = await fetchTwitterStats(account, platformKeys);
               break;
             case 'instagram':
-              stats = await fetchInstagramStats(account, platformKeys);
+              platformStats = await fetchInstagramStats(account, platformKeys);
               break;
             case 'tiktok':
-              stats = await fetchTikTokStats(account, platformKeys);
+              platformStats = await fetchTikTokStats(account, platformKeys);
               break;
             case 'snapchat':
-              stats = await fetchSnapchatStats(account, platformKeys);
+              platformStats = await fetchSnapchatStats(account, platformKeys);
               break;
             case 'linkedin':
-              stats = await fetchLinkedInStats(account, platformKeys);
+              platformStats = await fetchLinkedInStats(account, platformKeys);
               break;
           }
 
-          if (stats) {
-            totalImpressions += stats.impressions;
-            totalEngagements += stats.engagements;
-            totalSpend += stats.spend;
+          if (platformStats) {
+            totalImpressions += platformStats.impressions;
+            totalEngagements += platformStats.engagements;
+            totalSpend += platformStats.spend;
 
-            // Save to database asynchronously
-            storage.createCampaignAnalytics({
-              campaignId: 0,
+            // Save analytics to database
+            await storage.createCampaignAnalytics({
+              campaignId: 0, // General platform analytics
               platform: account.platform,
-              impressions: stats.impressions,
-              clicks: stats.engagements,
+              impressions: platformStats.impressions,
+              clicks: platformStats.engagements,
               conversions: 0,
-              spend: stats.spend.toString(),
+              spend: platformStats.spend.toString(),
               date: new Date()
-            }).catch(err => {
-              console.error(`Error saving ${account.platform} analytics:`, err);
             });
           }
         } catch (error) {
-          console.error(`Error processing ${account.platform} stats:`, error);
+          console.error(`Error fetching ${account.platform} stats:`, error);
+          // Continue with other platforms if one fails
         }
-      });
+      }
 
-      // Wait for all fetches to complete with a timeout
-      await Promise.race([
-        Promise.all(fetchPromises),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
-      ]).catch(err => {
-        console.error('Stats fetching timeout or error:', err);
-      });
+      // Calculate engagement rate
+      const engagement = totalImpressions > 0 ? 
+        totalEngagements / totalImpressions : 0;
 
-      const result = {
+      res.json({
         impressions: totalImpressions,
-        engagement: totalImpressions > 0 ? totalEngagements / totalImpressions : 0,
+        engagement,
         spend: totalSpend
-      };
-
-      // Cache the result
-      statsCache.set(cacheKey, result, 300);
-      res.json(result);
+      });
 
     } catch (error) {
       console.error("Error fetching social media stats:", error);
@@ -576,27 +556,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         facebook: z.object({
           appId: z.string().min(1, "App ID مطلوب"),
           appSecret: z.string().min(1, "App Secret مطلوب"),
-          pixelId: z.string().min(1, "Pixel ID مطلوب"),
         }),
         twitter: z.object({
           apiKey: z.string().min(1, "API Key مطلوب"),
           apiSecret: z.string().min(1, "API Secret مطلوب"),
-          pixelId: z.string().min(1, "Pixel ID مطلوب"),
         }),
         tiktok: z.object({
           clientKey: z.string().min(1, "Client Key مطلوب"),
           clientSecret: z.string().min(1, "Client Secret مطلوب"),
-          pixelId: z.string().min(1, "Pixel ID مطلوب"),
         }),
         snapchat: z.object({
           clientId: z.string().min(1, "Client ID مطلوب"),
           clientSecret: z.string().min(1, "Client Secret مطلوب"),
-          pixelId: z.string().min(1, "Pixel ID مطلوب"),
         }),
         linkedin: z.object({
           clientId: z.string().min(1, "Client ID مطلوب"),
           clientSecret: z.string().min(1, "Client Secret مطلوب"),
-          pixelId: z.string().min(1, "Pixel ID مطلوب"),
         }),
       });
 
@@ -872,7 +847,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof Error) {
         res.status(400).json({ message: error.message });
       } else {
-        res.status(500).json({ message: ""فشل في إنشاء معاملة المورد" });
+        res.status(500).json({ message: "فشل في إنشاء معاملة المورد" });
       }
     }
   });
@@ -1066,290 +1041,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Helper functions to fetch stats from different platforms
-  async function fetchFacebookStats(account: any, keys: any) {
-    const cacheKey = `facebook_${account.id}`;
-    const cachedData = statsCache.get(cacheKey);
-
-    if (cachedData) {
-      return cachedData;
-    }
-
-    try {
-      console.log(`Fetching Facebook stats for account ${account.id}`);
-      const { pixelId } = keys;
-      const start = Date.now();
-
-      const response = await axios({
-        method: 'get',
-        url: `https://graph.facebook.com/v17.0/${pixelId}/stats`,
-        headers: {
-          'Authorization': `Bearer ${account.accessToken}`,
-        },
-        timeout: 5000
-      });
-
-      console.log(`Facebook API call took ${Date.now() - start}ms`);
-      const data = response.data;
-
-      const stats = {
-        impressions: data.impressions || 0,
-        engagements: (data.clicks || 0) + (data.actions || 0),
-        spend: data.spend || 0
-      };
-
-      statsCache.set(cacheKey, stats, 300); // Cache for 5 minutes
-      return stats;
-    } catch (error) {
-      console.error('Error fetching Facebook pixel stats:', error);
-      // Return default values if API call fails
-      return {
-        impressions: 0,
-        engagements: 0,
-        spend: 0
-      };
-    }
-  }
-
-  // Similar pattern for other platforms...
-  async function fetchTwitterStats(account: any, keys: any) {
-    const cacheKey = `twitter_${account.id}`;
-    const cachedData = statsCache.get(cacheKey);
-
-    if (cachedData) {
-      return cachedData;
-    }
-
-    try {
-      console.log(`Fetching Twitter stats for account ${account.id}`);
-      const start = Date.now();
-
-      const { pixelId } = keys;
-      const response = await axios({
-        method: 'get',
-        url: `https://ads-api.twitter.com/12/stats/websites/${pixelId}`,
-        headers: {
-          'Authorization': `Bearer ${account.accessToken}`,
-        },
-        timeout: 5000
-      });
-
-      console.log(`Twitter API call took ${Date.now() - start}ms`);
-      const data = response.data;
-
-      const stats = {
-        impressions: data.impressions || 0,
-        engagements: data.engagements || 0,
-        spend: data.spend || 0
-      };
-
-      statsCache.set(cacheKey, stats, 300);
-      return stats;
-    } catch (error) {
-      console.error('Error fetching Twitter pixel stats:', error);
-      return {
-        impressions: 0,
-        engagements: 0,
-        spend: 0
-      };
-    }
-  }
-
-  async function fetchLinkedInStats(account: any, keys: any) {
-    const cacheKey = `linkedin_${account.id}`;
-    const cachedData = statsCache.get(cacheKey);
-
-    if (cachedData) {
-      return cachedData;
-    }
-
-    try {
-      console.log(`Fetching LinkedIn stats for account ${account.id}`);
-      const start = Date.now();
-      const { pixelId } = keys;
-      const response = await axios({
-        method: 'get',
-        url: `https://api.linkedin.com/v2/insightTag/${pixelId}/statistics`,
-        headers: {
-          'Authorization': `Bearer ${account.accessToken}`,
-        },
-        timeout: 5000
-      });
-
-      console.log(`LinkedIn API call took ${Date.now() - start}ms`);
-      const data = response.data;
-
-      const stats = {
-        impressions: data.impressions || 0,
-        engagements: data.clicks || 0,
-        spend: data.spend || 0
-      };
-
-      statsCache.set(cacheKey, stats, 300);
-      return stats;
-    } catch (error) {
-      console.error('Error fetching LinkedIn pixel stats:', error);
-      return {
-        impressions: 0,
-        engagements: 0,
-        spend: 0
-      };
-    }
-  }
-
-  async function fetchTikTokStats(account: any, keys: any) {
-    const cacheKey = `tiktok_${account.id}`;
-    const cachedData = statsCache.get(cacheKey);
-
-    if (cachedData) {
-      return cachedData;
-    }
-
-    try {
-      console.log(`Fetching TikTok stats for account ${account.id}`);
-      const start = Date.now();
-      const { pixelId } = keys;
-      const response = await axios({
-        method: 'post',
-        url: 'https://business-api.tiktok.com/open_api/v1.3/pixel/track/',
-        headers: {
-          'Access-Token': account.accessToken,
-          'Content-Type': 'application/json',
-        },
-        data: {
-          pixel_code: pixelId,
-        },
-        timeout: 5000
-      });
-
-      console.log(`TikTok API call took ${Date.now() - start}ms`);
-      const data = response.data;
-
-      const stats = {
-        impressions: data.impressions || 0,
-        engagements: data.clicks || 0,
-        spend: data.spend || 0
-      };
-
-      statsCache.set(cacheKey, stats, 300);
-      return stats;
-    } catch (error) {
-      console.error('Error fetching TikTok pixel stats:', error);
-      return {
-        impressions: 0,
-        engagements: 0,
-        spend: 0
-      };
-    }
-  }
-
-  async function fetchSnapchatStats(account: any, keys: any) {
-    const cacheKey = `snapchat_${account.id}`;
-    const cachedData = statsCache.get(cacheKey);
-
-    if (cachedData) {
-      return cachedData;
-    }
-
-    try {
-      console.log(`Fetching Snapchat stats for account ${account.id}`);
-      const start = Date.now();
-      const { pixelId } = keys;
-      const response = await axios({
-        method: 'get',
-        url: `https://adsapi.snapchat.com/v1/pixels/${pixelId}/stats`,
-        headers: {
-          'Authorization': `Bearer ${account.accessToken}`,
-        },
-        timeout: 5000
-      });
-
-      console.log(`Snapchat API call took ${Date.now() - start}ms`);
-      const data = response.data;
-
-      const stats = {
-        impressions: data.impressions || 0,
-        engagements: data.swipes || 0,
-        spend: data.spend || 0
-      };
-
-      statsCache.set(cacheKey, stats, 300);
-      return stats;
-    } catch (error) {
-      console.error('Error fetching Snapchat pixel stats:', error);
-      return {
-        impressions: 0,
-        engagements: 0,
-        spend: 0
-      };
-    }
-  }
-
-  async function fetchInstagramStats(account: any, keys: any) {
-    // Using Instagram Graph API
-    const { accessToken } = account;
-    const { appId, appSecret } = keys;
-
-    // TODO: Implement real Instagram API calls
-    return {
-      impressions: 0,
-      engagements: 0,
-      spend: 0
-    };
-  }
-
-  async function fetchTwitterStats(account: any, keys: any) {
-    // Using Twitter API v2
-    const { accessToken } = account;
-    const { apiKey, apiSecret } = keys;
-
-    // TODO: Implement real Twitter API calls
-    return {
-      impressions: 0,
-      engagements: 0,
-      spend: 0
-    };
-  }
-
-  async function fetchLinkedInStats(account: any, keys: any) {
-    // Using LinkedIn Marketing API
-    const { accessToken } = account;
-    const { clientId, clientSecret } = keys;
-
-    // TODO: Implement real LinkedIn API calls
-    return {
-      impressions: 0,
-      engagements: 0,
-      spend: 0
-    };
-  }
-
-  async function fetchTikTokStats(account: any, keys: any) {
-    // Using TikTok Marketing API
-    const { accessToken } = account;
-    const { clientKey, clientSecret } = keys;
-
-    // TODO: Implement real TikTok API calls
-    return {
-      impressions: 0,
-      engagements: 0,
-      spend: 0
-    };
-  }
-
-  async function fetchSnapchatStats(account: any, keys: any) {
-    // Using Snapchat Marketing API
-    const { accessToken } = account;
-    const { clientId, clientSecret } = keys;
-
-    // TODO: Implement real Snapchat API calls
-    return {
-      impressions: 0,
-      engagements: 0,
-      spend: 0
-    };
-  }
-
   const httpServer = createServer(app);
   return httpServer;
+}
+
+// Helper functions to fetch stats from different platforms
+async function fetchFacebookStats(account: any, keys: any) {
+  // Using Facebook Graph API
+  const { accessToken } = account;
+  const { appId, appSecret } = keys;
+
+  // TODO: Implement real Facebook API calls
+  // This is a placeholder that would be replaced with actual API implementation
+  return {
+    impressions: 0,
+    engagements: 0,
+    spend: 0
+  };
+}
+
+async function fetchTwitterStats(account: any, keys: any) {
+  // Using Twitter API v2
+  const { accessToken } = account;
+  const { apiKey, apiSecret } = keys;
+
+  // TODO: Implement real Twitter API calls
+  return {
+    impressions: 0,
+    engagements: 0,
+    spend: 0
+  };
+}
+
+async function fetchInstagramStats(account: any, keys: any) {
+  // Using Instagram Graph API
+  const { accessToken } = account;
+  const { appId, appSecret } = keys;
+
+  // TODO: Implement real Instagram API calls
+  return {
+    impressions: 0,
+    engagements: 0,
+    spend: 0
+  };
+}
+
+async function fetchTikTokStats(account: any, keys: any) {
+  // Using TikTok Marketing API
+  const { accessToken } = account;
+  const { clientKey, clientSecret } = keys;
+
+  // TODO: Implement real TikTok API calls
+  return {
+    impressions: 0,
+    engagements: 0,
+    spend: 0
+  };
+}
+
+async function fetchSnapchatStats(account: any, keys: any) {
+  // Using Snapchat Marketing API
+  const { accessToken } = account;
+  const { clientId, clientSecret } = keys;
+
+  // TODO: Implement real Snapchat API calls
+  return {
+    impressions: 0,
+    engagements: 0,
+    spend: 0
+  };
+}
+
+async function fetchLinkedInStats(account: any, keys: any) {
+  // Using LinkedIn Marketing API
+  const { accessToken } = account;
+  const { clientId, clientSecret } = keys;
+
+  // TODO: Implement real LinkedIn API calls
+  return {
+    impressions: 0,
+    engagements: 0,
+    spend: 0
+  };
 }
