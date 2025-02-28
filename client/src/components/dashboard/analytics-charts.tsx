@@ -21,7 +21,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { Sale, Product, Customer } from "@shared/schema";
-import { ShareButton } from "@/components/ui/share-button";
 
 export function SalesTrendsChart() {
   const { data: sales = [] } = useQuery<Sale[]>({
@@ -48,17 +47,11 @@ export function SalesTrendsChart() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>اتجاهات المبيعات</CardTitle>
-          <CardDescription>
-            تحليل المبيعات اليومية والإيرادات
-          </CardDescription>
-        </div>
-        <ShareButton 
-          title="مشاركة تقرير المبيعات"
-          description="اختر طريقة مشاركة تقرير اتجاهات المبيعات"
-        />
+      <CardHeader>
+        <CardTitle>اتجاهات المبيعات</CardTitle>
+        <CardDescription>
+          تحليل المبيعات اليومية والإيرادات
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">
@@ -120,17 +113,11 @@ export function ProductPerformanceChart() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>أداء المنتجات</CardTitle>
-          <CardDescription>
-            أفضل 5 منتجات من حيث المبيعات
-          </CardDescription>
-        </div>
-        <ShareButton 
-          title="مشاركة تقرير المنتجات"
-          description="اختر طريقة مشاركة تقرير أداء المنتجات"
-        />
+      <CardHeader>
+        <CardTitle>أداء المنتجات</CardTitle>
+        <CardDescription>
+          أفضل 5 منتجات من حيث المبيعات
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">
@@ -185,17 +172,11 @@ export function CustomerGrowthChart() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>نمو العملاء</CardTitle>
-          <CardDescription>
-            تطور عدد العملاء عبر الزمن
-          </CardDescription>
-        </div>
-        <ShareButton 
-          title="مشاركة تقرير العملاء"
-          description="اختر طريقة مشاركة تقرير نمو العملاء"
-        />
+      <CardHeader>
+        <CardTitle>نمو العملاء</CardTitle>
+        <CardDescription>
+          تطور عدد العملاء عبر الزمن
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-[300px]">
