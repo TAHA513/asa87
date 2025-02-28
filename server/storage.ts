@@ -325,37 +325,37 @@ export class DatabaseStorage implements IStorage {
     customerName?: string;
   }): Promise<Sale> {
     try {
-      // First create a customer if customerName is provided
+      // First ensure default customer exists
+      const [defaultCustomer] = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.name, "عميل نقدي"));
+
       let customerId: number;
+
       if (sale.customerName) {
-        const [customer] = await db
+        // Create new customer with provided name
+        const [newCustomer] = await db
           .insert(customers)
           .values({
             name: sale.customerName,
             createdAt: new Date(),
           })
           .returning();
-        customerId = customer.id;
+        customerId = newCustomer.id;
       } else {
-        // Get or create a default walk-in customer
-        const [defaultCustomer] = await db
-          .insert(customers)
-          .values({
-            name: "عميل نقدي",
-            createdAt: new Date(),
-          })
-          .returning()
-          .onConflictDoNothing();
-
         if (defaultCustomer) {
           customerId = defaultCustomer.id;
         } else {
-          // If default customer already exists, fetch it
-          const [existingCustomer] = await db
-            .select()
-            .from(customers)
-            .where(eq(customers.name, "عميل نقدي"));
-          customerId = existingCustomer.id;
+          // Create default customer if it doesn't exist
+          const [newDefaultCustomer] = await db
+            .insert(customers)
+            .values({
+              name: "عميل نقدي",
+              createdAt: new Date(),
+            })
+            .returning();
+          customerId = newDefaultCustomer.id;
         }
       }
 
@@ -367,7 +367,7 @@ export class DatabaseStorage implements IStorage {
           customerId: customerId,
           quantity: sale.quantity,
           priceIqd: sale.priceIqd,
-          userId: sale.userId || 1, // Default user ID if not provided
+          userId: sale.userId || 1,
           isInstallment: sale.isInstallment,
           date: sale.date,
         })
