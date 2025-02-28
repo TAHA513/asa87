@@ -82,12 +82,25 @@ export default function ThemeSettings() {
     try {
       const savedSettings = localStorage.getItem("themeSettings");
       if (savedSettings) {
-        setThemeSettings(JSON.parse(savedSettings));
+        const settings = JSON.parse(savedSettings);
+        setThemeSettings(settings);
+        applyThemeSettings(settings);
       }
     } catch (e) {
       console.error('Error loading theme settings:', e);
     }
   }, []);
+
+  const applyThemeSettings = (settings: typeof themeSettings) => {
+    // تطبيق متغيرات CSS على الجذر
+    const root = document.documentElement;
+    root.style.setProperty('--primary', settings.primary);
+    root.style.setProperty('--theme-radius', `${settings.radius}rem`);
+    root.style.setProperty('--font-family', fontStyles.find(f => f.value === settings.fontStyle)?.fontFamily || 'Noto Kufi Arabic');
+
+    // تطبيق النمط
+    root.setAttribute('data-variant', settings.variant);
+  };
 
   const saveSettings = async (updates: Partial<typeof themeSettings>) => {
     const newSettings = { ...themeSettings, ...updates };
@@ -96,6 +109,7 @@ export default function ThemeSettings() {
 
     try {
       localStorage.setItem("themeSettings", JSON.stringify(newSettings));
+      applyThemeSettings(newSettings);
 
       toast({
         title: "تم الحفظ",
