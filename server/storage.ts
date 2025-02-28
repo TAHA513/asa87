@@ -1,20 +1,20 @@
 import {
-  users, products, sales, exchangeRates, fileStorage, 
+  users, products, sales, exchangeRates, fileStorage,
   installments, installmentPayments, marketingCampaigns,
   campaignAnalytics, socialMediaAccounts, apiKeys,
   inventoryTransactions, expenseCategories, expenses,
   suppliers, supplierTransactions, customers, appointments,
   invoices, userSettings,
-  type User, type Product, type Sale, type ExchangeRate, 
+  type User, type Product, type Sale, type ExchangeRate,
   type FileStorage, type Installment, type InstallmentPayment,
-  type Campaign, type InsertCampaign, type CampaignAnalytics, 
-  type InsertCampaignAnalytics, type SocialMediaAccount, 
-  type ApiKey, type InsertApiKey, type InventoryTransaction, 
-  type InsertInventoryTransaction, type ExpenseCategory, 
+  type Campaign, type InsertCampaign, type CampaignAnalytics,
+  type InsertCampaignAnalytics, type SocialMediaAccount,
+  type ApiKey, type InsertApiKey, type InventoryTransaction,
+  type InsertInventoryTransaction, type ExpenseCategory,
   type InsertExpenseCategory, type Expense, type InsertExpense,
-  type Supplier, type InsertSupplier, type SupplierTransaction, 
-  type InsertSupplierTransaction, type Customer, type InsertCustomer, 
-  type Appointment, type InsertAppointment, type Invoice, 
+  type Supplier, type InsertSupplier, type SupplierTransaction,
+  type InsertSupplierTransaction, type Customer, type InsertCustomer,
+  type Appointment, type InsertAppointment, type Invoice,
   type InsertInvoice, type UserSettings, type InsertUserSettings,
   type InsertUser
 } from "@shared/schema";
@@ -68,20 +68,58 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProduct(product: Product): Promise<Product> {
-    const [newProduct] = await db
-      .insert(products)
-      .values(product)
-      .returning();
-    return newProduct;
+    try {
+      const [newProduct] = await db
+        .insert(products)
+        .values({
+          name: product.name,
+          description: product.description,
+          productCode: product.productCode,
+          barcode: product.barcode,
+          priceIqd: product.priceIqd.toString(),
+          stock: product.stock
+        })
+        .returning();
+      return newProduct;
+    } catch (error) {
+      console.error("خطأ في إنشاء المنتج:", error);
+      throw new Error("فشل في إنشاء المنتج. تأكد من صحة البيانات المدخلة وعدم تكرار رمز المنتج أو الباركود");
+    }
   }
 
   async updateProduct(id: number, update: Partial<Product>): Promise<Product> {
-    const [product] = await db
-      .update(products)
-      .set(update)
-      .where(eq(products.id, id))
-      .returning();
-    return product;
+    try {
+      if (update.stock !== undefined && update.stock < 0) {
+        throw new Error("لا يمكن أن يكون المخزون أقل من صفر");
+      }
+
+      const [product] = await db
+        .update(products)
+        .set({
+          ...update,
+          priceIqd: update.priceIqd?.toString(),
+          updatedAt: new Date()
+        })
+        .where(eq(products.id, id))
+        .returning();
+
+      // تسجيل تغيير المخزون إذا تم تحديثه
+      if (update.stock !== undefined) {
+        await db.insert(inventoryTransactions).values({
+          productId: id,
+          type: "adjustment",
+          quantity: update.stock,
+          reason: "تحديث يدوي",
+          userId: 1, // يجب تحديث هذا ليأخذ معرف المستخدم الحالي
+          date: new Date()
+        });
+      }
+
+      return product;
+    } catch (error) {
+      console.error("خطأ في تحديث المنتج:", error);
+      throw new Error("فشل في تحديث المنتج. تأكد من صحة البيانات وتوفر المخزون الكافي");
+    }
   }
 
   async deleteProduct(id: number): Promise<void> {
@@ -101,59 +139,92 @@ export class DatabaseStorage implements IStorage {
     date: Date;
     customerName?: string;
   }): Promise<Sale> {
+    const trx = db.transaction();
+
     try {
-      // First ensure default customer exists
-      const [defaultCustomer] = await db
+      // التحقق من توفر المخزون
+      const [product] = await db
         .select()
-        .from(customers)
-        .where(eq(customers.name, "عميل نقدي"));
+        .from(products)
+        .where(eq(products.id, sale.productId));
 
+      if (!product) {
+        throw new Error("المنتج غير موجود");
+      }
+
+      if (product.stock < sale.quantity) {
+        throw new Error(`المخزون غير كافٍ. المتوفر: ${product.stock}`);
+      }
+
+      // تحديث المخزون
+      const [updatedProduct] = await db
+        .update(products)
+        .set({ stock: product.stock - sale.quantity })
+        .where(eq(products.id, sale.productId))
+        .returning();
+
+      // إنشاء العميل أو استخدام العميل النقدي
       let customerId: number;
-
       if (sale.customerName) {
-        // Create new customer with provided name
-        const [newCustomer] = await db
+        const [customer] = await db
           .insert(customers)
           .values({
             name: sale.customerName,
-            createdAt: new Date(),
+            createdAt: new Date()
           })
           .returning();
-        customerId = newCustomer.id;
+        customerId = customer.id;
       } else {
+        const [defaultCustomer] = await db
+          .select()
+          .from(customers)
+          .where(eq(customers.name, "عميل نقدي"));
+
         if (defaultCustomer) {
           customerId = defaultCustomer.id;
         } else {
-          // Create default customer if it doesn't exist
           const [newDefaultCustomer] = await db
             .insert(customers)
             .values({
               name: "عميل نقدي",
-              createdAt: new Date(),
+              createdAt: new Date()
             })
             .returning();
           customerId = newDefaultCustomer.id;
         }
       }
 
-      // Now create the sale with the customer ID
+      // إنشاء عملية البيع
       const [newSale] = await db
         .insert(sales)
         .values({
           productId: sale.productId,
-          customerId: customerId,
+          customerId,
           quantity: sale.quantity,
           priceIqd: sale.priceIqd,
-          userId: sale.userId || 1,
+          userId: sale.userId,
           isInstallment: sale.isInstallment,
-          date: sale.date,
+          date: sale.date
         })
         .returning();
 
+      // تسجيل حركة المخزون
+      await db.insert(inventoryTransactions).values({
+        productId: sale.productId,
+        type: "out",
+        quantity: sale.quantity,
+        reason: "sale",
+        reference: `SALE-${newSale.id}`,
+        userId: sale.userId,
+        date: new Date()
+      });
+
+      await trx.commit();
       return newSale;
     } catch (error) {
-      console.error("خطأ في حفظ عملية البيع في قاعدة البيانات:", error);
-      throw error;
+      await trx.rollback();
+      console.error("خطأ في إنشاء عملية البيع:", error);
+      throw new Error("فشل في إنشاء عملية البيع. " + (error as Error).message);
     }
   }
 

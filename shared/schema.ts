@@ -26,7 +26,7 @@ export const products = pgTable("products", {
   productCode: varchar("product_code", { length: 50 }).notNull().unique(),
   barcode: varchar("barcode", { length: 100 }).unique(),
   priceIqd: decimal("price_iqd", { precision: 10, scale: 2 }).notNull(),
-  stock: integer("stock").notNull().default(0),
+  stock: integer("stock").notNull().default(0).check(sql`stock >= 0`),
 });
 
 export const customers = pgTable("customers", {
@@ -307,9 +307,12 @@ export const insertUserSchema = createInsertSchema(users)
 export const insertProductSchema = createInsertSchema(products).extend({
   name: z.string().min(3, "اسم المنتج يجب أن يكون 3 أحرف على الأقل"),
   description: z.string().optional(),
-  productCode: z.string().min(1, "رمز المنتج مطلوب"),
-  barcode: z.string().optional(),
-  priceIqd: z.number().min(0, "السعر يجب أن يكون أكبر من 0"),
+  productCode: z.string().min(1, "رمز المنتج مطلوب")
+    .regex(/^[A-Za-z0-9-]+$/, "رمز المنتج يجب أن يحتوي على أحرف وأرقام وشرطات فقط"),
+  barcode: z.string().optional()
+    .nullable()
+    .refine(val => !val || /^[0-9]{8,13}$/.test(val), "الباركود يجب أن يكون رقمًا من 8 إلى 13 خانة"),
+  priceIqd: z.number().min(1, "السعر يجب أن يكون أكبر من 0"),
   stock: z.number().min(0, "المخزون يجب أن يكون 0 على الأقل"),
 });
 
