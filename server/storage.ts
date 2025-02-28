@@ -6,11 +6,14 @@ import {
   InventoryTransaction, InsertInventoryTransaction,
   ExpenseCategory, InsertExpenseCategory, Expense, InsertExpense,
   Supplier, InsertSupplier, SupplierTransaction, InsertSupplierTransaction,
-  Customer, InsertCustomer, Appointment, InsertAppointment
+  Customer, InsertCustomer, Appointment, InsertAppointment,
+  sales // Import the sales table
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { dbStorage } from "./db-storage";
+import { db } from "./db";
+
 
 const MemoryStore = createMemoryStore(session);
 
@@ -81,7 +84,7 @@ export interface IStorage {
   deleteFile(id: number): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
+export class DatabaseStorage implements IStorage {
   private users: Map<number, User> = new Map();
   private products: Map<number, Product> = new Map();
   private sales: Map<number, Sale> = new Map();
@@ -300,7 +303,18 @@ export class MemStorage implements IStorage {
   }
 
   async createSale(sale: Sale): Promise<Sale> {
-    return dbStorage.createSale(sale);
+    const [newSale] = await db
+      .insert(sales)
+      .values({
+        productId: sale.productId,
+        customerId: sale.customerId,
+        quantity: sale.quantity,
+        priceIqd: sale.priceIqd,
+        userId: sale.userId,
+        isInstallment: sale.isInstallment,
+      })
+      .returning();
+    return newSale;
   }
 
   async getCurrentExchangeRate(): Promise<ExchangeRate> {
