@@ -127,6 +127,11 @@ export default function ThemeSettings() {
         root.style.setProperty('--primary-lightness', '60%');
         break;
     }
+
+    // تحديث متغيرات التصميم
+    document.documentElement.style.setProperty('--theme-primary', settings.primary);
+    document.documentElement.style.setProperty('--theme-variant', settings.variant);
+    document.documentElement.style.setProperty('--theme-font', settings.fontStyle);
   };
 
   const saveSettings = async (updates: Partial<typeof themeSettings>) => {
