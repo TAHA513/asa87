@@ -7,288 +7,48 @@ import {
   ExpenseCategory, InsertExpenseCategory, Expense, InsertExpense,
   Supplier, InsertSupplier, SupplierTransaction, InsertSupplierTransaction,
   Customer, InsertCustomer, Appointment, InsertAppointment,
-  sales, customers // Import both tables
+  Invoice, InsertInvoice,
+  sales, customers, users, products, expenses, suppliers, supplierTransactions, 
+  appointments, inventoryTransactions, invoices
 } from "@shared/schema";
-import { invoices, products, type Invoice, type InsertInvoice } from "@shared/schema";
-import session from "express-session";
-import createMemoryStore from "memorystore";
-import { dbStorage } from "./db-storage";
 import { db } from "./db";
 import { eq, or, like } from "drizzle-orm";
-
-const MemoryStore = createMemoryStore(session);
-
-export interface IStorage {
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  updateUser(id: number, update: Partial<User>): Promise<User>;
-  getProducts(): Promise<Product[]>;
-  getProduct(id: number): Promise<Product | undefined>;
-  createProduct(product: Product): Promise<Product>;
-  updateProduct(id: number, product: Partial<Product>): Promise<Product>;
-  getSales(): Promise<Sale[]>;
-  createSale(sale: {
-    productId: number;
-    quantity: number;
-    priceIqd: string;
-    userId: number;
-    isInstallment: boolean;
-    date: Date;
-    customerName?: string;
-  }): Promise<Sale>;
-  getCurrentExchangeRate(): Promise<ExchangeRate>;
-  setExchangeRate(rate: number): Promise<ExchangeRate>;
-  getInstallments(): Promise<Installment[]>;
-  getInstallment(id: number): Promise<Installment | undefined>;
-  createInstallment(installment: Installment): Promise<Installment>;
-  updateInstallment(id: number, update: Partial<Installment>): Promise<Installment>;
-  getInstallmentPayments(installmentId: number): Promise<InstallmentPayment[]>;
-  createInstallmentPayment(payment: InstallmentPayment): Promise<InstallmentPayment>;
-  getCampaigns(): Promise<Campaign[]>;
-  getCampaign(id: number): Promise<Campaign | undefined>;
-  createCampaign(campaign: InsertCampaign): Promise<Campaign>;
-  updateCampaign(id: number, update: Partial<Campaign>): Promise<Campaign>;
-  getCampaignAnalytics(campaignId: number): Promise<CampaignAnalytics[]>;
-  createCampaignAnalytics(analytics: InsertCampaignAnalytics): Promise<CampaignAnalytics>;
-  getSocialMediaAccounts(userId: number): Promise<SocialMediaAccount[]>;
-  createSocialMediaAccount(account: SocialMediaAccount): Promise<SocialMediaAccount>;
-  deleteSocialMediaAccount(id: number): Promise<void>;
-  setApiKeys(userId: number, keys: Record<string, any>): Promise<void>;
-  getApiKeys(userId: number): Promise<Record<string, any> | null>;
-  migrateLocalStorageToDb(userId: number, keys: Record<string, any>): Promise<void>;
-  sessionStore: session.Store;
-  getInventoryTransactions(): Promise<InventoryTransaction[]>;
-  createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction>;
-  getExpenseCategories(userId: number): Promise<ExpenseCategory[]>;
-  getExpenseCategory(id: number): Promise<ExpenseCategory | undefined>;
-  createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory>;
-  updateExpenseCategory(id: number, update: Partial<ExpenseCategory>): Promise<ExpenseCategory>;
-  deleteExpenseCategory(id: number): Promise<void>;
-  getExpenses(userId: number): Promise<Expense[]>;
-  getExpense(id: number): Promise<Expense | undefined>;
-  createExpense(expense: InsertExpense): Promise<Expense>;
-  updateExpense(id: number, update: Partial<Expense>): Promise<Expense>;
-  deleteExpense(id: number): Promise<void>;
-  getSuppliers(userId: number): Promise<Supplier[]>;
-  getSupplier(id: number): Promise<Supplier | undefined>;
-  createSupplier(supplier: InsertSupplier): Promise<Supplier>;
-  updateSupplier(id: number, update: Partial<Supplier>): Promise<Supplier>;
-  deleteSupplier(id: number): Promise<void>;
-  getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]>;
-  createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction>;
-  searchCustomers(search?: string): Promise<Customer[]>;
-  getCustomer(id: number): Promise<Customer | undefined>;
-  getCustomerSales(customerId: number): Promise<Sale[]>;
-  createCustomer(customer: InsertCustomer): Promise<Customer>;
-  getCustomerAppointments(customerId: number): Promise<Appointment[]>;
-  createAppointment(appointment: InsertAppointment): Promise<Appointment>;
-  updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment>;
-  deleteAppointment(id: number): Promise<void>;
-  deleteProduct(id: number): Promise<void>;
-  deleteCustomer(id: number): Promise<void>;
-  saveFile(file: InsertFileStorage): Promise<FileStorage>;
-  getFileById(id: number): Promise<FileStorage | undefined>;
-  getUserFiles(userId: number): Promise<FileStorage[]>;
-  deleteFile(id: number): Promise<void>;
-  createInvoice(invoice: InsertInvoice): Promise<Invoice>;
-  getInvoice(id: number): Promise<Invoice | undefined>;
-  updateInvoicePrintStatus(id: number, printed: boolean): Promise<Invoice>;
-  searchProducts(query: string): Promise<Product[]>;
-}
+import { IStorage } from "./types";
 
 export class DatabaseStorage implements IStorage {
-  private users: Map<number, User> = new Map();
-  private products: Map<number, Product> = new Map();
-  private sales: Map<number, Sale> = new Map();
-  private exchangeRates: Map<number, ExchangeRate> = new Map();
-  private installments: Map<number, Installment> = new Map();
-  private installmentPayments: Map<number, InstallmentPayment> = new Map();
-  private campaigns: Map<number, Campaign> = new Map();
-  private campaignAnalytics: Map<number, CampaignAnalytics> = new Map();
-  private socialMediaAccounts: Map<number, SocialMediaAccount> = new Map();
-  private apiKeys: Map<number, Record<string, any>> = new Map();
-  private inventoryTransactions: Map<number, InventoryTransaction> = new Map();
-  private expenseCategories: Map<number, ExpenseCategory> = new Map();
-  private expenses: Map<number, Expense> = new Map();
-  private suppliers: Map<number, Supplier> = new Map();
-  private supplierTransactions: Map<number, SupplierTransaction> = new Map();
-  private customers: Map<number, Customer> = new Map();
-  private appointments: Map<number, Appointment> = new Map();
-  private files: Map<number, FileStorage> = new Map();
-  private currentId: number = 1;
-  sessionStore: session.Store;
-
-  constructor() {
-    this.clearAllData();
-    this.sessionStore = new MemoryStore({ checkPeriod: 86400000 });
-  }
-
-  private clearAllData() {
-    this.users.clear();
-    this.products.clear();
-    this.sales.clear();
-    this.exchangeRates.clear();
-    this.installments.clear();
-    this.installmentPayments.clear();
-    this.campaigns.clear();
-    this.campaignAnalytics.clear();
-    this.socialMediaAccounts.clear();
-    this.apiKeys.clear();
-    this.inventoryTransactions.clear();
-    this.expenseCategories.clear();
-    this.expenses.clear();
-    this.suppliers.clear();
-    this.supplierTransactions.clear();
-    this.customers.clear();
-    this.appointments.clear();
-    this.files.clear();
-    this.currentId = 1;
-  }
-
-  async migrateAllDataToDatabase(): Promise<void> {
-    try {
-      for (const user of this.users.values()) {
-        try {
-          await dbStorage.saveNewUser({
-            username: user.username,
-            password: user.password,
-            fullName: user.fullName,
-            role: user.role,
-            email: user.email,
-            phone: user.phone,
-            permissions: user.permissions,
-          });
-        } catch (error) {
-          console.error("خطأ في ترحيل بيانات المستخدم:", error);
-        }
-      }
-
-      for (const installment of this.installments.values()) {
-        try {
-          await dbStorage.createInstallment(installment);
-        } catch (error) {
-          console.error("خطأ في ترحيل بيانات التقسيط:", error);
-        }
-      }
-
-      for (const payment of this.installmentPayments.values()) {
-        try {
-          await dbStorage.createInstallmentPayment(payment);
-        } catch (error) {
-          console.error("خطأ في ترحيل بيانات دفعات التقسيط:", error);
-        }
-      }
-
-      for (const campaign of this.campaigns.values()) {
-        try {
-          await dbStorage.createCampaign({
-            name: campaign.name,
-            description: campaign.description,
-            platforms: campaign.platforms,
-            budget: Number(campaign.budget),
-            startDate: campaign.startDate,
-            endDate: campaign.endDate,
-            userId: campaign.userId,
-          });
-        } catch (error) {
-          console.error("خطأ في ترحيل بيانات الحملات:", error);
-        }
-      }
-
-      for (const analytics of this.campaignAnalytics.values()) {
-        try {
-          await dbStorage.createCampaignAnalytics({
-            campaignId: analytics.campaignId,
-            platform: analytics.platform,
-            impressions: analytics.impressions,
-            clicks: analytics.clicks,
-            conversions: analytics.conversions,
-            spend: Number(analytics.spend),
-            date: analytics.date,
-          });
-        } catch (error) {
-          console.error("خطأ في ترحيل بيانات تحليلات الحملات:", error);
-        }
-      }
-
-      for (const account of this.socialMediaAccounts.values()) {
-        try {
-          await dbStorage.createSocialMediaAccount(account);
-        } catch (error) {
-          console.error("خطأ في ترحيل بيانات حسابات التواصل الاجتماعي:", error);
-        }
-      }
-
-      for (const [userId, keys] of this.apiKeys.entries()) {
-        try {
-          await dbStorage.setApiKeys(userId, keys);
-        } catch (error) {
-          console.error("خطأ في ترحيل بيانات مفاتيح API:", error);
-        }
-      }
-
-      for (const transaction of this.inventoryTransactions.values()) {
-        try {
-          await dbStorage.createInventoryTransaction(transaction);
-        } catch (error) {
-          console.error("خطأ في ترحيل بيانات حركات المخزون:", error);
-        }
-      }
-
-      for (const expense of this.expenses.values()) {
-        try {
-          await dbStorage.createExpense(expense);
-        } catch (error) {
-          console.error("خطأ في ترحيل بيانات المصروفات:", error);
-        }
-      }
-
-      for (const supplier of this.suppliers.values()) {
-        try {
-          await dbStorage.createSupplier(supplier);
-        } catch (error) {
-          console.error("خطأ في ترحيل بيانات الموردين:", error);
-        }
-      }
-
-      for (const transaction of this.supplierTransactions.values()) {
-        try {
-          await dbStorage.createSupplierTransaction(transaction);
-        } catch (error) {
-          console.error("خطأ في ترحيل بيانات معاملات الموردين:", error);
-        }
-      }
-
-      for (const appointment of this.appointments.values()) {
-        try {
-          await dbStorage.createAppointment(appointment);
-        } catch (error) {
-          console.error("خطأ في ترحيل بيانات المواعيد:", error);
-        }
-      }
-
-      console.log("تم ترحيل جميع البيانات بنجاح إلى قاعدة البيانات");
-    } catch (error) {
-      console.error("خطأ في عملية ترحيل البيانات:", error);
-      throw error;
-    }
-  }
-
   async getUser(id: number): Promise<User | undefined> {
-    return dbStorage.getUser(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return dbStorage.getUserByUsername(username);
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    return dbStorage.saveNewUser(insertUser);
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...insertUser,
+        role: insertUser.role as "admin" | "staff",
+        permissions: insertUser.permissions || [],
+      })
+      .returning();
+    return user;
   }
 
   async updateUser(id: number, update: Partial<User>): Promise<User> {
-    return dbStorage.updateUser(id, update);
+    const [user] = await db
+      .update(users)
+      .set({
+        ...update,
+        role: update.role as "admin" | "staff",
+        permissions: update.permissions || [],
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
   }
 
   async getProducts(): Promise<Product[]> {
@@ -300,11 +60,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProduct(product: Product): Promise<Product> {
-    return dbStorage.createProduct(product);
+    const [newProduct] = await db
+      .insert(products)
+      .values(product)
+      .returning();
+    return newProduct;
   }
 
   async updateProduct(id: number, update: Partial<Product>): Promise<Product> {
-    return dbStorage.updateProduct(id, update);
+    const [product] = await db
+      .update(products)
+      .set(update)
+      .where(eq(products.id, id))
+      .returning();
+    return product;
   }
 
   async deleteProduct(id: number): Promise<void> {
@@ -469,7 +238,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction> {
-    return dbStorage.createInventoryTransaction(transaction);
+    const [newTransaction] = await db
+      .insert(inventoryTransactions)
+      .values({
+        ...transaction,
+        type: transaction.type as "in" | "out",
+        reason: transaction.reason as "sale" | "return" | "adjustment" | "purchase",
+      })
+      .returning();
+    return newTransaction;
   }
 
   async getExpenseCategories(userId: number): Promise<ExpenseCategory[]> {
@@ -501,7 +278,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createExpense(expense: InsertExpense): Promise<Expense> {
-    return dbStorage.createExpense(expense);
+    const [newExpense] = await db
+      .insert(expenses)
+      .values({
+        ...expense,
+        amount: Number(expense.amount),
+        recurringPeriod: expense.recurringPeriod as "monthly" | "weekly" | "yearly" | undefined,
+      })
+      .returning();
+    return newExpense;
   }
 
   async updateExpense(id: number, update: Partial<Expense>): Promise<Expense> {
@@ -521,7 +306,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSupplier(supplier: InsertSupplier): Promise<Supplier> {
-    return dbStorage.createSupplier(supplier);
+    const [newSupplier] = await db
+      .insert(suppliers)
+      .values({
+        ...supplier,
+        categories: supplier.categories || [],
+      })
+      .returning();
+    return newSupplier;
   }
 
   async updateSupplier(id: number, update: Partial<Supplier>): Promise<Supplier> {
@@ -537,7 +329,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction> {
-    return dbStorage.createSupplierTransaction(transaction);
+    const [newTransaction] = await db
+      .insert(supplierTransactions)
+      .values({
+        ...transaction,
+        type: transaction.type as "payment" | "refund" | "advance" | "other",
+        status: transaction.status as "completed" | "pending" | "cancelled",
+      })
+      .returning();
+    return newTransaction;
   }
 
   async searchCustomers(search?: string): Promise<Customer[]> {
@@ -561,7 +361,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
-    return dbStorage.createAppointment(appointment);
+    const [newAppointment] = await db
+      .insert(appointments)
+      .values({
+        ...appointment,
+        status: appointment.status as "scheduled" | "completed" | "cancelled",
+      })
+      .returning();
+    return newAppointment;
   }
 
   async updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment> {
@@ -595,7 +402,7 @@ export class DatabaseStorage implements IStorage {
   async createInvoice(invoice: InsertInvoice): Promise<Invoice> {
     const [newInvoice] = await db
       .insert(invoices)
-      .values(invoice)
+      .values([invoice])
       .returning();
     return newInvoice;
   }
@@ -631,4 +438,4 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = dbStorage;
+export const storage = new DatabaseStorage();
