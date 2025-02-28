@@ -2,6 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Package, ShoppingCart, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { Product, Sale, Customer } from "@shared/schema";
+import { cn } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
 
 export default function StatsCards() {
   const { data: products = [] } = useQuery<Product[]>({
@@ -79,57 +81,143 @@ export default function StatsCards() {
       .map(sale => sale.customerId)
   ).size;
 
+  // دالة لتحديد لون المؤشر بناءً على النسبة
+  const getIndicatorColor = (value: number, thresholds: { low: number; medium: number }) => {
+    if (value >= thresholds.medium) return "text-green-500";
+    if (value >= thresholds.low) return "text-amber-500";
+    return "text-red-500";
+  };
+
+  // دالة لتحديد لون خلفية البطاقة
+  const getCardGradient = (value: number, thresholds: { low: number; medium: number }) => {
+    if (value >= thresholds.medium) return "bg-gradient-to-br from-green-50 to-white dark:from-green-950/20";
+    if (value >= thresholds.low) return "bg-gradient-to-br from-amber-50 to-white dark:from-amber-950/20";
+    return "bg-gradient-to-br from-red-50 to-white dark:from-red-950/20";
+  };
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card>
+      <Card className={cn(
+        "transition-all duration-500",
+        getCardGradient(salesGrowth, { low: 0, medium: 10 })
+      )}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">إجمالي الإيرادات</CardTitle>
-          <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <DollarSign className={cn(
+            "h-4 w-4 transition-colors duration-500",
+            getIndicatorColor(salesGrowth, { low: 0, medium: 10 })
+          )} />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{totalSales.toLocaleString()} د.ع</div>
-          <p className="text-xs text-muted-foreground">
-            {salesGrowth >= 0 ? "+" : ""}{salesGrowth.toFixed(1)}% عن الشهر الماضي
-          </p>
+          <div className="space-y-2">
+            <p className={cn(
+              "text-xs",
+              getIndicatorColor(salesGrowth, { low: 0, medium: 10 })
+            )}>
+              {salesGrowth >= 0 ? "+" : ""}{salesGrowth.toFixed(1)}% عن الشهر الماضي
+            </p>
+            <Progress 
+              value={Math.min(Math.max(salesGrowth, 0), 100)} 
+              className="h-1" 
+              indicatorClassName={cn(
+                getIndicatorColor(salesGrowth, { low: 0, medium: 10 }).replace("text-", "bg-")
+              )}
+            />
+          </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={cn(
+        "transition-all duration-500",
+        getCardGradient(100 - (lowStock / totalProducts * 100), { low: 60, medium: 80 })
+      )}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">المنتجات</CardTitle>
-          <Package className="h-4 w-4 text-muted-foreground" />
+          <Package className={cn(
+            "h-4 w-4 transition-colors duration-500",
+            getIndicatorColor(100 - (lowStock / totalProducts * 100), { low: 60, medium: 80 })
+          )} />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{totalProducts}</div>
-          <p className="text-xs text-muted-foreground">
-            {lowStock} منتجات منخفضة المخزون
-          </p>
+          <div className="space-y-2">
+            <p className={cn(
+              "text-xs",
+              getIndicatorColor(100 - (lowStock / totalProducts * 100), { low: 60, medium: 80 })
+            )}>
+              {lowStock} منتجات منخفضة المخزون
+            </p>
+            <Progress 
+              value={100 - (lowStock / totalProducts * 100)} 
+              className="h-1"
+              indicatorClassName={cn(
+                getIndicatorColor(100 - (lowStock / totalProducts * 100), { low: 60, medium: 80 }).replace("text-", "bg-")
+              )}
+            />
+          </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={cn(
+        "transition-all duration-500",
+        getCardGradient(transactionGrowth, { low: 0, medium: 5 })
+      )}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">المبيعات</CardTitle>
-          <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+          <ShoppingCart className={cn(
+            "h-4 w-4 transition-colors duration-500",
+            getIndicatorColor(transactionGrowth, { low: 0, medium: 5 })
+          )} />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{totalTransactions}</div>
-          <p className="text-xs text-muted-foreground">
-            {transactionGrowth >= 0 ? "+" : ""}{transactionGrowth} منذ الساعة الماضية
-          </p>
+          <div className="space-y-2">
+            <p className={cn(
+              "text-xs",
+              getIndicatorColor(transactionGrowth, { low: 0, medium: 5 })
+            )}>
+              {transactionGrowth >= 0 ? "+" : ""}{transactionGrowth} منذ الساعة الماضية
+            </p>
+            <Progress 
+              value={Math.min(Math.max(transactionGrowth * 10, 0), 100)} 
+              className="h-1"
+              indicatorClassName={cn(
+                getIndicatorColor(transactionGrowth, { low: 0, medium: 5 }).replace("text-", "bg-")
+              )}
+            />
+          </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className={cn(
+        "transition-all duration-500",
+        getCardGradient(activeCustomers, { low: 10, medium: 30 })
+      )}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">العملاء النشطون</CardTitle>
-          <Users className="h-4 w-4 text-muted-foreground" />
+          <Users className={cn(
+            "h-4 w-4 transition-colors duration-500",
+            getIndicatorColor(activeCustomers, { low: 10, medium: 30 })
+          )} />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{activeCustomers}</div>
-          <p className="text-xs text-muted-foreground">
-            عملاء نشطون هذا الشهر
-          </p>
+          <div className="space-y-2">
+            <p className={cn(
+              "text-xs",
+              getIndicatorColor(activeCustomers, { low: 10, medium: 30 })
+            )}>
+              عملاء نشطون هذا الشهر
+            </p>
+            <Progress 
+              value={Math.min(activeCustomers * 2, 100)} 
+              className="h-1"
+              indicatorClassName={cn(
+                getIndicatorColor(activeCustomers, { low: 10, medium: 30 }).replace("text-", "bg-")
+              )}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>
