@@ -170,15 +170,15 @@ export default function Sales() {
       <main className="flex-1 p-8 overflow-auto">
         <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-8">
           <div className="md:col-span-2">
-            <Card className="shadow-lg transition-shadow hover:shadow-xl">
-              <CardHeader className="space-y-1">
-                <CardTitle className="text-2xl font-bold">المبيعات الأخيرة</CardTitle>
+            <Card className="shadow-lg transition-all duration-300 hover:shadow-xl bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+              <CardHeader className="space-y-1 border-b pb-7 mb-2">
+                <CardTitle className="text-2xl font-bold tracking-tight">المبيعات الأخيرة</CardTitle>
                 <CardDescription className="text-sm text-muted-foreground">
                   قائمة بجميع عمليات البيع
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="rounded-lg overflow-hidden border">
+                <div className="rounded-lg overflow-hidden border bg-card">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
@@ -193,7 +193,7 @@ export default function Sales() {
                       {sales.map((sale) => {
                         const product = searchResults.find((p) => p.id === sale.productId);
                         return (
-                          <TableRow key={sale.id} className="hover:bg-muted/30 transition-colors">
+                          <TableRow key={sale.id} className="hover:bg-muted/30 transition-colors duration-200">
                             <TableCell className="font-medium">{product?.name}</TableCell>
                             <TableCell>{sale.quantity}</TableCell>
                             <TableCell className="font-semibold">
@@ -213,9 +213,9 @@ export default function Sales() {
             </Card>
           </div>
 
-          <Card className="shadow-lg transition-shadow hover:shadow-xl">
-            <CardHeader className="space-y-1">
-              <CardTitle className="text-2xl font-bold">بيع جديد</CardTitle>
+          <Card className="shadow-lg transition-all duration-300 hover:shadow-xl bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <CardHeader className="space-y-1 border-b pb-7 mb-2">
+              <CardTitle className="text-2xl font-bold tracking-tight">بيع جديد</CardTitle>
               <CardDescription className="text-sm text-muted-foreground">
                 إنشاء عملية بيع جديدة
               </CardDescription>
@@ -252,7 +252,7 @@ export default function Sales() {
                               <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                               <Input
                                 type="time"
-                                className="pl-8 w-full"
+                                className="pl-8 w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                                 {...field}
                               />
                             </div>
@@ -272,7 +272,7 @@ export default function Sales() {
                           <div className="relative">
                             <Users className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input 
-                              className="pl-8 w-full transition-colors focus:border-primary"
+                              className="pl-8 w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                               placeholder="ادخل اسم العميل"
                               {...field}
                             />
@@ -287,7 +287,7 @@ export default function Sales() {
                     <div className="relative">
                       <Package className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
-                        className="pl-8 w-full transition-colors focus:border-primary"
+                        className="pl-8 w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                         placeholder="ابحث بالاسم أو الرمز أو الباركود"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -309,7 +309,7 @@ export default function Sales() {
                             <SelectItem 
                               key={product.id}
                               value={product.id.toString()}
-                              className="cursor-pointer hover:bg-muted"
+                              className="cursor-pointer transition-colors duration-200 hover:bg-muted"
                             >
                               {product.name} - {product.productCode}
                             </SelectItem>
@@ -318,8 +318,8 @@ export default function Sales() {
                       </Select>
                     )}
                     {selectedProduct && (
-                      <div className="text-sm text-muted-foreground bg-muted/30 p-2 rounded">
-                        السعر: {Number(selectedProduct.priceIqd).toLocaleString()} د.ع
+                      <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
+                        <span className="font-medium">السعر:</span> {Number(selectedProduct.priceIqd).toLocaleString()} د.ع
                       </div>
                     )}
                   </div>
@@ -334,7 +334,7 @@ export default function Sales() {
                           <Input
                             type="number"
                             min="1"
-                            className="w-full transition-colors focus:border-primary"
+                            className="w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                             {...field}
                           />
                         </FormControl>
@@ -346,23 +346,23 @@ export default function Sales() {
                     control={form.control}
                     name="printInvoice"
                     render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2">
+                      <FormItem className="flex items-center space-x-2 bg-muted/30 p-3 rounded-lg">
                         <FormControl>
                           <input
                             type="checkbox"
                             checked={field.value}
                             onChange={(e) => field.onChange(e.target.checked)}
-                            className="rounded border-input"
+                            className="rounded border-input w-4 h-4 transition-all duration-200 checked:bg-primary"
                           />
                         </FormControl>
-                        <FormLabel className="text-sm font-medium mr-2">طباعة الفاتورة</FormLabel>
+                        <FormLabel className="text-sm font-medium mr-2 cursor-pointer">طباعة الفاتورة</FormLabel>
                       </FormItem>
                     )}
                   />
 
                   <Button
                     type="submit"
-                    className="w-full bg-primary hover:bg-primary/90 text-white transition-colors"
+                    className="w-full bg-primary hover:bg-primary/90 text-white transition-all duration-200 shadow-lg hover:shadow-xl"
                   >
                     إتمام البيع
                   </Button>
