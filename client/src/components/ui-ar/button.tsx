@@ -1,9 +1,11 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { InfoIcon } from "lucide-react"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 relative group",
   {
     variants: {
       variant: {
@@ -37,18 +39,42 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
+  tooltip?: string
+  showHelper?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, rtl, ...props }, ref) => {
-    return (
+  ({ className, variant, size, rtl, tooltip, showHelper = false, children, ...props }, ref) => {
+    const button = (
       <button
         className={cn(buttonVariants({ variant, size, rtl, className }))}
         dir={rtl ? "rtl" : "ltr"}
         ref={ref}
         {...props}
-      />
+      >
+        {children}
+        {showHelper && (
+          <InfoIcon className="w-4 h-4 mr-1 text-muted-foreground opacity-50 group-hover:opacity-100" />
+        )}
+      </button>
     )
+
+    if (tooltip) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {button}
+            </TooltipTrigger>
+            <TooltipContent side="top" align="center">
+              {tooltip}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )
+    }
+
+    return button
   }
 )
 Button.displayName = "Button"
