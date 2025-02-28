@@ -11,6 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 const themes = [
   {
     name: "العصري",
+    id: "modern",
     colors: {
       primary: "hsl(142.1 76.2% 36.3%)",
       secondary: "hsl(217.2 91.2% 59.8%)",
@@ -20,6 +21,7 @@ const themes = [
   },
   {
     name: "الكلاسيكي",
+    id: "classic",
     colors: {
       primary: "hsl(215.3 98.9% 27.8%)",
       secondary: "hsl(221.2 83.2% 53.3%)",
@@ -29,6 +31,7 @@ const themes = [
   },
   {
     name: "الأنيق",
+    id: "elegant",
     colors: {
       primary: "hsl(200.4 15.3% 46.9%)",
       secondary: "hsl(171.2 76.5% 36.6%)",
@@ -38,6 +41,7 @@ const themes = [
   },
   {
     name: "النابض بالحياة",
+    id: "vibrant",
     colors: {
       primary: "hsl(20.5 90.2% 48.2%)",
       secondary: "hsl(280.1 65.3% 70.8%)",
@@ -47,6 +51,7 @@ const themes = [
   },
   {
     name: "الطبيعي",
+    id: "natural",
     colors: {
       primary: "hsl(120.1 40.1% 39.2%)",
       secondary: "hsl(25.3 95.3% 52.8%)",
@@ -59,6 +64,7 @@ const themes = [
 const fonts = [
   {
     name: "نوتو كوفي",
+    id: "noto-kufi",
     family: "'Noto Kufi Arabic'",
     weight: "400,700",
     style: "modern",
@@ -66,6 +72,7 @@ const fonts = [
   },
   {
     name: "القاهرة",
+    id: "cairo",
     family: "'Cairo'",
     weight: "400,600,700",
     style: "elegant",
@@ -73,6 +80,7 @@ const fonts = [
   },
   {
     name: "الأميري",
+    id: "amiri",
     family: "'Amiri'",
     weight: "400,700",
     style: "traditional",
@@ -80,6 +88,7 @@ const fonts = [
   },
   {
     name: "تجوال",
+    id: "tajawal",
     family: "'Tajawal'",
     weight: "400,500,700",
     style: "contemporary",
@@ -150,16 +159,16 @@ const ThemeSettings = () => {
       try {
         const response = await apiRequest("GET", "/api/settings");
         if (response) {
-          const settings = response;
-          const theme = themes.find(t => t.name === settings.themeName) || themes[0];
-          const font = fonts.find(f => f.name === settings.fontName) || fonts[0];
+          // استخدام المعرفات بدلاً من الأسماء العربية
+          const theme = themes.find(t => t.id === response.variant) || themes[0];
+          const font = fonts.find(f => f.id === response.fontStyle) || fonts[0];
           setSelectedTheme(theme);
           setSelectedFont(font);
-          setFontSize(settings.fontSize || "medium");
-          setAppearance(settings.appearance || "system");
+          setFontSize(response.fontSize || "medium");
+          setAppearance(response.appearance || "system");
 
           // تطبيق وضع السطوع المحفوظ
-          applyAppearance(settings.appearance || "system");
+          applyAppearance(response.appearance || "system");
         }
       } catch (error) {
         console.error("Error loading settings:", error);
@@ -174,14 +183,15 @@ const ThemeSettings = () => {
     try {
       const settings = {
         primary: selectedTheme.colors.primary,
-        variant: selectedTheme.preview as "modern" | "classic" | "elegant" | "vibrant" | "natural",
-        fontStyle: selectedFont.name as "noto-kufi" | "cairo" | "tajawal" | "amiri",
+        variant: selectedTheme.id, // استخدام المعرف بدلاً من الاسم
+        fontStyle: selectedFont.id, // استخدام المعرف بدلاً من الاسم
         fontSize,
         appearance,
-        radius: 0.5, // قيمة افتراضية للحواف
+        radius: 0.5,
       };
 
-      // حفظ في قاعدة البيانات
+      console.log("Saving settings:", settings); // للتحقق من البيانات المرسلة
+
       const response = await apiRequest("POST", "/api/settings", settings);
 
       if (response) {
@@ -245,9 +255,9 @@ const ThemeSettings = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {themes.map((theme) => (
                 <Card
-                  key={theme.name}
+                  key={theme.id}
                   className={`cursor-pointer transition-all hover:scale-105 ${
-                    selectedTheme.name === theme.name ? 'ring-2 ring-primary' : ''
+                    selectedTheme.id === theme.id ? 'ring-2 ring-primary' : ''
                   }`}
                   onClick={() => {
                     setSelectedTheme(theme);
@@ -260,7 +270,7 @@ const ThemeSettings = () => {
                   <CardHeader className="p-4">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">{theme.name}</CardTitle>
-                      {selectedTheme.name === theme.name && (
+                      {selectedTheme.id === theme.id && (
                         <Check className="w-5 h-5 text-primary" />
                       )}
                     </div>
@@ -279,6 +289,93 @@ const ThemeSettings = () => {
                 </Card>
               ))}
             </div>
+          </TabsContent>
+
+          <TabsContent value="font">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {fonts.map((font) => (
+                <Card
+                  key={font.id}
+                  className={`cursor-pointer transition-all hover:scale-105 ${
+                    selectedFont.id === font.id ? 'ring-2 ring-primary' : ''
+                  }`}
+                  onClick={() => {
+                    setSelectedFont(font);
+                    // تطبيق الخط فوراً
+                    document.documentElement.style.setProperty("--font-family", font.family);
+                  }}
+                >
+                  <CardHeader className="p-4">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{font.name}</CardTitle>
+                      {selectedFont.id === font.id && (
+                        <Check className="w-5 h-5 text-primary" />
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <p
+                      className="text-xl"
+                      style={{ fontFamily: font.family }}
+                    >
+                      {font.preview}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="size">
+            <Card>
+              <CardHeader>
+                <CardTitle>حجم الخط</CardTitle>
+                <CardDescription>اختر حجم الخط المناسب للعرض</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {Object.entries(fontSizes).map(([size, config]) => (
+                      <Card
+                        key={size}
+                        className={`cursor-pointer p-4 ${
+                          fontSize === size ? 'ring-2 ring-primary' : ''
+                        }`}
+                        onClick={() => {
+                          setFontSize(size);
+                          // تطبيق حجم الخط فوراً
+                          document.documentElement.style.setProperty("--font-size-base", `${config.base}px`);
+                        }}
+                      >
+                        <div className="text-center">
+                          <div style={{ fontSize: `${config.base}px` }}>
+                            نص تجريبي
+                          </div>
+                          <div className="mt-2 text-sm text-muted-foreground">
+                            {size === "small" && "صغير"}
+                            {size === "medium" && "متوسط"}
+                            {size === "large" && "كبير"}
+                            {size === "xlarge" && "كبير جداً"}
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>معاينة الحجم</Label>
+                    <div className="space-y-4" style={{
+                      fontSize: `${fontSizes[fontSize].base}px`,
+                      fontFamily: selectedFont.family
+                    }}>
+                      <h1 className="font-bold">عنوان رئيسي</h1>
+                      <h2 className="font-semibold">عنوان فرعي</h2>
+                      <p>هذا نص تجريبي لمعاينة حجم الخط المختار. يمكنك رؤية كيف سيظهر النص في مختلف العناصر.</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="appearance">
@@ -349,93 +446,6 @@ const ThemeSettings = () => {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-
-          <TabsContent value="font">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {fonts.map((font) => (
-                <Card
-                  key={font.name}
-                  className={`cursor-pointer transition-all hover:scale-105 ${
-                    selectedFont.name === font.name ? 'ring-2 ring-primary' : ''
-                  }`}
-                  onClick={() => {
-                    setSelectedFont(font);
-                    // Apply font immediately
-                    document.documentElement.style.setProperty("--font-family", font.family);
-                  }}
-                >
-                  <CardHeader className="p-4">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{font.name}</CardTitle>
-                      {selectedFont.name === font.name && (
-                        <Check className="w-5 h-5 text-primary" />
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-4">
-                    <p
-                      className="text-xl"
-                      style={{ fontFamily: font.family }}
-                    >
-                      {font.preview}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="size">
-            <Card>
-              <CardHeader>
-                <CardTitle>حجم الخط</CardTitle>
-                <CardDescription>اختر حجم الخط المناسب للعرض</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {Object.entries(fontSizes).map(([size, config]) => (
-                      <Card
-                        key={size}
-                        className={`cursor-pointer p-4 ${
-                          fontSize === size ? 'ring-2 ring-primary' : ''
-                        }`}
-                        onClick={() => {
-                          setFontSize(size);
-                          // Apply font size immediately
-                          document.documentElement.style.setProperty("--font-size-base", `${config.base}px`);
-                        }}
-                      >
-                        <div className="text-center">
-                          <div style={{ fontSize: `${config.base}px` }}>
-                            نص تجريبي
-                          </div>
-                          <div className="mt-2 text-sm text-muted-foreground">
-                            {size === "small" && "صغير"}
-                            {size === "medium" && "متوسط"}
-                            {size === "large" && "كبير"}
-                            {size === "xlarge" && "كبير جداً"}
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>معاينة الحجم</Label>
-                    <div className="space-y-4" style={{
-                      fontSize: `${fontSizes[fontSize].base}px`,
-                      fontFamily: selectedFont.family
-                    }}>
-                      <h1 className="font-bold">عنوان رئيسي</h1>
-                      <h2 className="font-semibold">عنوان فرعي</h2>
-                      <p>هذا نص تجريبي لمعاينة حجم الخط المختار. يمكنك رؤية كيف سيظهر النص في مختلف العناصر.</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
         </Tabs>
 
