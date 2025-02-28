@@ -21,12 +21,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { apiRequest } from "@/lib/queryClient";
 
 const themeColors = [
-  // الألوان الحالية
+  // الألوان الأساسية
   { name: "أخضر زمردي", value: "hsl(142.1 76.2% 36.3%)" },
   { name: "أزرق سماوي", value: "hsl(221.2 83.2% 53.3%)" },
   { name: "أرجواني ملكي", value: "hsl(262.1 83.3% 57.8%)" },
   { name: "برتقالي ذهبي", value: "hsl(20.5 90.2% 48.2%)" },
   { name: "أحمر ياقوتي", value: "hsl(346.8 77.2% 49.8%)" },
+
   // إضافة ألوان جديدة عصرية
   { name: "توركواز", value: "hsl(171.2 76.5% 36.6%)" },
   { name: "بنفسجي غامق", value: "hsl(280.1 81.3% 40.8%)" },
@@ -35,6 +36,14 @@ const themeColors = [
   { name: "رمادي أزرق", value: "hsl(215.4 30.3% 46.9%)" },
   { name: "أخضر نعناعي", value: "hsl(160.1 84.1% 39.2%)" },
   { name: "كهرماني", value: "hsl(25.3 95.3% 52.8%)" },
+
+  // إضافة ألوان جديدة للثيمات
+  { name: "أزرق داكن", value: "hsl(215.3 98.9% 27.8%)" },
+  { name: "زهري فاتح", value: "hsl(350.4 89.2% 60.2%)" },
+  { name: "أخضر زيتوني", value: "hsl(120.1 40.1% 39.2%)" },
+  { name: "بني محمر", value: "hsl(15.3 75.3% 42.8%)" },
+  { name: "رمادي دافئ", value: "hsl(200.4 15.3% 46.9%)" },
+  { name: "أرجواني فاتح", value: "hsl(280.1 65.3% 70.8%)" }
 ];
 
 const appearances = [
@@ -51,6 +60,9 @@ const variants = [
   { name: "عصري", value: "modern" },
   { name: "كلاسيكي", value: "classic" },
   { name: "مستقبلي", value: "futuristic" },
+  { name: "طبيعي", value: "natural" },
+  { name: "مينيمال", value: "minimal" },
+  { name: "عربي تقليدي", value: "traditional-arabic" }
 ];
 
 const fontStyles = [
@@ -67,7 +79,7 @@ const fontStyles = [
   { name: "معاصر", value: "contemporary", fontFamily: "Tajawal" }
 ];
 
-export default function ThemeSettings() {
+const ThemeSettings = () => {
   const { toast } = useToast();
   const [theme, setTheme] = useState({
     primary: "hsl(142.1 76.2% 36.3%)",
@@ -180,8 +192,8 @@ export default function ThemeSettings() {
             </SelectTrigger>
             <SelectContent>
               {fontStyles.map((style) => (
-                <SelectItem 
-                  key={style.value} 
+                <SelectItem
+                  key={style.value}
                   value={style.value}
                   style={{ fontFamily: style.fontFamily }}
                 >
@@ -219,4 +231,6 @@ export default function ThemeSettings() {
       </CardContent>
     </Card>
   );
-}
+};
+
+export default ThemeSettings;
