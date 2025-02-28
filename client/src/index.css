@@ -3,52 +3,11 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 224 71.4% 4.1%;
-    --primary-hue: 142.1;
-    --primary-saturation: 76.2%;
-    --primary-lightness: 36.3%;
-    --primary: hsl(var(--primary-hue) var(--primary-saturation) var(--primary-lightness));
-    --primary-foreground: hsl(var(--primary-hue) var(--primary-saturation) 98%);
-    --radius: 0.75rem;
-  }
-
-  [data-theme="vibrant"] {
-    --primary-saturation: 100%;
-    --primary-lightness: 60%;
-  }
-
-  [data-theme="professional"] {
-    --primary-saturation: 30%;
-    --primary-lightness: 50%;
-  }
-
-  [data-theme="tint"] {
-    --primary-saturation: 70%;
-    --primary-lightness: 80%;
-  }
-
-  .dark {
-    --background: 222 47% 11%;
-    --foreground: 216 12% 84%;
-    --primary-saturation: 30%;
-    --primary-lightness: 84%;
-  }
-
-  .focus {
-    --background: 220 20% 10%;
-    --foreground: 40 15% 90%;
-    --primary-saturation: 15%;
-    --primary-lightness: 90%;
-  }
-
   * {
     @apply border-border;
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: var(--font-family, 'Noto Kufi Arabic');
+    @apply font-sans antialiased bg-background text-foreground;
   }
 }
