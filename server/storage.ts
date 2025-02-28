@@ -2,17 +2,19 @@ import {
   User, Product, Sale, ExchangeRate, InsertUser, FileStorage, InsertFileStorage,
   Installment, InstallmentPayment,
   Campaign, InsertCampaign, CampaignAnalytics, InsertCampaignAnalytics,
-  SocialMediaAccount, apiKeys, type ApiKey, type InsertApiKey,
+  SocialMediaAccount, ApiKey, InsertApiKey,
   InventoryTransaction, InsertInventoryTransaction,
   ExpenseCategory, InsertExpenseCategory, Expense, InsertExpense,
   Supplier, InsertSupplier, SupplierTransaction, InsertSupplierTransaction,
   Customer, InsertCustomer, Appointment, InsertAppointment,
   Invoice, InsertInvoice,
   sales, customers, users, products, expenses, suppliers, supplierTransactions, 
-  appointments, inventoryTransactions, invoices
+  appointments, inventoryTransactions, invoices, exchangeRates, installments,
+  installmentPayments, marketingCampaigns, campaignAnalytics, socialMediaAccounts,
+  fileStorage
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, or, like } from "drizzle-orm";
+import { eq, or, like, desc } from "drizzle-orm";
 import { IStorage } from "./types";
 
 export class DatabaseStorage implements IStorage {
@@ -52,11 +54,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProducts(): Promise<Product[]> {
-    return dbStorage.getProducts();
+    return db.select().from(products);
   }
 
   async getProduct(id: number): Promise<Product | undefined> {
-    return dbStorage.getProduct(id);
+    const [product] = await db.select().from(products).where(eq(products.id, id));
+    return product;
   }
 
   async createProduct(product: Product): Promise<Product> {
@@ -77,11 +80,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteProduct(id: number): Promise<void> {
-    return dbStorage.deleteProduct(id);
+    await db.delete(products).where(eq(products.id, id));
   }
 
   async getSales(): Promise<Sale[]> {
-    return dbStorage.getSales();
+    return db.select().from(sales);
   }
 
   async createSale(sale: {
@@ -150,91 +153,167 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCurrentExchangeRate(): Promise<ExchangeRate> {
-    const rate = await dbStorage.getCurrentExchangeRate();
+    const [rate] = await db
+      .select()
+      .from(exchangeRates)
+      .orderBy(desc(exchangeRates.date))
+      .limit(1);
+
     if (!rate) {
-      return await this.setExchangeRate(1300);
+      return this.setExchangeRate(1300);
     }
     return rate;
   }
 
   async setExchangeRate(rate: number): Promise<ExchangeRate> {
-    return dbStorage.setExchangeRate(rate);
+    const [newRate] = await db
+      .insert(exchangeRates)
+      .values({
+        usdToIqd: rate.toString(),
+        date: new Date(),
+      })
+      .returning();
+    return newRate;
   }
 
   async getInstallments(): Promise<Installment[]> {
-    return dbStorage.getInstallments();
+    return db.select().from(installments);
   }
 
   async getInstallment(id: number): Promise<Installment | undefined> {
-    return dbStorage.getInstallment(id);
+    const [installment] = await db
+      .select()
+      .from(installments)
+      .where(eq(installments.id, id));
+    return installment;
   }
 
   async createInstallment(installment: Installment): Promise<Installment> {
-    return dbStorage.createInstallment(installment);
+    const [newInstallment] = await db
+      .insert(installments)
+      .values(installment)
+      .returning();
+    return newInstallment;
   }
 
   async updateInstallment(id: number, update: Partial<Installment>): Promise<Installment> {
-    return dbStorage.updateInstallment(id, update);
+    const [installment] = await db
+      .update(installments)
+      .set(update)
+      .where(eq(installments.id, id))
+      .returning();
+    return installment;
   }
 
   async getInstallmentPayments(installmentId: number): Promise<InstallmentPayment[]> {
-    return dbStorage.getInstallmentPayments(installmentId);
+    return db
+      .select()
+      .from(installmentPayments)
+      .where(eq(installmentPayments.installmentId, installmentId));
   }
 
   async createInstallmentPayment(payment: InstallmentPayment): Promise<InstallmentPayment> {
-    return dbStorage.createInstallmentPayment(payment);
+    const [newPayment] = await db
+      .insert(installmentPayments)
+      .values(payment)
+      .returning();
+    return newPayment;
   }
 
   async getCampaigns(): Promise<Campaign[]> {
-    return dbStorage.getCampaigns();
+    return db.select().from(marketingCampaigns);
   }
 
   async getCampaign(id: number): Promise<Campaign | undefined> {
-    return dbStorage.getCampaign(id);
+    const [campaign] = await db
+      .select()
+      .from(marketingCampaigns)
+      .where(eq(marketingCampaigns.id, id));
+    return campaign;
   }
 
   async createCampaign(campaign: InsertCampaign): Promise<Campaign> {
-    return dbStorage.createCampaign(campaign);
+    const [newCampaign] = await db
+      .insert(marketingCampaigns)
+      .values(campaign)
+      .returning();
+    return newCampaign;
   }
 
   async updateCampaign(id: number, update: Partial<Campaign>): Promise<Campaign> {
-    return dbStorage.updateCampaign(id, update);
+    const [campaign] = await db
+      .update(marketingCampaigns)
+      .set(update)
+      .where(eq(marketingCampaigns.id, id))
+      .returning();
+    return campaign;
   }
 
   async getCampaignAnalytics(campaignId: number): Promise<CampaignAnalytics[]> {
-    return dbStorage.getCampaignAnalytics(campaignId);
+    return db
+      .select()
+      .from(campaignAnalytics)
+      .where(eq(campaignAnalytics.campaignId, campaignId));
   }
 
   async createCampaignAnalytics(analytics: InsertCampaignAnalytics): Promise<CampaignAnalytics> {
-    return dbStorage.createCampaignAnalytics(analytics);
+    const [newAnalytics] = await db
+      .insert(campaignAnalytics)
+      .values(analytics)
+      .returning();
+    return newAnalytics;
   }
 
   async getSocialMediaAccounts(userId: number): Promise<SocialMediaAccount[]> {
-    return dbStorage.getSocialMediaAccounts(userId);
+    return db
+      .select()
+      .from(socialMediaAccounts)
+      .where(eq(socialMediaAccounts.userId, userId));
   }
 
   async createSocialMediaAccount(account: SocialMediaAccount): Promise<SocialMediaAccount> {
-    return dbStorage.createSocialMediaAccount(account);
+    const [newAccount] = await db
+      .insert(socialMediaAccounts)
+      .values(account)
+      .returning();
+    return newAccount;
   }
 
   async deleteSocialMediaAccount(id: number): Promise<void> {
-    return dbStorage.deleteSocialMediaAccount(id);
+    await db.delete(socialMediaAccounts).where(eq(socialMediaAccounts.id, id));
   }
 
   async setApiKeys(userId: number, keys: Record<string, any>): Promise<void> {
-    return dbStorage.setApiKeys(userId, keys);
+    await db
+      .insert(apiKeys)
+      .values({
+        userId,
+        platform: "general",
+        keyType: "json",
+        keyValue: JSON.stringify(keys),
+      });
   }
 
   async getApiKeys(userId: number): Promise<Record<string, any> | null> {
-    return dbStorage.getApiKeys(userId);
+    const [key] = await db
+      .select()
+      .from(apiKeys)
+      .where(eq(apiKeys.userId, userId))
+      .orderBy(desc(apiKeys.createdAt))
+      .limit(1);
+
+    if (key) {
+      return JSON.parse(key.keyValue);
+    }
+    return null;
   }
 
   async migrateLocalStorageToDb(userId: number, keys: Record<string, any>): Promise<void> {
-    //This is a placeholder, a real implementation would move data from local storage to the database.
+    await this.setApiKeys(userId, keys);
   }
 
   async getInventoryTransactions(): Promise<InventoryTransaction[]> {
-    return dbStorage.getInventoryTransactions();
+    return db.select().from(inventoryTransactions);
   }
 
   async createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction> {
@@ -250,31 +329,54 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getExpenseCategories(userId: number): Promise<ExpenseCategory[]> {
-    return dbStorage.getExpenseCategories(userId);
+    return db
+      .select()
+      .from(expenses)
+      .where(eq(expenses.userId, userId));
   }
 
   async getExpenseCategory(id: number): Promise<ExpenseCategory | undefined> {
-    return dbStorage.getExpenseCategory(id);
+    const [category] = await db
+      .select()
+      .from(expenses)
+      .where(eq(expenses.id, id));
+    return category;
   }
 
   async createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory> {
-    return dbStorage.createExpenseCategory(category);
+    const [newCategory] = await db
+      .insert(expenses)
+      .values(category)
+      .returning();
+    return newCategory;
   }
 
   async updateExpenseCategory(id: number, update: Partial<ExpenseCategory>): Promise<ExpenseCategory> {
-    return dbStorage.updateExpenseCategory(id, update);
+    const [category] = await db
+      .update(expenses)
+      .set(update)
+      .where(eq(expenses.id, id))
+      .returning();
+    return category;
   }
 
   async deleteExpenseCategory(id: number): Promise<void> {
-    return dbStorage.deleteExpenseCategory(id);
+    await db.delete(expenses).where(eq(expenses.id, id));
   }
 
   async getExpenses(userId: number): Promise<Expense[]> {
-    return dbStorage.getExpenses(userId);
+    return db
+      .select()
+      .from(expenses)
+      .where(eq(expenses.userId, userId));
   }
 
   async getExpense(id: number): Promise<Expense | undefined> {
-    return dbStorage.getExpense(id);
+    const [expense] = await db
+      .select()
+      .from(expenses)
+      .where(eq(expenses.id, id));
+    return expense;
   }
 
   async createExpense(expense: InsertExpense): Promise<Expense> {
@@ -282,7 +384,7 @@ export class DatabaseStorage implements IStorage {
       .insert(expenses)
       .values({
         ...expense,
-        amount: Number(expense.amount),
+        amount: expense.amount.toString(),
         recurringPeriod: expense.recurringPeriod as "monthly" | "weekly" | "yearly" | undefined,
       })
       .returning();
@@ -290,19 +392,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateExpense(id: number, update: Partial<Expense>): Promise<Expense> {
-    return dbStorage.updateExpense(id, update);
+    const [expense] = await db
+      .update(expenses)
+      .set(update)
+      .where(eq(expenses.id, id))
+      .returning();
+    return expense;
   }
 
   async deleteExpense(id: number): Promise<void> {
-    return dbStorage.deleteExpense(id);
+    await db.delete(expenses).where(eq(expenses.id, id));
   }
 
   async getSuppliers(userId: number): Promise<Supplier[]> {
-    return dbStorage.getSuppliers(userId);
+    return db
+      .select()
+      .from(suppliers)
+      .where(eq(suppliers.userId, userId));
   }
 
   async getSupplier(id: number): Promise<Supplier | undefined> {
-    return dbStorage.getSupplier(id);
+    const [supplier] = await db
+      .select()
+      .from(suppliers)
+      .where(eq(suppliers.id, id));
+    return supplier;
   }
 
   async createSupplier(supplier: InsertSupplier): Promise<Supplier> {
@@ -317,15 +431,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateSupplier(id: number, update: Partial<Supplier>): Promise<Supplier> {
-    return dbStorage.updateSupplier(id, update);
+    const [supplier] = await db
+      .update(suppliers)
+      .set(update)
+      .where(eq(suppliers.id, id))
+      .returning();
+    return supplier;
   }
 
   async deleteSupplier(id: number): Promise<void> {
-    return dbStorage.deleteSupplier(id);
+    await db.delete(suppliers).where(eq(suppliers.id, id));
   }
 
   async getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]> {
-    return dbStorage.getSupplierTransactions(supplierId);
+    return db
+      .select()
+      .from(supplierTransactions)
+      .where(eq(supplierTransactions.supplierId, supplierId));
   }
 
   async createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction> {
@@ -333,6 +455,7 @@ export class DatabaseStorage implements IStorage {
       .insert(supplierTransactions)
       .values({
         ...transaction,
+        amount: transaction.amount.toString(),
         type: transaction.type as "payment" | "refund" | "advance" | "other",
         status: transaction.status as "completed" | "pending" | "cancelled",
       })
@@ -341,23 +464,49 @@ export class DatabaseStorage implements IStorage {
   }
 
   async searchCustomers(search?: string): Promise<Customer[]> {
-    return dbStorage.searchCustomers(search);
+    if (!search) {
+      return db.select().from(customers);
+    }
+    return db
+      .select()
+      .from(customers)
+      .where(
+        or(
+          like(customers.name, `%${search}%`),
+          like(customers.phone, `%${search}%`),
+          like(customers.email, `%${search}%`)
+        )
+      );
   }
 
   async getCustomer(id: number): Promise<Customer | undefined> {
-    return dbStorage.getCustomer(id);
+    const [customer] = await db
+      .select()
+      .from(customers)
+      .where(eq(customers.id, id));
+    return customer;
   }
 
   async getCustomerSales(customerId: number): Promise<Sale[]> {
-    return dbStorage.getCustomerSales(customerId);
+    return db
+      .select()
+      .from(sales)
+      .where(eq(sales.customerId, customerId));
   }
 
-  async createCustomer(insertCustomer: InsertCustomer): Promise<Customer> {
-    return dbStorage.createCustomer(insertCustomer);
+  async createCustomer(customer: InsertCustomer): Promise<Customer> {
+    const [newCustomer] = await db
+      .insert(customers)
+      .values(customer)
+      .returning();
+    return newCustomer;
   }
 
   async getCustomerAppointments(customerId: number): Promise<Appointment[]> {
-    return dbStorage.getCustomerAppointments(customerId);
+    return db
+      .select()
+      .from(appointments)
+      .where(eq(appointments.customerId, customerId));
   }
 
   async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
@@ -372,37 +521,56 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment> {
-    return dbStorage.updateAppointment(id, update);
+    const [appointment] = await db
+      .update(appointments)
+      .set(update)
+      .where(eq(appointments.id, id))
+      .returning();
+    return appointment;
   }
 
   async deleteAppointment(id: number): Promise<void> {
-    return dbStorage.deleteAppointment(id);
+    await db.delete(appointments).where(eq(appointments.id, id));
   }
 
   async deleteCustomer(id: number): Promise<void> {
-    return dbStorage.deleteCustomer(id);
+    await db.delete(customers).where(eq(customers.id, id));
   }
 
   async saveFile(file: InsertFileStorage): Promise<FileStorage> {
-    return dbStorage.saveFile(file);
+    const [newFile] = await db
+      .insert(fileStorage)
+      .values(file)
+      .returning();
+    return newFile;
   }
 
   async getFileById(id: number): Promise<FileStorage | undefined> {
-    return dbStorage.getFileById(id);
+    const [file] = await db
+      .select()
+      .from(fileStorage)
+      .where(eq(fileStorage.id, id));
+    return file;
   }
 
   async getUserFiles(userId: number): Promise<FileStorage[]> {
-    return dbStorage.getUserFiles(userId);
+    return db
+      .select()
+      .from(fileStorage)
+      .where(eq(fileStorage.userId, userId));
   }
 
   async deleteFile(id: number): Promise<void> {
-    return dbStorage.deleteFile(id);
+    await db.delete(fileStorage).where(eq(fileStorage.id, id));
   }
 
   async createInvoice(invoice: InsertInvoice): Promise<Invoice> {
     const [newInvoice] = await db
       .insert(invoices)
-      .values([invoice])
+      .values({
+        ...invoice,
+        totalAmount: invoice.totalAmount.toString(),
+      })
       .returning();
     return newInvoice;
   }
