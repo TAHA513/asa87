@@ -252,6 +252,18 @@ export const fileStorage = pgTable("file_storage", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const userSettings = pgTable("user_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  themeName: text("theme_name").notNull(),
+  fontName: text("font_name").notNull(),
+  fontSize: text("font_size").notNull(),
+  appearance: text("appearance").notNull(),
+  colors: jsonb("colors").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users)
   .pick({
     username: true,
@@ -456,6 +468,20 @@ export const insertInvoiceSchema = createInsertSchema(invoices)
     totalAmount: z.number().min(0, "المبلغ الإجمالي يجب أن يكون أكبر من 0"),
   });
 
+export const insertUserSettingsSchema = createInsertSchema(userSettings)
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .extend({
+    themeName: z.string().min(1, "اسم الثيم مطلوب"),
+    fontName: z.string().min(1, "اسم الخط مطلوب"),
+    fontSize: z.enum(["small", "medium", "large", "xlarge"]),
+    appearance: z.enum(["light", "dark", "system"]),
+    colors: z.object({
+      primary: z.string(),
+      secondary: z.string(),
+      accent: z.string(),
+    }),
+  });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
@@ -497,3 +523,5 @@ export type FileStorage = typeof fileStorage.$inferSelect;
 export type InsertFileStorage = z.infer<typeof insertFileStorageSchema>;
 export type Invoice = typeof invoices.$inferSelect;
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type UserSettings = typeof userSettings.$inferSelect;
+export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;

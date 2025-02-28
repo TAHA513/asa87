@@ -127,6 +127,27 @@ const ThemeSettings = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await apiRequest("GET", "/api/settings");
+        if (response) {
+          const settings = response;
+          const theme = themes.find(t => t.name === settings.themeName) || themes[0];
+          const font = fonts.find(f => f.name === settings.fontName) || fonts[0];
+          setSelectedTheme(theme);
+          setSelectedFont(font);
+          setFontSize(settings.fontSize || "medium");
+          setAppearance(settings.appearance || "system");
+        }
+      } catch (error) {
+        console.error("Error loading settings:", error);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  useEffect(() => {
     const savedSettings = localStorage.getItem("themeSettings");
     if (savedSettings) {
       const settings = JSON.parse(savedSettings);
@@ -148,27 +169,27 @@ const ThemeSettings = () => {
         fontSize,
         appearance,
         colors: selectedTheme.colors,
-        fontFamily: selectedFont.family,
       };
 
-      await apiRequest("POST", "/api/theme", settings);
-      localStorage.setItem("themeSettings", JSON.stringify(settings));
+      // Save to database
+      await apiRequest("POST", "/api/settings", settings);
 
-      // تحديث متغيرات CSS
+      // Update CSS variables
       document.documentElement.style.setProperty("--primary-color", settings.colors.primary);
       document.documentElement.style.setProperty("--secondary-color", settings.colors.secondary);
       document.documentElement.style.setProperty("--accent-color", settings.colors.accent);
-      document.documentElement.style.setProperty("--font-family", settings.fontFamily);
+      document.documentElement.style.setProperty("--font-family", selectedFont.family);
       document.documentElement.style.setProperty("--font-size-base", `${fontSizes[fontSize].base}px`);
 
       toast({
         title: "تم الحفظ",
-        description: "تم تحديث إعدادات المظهر بنجاح",
+        description: "تم حفظ إعدادات المظهر في قاعدة البيانات",
       });
 
-      // إعادة تحميل الصفحة لتطبيق التغييرات
+      // Reload to apply changes
       window.location.reload();
     } catch (error) {
+      console.error("Error saving settings:", error);
       toast({
         title: "خطأ",
         description: "فشل في حفظ التغييرات",
@@ -211,7 +232,7 @@ const ThemeSettings = () => {
           <TabsContent value="theme">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {themes.map((theme) => (
-                <Card 
+                <Card
                   key={theme.name}
                   className={`cursor-pointer transition-all hover:scale-105 ${
                     selectedTheme.name === theme.name ? 'ring-2 ring-primary' : ''
@@ -245,7 +266,7 @@ const ThemeSettings = () => {
           <TabsContent value="font">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {fonts.map((font) => (
-                <Card 
+                <Card
                   key={font.name}
                   className={`cursor-pointer transition-all hover:scale-105 ${
                     selectedFont.name === font.name ? 'ring-2 ring-primary' : ''
@@ -307,9 +328,9 @@ const ThemeSettings = () => {
 
                   <div className="space-y-2">
                     <Label>معاينة الحجم</Label>
-                    <div className="space-y-4" style={{ 
+                    <div className="space-y-4" style={{
                       fontSize: `${fontSizes[fontSize].base}px`,
-                      fontFamily: selectedFont.family 
+                      fontFamily: selectedFont.family
                     }}>
                       <h1 className="font-bold">عنوان رئيسي</h1>
                       <h2 className="font-semibold">عنوان فرعي</h2>
@@ -323,7 +344,7 @@ const ThemeSettings = () => {
 
           <TabsContent value="appearance">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card 
+              <Card
                 className={`cursor-pointer transition-all hover:scale-105 ${
                   appearance === "light" ? 'ring-2 ring-primary' : ''
                 }`}
@@ -342,7 +363,7 @@ const ThemeSettings = () => {
                 </CardContent>
               </Card>
 
-              <Card 
+              <Card
                 className={`cursor-pointer transition-all hover:scale-105 ${
                   appearance === "dark" ? 'ring-2 ring-primary' : ''
                 }`}
@@ -361,7 +382,7 @@ const ThemeSettings = () => {
                 </CardContent>
               </Card>
 
-              <Card 
+              <Card
                 className={`cursor-pointer transition-all hover:scale-105 ${
                   appearance === "system" ? 'ring-2 ring-primary' : ''
                 }`}

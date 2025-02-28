@@ -11,7 +11,7 @@ import {
   sales, customers, users, products, expenses, suppliers, supplierTransactions,
   appointments, inventoryTransactions, invoices, exchangeRates, installments,
   installmentPayments, marketingCampaigns, campaignAnalytics, socialMediaAccounts,
-  fileStorage
+  fileStorage, userSettings, type UserSettings, type InsertUserSettings
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, like, desc } from "drizzle-orm";
@@ -613,6 +613,36 @@ export class DatabaseStorage implements IStorage {
           like(products.name, `%${query}%`)
         )
       );
+  }
+
+  async getUserSettings(userId: number): Promise<UserSettings | undefined> {
+    const [settings] = await db
+      .select()
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId))
+      .orderBy(desc(userSettings.createdAt))
+      .limit(1);
+    return settings;
+  }
+
+  async saveUserSettings(userId: number, settings: Omit<InsertUserSettings, "userId">): Promise<UserSettings> {
+    // Delete old settings
+    await db
+      .delete(userSettings)
+      .where(eq(userSettings.userId, userId));
+
+    // Insert new settings
+    const [newSettings] = await db
+      .insert(userSettings)
+      .values({
+        userId,
+        ...settings,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+
+    return newSettings;
   }
 }
 

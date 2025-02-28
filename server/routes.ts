@@ -879,9 +879,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const customer = await storage.getCustomer(Number(req.params.id));
       if (!customer) {
-        return res.status(404).json({ message: "العميل غير موجود" });      }
-      res.json(customer);
-    } catch (error) {
+        return res.status(404).json({ message: "العميل غير موجود" });
+      }
+      res.json(customer);    } catch (error) {
       console.error("Error fetching customer:", error);
       res.status(500).json({ message: "فشل في جلب بيانات العميل" });
     }
@@ -1048,6 +1048,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting file:", error);
       res.status(500).json({ message: "فشل في حذف الملف" });
+    }
+  });
+
+  // إضافة المسارات الجديدة للإعدادات
+  app.get("/api/settings", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const settings = await storage.getUserSettings((req.user as any).id);
+      res.json(settings || {
+        themeName: "العصري",
+        fontName: "نوتو كوفي",
+        fontSize: "medium",
+        appearance: "system",
+        colors: {
+          primary: "hsl(142.1 76.2% 36.3%)",
+          secondary: "hsl(217.2 91.2% 59.8%)",
+          accent: "hsl(316.8 81.2% 43.8%)"
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching user settings:", error);
+      res.status(500).json({ message: "فشل في جلب إعدادات المظهر" });
+    }
+  });
+
+  app.post("/api/settings", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log("Saving user settings:", req.body);
+      const settings = await storage.saveUserSettings((req.user as any).id, {
+        themeName: req.body.themeName,
+        fontName: req.body.fontName,
+        fontSize: req.body.fontSize,
+        appearance: req.body.appearance,
+        colors: req.body.colors
+      });
+
+      res.status(200).json(settings);
+    } catch (error) {
+      console.error("Error saving user settings:", error);
+      res.status(500).json({ message: "فشل في حفظ إعدادات المظهر" });
     }
   });
 
