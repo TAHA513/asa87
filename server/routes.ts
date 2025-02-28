@@ -19,6 +19,12 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { insertAppointmentSchema } from "@shared/schema"; // Added import
+import {
+  insertInventoryAlertSchema,
+  insertAlertNotificationSchema,
+  type InventoryAlert,
+  type AlertNotification,
+} from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -876,7 +882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/suppliers/:id/transactions", async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: "يجبتسجيل الدخول أولاً" });
     }
 
     try {
@@ -1145,25 +1151,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/settings", async (req, res) => {
+    try {
+      // التحقق من صحة البيانات
+      const themeSchema = z.object({
+        primary: z.string(),
+        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
+        appearance: z.enum(["light", "dark", "system"]),
+        fontStyle: z.enum([
+          "traditional",
+          "modern",
+          "minimal",
+          "digital",
+          "elegant",
+          "kufi",
+          "naskh",
+          "ruqaa",
+          "thuluth",
+          "contemporary",
+          "noto-kufi",
+          "cairo",
+          "tajawal",
+          "amiri",
+        ]),
+        fontSize: z.enum(["small", "medium", "large", "xlarge"]),
+        radius: z.number(),
+      });
+
+      const theme = themeSchema.parse(req.body);
+
+      // تحويل البيانات إلى الشكل المطلوب لقاعدة البيانات
+      const userSettings = {
+        userId: req.user!.id,
+        themeName: theme.variant,
+        fontName: theme.fontStyle,
+        fontSize: theme.fontSize,
+        appearance: theme.appearance,
+        colors: {
+          primary: theme.primary,
+          secondary: `color-mix(in srgb, ${theme.primary} 80%, ${theme.appearance === 'dark' ? 'white' : 'black'})`,
+          accent: `color-mix(in srgb, ${theme.primary} 60%, ${theme.appearance === 'dark' ? 'black' : 'white'})`,
+        }
+      };
+
+      // حفظ الإعدادات في قاعدة البيانات
+      await storage.saveUserSettings(userSettings);
+
+      // حفظ الثيم في ملف theme.json
+      await fs.writeFile(
+        path.join(process.cwd(), "theme.json"),
+        JSON.stringify(theme, null, 2)
+      );
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating theme:", error);
+      res.status(500).json({ message: "فشل في حفظ إعدادات المظهر" });
+    }
+  });
+
+  // Inventory Alerts Routes
+  app.get("/api/inventory/alerts", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
 
     try {
-      const validatedTheme = themeSchema.parse(req.body);
-      console.log("Saving theme settings:", validatedTheme);
-
-      const settings = await storage.saveUserSettings((req.user as any).id, validatedTheme);
-
-      // Send success response with the saved settings
-      res.json(settings);
+      const alerts = await storage.getInventoryAlerts();
+      res.json(alerts);
     } catch (error) {
-      console.error("Error saving theme settings:", error);
+      console.error("Error fetching inventory alerts:", error);
+      res.status(500).json({ message: "فشل في جلب التنبيهات" });
+    }
+  });
+
+  app.post("/api/inventory/alerts", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const validatedData = insertInventoryAlertSchema.parse(req.body);
+      const alert = await storage.createInventoryAlert(validatedData);
+      res.status(201).json(alert);
+    } catch (error) {
+      console.error("Error creating inventory alert:", error);
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "بيانات غير صالحة", errors: error.errors });
       } else {
-        res.status(500).json({ message: "فشل في حفظ إعدادات المظهر" });
+        res.status(500).json({ message: "فشل في إنشاء التنبيه" });
       }
+    }
+  });
+
+  app.patch("/api/inventory/alerts/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const alert = await storage.updateInventoryAlert(Number(req.params.id), req.body);
+      res.json(alert);
+    } catch (error) {
+      console.error("Error updating inventory alert:", error);
+      res.status(500).json({ message: "فشل في تحديث التنبيه" });
+    }
+  });
+
+  app.delete("/api/inventory/alerts/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      await storage.deleteInventoryAlert(Number(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting inventory alert:", error);
+      res.status(500).json({ message: "فشل في حذف التنبيه" });
+    }
+  });
+
+  app.get("/api/inventory/notifications", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const notifications = await storage.getAlertNotifications();
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching alert notifications:", error);
+      res.status(500).json({ message: "فشل في جلب الإشعارات" });
+    }
+  });
+
+  app.patch("/api/inventory/notifications/:id/read", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const notification = await storage.markNotificationAsRead(Number(req.params.id));
+      res.json(notification);
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ message: "فشل في تحديث حالة الإشعار" });
     }
   });
 
@@ -1250,3 +1382,60 @@ async function fetchLinkedInStats(account: any, keys: any) {
     spend: 0
   };
 }
+
+// Add this function to check inventory levels and create alerts
+async function checkInventoryLevels() {
+  try {
+    const products = await storage.getProducts();
+    const alerts = await storage.getInventoryAlerts();
+
+    for (const product of products) {
+      // Check low stock alerts
+      const lowStockAlert = alerts.find(
+        a => a.productId === product.id && a.type === "low_stock" && a.status === "active"
+      );
+
+      if (lowStockAlert && product.stock <= lowStockAlert.threshold) {
+        await storage.createAlertNotification({
+          alertId: lowStockAlert.id,
+          message: `المنتج ${product.name} وصل للحد الأدنى (${product.stock} قطعة متبقية)`,
+        });
+      }
+
+      // Check inactive products (no sales in last 30 days)
+      const inactiveAlert = alerts.find(
+        a => a.productId === product.id && a.type === "inactive" && a.status === "active"
+      );
+
+      if (inactiveAlert) {
+        const sales = await storage.getProductSales(product.id, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+        if (sales.length === 0) {
+          await storage.createAlertNotification({
+            alertId: inactiveAlert.id,
+            message: `المنتج ${product.name} لم يتم بيعه خلال آخر 30 يوم`,
+          });
+        }
+      }
+
+      // Check high demand products
+      const highDemandAlert = alerts.find(
+        a => a.productId === product.id && a.type === "high_demand" && a.status === "active"
+      );
+
+      if (highDemandAlert) {
+        const sales = await storage.getProductSales(product.id, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+        if (sales.length >= highDemandAlert.threshold) {
+          await storage.createAlertNotification({
+            alertId: highDemandAlert.id,
+            message: `المنتج ${product.name} عليه طلب مرتفع (${sales.length} مبيعات في آخر 7 أيام)`,
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error checking inventory levels:", error);
+  }
+}
+
+// Run inventory check every hour
+setInterval(checkInventoryLevels, 60 * 60 * 1000);

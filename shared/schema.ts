@@ -157,6 +157,25 @@ export const inventoryAdjustments = pgTable("inventory_adjustments", {
   notes: text("notes"),
 });
 
+export const inventoryAlerts = pgTable("inventory_alerts", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull().references(() => products.id),
+  type: text("type").notNull(), // low_stock, inactive, high_demand
+  threshold: integer("threshold").notNull(),
+  status: text("status").notNull().default("active"),
+  lastTriggered: timestamp("last_triggered"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const alertNotifications = pgTable("alert_notifications", {
+  id: serial("id").primaryKey(),
+  alertId: integer("alert_id").notNull().references(() => inventoryAlerts.id),
+  message: text("message").notNull(),
+  read: boolean("read").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const reports = pgTable("reports", {
   id: serial("id").primaryKey(),
   type: text("type").notNull(),
@@ -377,6 +396,20 @@ export const insertInventoryAdjustmentSchema = createInsertSchema(inventoryAdjus
     notes: z.string().optional(),
   });
 
+export const insertInventoryAlertSchema = createInsertSchema(inventoryAlerts)
+  .omit({ id: true, createdAt: true, updatedAt: true, lastTriggered: true })
+  .extend({
+    type: z.enum(["low_stock", "inactive", "high_demand"]),
+    threshold: z.number().min(0, "قيمة الحد يجب أن تكون 0 أو أكثر"),
+    status: z.enum(["active", "inactive"]).default("active"),
+  });
+
+export const insertAlertNotificationSchema = createInsertSchema(alertNotifications)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    message: z.string().min(1, "الرسالة مطلوبة"),
+  });
+
 export const insertReportSchema = createInsertSchema(reports)
   .omit({ id: true, createdAt: true })
   .extend({
@@ -525,3 +558,7 @@ export type Invoice = typeof invoices.$inferSelect;
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 export type UserSettings = typeof userSettings.$inferSelect;
 export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;
+export type InventoryAlert = typeof inventoryAlerts.$inferSelect;
+export type InsertInventoryAlert = z.infer<typeof insertInventoryAlertSchema>;
+export type AlertNotification = typeof alertNotifications.$inferSelect;
+export type InsertAlertNotification = z.infer<typeof insertAlertNotificationSchema>;
