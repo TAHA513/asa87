@@ -94,6 +94,38 @@ const fonts = [
     style: "contemporary",
     preview: "خط عربي معاصر",
   },
+  {
+    name: "آي بي إم بلكس",
+    id: "ibm-plex",
+    family: "'IBM Plex Sans Arabic'",
+    weight: "400,500,700",
+    style: "modern",
+    preview: "خط عصري للواجهات",
+  },
+  {
+    name: "عارف رقعة",
+    id: "aref-ruqaa",
+    family: "'Aref Ruqaa'",
+    weight: "400,700",
+    style: "calligraphic",
+    preview: "خط رقعة أصيل",
+  },
+  {
+    name: "لطيف",
+    id: "lateef",
+    family: "'Lateef'",
+    weight: "400,700",
+    style: "readable",
+    preview: "خط سهل القراءة",
+  },
+  {
+    name: "ريم الكوفي",
+    id: "reem-kufi",
+    family: "'Reem Kufi'",
+    weight: "400,500,700",
+    style: "geometric",
+    preview: "خط كوفي هندسي",
+  },
 ];
 
 const fontSizes = {

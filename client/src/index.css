@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import the new fonts */
+@import '@fontsource/ibm-plex-sans-arabic/400.css';
+@import '@fontsource/ibm-plex-sans-arabic/500.css';
+@import '@fontsource/ibm-plex-sans-arabic/700.css';
+@import '@fontsource/aref-ruqaa/400.css';
+@import '@fontsource/aref-ruqaa/700.css';
+@import '@fontsource/lateef/400.css';
+@import '@fontsource/lateef/700.css';
+@import '@fontsource/reem-kufi/400.css';
+@import '@fontsource/reem-kufi/500.css';
+@import '@fontsource/reem-kufi/700.css';
+
 @layer base {
   :root {
     /* تعريف متغيرات الألوان الأساسية */
@@ -24,11 +36,14 @@
   html {
     direction: rtl;
     font-size: var(--font-size-base);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: theme('fontFamily.noto');
+    font-family: var(--font-family, theme('fontFamily.noto'));
   }
 
   /* تكبير النصوص في العناصر الرئيسية */
@@ -52,11 +67,44 @@
     font-size: var(--font-size-lg);
   }
 
-  /* تحسين عرض النصوص العربية */
+  /* Enhanced Arabic text styling */
   .arabic-text {
     text-align: right;
     line-height: 1.8;
     letter-spacing: 0;
+    font-feature-settings: "kern", "liga", "calt";
+    -webkit-font-feature-settings: "kern", "liga", "calt";
+    -ms-font-feature-settings: "kern", "liga", "calt";
+    font-variant-ligatures: common-ligatures;
+  }
+
+  /* Arabic text size utilities */
+  .text-ar-base {
+    font-size: var(--font-size-base);
+    line-height: 1.8;
+  }
+
+  .text-ar-lg {
+    font-size: var(--font-size-lg);
+    line-height: 1.9;
+  }
+
+  .text-ar-xl {
+    font-size: var(--font-size-xl);
+    line-height: 2;
+  }
+
+  /* Arabic text weight utilities */
+  .font-ar-normal {
+    font-weight: 400;
+  }
+
+  .font-ar-medium {
+    font-weight: 500;
+  }
+
+  .font-ar-bold {
+    font-weight: 700;
   }
 
   /* تحسين محاذاة العناصر للـ RTL */

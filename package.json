@@ -12,8 +12,12 @@
   },
   "dependencies": {
     "@fontsource/amiri": "^5.1.1",
+    "@fontsource/aref-ruqaa": "^5.1.1",
     "@fontsource/cairo": "^5.1.1",
+    "@fontsource/ibm-plex-sans-arabic": "^5.1.1",
+    "@fontsource/lateef": "^5.1.1",
     "@fontsource/noto-kufi-arabic": "^5.1.1",
+    "@fontsource/reem-kufi": "^5.1.1",
     "@fontsource/tajawal": "^5.1.1",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",

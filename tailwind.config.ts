@@ -11,6 +11,10 @@ export default {
         amiri: ["Amiri", "serif"],
         tajawal: ["Tajawal", "sans-serif"],
         dubai: ["Dubai", "sans-serif"],
+        'ibm-plex': ["IBM Plex Sans Arabic", "sans-serif"],
+        'aref-ruqaa': ["Aref Ruqaa", "serif"],
+        lateef: ["Lateef", "serif"],
+        'reem-kufi': ["Reem Kufi", "sans-serif"],
       },
       borderRadius: {
         lg: "var(--radius)",
