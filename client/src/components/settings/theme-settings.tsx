@@ -21,13 +21,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useTheme } from "@/hooks/use-theme";
 
 const themeColors = [
-  // الألوان الحالية
   { name: "أخضر زمردي", value: "hsl(142.1 76.2% 36.3%)" },
   { name: "أزرق سماوي", value: "hsl(221.2 83.2% 53.3%)" },
   { name: "أرجواني ملكي", value: "hsl(262.1 83.3% 57.8%)" },
   { name: "برتقالي ذهبي", value: "hsl(20.5 90.2% 48.2%)" },
   { name: "أحمر ياقوتي", value: "hsl(346.8 77.2% 49.8%)" },
-  // إضافة ألوان جديدة عصرية
   { name: "توركواز", value: "hsl(171.2 76.5% 36.6%)" },
   { name: "بنفسجي غامق", value: "hsl(280.1 81.3% 40.8%)" },
   { name: "أزرق نيلي", value: "hsl(213.8 93.9% 67.8%)" },
@@ -58,13 +56,13 @@ const fontStyles = [
 export default function ThemeSettings() {
   const { toast } = useToast();
   const { theme: currentTheme, setTheme } = useTheme();
+  const [isLoading, setIsLoading] = useState(false);
   const [themeSettings, setThemeSettings] = useState({
     primary: "hsl(142.1 76.2% 36.3%)",
     variant: "vibrant",
     fontStyle: "traditional",
     radius: 0.75,
   });
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     try {
@@ -80,50 +78,29 @@ export default function ThemeSettings() {
   }, []);
 
   const applyThemeSettings = (settings: typeof themeSettings) => {
-    const root = document.documentElement;
-    const style = document.documentElement.style;
-
     // تطبيق اللون الرئيسي
-    style.setProperty('--primary', settings.primary);
+    document.documentElement.style.setProperty('--primary', settings.primary);
+
+    // استخراج قيم HSL من اللون الرئيسي
+    const hslMatch = settings.primary.match(/hsl\((\d+\.?\d*)\s+(\d+\.?\d*)%\s+(\d+\.?\d*)%\)/);
+    if (hslMatch) {
+      const [_, h, s, l] = hslMatch;
+      document.documentElement.style.setProperty('--primary-hue', h);
+      document.documentElement.style.setProperty('--primary-saturation', `${s}%`);
+      document.documentElement.style.setProperty('--primary-lightness', `${l}%`);
+    }
 
     // تطبيق نمط الخط
-    style.setProperty('--font-family', 
+    document.documentElement.style.setProperty(
+      '--font-family',
       fontStyles.find(f => f.value === settings.fontStyle)?.fontFamily || 'Noto Kufi Arabic'
     );
 
-    // تطبيق النمط
-    root.setAttribute('data-theme-variant', settings.variant);
+    // تطبيق نمط المظهر
+    document.documentElement.setAttribute('data-theme', settings.variant);
 
-    // تطبيق نصف القطر
-    style.setProperty('--radius', `${settings.radius}rem`);
-
-    // تطبيق نمط المظهر حسب النوع
-    switch (settings.variant) {
-      case 'professional':
-        style.setProperty('--theme-saturation', '30%');
-        style.setProperty('--theme-lightness', '50%');
-        break;
-      case 'tint':
-        style.setProperty('--theme-saturation', '70%');
-        style.setProperty('--theme-lightness', '80%');
-        break;
-      case 'vibrant':
-      default:
-        style.setProperty('--theme-saturation', '100%');
-        style.setProperty('--theme-lightness', '60%');
-        break;
-    }
-
-    // تحديث الألوان في ملف التصميم
-    const updatedTheme = {
-      primary: settings.primary,
-      variant: settings.variant,
-      appearance: currentTheme,
-      radius: settings.radius,
-    };
-
-    // حفظ التغييرات في localStorage
-    localStorage.setItem('theme', JSON.stringify(updatedTheme));
+    // حفظ الإعدادات
+    localStorage.setItem('themeSettings', JSON.stringify(settings));
   };
 
   const saveSettings = async (updates: Partial<typeof themeSettings>) => {
@@ -133,14 +110,12 @@ export default function ThemeSettings() {
     try {
       setThemeSettings(newSettings);
       applyThemeSettings(newSettings);
-      localStorage.setItem("themeSettings", JSON.stringify(newSettings));
 
       toast({
         title: "تم الحفظ",
         description: "تم تحديث المظهر بنجاح",
       });
 
-      // إذا تم تغيير الخط، نقوم بإعادة تحميل الصفحة
       if (updates.fontStyle) {
         setTimeout(() => {
           window.location.reload();
