@@ -19,19 +19,16 @@ import {
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useTheme } from "@/hooks/use-theme";
+import { Slider } from "@/components/ui/slider";
 
 const themeColors = [
-  // الألوان الحالية
   { name: "أخضر زمردي", value: "hsl(142.1 76.2% 36.3%)" },
-  { name: "أزرق سماوي", value: "hsl(221.2 83.2% 53.3%)" },
+  { name: "أزرق سماوي", value: "hsl(224.5 82.6% 56.9%)" },
   { name: "أرجواني ملكي", value: "hsl(262.1 83.3% 57.8%)" },
-  { name: "برتقالي ذهبي", value: "hsl(20.5 90.2% 48.2%)" },
-  { name: "أحمر ياقوتي", value: "hsl(346.8 77.2% 49.8%)" },
-  // إضافة ألوان جديدة عصرية
+  { name: "برتقالي ذهبي", value: "hsl(38 92% 50%)" },
+  { name: "أحمر ياقوتي", value: "hsl(0 84.2% 60.2%)" },
   { name: "توركواز", value: "hsl(171.2 76.5% 36.6%)" },
   { name: "بنفسجي غامق", value: "hsl(280.1 81.3% 40.8%)" },
-  { name: "أزرق نيلي", value: "hsl(213.8 93.9% 67.8%)" },
-  { name: "وردي عصري", value: "hsl(330.4 81.2% 60.2%)" },
   { name: "رمادي أزرق", value: "hsl(215.4 30.3% 46.9%)" },
   { name: "أخضر نعناعي", value: "hsl(160.1 84.1% 39.2%)" },
   { name: "كهرماني", value: "hsl(25.3 95.3% 52.8%)" },
@@ -63,6 +60,9 @@ export default function ThemeSettings() {
     variant: "vibrant",
     fontStyle: "traditional",
     radius: 0.75,
+    brightness: 85, // إضافة تحكم في السطوع
+    contrast: 100, // إضافة تحكم في التباين
+    blueLight: 75, // إضافة تحكم في الضوء الأزرق
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -80,22 +80,35 @@ export default function ThemeSettings() {
   }, []);
 
   const applyThemeSettings = (settings: typeof themeSettings) => {
-    // تطبيق متغيرات CSS على الجذر
     const root = document.documentElement;
 
     // تطبيق اللون الرئيسي
     root.style.setProperty('--primary', settings.primary);
-
-    // تطبيق نصف القطر
     root.style.setProperty('--theme-radius', `${settings.radius}rem`);
-
-    // تطبيق الخط
     root.style.setProperty('--font-family', 
       fontStyles.find(f => f.value === settings.fontStyle)?.fontFamily || 'Noto Kufi Arabic'
     );
 
     // تطبيق النمط
     root.setAttribute('data-theme-variant', settings.variant);
+
+    // تطبيق إعدادات تخفيف إجهاد العين
+    if (currentTheme === 'focus') {
+      root.style.setProperty('--theme-brightness', `${settings.brightness}%`);
+      root.style.setProperty('--theme-contrast', `${settings.contrast}%`);
+      root.style.setProperty('--theme-blue-light', `${settings.blueLight}%`);
+
+      // إضافة فلتر CSS لتخفيف إجهاد العين
+      root.style.filter = `
+        brightness(${settings.brightness}%) 
+        contrast(${settings.contrast}%)
+        sepia(20%)
+        hue-rotate(180deg)
+        grayscale(10%)
+      `;
+    } else {
+      root.style.filter = 'none';
+    }
 
     // تحديث متغيرات CSS حسب النمط
     switch (settings.variant) {
@@ -129,7 +142,6 @@ export default function ThemeSettings() {
         description: "تم تحديث المظهر بنجاح",
       });
 
-      // إذا تم تغيير الخط، نقوم بإعادة تحميل الصفحة
       if (updates.fontStyle) {
         setTimeout(() => {
           window.location.reload();
@@ -249,6 +261,46 @@ export default function ThemeSettings() {
             </SelectContent>
           </Select>
         </div>
+
+        {currentTheme === 'focus' && (
+          <>
+            <div className="space-y-2">
+              <Label>مستوى السطوع</Label>
+              <Slider
+                value={[themeSettings.brightness]}
+                onValueChange={([value]) => saveSettings({ brightness: value })}
+                min={50}
+                max={100}
+                step={1}
+                className="w-full"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>مستوى التباين</Label>
+              <Slider
+                value={[themeSettings.contrast]}
+                onValueChange={([value]) => saveSettings({ contrast: value })}
+                min={75}
+                max={125}
+                step={1}
+                className="w-full"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>تقليل الضوء الأزرق</Label>
+              <Slider
+                value={[themeSettings.blueLight]}
+                onValueChange={([value]) => saveSettings({ blueLight: value })}
+                min={0}
+                max={100}
+                step={1}
+                className="w-full"
+              />
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
