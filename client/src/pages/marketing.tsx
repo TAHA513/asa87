@@ -23,6 +23,7 @@ import Sidebar from "@/components/layout/sidebar";
 import CampaignForm from "@/components/marketing/campaign-form";
 import SocialAccounts from "@/components/marketing/social-accounts";
 import { PlatformPerformanceGraphs } from "@/components/marketing/analytics-graphs";
+import { PerformanceIndicators } from "@/components/marketing/performance-indicators";
 
 export default function MarketingPage() {
   const [showNewCampaign, setShowNewCampaign] = useState(false);
@@ -128,6 +129,9 @@ export default function MarketingPage() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* مؤشرات الأداء */}
+            <PerformanceIndicators />
 
             {/* الرسوم البيانية للتحليلات */}
             <PlatformPerformanceGraphs />
