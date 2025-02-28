@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Palette, Type, Moon, Sun, Monitor } from "lucide-react";
+import { Check, Palette, Type, Moon, Sun, Monitor, Minus, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,12 +16,12 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import { apiRequest } from "@/lib/queryClient";
 
-// تعريف الثيمات المتاحة
 const themes = [
   {
-    name: "الافتراضي",
+    name: "العصري",
     colors: {
       primary: "hsl(142.1 76.2% 36.3%)",
       secondary: "hsl(217.2 91.2% 59.8%)",
@@ -30,16 +30,16 @@ const themes = [
     preview: "modern",
   },
   {
-    name: "داكن عصري",
+    name: "الكلاسيكي",
     colors: {
       primary: "hsl(215.3 98.9% 27.8%)",
       secondary: "hsl(221.2 83.2% 53.3%)",
       accent: "hsl(262.1 83.3% 57.8%)",
     },
-    preview: "dark-modern",
+    preview: "classic",
   },
   {
-    name: "أنيق",
+    name: "الأنيق",
     colors: {
       primary: "hsl(200.4 15.3% 46.9%)",
       secondary: "hsl(171.2 76.5% 36.6%)",
@@ -48,7 +48,7 @@ const themes = [
     preview: "elegant",
   },
   {
-    name: "حيوي",
+    name: "النابض بالحياة",
     colors: {
       primary: "hsl(20.5 90.2% 48.2%)",
       secondary: "hsl(280.1 65.3% 70.8%)",
@@ -57,7 +57,7 @@ const themes = [
     preview: "vibrant",
   },
   {
-    name: "طبيعي",
+    name: "الطبيعي",
     colors: {
       primary: "hsl(120.1 40.1% 39.2%)",
       secondary: "hsl(25.3 95.3% 52.8%)",
@@ -67,50 +67,66 @@ const themes = [
   },
 ];
 
-// تعريف الخطوط المتاحة
 const fonts = [
   {
     name: "نوتو كوفي",
     family: "'Noto Kufi Arabic'",
     weight: "400,700",
     style: "modern",
+    preview: "خط عربي حديث وأنيق",
   },
   {
     name: "القاهرة",
     family: "'Cairo'",
     weight: "400,600,700",
     style: "elegant",
+    preview: "خط عصري متناسق",
   },
   {
     name: "الأميري",
     family: "'Amiri'",
     weight: "400,700",
     style: "traditional",
+    preview: "خط كلاسيكي جميل",
   },
   {
     name: "تجوال",
     family: "'Tajawal'",
     weight: "400,500,700",
     style: "contemporary",
-  },
-  {
-    name: "دبي",
-    family: "'Dubai'",
-    weight: "400,500,700",
-    style: "modern",
+    preview: "خط عربي معاصر",
   },
 ];
+
+const fontSizes = {
+  small: {
+    base: 14,
+    scale: 1.2,
+  },
+  medium: {
+    base: 16,
+    scale: 1.25,
+  },
+  large: {
+    base: 18,
+    scale: 1.333,
+  },
+  xlarge: {
+    base: 20,
+    scale: 1.4,
+  },
+};
 
 const ThemeSettings = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("theme");
   const [selectedTheme, setSelectedTheme] = useState(themes[0]);
   const [selectedFont, setSelectedFont] = useState(fonts[0]);
+  const [fontSize, setFontSize] = useState("medium");
   const [appearance, setAppearance] = useState<"light" | "dark" | "system">("system");
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // تحميل الإعدادات المحفوظة
     const savedSettings = localStorage.getItem("themeSettings");
     if (savedSettings) {
       const settings = JSON.parse(savedSettings);
@@ -118,6 +134,7 @@ const ThemeSettings = () => {
       const font = fonts.find(f => f.name === settings.fontName) || fonts[0];
       setSelectedTheme(theme);
       setSelectedFont(font);
+      setFontSize(settings.fontSize || "medium");
       setAppearance(settings.appearance || "system");
     }
   }, []);
@@ -128,6 +145,7 @@ const ThemeSettings = () => {
       const settings = {
         themeName: selectedTheme.name,
         fontName: selectedFont.name,
+        fontSize,
         appearance,
         colors: selectedTheme.colors,
         fontFamily: selectedFont.family,
@@ -136,16 +154,17 @@ const ThemeSettings = () => {
       await apiRequest("POST", "/api/theme", settings);
       localStorage.setItem("themeSettings", JSON.stringify(settings));
 
-      toast({
-        title: "تم الحفظ",
-        description: "تم تحديث إعدادات المظهر بنجاح",
-      });
-
       // تحديث متغيرات CSS
       document.documentElement.style.setProperty("--primary-color", settings.colors.primary);
       document.documentElement.style.setProperty("--secondary-color", settings.colors.secondary);
       document.documentElement.style.setProperty("--accent-color", settings.colors.accent);
-      document.documentElement.style.setProperty("--font-primary", settings.fontFamily);
+      document.documentElement.style.setProperty("--font-family", settings.fontFamily);
+      document.documentElement.style.setProperty("--font-size-base", `${fontSizes[fontSize].base}px`);
+
+      toast({
+        title: "تم الحفظ",
+        description: "تم تحديث إعدادات المظهر بنجاح",
+      });
 
       // إعادة تحميل الصفحة لتطبيق التغييرات
       window.location.reload();
@@ -170,7 +189,7 @@ const ThemeSettings = () => {
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 mb-8">
+          <TabsList className="grid w-full grid-cols-4 mb-8">
             <TabsTrigger value="theme" className="flex items-center gap-2">
               <Palette className="w-4 h-4" />
               الثيمات
@@ -178,6 +197,10 @@ const ThemeSettings = () => {
             <TabsTrigger value="font" className="flex items-center gap-2">
               <Type className="w-4 h-4" />
               الخطوط
+            </TabsTrigger>
+            <TabsTrigger value="size" className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              حجم الخط
             </TabsTrigger>
             <TabsTrigger value="appearance" className="flex items-center gap-2">
               <Sun className="w-4 h-4" />
@@ -242,18 +265,60 @@ const ThemeSettings = () => {
                       className="text-xl"
                       style={{ fontFamily: font.family }}
                     >
-                      أبجد هوز حطي كلمن
-                    </p>
-                    <p
-                      className="text-sm text-muted-foreground"
-                      style={{ fontFamily: font.family }}
-                    >
-                      1234567890
+                      {font.preview}
                     </p>
                   </CardContent>
                 </Card>
               ))}
             </div>
+          </TabsContent>
+
+          <TabsContent value="size">
+            <Card>
+              <CardHeader>
+                <CardTitle>حجم الخط</CardTitle>
+                <CardDescription>اختر حجم الخط المناسب للعرض</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {Object.entries(fontSizes).map(([size, config]) => (
+                      <Card
+                        key={size}
+                        className={`cursor-pointer p-4 ${
+                          fontSize === size ? 'ring-2 ring-primary' : ''
+                        }`}
+                        onClick={() => setFontSize(size)}
+                      >
+                        <div className="text-center">
+                          <div style={{ fontSize: `${config.base}px` }}>
+                            نص تجريبي
+                          </div>
+                          <div className="mt-2 text-sm text-muted-foreground">
+                            {size === "small" && "صغير"}
+                            {size === "medium" && "متوسط"}
+                            {size === "large" && "كبير"}
+                            {size === "xlarge" && "كبير جداً"}
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>معاينة الحجم</Label>
+                    <div className="space-y-4" style={{ 
+                      fontSize: `${fontSizes[fontSize].base}px`,
+                      fontFamily: selectedFont.family 
+                    }}>
+                      <h1 className="font-bold">عنوان رئيسي</h1>
+                      <h2 className="font-semibold">عنوان فرعي</h2>
+                      <p>هذا نص تجريبي لمعاينة حجم الخط المختار. يمكنك رؤية كيف سيظهر النص في مختلف العناصر.</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="appearance">
