@@ -335,21 +335,21 @@ export class DatabaseStorage implements IStorage {
   async getExpenseCategories(userId: number): Promise<ExpenseCategory[]> {
     return db
       .select()
-      .from(expenses)
-      .where(eq(expenses.userId, userId));
+      .from(expenseCategories)
+      .where(eq(expenseCategories.userId, userId));
   }
 
   async getExpenseCategory(id: number): Promise<ExpenseCategory | undefined> {
     const [category] = await db
       .select()
-      .from(expenses)
-      .where(eq(expenses.id, id));
+      .from(expenseCategories)
+      .where(eq(expenseCategories.id, id));
     return category;
   }
 
   async createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory> {
     const [newCategory] = await db
-      .insert(expenses)
+      .insert(expenseCategories)
       .values([{
         ...category,
         createdAt: new Date()
@@ -360,18 +360,18 @@ export class DatabaseStorage implements IStorage {
 
   async updateExpenseCategory(id: number, update: Partial<ExpenseCategory>): Promise<ExpenseCategory> {
     const [category] = await db
-      .update(expenses)
+      .update(expenseCategories)
       .set({
         ...update,
         updatedAt: new Date()
       })
-      .where(eq(expenses.id, id))
+      .where(eq(expenseCategories.id, id))
       .returning();
     return category;
   }
 
   async deleteExpenseCategory(id: number): Promise<void> {
-    await db.delete(expenses).where(eq(expenses.id, id));
+    await db.delete(expenseCategories).where(eq(expenseCategories.id, id));
   }
 
   async getExpenses(userId: number): Promise<Expense[]> {
