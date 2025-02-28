@@ -47,24 +47,12 @@ const variants = [
   { name: "حيوي", value: "vibrant" },
   { name: "هادئ", value: "professional" },
   { name: "ناعم", value: "tint" },
-  // إضافة أنماط جديدة
-  { name: "عصري", value: "modern" },
-  { name: "كلاسيكي", value: "classic" },
-  { name: "مستقبلي", value: "futuristic" },
 ];
 
 const fontStyles = [
   { name: "تقليدي", value: "traditional", fontFamily: "Noto Kufi Arabic" },
   { name: "عصري", value: "modern", fontFamily: "Cairo" },
   { name: "مُبسط", value: "minimal", fontFamily: "IBM Plex Sans Arabic" },
-  // إضافة خطوط جديدة
-  { name: "رقمي", value: "digital", fontFamily: "Dubai" },
-  { name: "أنيق", value: "elegant", fontFamily: "Amiri" },
-  { name: "كوفي", value: "kufi", fontFamily: "Reem Kufi" },
-  { name: "نسخ", value: "naskh", fontFamily: "Scheherazade New" },
-  { name: "رقعة", value: "ruqaa", fontFamily: "Aref Ruqaa" },
-  { name: "ثلث", value: "thuluth", fontFamily: "Harmattan" },
-  { name: "معاصر", value: "contemporary", fontFamily: "Tajawal" }
 ];
 
 export default function ThemeSettings() {
@@ -94,12 +82,37 @@ export default function ThemeSettings() {
   const applyThemeSettings = (settings: typeof themeSettings) => {
     // تطبيق متغيرات CSS على الجذر
     const root = document.documentElement;
+
+    // تطبيق اللون الرئيسي
     root.style.setProperty('--primary', settings.primary);
+
+    // تطبيق نصف القطر
     root.style.setProperty('--theme-radius', `${settings.radius}rem`);
-    root.style.setProperty('--font-family', fontStyles.find(f => f.value === settings.fontStyle)?.fontFamily || 'Noto Kufi Arabic');
+
+    // تطبيق الخط
+    root.style.setProperty('--font-family', 
+      fontStyles.find(f => f.value === settings.fontStyle)?.fontFamily || 'Noto Kufi Arabic'
+    );
 
     // تطبيق النمط
-    root.setAttribute('data-variant', settings.variant);
+    root.setAttribute('data-theme-variant', settings.variant);
+
+    // تحديث متغيرات CSS حسب النمط
+    switch (settings.variant) {
+      case 'professional':
+        root.style.setProperty('--primary-saturation', '30%');
+        root.style.setProperty('--primary-lightness', '50%');
+        break;
+      case 'tint':
+        root.style.setProperty('--primary-saturation', '70%');
+        root.style.setProperty('--primary-lightness', '80%');
+        break;
+      case 'vibrant':
+      default:
+        root.style.setProperty('--primary-saturation', '100%');
+        root.style.setProperty('--primary-lightness', '60%');
+        break;
+    }
   };
 
   const saveSettings = async (updates: Partial<typeof themeSettings>) => {
@@ -116,9 +129,11 @@ export default function ThemeSettings() {
         description: "تم تحديث المظهر بنجاح",
       });
 
-      // يجب إعادة تحميل الصفحة لتطبيق الخط الجديد
+      // إذا تم تغيير الخط، نقوم بإعادة تحميل الصفحة
       if (updates.fontStyle) {
-        window.location.reload();
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
       }
     } catch (error) {
       toast({
