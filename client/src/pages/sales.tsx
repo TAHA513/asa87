@@ -99,6 +99,8 @@ export default function Sales() {
         quantity: data.quantity,
         date: saleDate,
         isInstallment: data.isInstallment,
+        priceIqd: selectedProduct.priceIqd, // Add the price from selected product
+        customerId: null, // Add this if required by your schema
       });
 
       const saleData = await sale.json();
@@ -108,12 +110,16 @@ export default function Sales() {
         customerName: data.customerName,
         totalAmount: Number(selectedProduct.priceIqd) * data.quantity,
         invoiceNumber: `INV-${Date.now()}`,
+        invoiceDate: saleDate,
       };
 
       const savedInvoice = await apiRequest("POST", "/api/invoices", invoice);
 
       if (data.printInvoice) {
-        setSelectedSale(saleData);
+        setSelectedSale({
+          ...saleData,
+          customerName: data.customerName, // Add this for the invoice display
+        });
         setTimeout(handlePrint, 100);
       }
 
@@ -127,6 +133,7 @@ export default function Sales() {
         description: `تم إنشاء بيع جديد برقم ${saleData.id}`,
       });
     } catch (error) {
+      console.error('Error creating sale:', error);
       toast({
         title: "خطأ في إنشاء البيع",
         description: "حدث خطأ أثناء محاولة إنشاء البيع",
