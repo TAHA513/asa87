@@ -124,90 +124,46 @@ const ThemeSettings = () => {
   const [appearance, setAppearance] = useState<"light" | "dark" | "system">("system");
   const [isLoading, setIsLoading] = useState(false);
 
-  // تطبيق وضع السطوع المحدد
-  const applyAppearance = (mode: "light" | "dark" | "system") => {
+  // تطبيق التغييرات على الواجهة
+  const applyChanges = (settings: any) => {
+    document.documentElement.style.setProperty("--primary-color", settings.primary);
+    document.documentElement.style.setProperty("--font-family", selectedFont.family);
+    document.documentElement.style.setProperty("--font-size-base", `${fontSizes[settings.fontSize].base}px`);
+
+    // تطبيق وضع السطوع
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
 
-    if (mode === "system") {
+    if (settings.appearance === "system") {
       const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
       root.classList.add(systemTheme);
     } else {
-      root.classList.add(mode);
+      root.classList.add(settings.appearance);
     }
-
-    // تحديث متغير CSS مخصص لتتبع الوضع الحالي
-    root.style.setProperty("--current-appearance", mode);
   };
 
-  // مراقبة تغييرات وضع النظام
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
-    const handleChange = () => {
-      if (appearance === "system") {
-        applyAppearance("system");
-      }
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [appearance]);
-
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const response = await apiRequest("GET", "/api/settings");
-        if (response) {
-          // استخدام المعرفات بدلاً من الأسماء العربية
-          const theme = themes.find(t => t.id === response.variant) || themes[0];
-          const font = fonts.find(f => f.id === response.fontStyle) || fonts[0];
-          setSelectedTheme(theme);
-          setSelectedFont(font);
-          setFontSize(response.fontSize || "medium");
-          setAppearance(response.appearance || "system");
-
-          // تطبيق وضع السطوع المحفوظ
-          applyAppearance(response.appearance || "system");
-        }
-      } catch (error) {
-        console.error("Error loading settings:", error);
-      }
-    };
-
-    loadSettings();
-  }, []);
-
-  const saveSettings = async () => {
+  // حفظ التغييرات مباشرة عند تحديث أي إعداد
+  const saveSettings = async (updates: any) => {
     setIsLoading(true);
     try {
       const settings = {
         primary: selectedTheme.colors.primary,
-        variant: selectedTheme.id, // استخدام المعرف بدلاً من الاسم
-        fontStyle: selectedFont.id, // استخدام المعرف بدلاً من الاسم
+        variant: selectedTheme.id,
+        fontStyle: selectedFont.id,
         fontSize,
         appearance,
         radius: 0.5,
+        ...updates
       };
-
-      console.log("Saving settings:", settings); // للتحقق من البيانات المرسلة
 
       const response = await apiRequest("POST", "/api/settings", settings);
 
       if (response) {
-        // تحديث متغيرات CSS
-        document.documentElement.style.setProperty("--primary-color", selectedTheme.colors.primary);
-        document.documentElement.style.setProperty("--secondary-color", selectedTheme.colors.secondary);
-        document.documentElement.style.setProperty("--accent-color", selectedTheme.colors.accent);
-        document.documentElement.style.setProperty("--font-family", selectedFont.family);
-        document.documentElement.style.setProperty("--font-size-base", `${fontSizes[fontSize].base}px`);
-
-        // تطبيق وضع السطوع
-        applyAppearance(appearance);
+        applyChanges(settings);
 
         toast({
           title: "تم الحفظ",
-          description: "تم حفظ إعدادات المظهر بنجاح",
+          description: "تم تطبيق التغييرات بنجاح",
         });
       }
     } catch (error) {
@@ -221,6 +177,30 @@ const ThemeSettings = () => {
       setIsLoading(false);
     }
   };
+
+  // تحميل الإعدادات عند تحميل المكون
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await apiRequest("GET", "/api/settings");
+        if (response) {
+          const theme = themes.find(t => t.id === response.variant) || themes[0];
+          const font = fonts.find(f => f.id === response.fontStyle) || fonts[0];
+
+          setSelectedTheme(theme);
+          setSelectedFont(font);
+          setFontSize(response.fontSize || "medium");
+          setAppearance(response.appearance || "system");
+
+          applyChanges(response);
+        }
+      } catch (error) {
+        console.error("Error loading settings:", error);
+      }
+    };
+
+    loadSettings();
+  }, []);
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
@@ -259,12 +239,9 @@ const ThemeSettings = () => {
                   className={`cursor-pointer transition-all hover:scale-105 ${
                     selectedTheme.id === theme.id ? 'ring-2 ring-primary' : ''
                   }`}
-                  onClick={() => {
+                  onClick={async () => {
                     setSelectedTheme(theme);
-                    // تطبيق ألوان الثيم فوراً
-                    document.documentElement.style.setProperty("--primary-color", theme.colors.primary);
-                    document.documentElement.style.setProperty("--secondary-color", theme.colors.secondary);
-                    document.documentElement.style.setProperty("--accent-color", theme.colors.accent);
+                    await saveSettings({ variant: theme.id, primary: theme.colors.primary });
                   }}
                 >
                   <CardHeader className="p-4">
@@ -299,10 +276,9 @@ const ThemeSettings = () => {
                   className={`cursor-pointer transition-all hover:scale-105 ${
                     selectedFont.id === font.id ? 'ring-2 ring-primary' : ''
                   }`}
-                  onClick={() => {
+                  onClick={async () => {
                     setSelectedFont(font);
-                    // تطبيق الخط فوراً
-                    document.documentElement.style.setProperty("--font-family", font.family);
+                    await saveSettings({ fontStyle: font.id });
                   }}
                 >
                   <CardHeader className="p-4">
@@ -341,10 +317,9 @@ const ThemeSettings = () => {
                         className={`cursor-pointer p-4 ${
                           fontSize === size ? 'ring-2 ring-primary' : ''
                         }`}
-                        onClick={() => {
+                        onClick={async () => {
                           setFontSize(size);
-                          // تطبيق حجم الخط فوراً
-                          document.documentElement.style.setProperty("--font-size-base", `${config.base}px`);
+                          await saveSettings({ fontSize: size });
                         }}
                       >
                         <div className="text-center">
@@ -384,9 +359,9 @@ const ThemeSettings = () => {
                 className={`cursor-pointer transition-all hover:scale-105 ${
                   appearance === "light" ? 'ring-2 ring-primary' : ''
                 }`}
-                onClick={() => {
+                onClick={async () => {
                   setAppearance("light");
-                  applyAppearance("light");
+                  await saveSettings({ appearance: "light" });
                 }}
               >
                 <CardHeader className="p-4">
@@ -406,9 +381,9 @@ const ThemeSettings = () => {
                 className={`cursor-pointer transition-all hover:scale-105 ${
                   appearance === "dark" ? 'ring-2 ring-primary' : ''
                 }`}
-                onClick={() => {
+                onClick={async () => {
                   setAppearance("dark");
-                  applyAppearance("dark");
+                  await saveSettings({ appearance: "dark" });
                 }}
               >
                 <CardHeader className="p-4">
@@ -428,9 +403,9 @@ const ThemeSettings = () => {
                 className={`cursor-pointer transition-all hover:scale-105 ${
                   appearance === "system" ? 'ring-2 ring-primary' : ''
                 }`}
-                onClick={() => {
+                onClick={async () => {
                   setAppearance("system");
-                  applyAppearance("system");
+                  await saveSettings({ appearance: "system" });
                 }}
               >
                 <CardHeader className="p-4">
@@ -448,16 +423,6 @@ const ThemeSettings = () => {
             </div>
           </TabsContent>
         </Tabs>
-
-        <div className="mt-8 flex justify-end">
-          <Button
-            onClick={saveSettings}
-            disabled={isLoading}
-            className="w-full md:w-auto"
-          >
-            حفظ التغييرات
-          </Button>
-        </div>
       </CardContent>
     </Card>
   );
