@@ -115,6 +115,36 @@ const ThemeSettings = () => {
   const [appearance, setAppearance] = useState<"light" | "dark" | "system">("system");
   const [isLoading, setIsLoading] = useState(false);
 
+  // تطبيق وضع السطوع المحدد
+  const applyAppearance = (mode: "light" | "dark" | "system") => {
+    const root = window.document.documentElement;
+    root.classList.remove("light", "dark");
+
+    if (mode === "system") {
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      root.classList.add(systemTheme);
+    } else {
+      root.classList.add(mode);
+    }
+
+    // تحديث متغير CSS مخصص لتتبع الوضع الحالي
+    root.style.setProperty("--current-appearance", mode);
+  };
+
+  // مراقبة تغييرات وضع النظام
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const handleChange = () => {
+      if (appearance === "system") {
+        applyAppearance("system");
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [appearance]);
+
   useEffect(() => {
     const loadSettings = async () => {
       try {
@@ -127,6 +157,9 @@ const ThemeSettings = () => {
           setSelectedFont(font);
           setFontSize(settings.fontSize || "medium");
           setAppearance(settings.appearance || "system");
+
+          // تطبيق وضع السطوع المحفوظ
+          applyAppearance(settings.appearance || "system");
         }
       } catch (error) {
         console.error("Error loading settings:", error);
@@ -147,23 +180,23 @@ const ThemeSettings = () => {
         colors: selectedTheme.colors,
       };
 
-      // Save to database
+      // حفظ في قاعدة البيانات
       await apiRequest("POST", "/api/settings", settings);
 
-      // Update CSS variables
+      // تحديث متغيرات CSS
       document.documentElement.style.setProperty("--primary-color", settings.colors.primary);
       document.documentElement.style.setProperty("--secondary-color", settings.colors.secondary);
       document.documentElement.style.setProperty("--accent-color", settings.colors.accent);
       document.documentElement.style.setProperty("--font-family", selectedFont.family);
       document.documentElement.style.setProperty("--font-size-base", `${fontSizes[fontSize].base}px`);
 
+      // تطبيق وضع السطوع
+      applyAppearance(appearance);
+
       toast({
         title: "تم الحفظ",
         description: "تم حفظ إعدادات المظهر في قاعدة البيانات",
       });
-
-      // Reload to apply changes
-      window.location.reload();
     } catch (error) {
       console.error("Error saving settings:", error);
       toast({
@@ -215,7 +248,7 @@ const ThemeSettings = () => {
                   }`}
                   onClick={() => {
                     setSelectedTheme(theme);
-                    // Apply theme colors immediately
+                    // تطبيق ألوان الثيم فوراً
                     document.documentElement.style.setProperty("--primary-color", theme.colors.primary);
                     document.documentElement.style.setProperty("--secondary-color", theme.colors.secondary);
                     document.documentElement.style.setProperty("--accent-color", theme.colors.accent);
@@ -242,6 +275,76 @@ const ThemeSettings = () => {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="appearance">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card
+                className={`cursor-pointer transition-all hover:scale-105 ${
+                  appearance === "light" ? 'ring-2 ring-primary' : ''
+                }`}
+                onClick={() => {
+                  setAppearance("light");
+                  applyAppearance("light");
+                }}
+              >
+                <CardHeader className="p-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">فاتح</CardTitle>
+                    {appearance === "light" && (
+                      <Check className="w-5 h-5 text-primary" />
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <Sun className="w-8 h-8" />
+                </CardContent>
+              </Card>
+
+              <Card
+                className={`cursor-pointer transition-all hover:scale-105 ${
+                  appearance === "dark" ? 'ring-2 ring-primary' : ''
+                }`}
+                onClick={() => {
+                  setAppearance("dark");
+                  applyAppearance("dark");
+                }}
+              >
+                <CardHeader className="p-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">داكن</CardTitle>
+                    {appearance === "dark" && (
+                      <Check className="w-5 h-5 text-primary" />
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <Moon className="w-8 h-8" />
+                </CardContent>
+              </Card>
+
+              <Card
+                className={`cursor-pointer transition-all hover:scale-105 ${
+                  appearance === "system" ? 'ring-2 ring-primary' : ''
+                }`}
+                onClick={() => {
+                  setAppearance("system");
+                  applyAppearance("system");
+                }}
+              >
+                <CardHeader className="p-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">تلقائي</CardTitle>
+                    {appearance === "system" && (
+                      <Check className="w-5 h-5 text-primary" />
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <Monitor className="w-8 h-8" />
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 
@@ -330,67 +433,6 @@ const ThemeSettings = () => {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="appearance">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card
-                className={`cursor-pointer transition-all hover:scale-105 ${
-                  appearance === "light" ? 'ring-2 ring-primary' : ''
-                }`}
-                onClick={() => setAppearance("light")}
-              >
-                <CardHeader className="p-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">فاتح</CardTitle>
-                    {appearance === "light" && (
-                      <Check className="w-5 h-5 text-primary" />
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <Sun className="w-8 h-8" />
-                </CardContent>
-              </Card>
-
-              <Card
-                className={`cursor-pointer transition-all hover:scale-105 ${
-                  appearance === "dark" ? 'ring-2 ring-primary' : ''
-                }`}
-                onClick={() => setAppearance("dark")}
-              >
-                <CardHeader className="p-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">داكن</CardTitle>
-                    {appearance === "dark" && (
-                      <Check className="w-5 h-5 text-primary" />
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <Moon className="w-8 h-8" />
-                </CardContent>
-              </Card>
-
-              <Card
-                className={`cursor-pointer transition-all hover:scale-105 ${
-                  appearance === "system" ? 'ring-2 ring-primary' : ''
-                }`}
-                onClick={() => setAppearance("system")}
-              >
-                <CardHeader className="p-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">تلقائي</CardTitle>
-                    {appearance === "system" && (
-                      <Check className="w-5 h-5 text-primary" />
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <Monitor className="w-8 h-8" />
-                </CardContent>
-              </Card>
-            </div>
           </TabsContent>
         </Tabs>
 
