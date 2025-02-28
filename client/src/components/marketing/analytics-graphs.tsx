@@ -45,17 +45,23 @@ export function PlatformPerformanceGraphs() {
         </CardHeader>
         <CardContent>
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={platformStats}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="platform" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="impressions" name="الانطباعات" fill="#8884d8" />
-                <Bar dataKey="engagements" name="التفاعلات" fill="#82ca9d" />
-              </BarChart>
-            </ResponsiveContainer>
+            {platformStats.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-muted-foreground">
+                لا توجد بيانات للمنصات. قم بإضافة مفاتيح API للمنصات في الإعدادات.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={platformStats}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="platform" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="impressions" name="الانطباعات" fill="#8884d8" />
+                  <Bar dataKey="engagements" name="التفاعلات" fill="#82ca9d" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -69,39 +75,45 @@ export function PlatformPerformanceGraphs() {
         </CardHeader>
         <CardContent>
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={historicalData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Area 
-                  type="monotone" 
-                  dataKey="impressions" 
-                  name="الانطباعات"
-                  stroke="#8884d8" 
-                  fill="#8884d8" 
-                  fillOpacity={0.3}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="engagements" 
-                  name="التفاعلات"
-                  stroke="#82ca9d" 
-                  fill="#82ca9d" 
-                  fillOpacity={0.3}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="spend" 
-                  name="الإنفاق"
-                  stroke="#ffc658" 
-                  fill="#ffc658" 
-                  fillOpacity={0.3}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            {historicalData.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-muted-foreground">
+                لا توجد بيانات تاريخية. سيتم عرض البيانات عند توفرها من المنصات.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={historicalData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Area 
+                    type="monotone" 
+                    dataKey="impressions" 
+                    name="الانطباعات"
+                    stroke="#8884d8" 
+                    fill="#8884d8" 
+                    fillOpacity={0.3}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="engagements" 
+                    name="التفاعلات"
+                    stroke="#82ca9d" 
+                    fill="#82ca9d" 
+                    fillOpacity={0.3}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="spend" 
+                    name="الإنفاق"
+                    stroke="#ffc658" 
+                    fill="#ffc658" 
+                    fillOpacity={0.3}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -115,24 +127,30 @@ export function PlatformPerformanceGraphs() {
         </CardHeader>
         <CardContent>
           <div className="h-[400px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={historicalData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                {platformStats.map((platform: any) => (
-                  <Line
-                    key={platform.name}
-                    type="monotone"
-                    dataKey={platform.name}
-                    name={platform.name}
-                    stroke={platform.color}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
+            {historicalData.length === 0 || platformStats.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-muted-foreground">
+                لا توجد بيانات كافية للتحليل التفصيلي. قم بربط المنصات وانتظر تجميع البيانات.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={historicalData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  {platformStats.map((platform: any) => (
+                    <Line
+                      key={platform.name}
+                      type="monotone"
+                      dataKey={platform.name}
+                      name={platform.name}
+                      stroke={platform.color}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </CardContent>
       </Card>
