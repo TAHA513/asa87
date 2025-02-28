@@ -23,7 +23,7 @@ import { useTheme } from "@/hooks/use-theme";
 const themeColors = [
   // الألوان الحالية
   { name: "أخضر زمردي", value: "hsl(142.1 76.2% 36.3%)" },
-  { name: "أزرق سماوي", value: "hsl(221.2 83.2% 53.3%)" },
+  { name: "أزرق سماوي", value: "hsl(224.5 82.6% 56.9%)" },
   { name: "أرجواني ملكي", value: "hsl(262.1 83.3% 57.8%)" },
   { name: "برتقالي ذهبي", value: "hsl(20.5 90.2% 48.2%)" },
   { name: "أحمر ياقوتي", value: "hsl(346.8 77.2% 49.8%)" },
