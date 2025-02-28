@@ -1,6 +1,7 @@
-import { pgTable, text, serial, timestamp, boolean, decimal, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, decimal, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { jsonb } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -113,11 +114,8 @@ export const apiKeys = pgTable("api_keys", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   platform: text("platform").notNull(),
-  trackingMethod: text("tracking_method").notNull().default("api"),
   keyType: text("key_type").notNull(),
   keyValue: text("key_value").notNull(),
-  pixelId: text("pixel_id"),
-  pixelConfiguration: jsonb("pixel_configuration"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -326,17 +324,11 @@ export const insertSocialMediaAccountSchema = createInsertSchema(socialMediaAcco
     expiresAt: z.date().optional(),
   });
 
-export const insertApiKeySchema = createInsertSchema(apiKeys)
-  .omit({
-    id: true,
-    createdAt: true,
-    updatedAt: true,
-  })
-  .extend({
-    trackingMethod: z.enum(["api", "pixel"]).default("api"),
-    pixelId: z.string().optional(),
-    pixelConfiguration: z.record(z.unknown()).optional(),
-  });
+export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 export const insertInventoryTransactionSchema = createInsertSchema(inventoryTransactions)
   .omit({ id: true })
