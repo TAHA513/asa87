@@ -1,25 +1,25 @@
 import {
-  users, products, sales, exchangeRates, fileStorage, 
+  users, products, sales, exchangeRates, fileStorage,
   installments, installmentPayments, marketingCampaigns,
   campaignAnalytics, socialMediaAccounts, apiKeys,
   inventoryTransactions, expenseCategories, expenses,
   suppliers, supplierTransactions, customers, appointments,
   invoices, userSettings,
-  type User, type Product, type Sale, type ExchangeRate, 
-  type FileStorage, type Installment, type InstallmentPayment,
-  type Campaign, type InsertCampaign, type CampaignAnalytics, 
-  type InsertCampaignAnalytics, type SocialMediaAccount, 
-  type ApiKey, type InsertApiKey, type InventoryTransaction, 
-  type InsertInventoryTransaction, type ExpenseCategory, 
+  type User, type Product, type Sale, type ExchangeRate,
+  type FileStorage, type InsertFileStorage, type Installment, type InstallmentPayment,
+  type Campaign, type InsertCampaign, type CampaignAnalytics,
+  type InsertCampaignAnalytics, type SocialMediaAccount,
+  type ApiKey, type InsertApiKey, type InventoryTransaction,
+  type InsertInventoryTransaction, type ExpenseCategory,
   type InsertExpenseCategory, type Expense, type InsertExpense,
-  type Supplier, type InsertSupplier, type SupplierTransaction, 
-  type InsertSupplierTransaction, type Customer, type InsertCustomer, 
-  type Appointment, type InsertAppointment, type Invoice, 
+  type Supplier, type InsertSupplier, type SupplierTransaction,
+  type InsertSupplierTransaction, type Customer, type InsertCustomer,
+  type Appointment, type InsertAppointment, type Invoice,
   type InsertInvoice, type UserSettings, type InsertUserSettings,
   type InsertUser
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, or, like, desc } from "drizzle-orm";
+import { eq, or, like, desc, count } from "drizzle-orm";
 import { IStorage } from "./types";
 
 export class DatabaseStorage implements IStorage {
@@ -240,7 +240,10 @@ export class DatabaseStorage implements IStorage {
   async createCampaign(campaign: InsertCampaign): Promise<Campaign> {
     const [newCampaign] = await db
       .insert(marketingCampaigns)
-      .values([campaign])
+      .values({
+        ...campaign,
+        budget: campaign.budget.toString(),
+      })
       .returning();
     return newCampaign;
   }
@@ -379,13 +382,13 @@ export class DatabaseStorage implements IStorage {
 
   async updateExpenseCategory(id: number, update: Partial<ExpenseCategory>): Promise<ExpenseCategory> {
     try {
+      const updateData = {
+        ...update,
+        budgetAmount: update.budgetAmount?.toString(),
+      };
       const [category] = await db
         .update(expenseCategories)
-        .set({
-          ...update,
-          budgetAmount: update.budgetAmount?.toString(),
-          updatedAt: new Date()
-        })
+        .set(updateData)
         .where(eq(expenseCategories.id, id))
         .returning();
       return category;
@@ -673,6 +676,54 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return newSettings;
+  }
+
+  async getAnalyticsSales(): Promise<{ date: string; amount: number; }[]> {
+    const results = await db.select({
+      date: sales.date,
+      amount: sales.priceIqd,
+    })
+      .from(sales)
+      .orderBy(sales.date);
+
+    return results.map(row => ({
+      date: row.date.toISOString().split('T')[0],
+      amount: parseFloat(row.amount.toString())
+    }));
+  }
+
+  async getAnalyticsCustomers(): Promise<{ name: string; value: number; }[]> {
+    const results = await db
+      .select({
+        name: customers.name,
+        value: count(sales.id)
+      })
+      .from(customers)
+      .leftJoin(sales, eq(sales.customerId, customers.id))
+      .groupBy(customers.name)
+      .orderBy(desc(count(sales.id)));
+
+    return results.map(row => ({
+      name: row.name,
+      value: Number(row.value)
+    }));
+  }
+
+  async getAnalyticsProducts(): Promise<{ name: string; sales: number; }[]> {
+    const results = await db
+      .select({
+        name: products.name,
+        sales: count(sales.id)
+      })
+      .from(products)
+      .leftJoin(sales, eq(sales.productId, products.id))
+      .groupBy(products.name)
+      .orderBy(desc(count(sales.id)));
+
+    return results.map(row => ({
+      name: row.name,
+      sales: Number(row.sales)
+    }));
   }
 }
 
