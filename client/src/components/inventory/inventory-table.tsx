@@ -55,6 +55,8 @@ export default function InventoryTable() {
       description: "",
       priceIqd: "",
       stock: 0,
+      productCode: "",
+      barcode: "",
     },
   });
 
@@ -92,7 +94,9 @@ export default function InventoryTable() {
         name: data.name,
         description: data.description || "",
         priceIqd: data.priceIqd.toString(),
-        stock: Number(data.stock)
+        stock: Number(data.stock),
+        productCode: data.productCode,
+        barcode: data.barcode || null,
       });
 
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
@@ -112,7 +116,6 @@ export default function InventoryTable() {
     }
   }
 
-  // تعديل جدول المنتجات لإضافة عمود الإجراءات وزر الحذف
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -148,6 +151,34 @@ export default function InventoryTable() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>اسم المنتج</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="productCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>رمز المنتج</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="barcode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>الباركود</FormLabel>
                         <FormControl>
                           <Input {...field} />
                         </FormControl>
@@ -228,6 +259,8 @@ export default function InventoryTable() {
           <TableHeader>
             <TableRow>
               <TableHead>اسم المنتج</TableHead>
+              <TableHead>رمز المنتج</TableHead>
+              <TableHead>الباركود</TableHead>
               <TableHead>الوصف</TableHead>
               <TableHead>السعر</TableHead>
               <TableHead>المخزون</TableHead>
@@ -243,6 +276,8 @@ export default function InventoryTable() {
               return (
                 <TableRow key={product.id}>
                   <TableCell>{product.name}</TableCell>
+                  <TableCell>{product.productCode}</TableCell>
+                  <TableCell>{product.barcode}</TableCell>
                   <TableCell>{product.description}</TableCell>
                   <TableCell>
                     {Number(product.priceIqd).toLocaleString()} د.ع
