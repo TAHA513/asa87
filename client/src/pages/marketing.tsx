@@ -25,6 +25,13 @@ import SocialAccounts from "@/components/marketing/social-accounts";
 import { PlatformPerformanceGraphs } from "@/components/marketing/analytics-graphs";
 import { PerformanceIndicators } from "@/components/marketing/performance-indicators";
 
+// تعريف نوع البيانات للإحصائيات الاجتماعية
+type SocialStats = {
+  impressions: number;
+  engagement: number;
+  spend: number;
+};
+
 export default function MarketingPage() {
   const [showNewCampaign, setShowNewCampaign] = useState(false);
 
@@ -40,7 +47,7 @@ export default function MarketingPage() {
   const activeCampaigns = campaigns.filter(campaign => campaign.status === "active");
 
   // تجميع الإحصائيات من API منصات التواصل الاجتماعي
-  const { data: socialStats = { impressions: 0, engagement: 0, spend: 0 } } = useQuery({
+  const { data: socialStats = { impressions: 0, engagement: 0, spend: 0 } } = useQuery<SocialStats>({
     queryKey: ["/api/marketing/social-stats"],
     refetchInterval: 300000, // تحديث كل 5 دقائق
   });

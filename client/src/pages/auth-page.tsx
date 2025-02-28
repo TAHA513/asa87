@@ -106,7 +106,7 @@ export default function AuthPage() {
       fullName: "",
       email: "",
       phone: "",
-      role: "staff",
+      role: "staff" as const, // تحديد النوع بشكل صريح
       permissions: [],
     },
   });
@@ -310,8 +310,8 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>البريد الإلكتروني</FormLabel>
                             <FormControl>
-                              <Input 
-                                type="email" 
+                              <Input
+                                type="email"
                                 {...field}
                                 value={field.value || ''}
                               />
@@ -327,7 +327,7 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>رقم الهاتف</FormLabel>
                             <FormControl>
-                              <Input 
+                              <Input
                                 {...field}
                                 value={field.value || ''}
                               />
