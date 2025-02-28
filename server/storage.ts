@@ -139,8 +139,6 @@ export class DatabaseStorage implements IStorage {
     date: Date;
     customerName?: string;
   }): Promise<Sale> {
-    const trx = db.transaction();
-
     try {
       // التحقق من توفر المخزون
       const [product] = await db
@@ -155,13 +153,6 @@ export class DatabaseStorage implements IStorage {
       if (product.stock < sale.quantity) {
         throw new Error(`المخزون غير كافٍ. المتوفر: ${product.stock}`);
       }
-
-      // تحديث المخزون
-      const [updatedProduct] = await db
-        .update(products)
-        .set({ stock: product.stock - sale.quantity })
-        .where(eq(products.id, sale.productId))
-        .returning();
 
       // إنشاء العميل أو استخدام العميل النقدي
       let customerId: number;
@@ -194,6 +185,13 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
+      // تحديث المخزون
+      const [updatedProduct] = await db
+        .update(products)
+        .set({ stock: product.stock - sale.quantity })
+        .where(eq(products.id, sale.productId))
+        .returning();
+
       // إنشاء عملية البيع
       const [newSale] = await db
         .insert(sales)
@@ -219,10 +217,8 @@ export class DatabaseStorage implements IStorage {
         date: new Date()
       });
 
-      await trx.commit();
       return newSale;
     } catch (error) {
-      await trx.rollback();
       console.error("خطأ في إنشاء عملية البيع:", error);
       throw new Error("فشل في إنشاء عملية البيع. " + (error as Error).message);
     }
