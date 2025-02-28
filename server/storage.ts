@@ -8,7 +8,7 @@ import {
   Supplier, InsertSupplier, SupplierTransaction, InsertSupplierTransaction,
   Customer, InsertCustomer, Appointment, InsertAppointment,
   Invoice, InsertInvoice,
-  sales, customers, users, products, expenses, suppliers, supplierTransactions,
+  sales, customers, users, products, expenses, suppliers, supplierTransactions, 
   appointments, inventoryTransactions, invoices, exchangeRates, installments,
   installmentPayments, marketingCampaigns, campaignAnalytics, socialMediaAccounts,
   fileStorage
@@ -97,20 +97,6 @@ export class DatabaseStorage implements IStorage {
     customerName?: string;
   }): Promise<Sale> {
     try {
-      // Get current product stock
-      const [product] = await db
-        .select()
-        .from(products)
-        .where(eq(products.id, sale.productId));
-
-      if (!product) {
-        throw new Error("المنتج غير موجود");
-      }
-
-      if (product.stock < sale.quantity) {
-        throw new Error("الكمية المطلوبة غير متوفرة في المخزون");
-      }
-
       // First ensure default customer exists
       const [defaultCustomer] = await db
         .select()
@@ -145,7 +131,7 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
-      // Create the sale
+      // Now create the sale with the customer ID
       const [newSale] = await db
         .insert(sales)
         .values({
@@ -158,28 +144,6 @@ export class DatabaseStorage implements IStorage {
           date: sale.date,
         })
         .returning();
-
-      // Update product stock
-      await db
-        .update(products)
-        .set({
-          stock: product.stock - sale.quantity
-        })
-        .where(eq(products.id, sale.productId));
-
-      // Create inventory transaction record
-      await db
-        .insert(inventoryTransactions)
-        .values({
-          productId: sale.productId,
-          type: "out",
-          quantity: sale.quantity,
-          reason: "sale",
-          reference: `Sale #${newSale.id}`,
-          date: new Date(),
-          userId: sale.userId,
-          notes: `تم البيع للعميل ${sale.customerName || "عميل نقدي"}`,
-        });
 
       return newSale;
     } catch (error) {
