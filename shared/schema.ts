@@ -49,6 +49,8 @@ export const sales = pgTable("sales", {
   customerId: integer("customer_id").notNull().references(() => customers.id),
   quantity: integer("quantity").notNull(),
   priceIqd: decimal("price_iqd", { precision: 10, scale: 2 }).notNull(),
+  discount: decimal("discount", { precision: 10, scale: 2 }).notNull().default("0"),
+  finalPriceIqd: decimal("final_price_iqd", { precision: 10, scale: 2 }).notNull(),
   date: timestamp("date").notNull().defaultNow(),
   userId: integer("user_id").notNull().references(() => users.id),
   isInstallment: boolean("is_installment").notNull().default(false),
@@ -60,6 +62,8 @@ export const invoices = pgTable("invoices", {
   invoiceNumber: varchar("invoice_number", { length: 50 }).notNull().unique(),
   customerName: text("customer_name").notNull(),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).notNull().default("0"),
+  finalAmount: decimal("final_amount", { precision: 10, scale: 2 }).notNull(),
   invoiceDate: timestamp("invoice_date").notNull().defaultNow(),
   printed: boolean("printed").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -328,6 +332,7 @@ export const insertSaleSchema = createInsertSchema(sales)
     customerId: true,
     quantity: true,
     priceIqd: true,
+    discount: true,
     isInstallment: true,
   })
   .extend({
@@ -335,6 +340,7 @@ export const insertSaleSchema = createInsertSchema(sales)
     customerId: z.number().min(1, "يجب اختيار عميل"),
     quantity: z.number().min(1, "الكمية يجب أن تكون 1 على الأقل"),
     priceIqd: z.number().min(0, "السعر يجب أن يكون أكبر من 0"),
+    discount: z.number().min(0, "الخصم يجب أن يكون 0 أو أكثر"),
     isInstallment: z.boolean().default(false),
   });
 

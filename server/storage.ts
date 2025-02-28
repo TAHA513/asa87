@@ -134,6 +134,7 @@ export class DatabaseStorage implements IStorage {
     productId: number;
     quantity: number;
     priceIqd: string;
+    discount: string;
     userId: number;
     isInstallment: boolean;
     date: Date;
@@ -200,6 +201,7 @@ export class DatabaseStorage implements IStorage {
           customerId,
           quantity: sale.quantity,
           priceIqd: sale.priceIqd,
+          discount: sale.discount,
           userId: sale.userId,
           isInstallment: sale.isInstallment,
           date: sale.date
