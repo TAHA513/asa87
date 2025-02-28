@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, boolean, decimal, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, decimal, integer, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { jsonb } from "drizzle-orm/pg-core";
@@ -22,6 +22,8 @@ export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
+  productCode: varchar("product_code", { length: 50 }).notNull().unique(),
+  barcode: varchar("barcode", { length: 100 }).unique(),
   priceIqd: decimal("price_iqd", { precision: 10, scale: 2 }).notNull(),
   stock: integer("stock").notNull().default(0),
 });
@@ -45,6 +47,18 @@ export const sales = pgTable("sales", {
   date: timestamp("date").notNull().defaultNow(),
   userId: integer("user_id").notNull(),
   isInstallment: boolean("is_installment").notNull().default(false),
+});
+
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  saleId: integer("sale_id").notNull(),
+  invoiceNumber: varchar("invoice_number", { length: 50 }).notNull().unique(),
+  customerName: text("customer_name").notNull(),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  invoiceDate: timestamp("invoice_date").notNull().defaultNow(),
+  printed: boolean("printed").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const installments = pgTable("installments", {
@@ -261,6 +275,8 @@ export const insertUserSchema = createInsertSchema(users)
 export const insertProductSchema = createInsertSchema(products).extend({
   name: z.string().min(1, "اسم المنتج مطلوب"),
   description: z.string().optional(),
+  productCode: z.string().min(1, "رمز المنتج مطلوب"),
+  barcode: z.string().optional(),
   priceIqd: z.string().or(z.number()).transform(val => val.toString()),
   stock: z.number().min(0, "المخزون يجب أن يكون 0 على الأقل"),
 });
@@ -431,6 +447,15 @@ export const insertFileStorageSchema = createInsertSchema(fileStorage)
     userId: z.number().min(1, "معرف المستخدم مطلوب"),
   });
 
+export const insertInvoiceSchema = createInsertSchema(invoices)
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .extend({
+    saleId: z.number().min(1, "معرف البيع مطلوب"),
+    invoiceNumber: z.string().min(1, "رقم الفاتورة مطلوب"),
+    customerName: z.string().min(1, "اسم العميل مطلوب"),
+    totalAmount: z.number().min(0, "المبلغ الإجمالي يجب أن يكون أكبر من 0"),
+  });
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
@@ -470,3 +495,5 @@ export type Appointment = typeof appointments.$inferSelect;
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 export type FileStorage = typeof fileStorage.$inferSelect;
 export type InsertFileStorage = z.infer<typeof insertFileStorageSchema>;
+export type Invoice = typeof invoices.$inferSelect;
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;

@@ -9,11 +9,12 @@ import {
   Customer, InsertCustomer, Appointment, InsertAppointment,
   sales // Import the sales table
 } from "@shared/schema";
+import { invoices, products, type Invoice, type InsertInvoice } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { dbStorage } from "./db-storage";
 import { db } from "./db";
-
+import { eq, or, like } from "drizzle-orm";
 
 const MemoryStore = createMemoryStore(session);
 
@@ -82,6 +83,10 @@ export interface IStorage {
   getFileById(id: number): Promise<FileStorage | undefined>;
   getUserFiles(userId: number): Promise<FileStorage[]>;
   deleteFile(id: number): Promise<void>;
+  createInvoice(invoice: InsertInvoice): Promise<Invoice>;
+  getInvoice(id: number): Promise<Invoice | undefined>;
+  updateInvoicePrintStatus(id: number, printed: boolean): Promise<Invoice>;
+  searchProducts(query: string): Promise<Product[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -527,6 +532,44 @@ export class DatabaseStorage implements IStorage {
 
   async deleteFile(id: number): Promise<void> {
     return dbStorage.deleteFile(id);
+  }
+
+  async createInvoice(invoice: InsertInvoice): Promise<Invoice> {
+    const [newInvoice] = await db
+      .insert(invoices)
+      .values(invoice)
+      .returning();
+    return newInvoice;
+  }
+
+  async getInvoice(id: number): Promise<Invoice | undefined> {
+    const [invoice] = await db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.id, id));
+    return invoice;
+  }
+
+  async updateInvoicePrintStatus(id: number, printed: boolean): Promise<Invoice> {
+    const [updatedInvoice] = await db
+      .update(invoices)
+      .set({ printed })
+      .where(eq(invoices.id, id))
+      .returning();
+    return updatedInvoice;
+  }
+
+  async searchProducts(query: string): Promise<Product[]> {
+    return db
+      .select()
+      .from(products)
+      .where(
+        or(
+          like(products.productCode, `%${query}%`),
+          like(products.barcode, `%${query}%`),
+          like(products.name, `%${query}%`)
+        )
+      );
   }
 }
 
