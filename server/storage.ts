@@ -7,7 +7,7 @@ import {
   ExpenseCategory, InsertExpenseCategory, Expense, InsertExpense,
   Supplier, InsertSupplier, SupplierTransaction, InsertSupplierTransaction,
   Customer, InsertCustomer, Appointment, InsertAppointment,
-  sales // Import the sales table
+  sales, customers // Import both tables
 } from "@shared/schema";
 import { invoices, products, type Invoice, type InsertInvoice } from "@shared/schema";
 import session from "express-session";
@@ -324,33 +324,60 @@ export class DatabaseStorage implements IStorage {
     date: Date;
     customerName?: string;
   }): Promise<Sale> {
-    // First create a customer if customerName is provided
-    let customerId = 1; // Default customer ID for walk-in customers
-    if (sale.customerName) {
-      const [customer] = await db
-        .insert(customers)
+    try {
+      // First create a customer if customerName is provided
+      let customerId: number;
+      if (sale.customerName) {
+        const [customer] = await db
+          .insert(customers)
+          .values({
+            name: sale.customerName,
+            createdAt: new Date(),
+          })
+          .returning();
+        customerId = customer.id;
+      } else {
+        // Get or create a default walk-in customer
+        const [defaultCustomer] = await db
+          .insert(customers)
+          .values({
+            name: "عميل نقدي",
+            createdAt: new Date(),
+          })
+          .returning()
+          .onConflictDoNothing();
+
+        if (defaultCustomer) {
+          customerId = defaultCustomer.id;
+        } else {
+          // If default customer already exists, fetch it
+          const [existingCustomer] = await db
+            .select()
+            .from(customers)
+            .where(eq(customers.name, "عميل نقدي"));
+          customerId = existingCustomer.id;
+        }
+      }
+
+      // Now create the sale with the customer ID
+      const [newSale] = await db
+        .insert(sales)
         .values({
-          name: sale.customerName,
-          createdAt: new Date(),
+          productId: sale.productId,
+          customerId: customerId,
+          quantity: sale.quantity,
+          priceIqd: sale.priceIqd,
+          userId: sale.userId || 1, // Default user ID if not provided
+          isInstallment: sale.isInstallment,
+          date: sale.date,
         })
         .returning();
-      customerId = customer.id;
+
+      return newSale;
+    } catch (error) {
+      console.error("خطأ في حفظ عملية البيع في قاعدة البيانات:", error);
+      throw error;
     }
-
-    const [newSale] = await db
-      .insert(sales)
-      .values({
-        productId: sale.productId,
-        customerId: customerId,
-        quantity: sale.quantity,
-        priceIqd: sale.priceIqd,
-        userId: sale.userId || 1, // Default user ID if not provided
-        isInstallment: sale.isInstallment,
-        date: sale.date,
-      })
-      .returning();
-
-    return newSale;
   }
 
   async getCurrentExchangeRate(): Promise<ExchangeRate> {

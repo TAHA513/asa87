@@ -71,6 +71,7 @@ export default function Sales() {
       time: format(new Date(), 'HH:mm'),
       isInstallment: false,
       printInvoice: true,
+      customerName: "",
     },
   });
 
@@ -100,25 +101,32 @@ export default function Sales() {
         date: saleDate,
         isInstallment: data.isInstallment,
         priceIqd: selectedProduct.priceIqd,
-        customerName: data.customerName, // Add customer name to create customer
+        customerName: data.customerName || undefined, // Only send if provided
       });
+
+      if (!sale.ok) {
+        throw new Error("فشل في إنشاء عملية البيع");
+      }
 
       const saleData = await sale.json();
 
       const invoice: InsertInvoice = {
         saleId: saleData.id,
-        customerName: data.customerName,
+        customerName: data.customerName || "عميل نقدي",
         totalAmount: Number(selectedProduct.priceIqd) * data.quantity,
         invoiceNumber: `INV-${Date.now()}`,
         invoiceDate: saleDate,
       };
 
       const savedInvoice = await apiRequest("POST", "/api/invoices", invoice);
+      if (!savedInvoice.ok) {
+        throw new Error("فشل في إنشاء الفاتورة");
+      }
 
       if (data.printInvoice) {
         setSelectedSale({
           ...saleData,
-          customerName: data.customerName,
+          customerName: data.customerName || "عميل نقدي",
         });
         setTimeout(handlePrint, 100);
       }
@@ -129,14 +137,14 @@ export default function Sales() {
       setSearchQuery("");
 
       toast({
-        title: "تم إنشاء البيع بنجاح",
-        description: `تم إنشاء بيع جديد برقم ${saleData.id}`,
+        title: "تم بنجاح",
+        description: "تم إنشاء البيع والفاتورة بنجاح",
       });
     } catch (error) {
       console.error('Error creating sale:', error);
       toast({
-        title: "خطأ في إنشاء البيع",
-        description: "حدث خطأ أثناء محاولة إنشاء البيع",
+        title: "خطأ",
+        description: error instanceof Error ? error.message : "حدث خطأ أثناء إنشاء البيع",
         variant: "destructive",
       });
     }
