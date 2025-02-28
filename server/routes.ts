@@ -124,21 +124,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic"]),
+        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
         appearance: z.enum(["light", "dark", "system"]),
         fontStyle: z.enum([
-          "traditional", 
-          "modern", 
-          "minimal", 
-          "digital", 
-          "elegant", 
-          "kufi", 
-          "naskh", 
-          "ruqaa", 
-          "thuluth", 
-          "contemporary"
+          "traditional",
+          "modern",
+          "minimal",
+          "digital",
+          "elegant",
+          "kufi",
+          "naskh",
+          "ruqaa",
+          "thuluth",
+          "contemporary",
+          "noto-kufi", // نوتو كوفي
+          "cairo", // القاهرة
+          "tajawal", // طجوال
+          "amiri", // أميري
         ]),
         radius: z.number(),
+        fontSize: z.enum(["small", "medium", "large", "xlarge"]), //Added fontSize
       });
 
       const theme = themeSchema.parse(req.body);
@@ -304,7 +309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         <html>
           <body>
             <script>
-              window.opener.postMessage({ 
+              window.opener.postMessage({
                 type: 'social-auth-success',
                 platform: '${platform}',
                 accountName: '${mockAccount.accountName}'
@@ -408,7 +413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Calculate engagement rate
-      const engagement = totalImpressions > 0 ? 
+      const engagement = totalImpressions > 0 ?
         totalEngagements / totalImpressions : 0;
 
       res.json({
@@ -1052,6 +1057,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // إضافة المسارات الجديدة للإعدادات
+  //These routes are replaced by the edited snippet
+
+  const themeSchema = z.object({
+    primary: z.string(),
+    variant: z.enum([
+      "modern", // العصري
+      "classic", // الكلاسيكي
+      "elegant", // الأنيق
+      "vibrant", // النابض بالحياة
+      "natural", // الطبيعي
+    ]),
+    appearance: z.enum(["light", "dark", "system"]),
+    fontStyle: z.enum([
+      "noto-kufi", // نوتو كوفي
+      "cairo", // القاهرة
+      "tajawal", // طجوال
+      "amiri", // أميري
+    ]),
+    fontSize: z.enum(["small", "medium", "large", "xlarge"]),
+    radius: z.number(),
+  });
+
   app.get("/api/settings", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
@@ -1060,14 +1087,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const settings = await storage.getUserSettings((req.user as any).id);
       res.json(settings || {
-        themeName: "العصري",
-        fontName: "نوتو كوفي",
+        themeName: "modern",
+        fontName: "noto-kufi",
         fontSize: "medium",
         appearance: "system",
         colors: {
-          primary: "hsl(142.1 76.2% 36.3%)",
-          secondary: "hsl(217.2 91.2% 59.8%)",
-          accent: "hsl(316.8 81.2% 43.8%)"
+          primary: "#2563eb",
+          secondary: "#16a34a",
+          accent: "#db2777"
         }
       });
     } catch (error) {
@@ -1082,19 +1109,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      console.log("Saving user settings:", req.body);
-      const settings = await storage.saveUserSettings((req.user as any).id, {
-        themeName: req.body.themeName,
-        fontName: req.body.fontName,
-        fontSize: req.body.fontSize,
-        appearance: req.body.appearance,
-        colors: req.body.colors
-      });
+      const validatedTheme = themeSchema.parse(req.body);
+      console.log("Saving theme settings:", validatedTheme);
 
-      res.status(200).json(settings);
+      const settings = await storage.saveUserSettings((req.user as any).id, validatedTheme);
+
+      // Send success response with the saved settings
+      res.json(settings);
     } catch (error) {
-      console.error("Error saving user settings:", error);
-      res.status(500).json({ message: "فشل في حفظ إعدادات المظهر" });
+      console.error("Error saving theme settings:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "بيانات غير صالحة", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "فشل في حفظ إعدادات المظهر" });
+      }
     }
   });
 

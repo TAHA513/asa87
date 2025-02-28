@@ -2,19 +2,8 @@ import { useEffect, useState } from "react";
 import { Check, Palette, Type, Moon, Sun, Monitor, Minus, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { apiRequest } from "@/lib/queryClient";
@@ -147,19 +136,6 @@ const ThemeSettings = () => {
     loadSettings();
   }, []);
 
-  useEffect(() => {
-    const savedSettings = localStorage.getItem("themeSettings");
-    if (savedSettings) {
-      const settings = JSON.parse(savedSettings);
-      const theme = themes.find(t => t.name === settings.themeName) || themes[0];
-      const font = fonts.find(f => f.name === settings.fontName) || fonts[0];
-      setSelectedTheme(theme);
-      setSelectedFont(font);
-      setFontSize(settings.fontSize || "medium");
-      setAppearance(settings.appearance || "system");
-    }
-  }, []);
-
   const saveSettings = async () => {
     setIsLoading(true);
     try {
@@ -237,7 +213,13 @@ const ThemeSettings = () => {
                   className={`cursor-pointer transition-all hover:scale-105 ${
                     selectedTheme.name === theme.name ? 'ring-2 ring-primary' : ''
                   }`}
-                  onClick={() => setSelectedTheme(theme)}
+                  onClick={() => {
+                    setSelectedTheme(theme);
+                    // Apply theme colors immediately
+                    document.documentElement.style.setProperty("--primary-color", theme.colors.primary);
+                    document.documentElement.style.setProperty("--secondary-color", theme.colors.secondary);
+                    document.documentElement.style.setProperty("--accent-color", theme.colors.accent);
+                  }}
                 >
                   <CardHeader className="p-4">
                     <div className="flex items-center justify-between">
@@ -271,7 +253,11 @@ const ThemeSettings = () => {
                   className={`cursor-pointer transition-all hover:scale-105 ${
                     selectedFont.name === font.name ? 'ring-2 ring-primary' : ''
                   }`}
-                  onClick={() => setSelectedFont(font)}
+                  onClick={() => {
+                    setSelectedFont(font);
+                    // Apply font immediately
+                    document.documentElement.style.setProperty("--font-family", font.family);
+                  }}
                 >
                   <CardHeader className="p-4">
                     <div className="flex items-center justify-between">
@@ -309,7 +295,11 @@ const ThemeSettings = () => {
                         className={`cursor-pointer p-4 ${
                           fontSize === size ? 'ring-2 ring-primary' : ''
                         }`}
-                        onClick={() => setFontSize(size)}
+                        onClick={() => {
+                          setFontSize(size);
+                          // Apply font size immediately
+                          document.documentElement.style.setProperty("--font-size-base", `${config.base}px`);
+                        }}
                       >
                         <div className="text-center">
                           <div style={{ fontSize: `${config.base}px` }}>
