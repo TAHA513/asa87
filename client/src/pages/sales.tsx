@@ -113,7 +113,7 @@ export default function Sales() {
         isInstallment: data.isInstallment,
         priceIqd: selectedProduct.priceIqd,
         userId: user.id,
-        customerName: data.customerName || undefined, // Only send if provided
+        customerName: data.customerName || undefined,
       });
 
       if (!sale.ok) {
@@ -164,73 +164,78 @@ export default function Sales() {
   };
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-background">
       <div className="w-64 h-full">
         <Sidebar />
       </div>
       <main className="flex-1 p-8 overflow-auto">
         <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-8">
           <div className="md:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>المبيعات الأخيرة</CardTitle>
-                <CardDescription>
+            <Card className="shadow-lg transition-shadow hover:shadow-xl">
+              <CardHeader className="space-y-1">
+                <CardTitle className="text-2xl font-bold">المبيعات الأخيرة</CardTitle>
+                <CardDescription className="text-sm text-muted-foreground">
                   قائمة بجميع عمليات البيع
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>المنتج</TableHead>
-                      <TableHead>الكمية</TableHead>
-                      <TableHead>السعر</TableHead>
-                      <TableHead>العميل</TableHead>
-                      <TableHead>التاريخ</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sales.map((sale) => {
-                      const product = searchResults.find((p) => p.id === sale.productId);
-                      return (
-                        <TableRow key={sale.id}>
-                          <TableCell>{product?.name}</TableCell>
-                          <TableCell>{sale.quantity}</TableCell>
-                          <TableCell>
-                            {Number(sale.priceIqd).toLocaleString()} د.ع
-                          </TableCell>
-                          <TableCell>{sale.customerName}</TableCell>
-                          <TableCell>
-                            {new Date(sale.date).toLocaleDateString('ar-IQ')}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                <div className="rounded-lg overflow-hidden border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead>المنتج</TableHead>
+                        <TableHead>الكمية</TableHead>
+                        <TableHead>السعر</TableHead>
+                        <TableHead>العميل</TableHead>
+                        <TableHead>التاريخ</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sales.map((sale) => {
+                        const product = searchResults.find((p) => p.id === sale.productId);
+                        return (
+                          <TableRow key={sale.id} className="hover:bg-muted/30 transition-colors">
+                            <TableCell className="font-medium">{product?.name}</TableCell>
+                            <TableCell>{sale.quantity}</TableCell>
+                            <TableCell className="font-semibold">
+                              {Number(sale.priceIqd).toLocaleString()} د.ع
+                            </TableCell>
+                            <TableCell>{sale.customerName}</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {new Date(sale.date).toLocaleDateString('ar-IQ')}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>بيع جديد</CardTitle>
-              <CardDescription>إنشاء عملية بيع جديدة</CardDescription>
+          <Card className="shadow-lg transition-shadow hover:shadow-xl">
+            <CardHeader className="space-y-1">
+              <CardTitle className="text-2xl font-bold">بيع جديد</CardTitle>
+              <CardDescription className="text-sm text-muted-foreground">
+                إنشاء عملية بيع جديدة
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="date"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>التاريخ</FormLabel>
+                          <FormLabel className="text-sm font-medium">التاريخ</FormLabel>
                           <FormControl>
                             <DatePicker
                               date={field.value}
                               onSelect={field.onChange}
+                              className="w-full"
                             />
                           </FormControl>
                         </FormItem>
@@ -242,13 +247,13 @@ export default function Sales() {
                       name="time"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>الوقت</FormLabel>
+                          <FormLabel className="text-sm font-medium">الوقت</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                               <Input
                                 type="time"
-                                className="pl-8"
+                                className="pl-8 w-full"
                                 {...field}
                               />
                             </div>
@@ -263,11 +268,15 @@ export default function Sales() {
                     name="customerName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>اسم العميل</FormLabel>
+                        <FormLabel className="text-sm font-medium">اسم العميل</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <Users className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input className="pl-8" placeholder="ادخل اسم العميل" {...field} />
+                            <Input 
+                              className="pl-8 w-full transition-colors focus:border-primary"
+                              placeholder="ادخل اسم العميل"
+                              {...field}
+                            />
                           </div>
                         </FormControl>
                       </FormItem>
@@ -275,11 +284,11 @@ export default function Sales() {
                   />
 
                   <div className="space-y-2">
-                    <Label>بحث عن المنتج</Label>
+                    <Label className="text-sm font-medium">بحث عن المنتج</Label>
                     <div className="relative">
                       <Package className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
-                        className="pl-8"
+                        className="pl-8 w-full transition-colors focus:border-primary"
                         placeholder="ابحث بالاسم أو الرمز أو الباركود"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -293,12 +302,16 @@ export default function Sales() {
                           setSelectedProduct(product || null);
                         }}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="اختر المنتج" />
                         </SelectTrigger>
                         <SelectContent>
                           {searchResults.map((product) => (
-                            <SelectItem key={product.id} value={product.id.toString()}>
+                            <SelectItem 
+                              key={product.id}
+                              value={product.id.toString()}
+                              className="cursor-pointer hover:bg-muted"
+                            >
                               {product.name} - {product.productCode}
                             </SelectItem>
                           ))}
@@ -306,7 +319,7 @@ export default function Sales() {
                       </Select>
                     )}
                     {selectedProduct && (
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-muted-foreground bg-muted/30 p-2 rounded">
                         السعر: {Number(selectedProduct.priceIqd).toLocaleString()} د.ع
                       </div>
                     )}
@@ -317,9 +330,14 @@ export default function Sales() {
                     name="quantity"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>الكمية</FormLabel>
+                        <FormLabel className="text-sm font-medium">الكمية</FormLabel>
                         <FormControl>
-                          <Input type="number" min="1" {...field} />
+                          <Input
+                            type="number"
+                            min="1"
+                            className="w-full transition-colors focus:border-primary"
+                            {...field}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -329,20 +347,24 @@ export default function Sales() {
                     control={form.control}
                     name="printInvoice"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>طباعة الفاتورة</FormLabel>
+                      <FormItem className="flex items-center space-x-2">
                         <FormControl>
                           <input
                             type="checkbox"
                             checked={field.value}
                             onChange={(e) => field.onChange(e.target.checked)}
+                            className="rounded border-input"
                           />
                         </FormControl>
+                        <FormLabel className="text-sm font-medium mr-2">طباعة الفاتورة</FormLabel>
                       </FormItem>
                     )}
                   />
 
-                  <Button type="submit" className="w-full">
+                  <Button
+                    type="submit"
+                    className="w-full bg-primary hover:bg-primary/90 text-white transition-colors"
+                  >
                     إتمام البيع
                   </Button>
                 </form>
@@ -353,34 +375,46 @@ export default function Sales() {
 
         {/* Print Area */}
         <div className="hidden">
-          <div ref={printRef} className="p-4">
+          <div ref={printRef} className="p-8">
             {selectedSale && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="text-center">
-                  <h1 className="text-2xl font-bold">فاتورة بيع</h1>
-                  <p>رقم الفاتورة: {selectedSale.id}</p>
-                  <p>التاريخ: {new Date(selectedSale.date).toLocaleDateString('ar-IQ')}</p>
-                  <p>الوقت: {format(new Date(selectedSale.date), 'HH:mm')}</p>
+                  <h1 className="text-3xl font-bold mb-2">فاتورة بيع</h1>
+                  <p className="text-muted-foreground">رقم الفاتورة: {selectedSale.id}</p>
+                  <p className="text-muted-foreground">
+                    التاريخ: {new Date(selectedSale.date).toLocaleDateString('ar-IQ')}
+                  </p>
+                  <p className="text-muted-foreground">
+                    الوقت: {format(new Date(selectedSale.date), 'HH:mm')}
+                  </p>
                 </div>
-                <div>
+                <div className="border-t border-b py-4">
                   <p>العميل: {selectedSale.customerName}</p>
-                  <p>المبلغ الإجمالي: {Number(selectedSale.priceIqd).toLocaleString()} د.ع</p>
+                  <p className="font-semibold">
+                    المبلغ الإجمالي: {Number(selectedSale.priceIqd).toLocaleString()} د.ع
+                  </p>
                 </div>
-                <table className="w-full">
+                <table className="w-full border-collapse">
                   <thead>
-                    <tr>
-                      <th>المنتج</th>
-                      <th>الكمية</th>
-                      <th>السعر</th>
-                      <th>المجموع</th>
+                    <tr className="border-b">
+                      <th className="py-2 text-right">المنتج</th>
+                      <th className="py-2 text-right">الكمية</th>
+                      <th className="py-2 text-right">السعر</th>
+                      <th className="py-2 text-right">المجموع</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td>{searchResults.find(p => p.id === selectedSale.productId)?.name}</td>
-                      <td>{selectedSale.quantity}</td>
-                      <td>{Number(selectedSale.priceIqd).toLocaleString()} د.ع</td>
-                      <td>{(Number(selectedSale.priceIqd) * selectedSale.quantity).toLocaleString()} د.ع</td>
+                      <td className="py-2">
+                        {searchResults.find(p => p.id === selectedSale.productId)?.name}
+                      </td>
+                      <td className="py-2">{selectedSale.quantity}</td>
+                      <td className="py-2">
+                        {Number(selectedSale.priceIqd).toLocaleString()} د.ع
+                      </td>
+                      <td className="py-2 font-semibold">
+                        {(Number(selectedSale.priceIqd) * selectedSale.quantity).toLocaleString()} د.ع
+                      </td>
                     </tr>
                   </tbody>
                 </table>

@@ -1,7 +1,7 @@
 {
-  "primary": "hsl(262.1 83.3% 57.8%)",
+  "primary": "hsl(220, 90%, 56%)",
   "variant": "vibrant",
   "appearance": "system",
-  "fontStyle": "traditional",
-  "radius": 0.75
+  "fontStyle": "modern",
+  "radius": 1.0
 }
