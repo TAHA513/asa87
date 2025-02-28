@@ -24,17 +24,26 @@ import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Calendar, Package, Users } from "lucide-react";
+import { Calendar, Package, Users, Clock } from "lucide-react";
 import { useReactToPrint } from 'react-to-print';
 import { useRef } from "react";
 import type { Sale, Product, InsertInvoice } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { format } from "date-fns";
 
 interface NewSaleFormData {
   productId: number;
   quantity: number;
   customerName: string;
   date: Date;
+  time: string;
   isInstallment: boolean;
   printInvoice: boolean;
 }
@@ -42,6 +51,7 @@ interface NewSaleFormData {
 export default function Sales() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
 
@@ -49,7 +59,7 @@ export default function Sales() {
     queryKey: ["/api/sales"],
   });
 
-  const { data: products = [] } = useQuery<Product[]>({
+  const { data: searchResults = [] } = useQuery<Product[]>({
     queryKey: ["/api/products", searchQuery],
     enabled: searchQuery.length > 0,
   });
@@ -58,6 +68,7 @@ export default function Sales() {
     defaultValues: {
       quantity: 1,
       date: new Date(),
+      time: format(new Date(), 'HH:mm'),
       isInstallment: false,
       printInvoice: true,
     },
@@ -69,22 +80,33 @@ export default function Sales() {
 
   const onSubmit = async (data: NewSaleFormData) => {
     try {
+      if (!selectedProduct) {
+        toast({
+          title: "خطأ",
+          description: "الرجاء اختيار منتج",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Combine date and time
+      const [hours, minutes] = data.time.split(':');
+      const saleDate = new Date(data.date);
+      saleDate.setHours(parseInt(hours), parseInt(minutes));
+
       const sale = await apiRequest("POST", "/api/sales", {
-        productId: data.productId,
+        productId: selectedProduct.id,
         quantity: data.quantity,
-        date: data.date,
+        date: saleDate,
         isInstallment: data.isInstallment,
       });
 
       const saleData = await sale.json();
 
-      const product = products.find(p => p.id === data.productId);
-      if (!product) return;
-
       const invoice: InsertInvoice = {
         saleId: saleData.id,
         customerName: data.customerName,
-        totalAmount: Number(product.priceIqd) * data.quantity,
+        totalAmount: Number(selectedProduct.priceIqd) * data.quantity,
         invoiceNumber: `INV-${Date.now()}`,
       };
 
@@ -97,6 +119,8 @@ export default function Sales() {
 
       queryClient.invalidateQueries({ queryKey: ["/api/sales"] });
       form.reset();
+      setSelectedProduct(null);
+      setSearchQuery("");
 
       toast({
         title: "تم إنشاء البيع بنجاح",
@@ -139,7 +163,7 @@ export default function Sales() {
                   </TableHeader>
                   <TableBody>
                     {sales.map((sale) => {
-                      const product = products.find((p) => p.id === sale.productId);
+                      const product = searchResults.find((p) => p.id === sale.productId);
                       return (
                         <TableRow key={sale.id}>
                           <TableCell>{product?.name}</TableCell>
@@ -168,21 +192,43 @@ export default function Sales() {
             <CardContent>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>التاريخ</FormLabel>
-                        <FormControl>
-                          <DatePicker
-                            date={field.value}
-                            onSelect={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>التاريخ</FormLabel>
+                          <FormControl>
+                            <DatePicker
+                              date={field.value}
+                              onSelect={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="time"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>الوقت</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                type="time"
+                                className="pl-8"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
                   <FormField
                     control={form.control}
@@ -211,6 +257,31 @@ export default function Sales() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
                     </div>
+                    {searchResults.length > 0 && (
+                      <Select
+                        value={selectedProduct?.id.toString()}
+                        onValueChange={(value) => {
+                          const product = searchResults.find(p => p.id === parseInt(value));
+                          setSelectedProduct(product || null);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="اختر المنتج" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {searchResults.map((product) => (
+                            <SelectItem key={product.id} value={product.id.toString()}>
+                              {product.name} - {product.productCode}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    {selectedProduct && (
+                      <div className="text-sm text-muted-foreground">
+                        السعر: {Number(selectedProduct.priceIqd).toLocaleString()} د.ع
+                      </div>
+                    )}
                   </div>
 
                   <FormField
@@ -261,6 +332,7 @@ export default function Sales() {
                   <h1 className="text-2xl font-bold">فاتورة بيع</h1>
                   <p>رقم الفاتورة: {selectedSale.id}</p>
                   <p>التاريخ: {new Date(selectedSale.date).toLocaleDateString('ar-IQ')}</p>
+                  <p>الوقت: {format(new Date(selectedSale.date), 'HH:mm')}</p>
                 </div>
                 <div>
                   <p>العميل: {selectedSale.customerName}</p>
@@ -277,7 +349,7 @@ export default function Sales() {
                   </thead>
                   <tbody>
                     <tr>
-                      <td>{products.find(p => p.id === selectedSale.productId)?.name}</td>
+                      <td>{searchResults.find(p => p.id === selectedSale.productId)?.name}</td>
                       <td>{selectedSale.quantity}</td>
                       <td>{Number(selectedSale.priceIqd).toLocaleString()} د.ع</td>
                       <td>{(Number(selectedSale.priceIqd) * selectedSale.quantity).toLocaleString()} د.ع</td>
