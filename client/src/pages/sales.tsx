@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { format } from "date-fns";
+import { useAuth } from "@/hooks/use-auth";
 
 interface NewSaleFormData {
   productId: number;
@@ -50,6 +51,7 @@ interface NewSaleFormData {
 
 export default function Sales() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
@@ -90,6 +92,15 @@ export default function Sales() {
         return;
       }
 
+      if (!user) {
+        toast({
+          title: "خطأ",
+          description: "يجب تسجيل الدخول أولاً",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Combine date and time
       const [hours, minutes] = data.time.split(':');
       const saleDate = new Date(data.date);
@@ -101,11 +112,13 @@ export default function Sales() {
         date: saleDate,
         isInstallment: data.isInstallment,
         priceIqd: selectedProduct.priceIqd,
+        userId: user.id,
         customerName: data.customerName || undefined, // Only send if provided
       });
 
       if (!sale.ok) {
-        throw new Error("فشل في إنشاء عملية البيع");
+        const errorData = await sale.json();
+        throw new Error(errorData.message || "فشل في إنشاء عملية البيع");
       }
 
       const saleData = await sale.json();
