@@ -8,7 +8,7 @@ import {
   Supplier, InsertSupplier, SupplierTransaction, InsertSupplierTransaction,
   Customer, InsertCustomer, Appointment, InsertAppointment,
   Invoice, InsertInvoice,
-  sales, customers, users, products, expenses, suppliers, supplierTransactions, 
+  sales, customers, users, products, expenses, suppliers, supplierTransactions,
   appointments, inventoryTransactions, invoices, exchangeRates, installments,
   installmentPayments, marketingCampaigns, campaignAnalytics, socialMediaAccounts,
   fileStorage
@@ -235,7 +235,7 @@ export class DatabaseStorage implements IStorage {
   async createCampaign(campaign: InsertCampaign): Promise<Campaign> {
     const [newCampaign] = await db
       .insert(marketingCampaigns)
-      .values(campaign)
+      .values([campaign])
       .returning();
     return newCampaign;
   }
@@ -259,7 +259,10 @@ export class DatabaseStorage implements IStorage {
   async createCampaignAnalytics(analytics: InsertCampaignAnalytics): Promise<CampaignAnalytics> {
     const [newAnalytics] = await db
       .insert(campaignAnalytics)
-      .values(analytics)
+      .values([{
+        ...analytics,
+        spend: analytics.spend.toString()
+      }])
       .returning();
     return newAnalytics;
   }
@@ -286,12 +289,13 @@ export class DatabaseStorage implements IStorage {
   async setApiKeys(userId: number, keys: Record<string, any>): Promise<void> {
     await db
       .insert(apiKeys)
-      .values({
+      .values([{
         userId,
         platform: "general",
         keyType: "json",
         keyValue: JSON.stringify(keys),
-      });
+        createdAt: new Date()
+      }]);
   }
 
   async getApiKeys(userId: number): Promise<Record<string, any> | null> {
@@ -346,7 +350,10 @@ export class DatabaseStorage implements IStorage {
   async createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory> {
     const [newCategory] = await db
       .insert(expenses)
-      .values(category)
+      .values([{
+        ...category,
+        createdAt: new Date()
+      }])
       .returning();
     return newCategory;
   }
@@ -354,7 +361,10 @@ export class DatabaseStorage implements IStorage {
   async updateExpenseCategory(id: number, update: Partial<ExpenseCategory>): Promise<ExpenseCategory> {
     const [category] = await db
       .update(expenses)
-      .set(update)
+      .set({
+        ...update,
+        updatedAt: new Date()
+      })
       .where(eq(expenses.id, id))
       .returning();
     return category;
