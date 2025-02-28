@@ -556,44 +556,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         facebook: z.object({
           appId: z.string().min(1, "App ID مطلوب"),
           appSecret: z.string().min(1, "App Secret مطلوب"),
-        }).optional(),
+        }),
         twitter: z.object({
           apiKey: z.string().min(1, "API Key مطلوب"),
           apiSecret: z.string().min(1, "API Secret مطلوب"),
-        }).optional(),
-        instagram: z.object({
-          accessToken: z.string().min(1, "Access Token مطلوب"),
-        }).optional(),
+        }),
         tiktok: z.object({
           clientKey: z.string().min(1, "Client Key مطلوب"),
           clientSecret: z.string().min(1, "Client Secret مطلوب"),
-        }).optional(),
+        }),
         snapchat: z.object({
           clientId: z.string().min(1, "Client ID مطلوب"),
           clientSecret: z.string().min(1, "Client Secret مطلوب"),
-        }).optional(),
+        }),
         linkedin: z.object({
           clientId: z.string().min(1, "Client ID مطلوب"),
           clientSecret: z.string().min(1, "Client Secret مطلوب"),
-        }).optional(),
+        }),
       });
 
-      console.log("Received API keys payload:", req.body);
       const apiKeys = apiKeysSchema.parse(req.body);
 
       // حفظ المفاتيح في قاعدة البيانات بشكل آمن
       await storage.setApiKeys(req.user!.id, apiKeys);
-      console.log("Successfully saved API keys for user:", req.user!.id);
 
       res.json({ success: true });
     } catch (error) {
       console.error("Error updating API keys:", error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "خطأ في التحقق من صحة البيانات",
-          errors: error.errors 
-        });
-      }
       res.status(500).json({ message: "فشل في تحديث مفاتيح API" });
     }
   });
@@ -605,7 +594,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const apiKeys = await storage.getApiKeys(req.user!.id);
-      console.log("Retrieved API keys for user:", req.user!.id);
       res.json(apiKeys);
     } catch (error) {
       console.error("Error getting API keys:", error);
