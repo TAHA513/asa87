@@ -1,17 +1,22 @@
 import {
-  User, Product, Sale, ExchangeRate, InsertUser, FileStorage, InsertFileStorage,
-  Installment, InstallmentPayment,
-  Campaign, InsertCampaign, CampaignAnalytics, InsertCampaignAnalytics,
-  SocialMediaAccount, ApiKey, InsertApiKey,
-  InventoryTransaction, InsertInventoryTransaction,
-  ExpenseCategory, InsertExpenseCategory, Expense, InsertExpense,
-  Supplier, InsertSupplier, SupplierTransaction, InsertSupplierTransaction,
-  Customer, InsertCustomer, Appointment, InsertAppointment,
-  Invoice, InsertInvoice,
-  sales, customers, users, products, expenses, suppliers, supplierTransactions,
-  appointments, inventoryTransactions, invoices, exchangeRates, installments,
-  installmentPayments, marketingCampaigns, campaignAnalytics, socialMediaAccounts,
-  fileStorage, userSettings, type UserSettings, type InsertUserSettings
+  users, products, sales, exchangeRates, fileStorage, 
+  installments, installmentPayments, marketingCampaigns,
+  campaignAnalytics, socialMediaAccounts, apiKeys,
+  inventoryTransactions, expenseCategories, expenses,
+  suppliers, supplierTransactions, customers, appointments,
+  invoices, userSettings,
+  type User, type Product, type Sale, type ExchangeRate, 
+  type FileStorage, type Installment, type InstallmentPayment,
+  type Campaign, type InsertCampaign, type CampaignAnalytics, 
+  type InsertCampaignAnalytics, type SocialMediaAccount, 
+  type ApiKey, type InsertApiKey, type InventoryTransaction, 
+  type InsertInventoryTransaction, type ExpenseCategory, 
+  type InsertExpenseCategory, type Expense, type InsertExpense,
+  type Supplier, type InsertSupplier, type SupplierTransaction, 
+  type InsertSupplierTransaction, type Customer, type InsertCustomer, 
+  type Appointment, type InsertAppointment, type Invoice, 
+  type InsertInvoice, type UserSettings, type InsertUserSettings,
+  type InsertUser
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, like, desc } from "drizzle-orm";
@@ -333,10 +338,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getExpenseCategories(userId: number): Promise<ExpenseCategory[]> {
-    return db
-      .select()
-      .from(expenseCategories)
-      .where(eq(expenseCategories.userId, userId));
+    try {
+      const results = await db
+        .select()
+        .from(expenseCategories)
+        .where(eq(expenseCategories.userId, userId));
+      return results;
+    } catch (error) {
+      console.error("Error fetching expense categories:", error);
+      throw new Error("فشل في جلب فئات المصروفات");
+    }
   }
 
   async getExpenseCategory(id: number): Promise<ExpenseCategory | undefined> {
@@ -348,30 +359,49 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory> {
-    const [newCategory] = await db
-      .insert(expenseCategories)
-      .values([{
-        ...category,
-        createdAt: new Date()
-      }])
-      .returning();
-    return newCategory;
+    try {
+      const [newCategory] = await db
+        .insert(expenseCategories)
+        .values({
+          name: category.name,
+          description: category.description || null,
+          budgetAmount: category.budgetAmount?.toString() || null,
+          userId: category.userId,
+          createdAt: new Date()
+        })
+        .returning();
+      return newCategory;
+    } catch (error) {
+      console.error("Error creating expense category:", error);
+      throw new Error("فشل في إنشاء فئة المصروفات");
+    }
   }
 
   async updateExpenseCategory(id: number, update: Partial<ExpenseCategory>): Promise<ExpenseCategory> {
-    const [category] = await db
-      .update(expenseCategories)
-      .set({
-        ...update,
-        updatedAt: new Date()
-      })
-      .where(eq(expenseCategories.id, id))
-      .returning();
-    return category;
+    try {
+      const [category] = await db
+        .update(expenseCategories)
+        .set({
+          ...update,
+          budgetAmount: update.budgetAmount?.toString(),
+          updatedAt: new Date()
+        })
+        .where(eq(expenseCategories.id, id))
+        .returning();
+      return category;
+    } catch (error) {
+      console.error("Error updating expense category:", error);
+      throw new Error("فشل في تحديث فئة المصروفات");
+    }
   }
 
   async deleteExpenseCategory(id: number): Promise<void> {
-    await db.delete(expenseCategories).where(eq(expenseCategories.id, id));
+    try {
+      await db.delete(expenseCategories).where(eq(expenseCategories.id, id));
+    } catch (error) {
+      console.error("Error deleting expense category:", error);
+      throw new Error("فشل في حذف فئة المصروفات");
+    }
   }
 
   async getExpenses(userId: number): Promise<Expense[]> {
