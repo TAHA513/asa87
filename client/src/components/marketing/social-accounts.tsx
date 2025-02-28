@@ -20,6 +20,15 @@ import {
   SiSnapchat,
   SiTiktok,
 } from "react-icons/si";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const platformIcons = {
   facebook: SiFacebook,
@@ -78,16 +87,72 @@ const platformConfig = {
 export default function SocialAccounts() {
   const { toast } = useToast();
   const [isConnecting, setIsConnecting] = useState<{[key: string]: boolean}>({});
+  const [selectedMethod, setSelectedMethod] = useState<{[key: string]: "api" | "pixel"}>({});
+  const [pixelConfig, setPixelConfig] = useState<{[key: string]: { id: string, config: any }}>({});
 
   const { data: accounts = [] } = useQuery<SocialMediaAccount[]>({
     queryKey: ["/api/marketing/social-accounts"],
   });
 
+  const handleMethodChange = (platform: string, method: "api" | "pixel") => {
+    setSelectedMethod(prev => ({
+      ...prev,
+      [platform]: method
+    }));
+  };
+
+  const handlePixelConfigChange = (platform: string, field: string, value: string) => {
+    setPixelConfig(prev => ({
+      ...prev,
+      [platform]: {
+        ...prev[platform],
+        [field]: value
+      }
+    }));
+  };
+
   const connectPlatform = async (platform: string) => {
     const config = platformConfig[platform as keyof typeof platformConfig];
     if (!config) return;
 
-    // فتح نافذة تسجيل الدخول بدون شريط العنوان والأزرار
+    const method = selectedMethod[platform] || "api";
+
+    if (method === "pixel") {
+      // حفظ تكوين البيكسل
+      try {
+        const response = await fetch("/api/settings/api-keys", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            platform,
+            trackingMethod: "pixel",
+            pixelId: pixelConfig[platform]?.id,
+            pixelConfiguration: pixelConfig[platform]?.config,
+          }),
+        });
+
+        if (response.ok) {
+          toast({
+            title: "تم الربط بنجاح",
+            description: `تم ربط ${config.label} باستخدام البيكسل بنجاح`,
+          });
+          queryClient.invalidateQueries({ queryKey: ["/api/marketing/social-accounts"] });
+        } else {
+          throw new Error("فشل في ربط البيكسل");
+        }
+      } catch (error) {
+        toast({
+          title: "خطأ",
+          description: "فشل في ربط البيكسل. يرجى المحاولة مرة أخرى.",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    // فتح نافذة تسجيل الدخول للمصادقة باستخدام API
     const popup = window.open(
       config.authUrl,
       'تسجيل الدخول',
@@ -95,7 +160,6 @@ export default function SocialAccounts() {
     );
 
     if (popup) {
-      // التأكد من أن النافذة في المنتصف
       const left = (window.screen.width - 600) / 2;
       const top = (window.screen.height - 700) / 2;
       popup.moveTo(left, top);
@@ -111,34 +175,68 @@ export default function SocialAccounts() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Object.entries(platformConfig).map(([platform, config]) => {
             const Icon = platformIcons[platform as keyof typeof platformIcons];
+            const method = selectedMethod[platform] || "api";
 
             return (
               <div
                 key={platform}
-                className="flex flex-col items-center p-4 border rounded-lg space-y-4"
+                className="flex flex-col space-y-4 p-4 border rounded-lg"
                 style={{
                   background: config.color,
                   transition: "all 0.3s ease"
                 }}
               >
-                <Icon className="h-8 w-8" style={{ color: config.textColor }} />
-                <h3 className="font-medium" style={{ color: config.textColor }}>
-                  {config.label}
-                </h3>
-                <Button
-                  className="hover:opacity-90 transition-opacity"
-                  style={{
-                    background: "transparent",
-                    border: `2px solid ${config.textColor}`,
-                    color: config.textColor
-                  }}
-                  onClick={() => connectPlatform(platform)}
-                >
-                  تسجيل الدخول
-                </Button>
+                <div className="flex items-center justify-between">
+                  <Icon className="h-8 w-8" style={{ color: config.textColor }} />
+                  <h3 className="font-medium" style={{ color: config.textColor }}>
+                    {config.label}
+                  </h3>
+                </div>
+
+                <div className="space-y-4 bg-white bg-opacity-10 p-4 rounded-lg">
+                  <div>
+                    <Label style={{ color: config.textColor }}>طريقة التتبع</Label>
+                    <Select
+                      value={method}
+                      onValueChange={(value: "api" | "pixel") => handleMethodChange(platform, value)}
+                    >
+                      <SelectTrigger className="w-full mt-1">
+                        <SelectValue placeholder="اختر طريقة التتبع" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="api">API</SelectItem>
+                        <SelectItem value="pixel">Pixel</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {method === "pixel" && (
+                    <div className="space-y-2">
+                      <Label style={{ color: config.textColor }}>معرف البيكسل</Label>
+                      <Input
+                        placeholder="أدخل معرف البيكسل"
+                        value={pixelConfig[platform]?.id || ""}
+                        onChange={(e) => handlePixelConfigChange(platform, "id", e.target.value)}
+                        className="bg-white bg-opacity-20"
+                      />
+                    </div>
+                  )}
+
+                  <Button
+                    className="w-full hover:opacity-90 transition-opacity"
+                    style={{
+                      background: "transparent",
+                      border: `2px solid ${config.textColor}`,
+                      color: config.textColor
+                    }}
+                    onClick={() => connectPlatform(platform)}
+                  >
+                    {method === "api" ? "تسجيل الدخول" : "ربط البيكسل"}
+                  </Button>
+                </div>
               </div>
             );
           })}

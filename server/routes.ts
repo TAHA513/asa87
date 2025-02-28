@@ -397,7 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Calculate engagement rate
-      const engagement = totalImpressions > 0 ? 
+      const engagement = totalImpressions > 0 ?
         totalEngagements / totalImpressions : 0;
 
       res.json({
@@ -556,22 +556,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         facebook: z.object({
           appId: z.string().min(1, "App ID مطلوب"),
           appSecret: z.string().min(1, "App Secret مطلوب"),
+          trackingMethod: z.enum(['api', 'pixel']).optional(),
+          pixelId: z.string().optional(),
+          pixelConfiguration: z.any().optional()
         }),
         twitter: z.object({
           apiKey: z.string().min(1, "API Key مطلوب"),
           apiSecret: z.string().min(1, "API Secret مطلوب"),
+          trackingMethod: z.enum(['api', 'pixel']).optional(),
+          pixelId: z.string().optional(),
+          pixelConfiguration: z.any().optional()
         }),
         tiktok: z.object({
           clientKey: z.string().min(1, "Client Key مطلوب"),
           clientSecret: z.string().min(1, "Client Secret مطلوب"),
+          trackingMethod: z.enum(['api', 'pixel']).optional(),
+          pixelId: z.string().optional(),
+          pixelConfiguration: z.any().optional()
         }),
         snapchat: z.object({
           clientId: z.string().min(1, "Client ID مطلوب"),
           clientSecret: z.string().min(1, "Client Secret مطلوب"),
+          trackingMethod: z.enum(['api', 'pixel']).optional(),
+          pixelId: z.string().optional(),
+          pixelConfiguration: z.any().optional()
         }),
         linkedin: z.object({
           clientId: z.string().min(1, "Client ID مطلوب"),
           clientSecret: z.string().min(1, "Client Secret مطلوب"),
+          trackingMethod: z.enum(['api', 'pixel']).optional(),
+          pixelId: z.string().optional(),
+          pixelConfiguration: z.any().optional()
         }),
       });
 
@@ -1047,80 +1062,185 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 // Helper functions to fetch stats from different platforms
 async function fetchFacebookStats(account: any, keys: any) {
-  // Using Facebook Graph API
-  const { accessToken } = account;
-  const { appId, appSecret } = keys;
+  if (keys.trackingMethod === 'pixel') {
+    return getPixelData('facebook', keys.pixelId, keys.pixelConfiguration);
+  }
 
-  // TODO: Implement real Facebook API calls
-  // This is a placeholder that would be replaced with actual API implementation
-  return {
-    impressions: 0,
-    engagements: 0,
-    spend: 0
-  };
+  try {
+    // Fetch data from Facebook Graph API
+    const { accessToken } = account;
+    const { appId, appSecret } = keys;
+
+    console.log(`Fetching Facebook stats for account: ${account.accountName}`);
+
+    // TODO: Implement real Facebook API calls with proper error handling
+    return {
+      impressions: 0,
+      engagements: 0,
+      spend: 0
+    };
+  } catch (error) {
+    console.error('Error fetching Facebook stats:', error);
+    return {
+      impressions: 0,
+      engagements: 0,
+      spend: 0
+    };
+  }
 }
 
 async function fetchTwitterStats(account: any, keys: any) {
-  // Using Twitter API v2
-  const { accessToken } = account;
-  const { apiKey, apiSecret } = keys;
+  if (keys.trackingMethod === 'pixel') {
+    return getPixelData('twitter', keys.pixelId, keys.pixelConfiguration);
+  }
 
-  // TODO: Implement real Twitter API calls
-  return {
-    impressions: 0,
-    engagements: 0,
-    spend: 0
-  };
+  try {
+    const { accessToken } = account;
+    const { apiKey, apiSecret } = keys;
+
+    console.log(`Fetching Twitter stats for account: ${account.accountName}`);
+
+    // TODO: Implement real Twitter API calls with proper error handling
+    return {
+      impressions: 0,
+      engagements: 0,
+      spend: 0
+    };
+  } catch (error) {
+    console.error('Error fetching Twitter stats:', error);
+    return {
+      impressions: 0,
+      engagements: 0,
+      spend: 0
+    };
+  }
 }
 
 async function fetchInstagramStats(account: any, keys: any) {
-  // Using Instagram Graph API
-  const { accessToken } = account;
-  const { appId, appSecret } = keys;
+  if (keys.trackingMethod === 'pixel') {
+    return getPixelData('instagram', keys.pixelId, keys.pixelConfiguration);
+  }
 
-  // TODO: Implement real Instagram API calls
-  return {
-    impressions: 0,
-    engagements: 0,
-    spend: 0
-  };
+  try {
+    const { accessToken } = account;
+    const { appId, appSecret } = keys;
+
+    console.log(`Fetching Instagram stats for account: ${account.accountName}`);
+
+    // TODO: Implement real Instagram API calls with proper error handling
+    return {
+      impressions: 0,
+      engagements: 0,
+      spend: 0
+    };
+  } catch (error) {
+    console.error('Error fetching Instagram stats:', error);
+    return {
+      impressions: 0,
+      engagements: 0,
+      spend: 0
+    };
+  }
 }
 
 async function fetchTikTokStats(account: any, keys: any) {
-  // Using TikTok Marketing API
-  const { accessToken } = account;
-  const { clientKey, clientSecret } = keys;
+  if (keys.trackingMethod === 'pixel') {
+    return getPixelData('tiktok', keys.pixelId, keys.pixelConfiguration);
+  }
 
-  // TODO: Implement real TikTok API calls
-  return {
-    impressions: 0,
-    engagements: 0,
-    spend: 0
-  };
+  try {
+    const { accessToken } = account;
+    const { clientKey, clientSecret } = keys;
+
+    console.log(`Fetching TikTok stats for account: ${account.accountName}`);
+
+    // TODO: Implement real TikTok API calls with proper error handling
+    return {
+      impressions: 0,
+      engagements: 0,
+      spend: 0
+    };
+  } catch (error) {
+    console.error('Error fetching TikTok stats:', error);
+    return {
+      impressions: 0,
+      engagements: 0,
+      spend: 0
+    };
+  }
 }
 
 async function fetchSnapchatStats(account: any, keys: any) {
-  // Using Snapchat Marketing API
-  const { accessToken } = account;
-  const { clientId, clientSecret } = keys;
+  if (keys.trackingMethod === 'pixel') {
+    return getPixelData('snapchat', keys.pixelId, keys.pixelConfiguration);
+  }
 
-  // TODO: Implement real Snapchat API calls
-  return {
-    impressions: 0,
-    engagements: 0,
-    spend: 0
-  };
+  try {
+    const { accessToken } = account;
+    const { clientId, clientSecret } = keys;
+
+    console.log(`Fetching Snapchat stats for account: ${account.accountName}`);
+
+    // TODO: Implement real Snapchat API calls with proper error handling
+    return {
+      impressions: 0,
+      engagements: 0,
+      spend: 0
+    };
+  } catch (error) {
+    console.error('Error fetching Snapchat stats:', error);
+    return {
+      impressions: 0,
+      engagements: 0,
+      spend: 0
+    };
+  }
 }
 
 async function fetchLinkedInStats(account: any, keys: any) {
-  // Using LinkedIn Marketing API
-  const { accessToken } = account;
-  const { clientId, clientSecret } = keys;
+  if (keys.trackingMethod === 'pixel') {
+    return getPixelData('linkedin', keys.pixelId, keys.pixelConfiguration);
+  }
 
-  // TODO: Implement real LinkedIn API calls
-  return {
-    impressions: 0,
-    engagements: 0,
-    spend: 0
-  };
+  try {
+    const { accessToken } = account;
+    const { clientId, clientSecret } = keys;
+
+    console.log(`Fetching LinkedIn stats for account: ${account.accountName}`);
+
+    // TODO: Implement real LinkedIn API calls with proper error handling
+    return {
+      impressions: 0,
+      engagements: 0,
+      spend: 0
+    };
+  } catch (error) {
+    console.error('Error fetching LinkedIn stats:', error);
+    return {
+      impressions: 0,
+      engagements: 0,
+      spend: 0
+    };
+  }
+}
+
+// Helper function to get platform-specific pixel data
+async function getPixelData(platform: string, pixelId: string, pixelConfig: any) {
+  try {
+    console.log(`Fetching pixel data for ${platform}, pixel ID: ${pixelId}`);
+
+    // TODO: Implement real pixel data fetching with proper error handling
+    return {
+      impressions: 0,
+      engagements: 0,
+      spend: 0
+    };
+  } catch (error) {
+    console.error(`Error fetching pixel data for ${platform}:`, error);
+    return {
+      impressions: 0,
+      engagements: 0,
+      spend: 0
+    };
+  }
 }
