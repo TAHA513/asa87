@@ -83,11 +83,25 @@ export default function ThemeSettings() {
     // تطبيق متغيرات CSS على الجذر
     const root = document.documentElement;
 
-    // تطبيق اللون الرئيسي
-    root.style.setProperty('--primary', settings.primary);
+    // تحويل اللون إلى مكوناته
+    const hslMatch = settings.primary.match(/hsl\((\d+\.?\d*)\s+(\d+\.?\d*)%\s+(\d+\.?\d*)%\)/);
+    if (hslMatch) {
+      const [_, hue, saturation, lightness] = hslMatch;
+
+      // تطبيق مكونات اللون الرئيسي
+      root.style.setProperty('--primary-hue', hue);
+      root.style.setProperty('--primary-saturation', saturation + '%');
+      root.style.setProperty('--primary-lightness', lightness + '%');
+
+      // تحديث الألوان المشتقة
+      root.style.setProperty('--primary', settings.primary);
+      root.style.setProperty('--primary-foreground', 
+        `hsl(var(--primary-hue) var(--primary-saturation) 98%)`
+      );
+    }
 
     // تطبيق نصف القطر
-    root.style.setProperty('--theme-radius', `${settings.radius}rem`);
+    root.style.setProperty('--radius', `${settings.radius}rem`);
 
     // تطبيق الخط
     root.style.setProperty('--font-family', 
