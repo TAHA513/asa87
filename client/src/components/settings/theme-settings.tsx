@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useTheme } from "@/hooks/use-theme";
+import { apiRequest } from "@/lib/queryClient";
 
 const themeColors = [
   // الألوان الحالية
@@ -40,26 +40,38 @@ const themeColors = [
 const appearances = [
   { name: "فاتح", value: "light" },
   { name: "داكن", value: "dark" },
-  { name: "تركيز", value: "focus" },
+  { name: "تلقائي", value: "system" },
 ];
 
 const variants = [
   { name: "حيوي", value: "vibrant" },
   { name: "هادئ", value: "professional" },
   { name: "ناعم", value: "tint" },
+  // إضافة أنماط جديدة
+  { name: "عصري", value: "modern" },
+  { name: "كلاسيكي", value: "classic" },
+  { name: "مستقبلي", value: "futuristic" },
 ];
 
 const fontStyles = [
   { name: "تقليدي", value: "traditional", fontFamily: "Noto Kufi Arabic" },
   { name: "عصري", value: "modern", fontFamily: "Cairo" },
   { name: "مُبسط", value: "minimal", fontFamily: "IBM Plex Sans Arabic" },
+  // إضافة خطوط جديدة
+  { name: "رقمي", value: "digital", fontFamily: "Dubai" },
+  { name: "أنيق", value: "elegant", fontFamily: "Amiri" },
+  { name: "كوفي", value: "kufi", fontFamily: "Reem Kufi" },
+  { name: "نسخ", value: "naskh", fontFamily: "Scheherazade New" },
+  { name: "رقعة", value: "ruqaa", fontFamily: "Aref Ruqaa" },
+  { name: "ثلث", value: "thuluth", fontFamily: "Harmattan" },
+  { name: "معاصر", value: "contemporary", fontFamily: "Tajawal" }
 ];
 
 export default function ThemeSettings() {
   const { toast } = useToast();
-  const { theme: currentTheme, setTheme } = useTheme();
-  const [themeSettings, setThemeSettings] = useState({
+  const [theme, setTheme] = useState({
     primary: "hsl(142.1 76.2% 36.3%)",
+    appearance: "system",
     variant: "vibrant",
     fontStyle: "traditional",
     radius: 0.75,
@@ -67,84 +79,28 @@ export default function ThemeSettings() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    try {
-      const savedSettings = localStorage.getItem("themeSettings");
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        setThemeSettings(settings);
-        applyThemeSettings(settings);
-      }
-    } catch (e) {
-      console.error('Error loading theme settings:', e);
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme) {
+      setTheme(JSON.parse(savedTheme));
     }
   }, []);
 
-  const applyThemeSettings = (settings: typeof themeSettings) => {
-    const root = document.documentElement;
-    const style = document.documentElement.style;
-
-    // تطبيق اللون الرئيسي
-    style.setProperty('--primary', settings.primary);
-
-    // تطبيق نمط الخط
-    style.setProperty('--font-family', 
-      fontStyles.find(f => f.value === settings.fontStyle)?.fontFamily || 'Noto Kufi Arabic'
-    );
-
-    // تطبيق النمط
-    root.setAttribute('data-theme-variant', settings.variant);
-
-    // تطبيق نصف القطر
-    style.setProperty('--radius', `${settings.radius}rem`);
-
-    // تطبيق نمط المظهر حسب النوع
-    switch (settings.variant) {
-      case 'professional':
-        style.setProperty('--theme-saturation', '30%');
-        style.setProperty('--theme-lightness', '50%');
-        break;
-      case 'tint':
-        style.setProperty('--theme-saturation', '70%');
-        style.setProperty('--theme-lightness', '80%');
-        break;
-      case 'vibrant':
-      default:
-        style.setProperty('--theme-saturation', '100%');
-        style.setProperty('--theme-lightness', '60%');
-        break;
-    }
-
-    // تحديث الألوان في ملف التصميم
-    const updatedTheme = {
-      primary: settings.primary,
-      variant: settings.variant,
-      appearance: currentTheme,
-      radius: settings.radius,
-    };
-
-    // حفظ التغييرات في localStorage
-    localStorage.setItem('theme', JSON.stringify(updatedTheme));
-  };
-
-  const saveSettings = async (updates: Partial<typeof themeSettings>) => {
+  const saveTheme = async (updates: Partial<typeof theme>) => {
+    const newTheme = { ...theme, ...updates };
+    setTheme(newTheme);
     setIsLoading(true);
-    const newSettings = { ...themeSettings, ...updates };
 
     try {
-      setThemeSettings(newSettings);
-      applyThemeSettings(newSettings);
-      localStorage.setItem("themeSettings", JSON.stringify(newSettings));
+      await apiRequest("POST", "/api/theme", newTheme);
 
       toast({
         title: "تم الحفظ",
         description: "تم تحديث المظهر بنجاح",
       });
 
-      // إذا تم تغيير الخط، نقوم بإعادة تحميل الصفحة
+      // يجب إعادة تحميل الصفحة لتطبيق الخط الجديد
       if (updates.fontStyle) {
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
+        window.location.reload();
       }
     } catch (error) {
       toast({
@@ -157,7 +113,7 @@ export default function ThemeSettings() {
     }
   };
 
-  const selectedFont = fontStyles.find(font => font.value === themeSettings.fontStyle);
+  const selectedFont = fontStyles.find(font => font.value === theme.fontStyle);
 
   return (
     <Card>
@@ -171,8 +127,8 @@ export default function ThemeSettings() {
         <div className="space-y-2">
           <Label>اللون الرئيسي</Label>
           <RadioGroup
-            value={themeSettings.primary}
-            onValueChange={(value) => saveSettings({ primary: value })}
+            value={theme.primary}
+            onValueChange={(value) => saveTheme({ primary: value })}
             className="grid grid-cols-2 gap-4"
             disabled={isLoading}
           >
@@ -195,8 +151,8 @@ export default function ThemeSettings() {
         <div className="space-y-2">
           <Label>نمط المظهر</Label>
           <Select
-            value={themeSettings.variant}
-            onValueChange={(value) => saveSettings({ variant: value })}
+            value={theme.variant}
+            onValueChange={(value) => saveTheme({ variant: value })}
             disabled={isLoading}
           >
             <SelectTrigger>
@@ -215,8 +171,8 @@ export default function ThemeSettings() {
         <div className="space-y-2">
           <Label>نمط الخط</Label>
           <Select
-            value={themeSettings.fontStyle}
-            onValueChange={(value) => saveSettings({ fontStyle: value })}
+            value={theme.fontStyle}
+            onValueChange={(value) => saveTheme({ fontStyle: value })}
             disabled={isLoading}
           >
             <SelectTrigger>
@@ -244,8 +200,8 @@ export default function ThemeSettings() {
         <div className="space-y-2">
           <Label>وضع السطوع</Label>
           <Select
-            value={currentTheme}
-            onValueChange={(value) => setTheme(value as 'light' | 'dark' | 'focus')}
+            value={theme.appearance}
+            onValueChange={(value) => saveTheme({ appearance: value })}
             disabled={isLoading}
           >
             <SelectTrigger>

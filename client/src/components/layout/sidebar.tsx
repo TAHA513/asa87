@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { LogOut, Moon, Sun, Eye } from "lucide-react";
+import { LogOut } from "lucide-react";
 import {
   MdDashboard,
   MdInventory2,
@@ -19,7 +19,6 @@ import {
   MdSupervisorAccount,
   MdSettings,
 } from "react-icons/md";
-import { useTheme } from "@/hooks/use-theme";
 
 const navigation = [
   { name: "لوحة التحكم", href: "/", icon: MdDashboard, color: "#4285F4" },
@@ -41,15 +40,14 @@ const navigation = [
 export default function Sidebar() {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
-  const { theme, setTheme } = useTheme();
 
   return (
-    <div className="flex flex-col h-full bg-background border-l">
+    <div className="flex flex-col h-full bg-white border-l">
       <div className="p-4">
-        <h1 className="text-base font-medium text-foreground">
+        <h1 className="text-base font-medium text-black">
           نظام إدارة الأعمال
         </h1>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-gray-600">
           مرحباً, {user?.username}
         </p>
       </div>
@@ -65,8 +63,8 @@ export default function Sidebar() {
                   className={cn(
                     "w-full justify-start gap-3 h-10 px-3 text-sm font-normal",
                     location === item.href
-                      ? "bg-secondary text-secondary-foreground"
-                      : "text-foreground hover:bg-secondary/50"
+                      ? "bg-gray-100 text-black"
+                      : "text-black hover:bg-gray-50"
                   )}
                   asChild
                 >
@@ -84,29 +82,13 @@ export default function Sidebar() {
         </ul>
       </nav>
 
-      <div className="p-3 border-t border-border space-y-2">
+      <div className="p-3 border-t border-gray-200">
         <Button
           variant="ghost"
-          size="sm"
-          className="w-full justify-start gap-3 text-sm font-normal"
-          onClick={() => setTheme(theme === 'light' ? 'dark' : theme === 'dark' ? 'focus' : 'light')}
-        >
-          {theme === 'light' ? (
-            <Moon className="h-5 w-5" />
-          ) : theme === 'dark' ? (
-            <Eye className="h-5 w-5" />
-          ) : (
-            <Sun className="h-5 w-5" />
-          )}
-          {theme === 'light' ? 'الوضع الليلي' : theme === 'dark' ? 'وضع التركيز' : 'الوضع النهاري'}
-        </Button>
-
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-3 text-sm font-normal text-destructive hover:text-destructive"
+          className="w-full h-10 text-sm font-normal text-black hover:bg-gray-50"
           onClick={() => logoutMutation.mutate()}
         >
-          <LogOut className="h-5 w-5" />
+          <LogOut className="h-5 w-5 ml-3" style={{ color: "#EA4335" }} />
           تسجيل خروج
         </Button>
       </div>
