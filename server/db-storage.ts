@@ -422,7 +422,7 @@ export class DatabaseStorage {
     }
   }
 
-  async createCampaign(campaign: InsertCampaign): Promise<Campaign> {
+  async createCampaign(campaign: InsertCampaign[]): Promise<Campaign> {
     try {
       const [newCampaign] = await db
         .insert(marketingCampaigns)
@@ -462,7 +462,7 @@ export class DatabaseStorage {
     }
   }
 
-  async createCampaignAnalytics(analytics: InsertCampaignAnalytics): Promise<CampaignAnalytics> {
+  async createCampaignAnalytics(analytics: InsertCampaignAnalytics[]): Promise<CampaignAnalytics> {
     try {
       const [newAnalytics] = await db
         .insert(campaignAnalytics)
@@ -609,7 +609,7 @@ export class DatabaseStorage {
     }
   }
 
-  async createExpense(expense: InsertExpense): Promise<Expense> {
+  async createExpense(expense: InsertExpense[]): Promise<Expense> {
     try {
       const [newExpense] = await db
         .insert(expenses)
@@ -724,7 +724,7 @@ export class DatabaseStorage {
     }
   }
 
-  async createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction> {
+  async createSupplierTransaction(transaction: InsertSupplierTransaction[]): Promise<SupplierTransaction> {
     try {
       const [newTransaction] = await db
         .insert(supplierTransactions)
@@ -786,6 +786,75 @@ export class DatabaseStorage {
     } catch (error) {
       console.error("خطأ في حذف الموعد:", error);
       throw error;
+    }
+  }
+
+  // Analytics Methods
+  async getAnalyticsSales(): Promise<{ date: string; amount: number; }[]> {
+    try {
+      const results = await db.execute(sql`
+        SELECT 
+          DATE(date) as date,
+          SUM(CAST(price_iqd AS DECIMAL)) as amount
+        FROM sales
+        GROUP BY DATE(date)
+        ORDER BY date DESC
+        LIMIT 30
+      `);
+
+      return results.rows.map(row => ({
+        date: String(row.date),
+        amount: Number(row.amount)
+      }));
+    } catch (error) {
+      console.error("Error fetching sales analytics:", error);
+      return [];
+    }
+  }
+
+  async getAnalyticsCustomers(): Promise<{ name: string; value: number; }[]> {
+    try {
+      const results = await db.execute(sql`
+        SELECT 
+          c.name,
+          COUNT(s.id) as value
+        FROM customers c
+        LEFT JOIN sales s ON s.customer_id = c.id
+        GROUP BY c.id, c.name
+        ORDER BY value DESC
+        LIMIT 10
+      `);
+
+      return results.rows.map(row => ({
+        name: String(row.name),
+        value: Number(row.value)
+      }));
+    } catch (error) {
+      console.error("Error fetching customer analytics:", error);
+      return [];
+    }
+  }
+
+  async getAnalyticsProducts(): Promise<{ name: string; sales: number; }[]> {
+    try {
+      const results = await db.execute(sql`
+        SELECT 
+          p.name,
+          SUM(s.quantity) as sales
+        FROM products p
+        LEFT JOIN sales s ON s.product_id = p.id
+        GROUP BY p.id, p.name
+        ORDER BY sales DESC
+        LIMIT 10
+      `);
+
+      return results.rows.map(row => ({
+        name: String(row.name),
+        sales: Number(row.sales)
+      }));
+    } catch (error) {
+      console.error("Error fetching product analytics:", error);
+      return [];
     }
   }
 }

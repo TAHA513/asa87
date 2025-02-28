@@ -273,6 +273,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Analytics Routes
+  app.get("/api/analytics/sales", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const sales = await storage.getAnalyticsSales();
+      res.json(sales);
+    } catch (error) {
+      console.error("Error fetching sales analytics:", error);
+      res.status(500).json({ message: "فشل في جلب تحليلات المبيعات" });
+    }
+  });
+
+  app.get("/api/analytics/customers", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const customers = await storage.getAnalyticsCustomers();
+      res.json(customers);
+    } catch (error) {
+      console.error("Error fetching customer analytics:", error);
+      res.status(500).json({ message: "فشل في جلب تحليلات العملاء" });
+    }
+  });
+
+  app.get("/api/analytics/products", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const products = await storage.getAnalyticsProducts();
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching product analytics:", error);
+      res.status(500).json({ message: "فشل في جلب تحليلات المنتجات" });
+    }
+  });
+
   // Social Media Auth Routes
   app.get("/api/marketing/social-accounts", async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -1057,8 +1100,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // إضافة المسارات الجديدة للإعدادات
-  //These routes are replaced by the edited snippet
-
   const themeSchema = z.object({
     primary: z.string(),
     variant: z.enum([

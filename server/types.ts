@@ -83,4 +83,20 @@ export interface IStorage {
   getInvoice(id: number): Promise<Invoice | undefined>;
   updateInvoicePrintStatus(id: number, printed: boolean): Promise<Invoice>;
   searchProducts(query: string): Promise<Product[]>;
+
+  // Analytics Methods
+  getAnalyticsSales(): Promise<{
+    date: string;
+    amount: number;
+  }[]>;
+
+  getAnalyticsCustomers(): Promise<{
+    name: string;
+    value: number;
+  }[]>;
+
+  getAnalyticsProducts(): Promise<{
+    name: string;
+    sales: number;
+  }[]>;
 }
