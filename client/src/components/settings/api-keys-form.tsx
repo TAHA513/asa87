@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { LOCAL_STORAGE_KEY, platformConfig, formSchema } from "./api-keys.config";
 import type { FormData } from "./api-keys.config";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 import {
   Form,
   FormControl,
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -57,9 +59,25 @@ export default function ApiKeysForm() {
       // حفظ البيانات في LocalStorage
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
 
+      // حفظ البيانات في قاعدة البيانات
+      const response = await fetch("/api/settings/api-keys", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error("فشل في حفظ مفاتيح API في قاعدة البيانات");
+      }
+
+      // تحديث البيانات في الواجهة
+      await queryClient.invalidateQueries({ queryKey: ["/api/settings/api-keys"] });
+
       toast({
         title: "تم الحفظ بنجاح",
-        description: "تم حفظ مفاتيح API في المتصفح",
+        description: "تم حفظ مفاتيح API في المتصفح وقاعدة البيانات",
       });
     } catch (error) {
       console.error("Error saving API keys:", error);
@@ -125,7 +143,14 @@ export default function ApiKeysForm() {
         </Accordion>
 
         <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting ? "جاري الحفظ..." : "حفظ مفاتيح API"}
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin ml-2" />
+              جاري الحفظ...
+            </>
+          ) : (
+            "حفظ مفاتيح API"
+          )}
         </Button>
       </form>
     </Form>
