@@ -126,7 +126,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         primary: z.string(),
         variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic"]),
         appearance: z.enum(["light", "dark", "system"]),
-        fontStyle: z.enum(["traditional", "modern", "minimal"]).optional(),
+        fontStyle: z.enum([
+          "traditional", 
+          "modern", 
+          "minimal", 
+          "digital", 
+          "elegant", 
+          "kufi", 
+          "naskh", 
+          "ruqaa", 
+          "thuluth", 
+          "contemporary"
+        ]),
         radius: z.number(),
       });
 
@@ -868,8 +879,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const customer = await storage.getCustomer(Number(req.params.id));
       if (!customer) {
-        return res.status(404).json({ message: "العميل غير موجود" });
-      }
+        return res.status(404).json({ message: "العميل غير موجود" });      }
       res.json(customer);
     } catch (error) {
       console.error("Error fetching customer:", error);

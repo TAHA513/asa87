@@ -54,9 +54,17 @@ const variants = [
 ];
 
 const fontStyles = [
-  { name: "تقليدي", value: "traditional" },
-  { name: "عصري", value: "modern" },
-  { name: "مُبسط", value: "minimal" },
+  { name: "تقليدي", value: "traditional", fontFamily: "Noto Kufi Arabic" },
+  { name: "عصري", value: "modern", fontFamily: "Cairo" },
+  { name: "مُبسط", value: "minimal", fontFamily: "IBM Plex Sans Arabic" },
+  // إضافة خطوط جديدة
+  { name: "رقمي", value: "digital", fontFamily: "Dubai" },
+  { name: "أنيق", value: "elegant", fontFamily: "Amiri" },
+  { name: "كوفي", value: "kufi", fontFamily: "Reem Kufi" },
+  { name: "نسخ", value: "naskh", fontFamily: "Scheherazade New" },
+  { name: "رقعة", value: "ruqaa", fontFamily: "Aref Ruqaa" },
+  { name: "ثلث", value: "thuluth", fontFamily: "Harmattan" },
+  { name: "معاصر", value: "contemporary", fontFamily: "Tajawal" }
 ];
 
 export default function ThemeSettings() {
@@ -90,7 +98,10 @@ export default function ThemeSettings() {
         description: "تم تحديث المظهر بنجاح",
       });
 
-      window.location.reload();
+      // يجب إعادة تحميل الصفحة لتطبيق الخط الجديد
+      if (updates.fontStyle) {
+        window.location.reload();
+      }
     } catch (error) {
       toast({
         title: "خطأ",
@@ -101,6 +112,8 @@ export default function ThemeSettings() {
       setIsLoading(false);
     }
   };
+
+  const selectedFont = fontStyles.find(font => font.value === theme.fontStyle);
 
   return (
     <Card>
@@ -167,12 +180,21 @@ export default function ThemeSettings() {
             </SelectTrigger>
             <SelectContent>
               {fontStyles.map((style) => (
-                <SelectItem key={style.value} value={style.value}>
+                <SelectItem 
+                  key={style.value} 
+                  value={style.value}
+                  style={{ fontFamily: style.fontFamily }}
+                >
                   {style.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+          {selectedFont && (
+            <p className="text-sm text-muted-foreground mt-2" style={{ fontFamily: selectedFont.fontFamily }}>
+              معاينة الخط: أبجد هوز حطي كلمن
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
