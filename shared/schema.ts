@@ -26,7 +26,7 @@ export const products = pgTable("products", {
   productCode: varchar("product_code", { length: 50 }).notNull().unique(),
   barcode: varchar("barcode", { length: 100 }).unique(),
   priceIqd: decimal("price_iqd", { precision: 10, scale: 2 }).notNull(),
-  stock: integer("stock").notNull().default(0).check(sql`stock >= 0`),
+  stock: integer("stock").notNull().default(0),
 });
 
 export const customers = pgTable("customers", {
@@ -314,20 +314,20 @@ export const insertProductSchema = createInsertSchema(products).extend({
 });
 
 export const insertSaleSchema = createInsertSchema(sales)
-.pick({
-  productId: true,
-  customerId: true,
-  quantity: true,
-  priceIqd: true,
-  isInstallment: true,
-})
-.extend({
-  productId: z.number().min(1, "يجب اختيار منتج"),
-  customerId: z.number().min(1, "يجب اختيار عميل"),
-  quantity: z.number().min(1, "الكمية يجب أن تكون 1 على الأقل"),
-  priceIqd: z.number().min(0, "السعر يجب أن يكون أكبر من 0"),
-  isInstallment: z.boolean().default(false),
-});
+  .pick({
+    productId: true,
+    customerId: true,
+    quantity: true,
+    priceIqd: true,
+    isInstallment: true,
+  })
+  .extend({
+    productId: z.number().min(1, "يجب اختيار منتج"),
+    customerId: z.number().min(1, "يجب اختيار عميل"),
+    quantity: z.number().min(1, "الكمية يجب أن تكون 1 على الأقل"),
+    priceIqd: z.number().min(0, "السعر يجب أن يكون أكبر من 0"),
+    isInstallment: z.boolean().default(false),
+  });
 
 export const insertExchangeRateSchema = createInsertSchema(exchangeRates).pick({
   usdToIqd: true,
