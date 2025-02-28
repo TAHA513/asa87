@@ -551,54 +551,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      // التحقق من صحة البيانات
-      const apiKeysSchema = z.object({
-        facebook: z.object({
-          appId: z.string().min(1, "App ID مطلوب"),
-          appSecret: z.string().min(1, "App Secret مطلوب"),
-          trackingMethod: z.enum(['api', 'pixel']).optional(),
-          pixelId: z.string().optional(),
-          pixelConfiguration: z.any().optional()
-        }),
-        twitter: z.object({
-          apiKey: z.string().min(1, "API Key مطلوب"),
-          apiSecret: z.string().min(1, "API Secret مطلوب"),
-          trackingMethod: z.enum(['api', 'pixel']).optional(),
-          pixelId: z.string().optional(),
-          pixelConfiguration: z.any().optional()
-        }),
-        tiktok: z.object({
-          clientKey: z.string().min(1, "Client Key مطلوب"),
-          clientSecret: z.string().min(1, "Client Secret مطلوب"),
-          trackingMethod: z.enum(['api', 'pixel']).optional(),
-          pixelId: z.string().optional(),
-          pixelConfiguration: z.any().optional()
-        }),
-        snapchat: z.object({
-          clientId: z.string().min(1, "Client ID مطلوب"),
-          clientSecret: z.string().min(1, "Client Secret مطلوب"),
-          trackingMethod: z.enum(['api', 'pixel']).optional(),
-          pixelId: z.string().optional(),
-          pixelConfiguration: z.any().optional()
-        }),
-        linkedin: z.object({
-          clientId: z.string().min(1, "Client ID مطلوب"),
-          clientSecret: z.string().min(1, "Client Secret مطلوب"),
-          trackingMethod: z.enum(['api', 'pixel']).optional(),
-          pixelId: z.string().optional(),
-          pixelConfiguration: z.any().optional()
-        }),
+      // Schema for single platform update
+      const platformSchema = z.object({
+        platform: z.string(),
+        trackingMethod: z.enum(['api', 'pixel']),
+        pixelId: z.string().optional(),
+        pixelConfiguration: z.any().optional(),
       });
 
-      const apiKeys = apiKeysSchema.parse(req.body);
+      console.log("Received API key update:", req.body);
+      const data = platformSchema.parse(req.body);
 
-      // حفظ المفاتيح في قاعدة البيانات بشكل آمن
-      await storage.setApiKeys(req.user!.id, apiKeys);
+      // Get existing API keys
+      const existingKeys = await storage.getApiKeys(req.user!.id) || {};
+
+      // Update only the specified platform
+      const updatedKeys = {
+        ...existingKeys,
+        [data.platform]: {
+          trackingMethod: data.trackingMethod,
+          ...(data.trackingMethod === 'pixel' ? {
+            pixelId: data.pixelId,
+            pixelConfiguration: data.pixelConfiguration
+          } : {})
+        }
+      };
+
+      console.log("Updating API keys for platform:", data.platform);
+      await storage.setApiKeys(req.user!.id, updatedKeys);
 
       res.json({ success: true });
     } catch (error) {
       console.error("Error updating API keys:", error);
-      res.status(500).json({ message: "فشل في تحديث مفاتيح API" });
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "بيانات غير صالحة", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "فشل في تحديث مفاتيح API" });
+      }
     }
   });
 
@@ -893,8 +882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/customers/:id/sales", async (req, res) => {
-    try {
-      const sales = await storage.getCustomerSales(Number(req.params.id));
+    try {      const sales = await storage.getCustomerSales(Number(req.params.id));
       res.json(sales);
     } catch (error) {
       console.error("Error fetching customer sales:", error);
