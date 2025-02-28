@@ -173,30 +173,33 @@ const ThemeSettings = () => {
     setIsLoading(true);
     try {
       const settings = {
-        themeName: selectedTheme.name,
-        fontName: selectedFont.name,
+        primary: selectedTheme.colors.primary,
+        variant: selectedTheme.preview as "modern" | "classic" | "elegant" | "vibrant" | "natural",
+        fontStyle: selectedFont.name as "noto-kufi" | "cairo" | "tajawal" | "amiri",
         fontSize,
         appearance,
-        colors: selectedTheme.colors,
+        radius: 0.5, // قيمة افتراضية للحواف
       };
 
       // حفظ في قاعدة البيانات
-      await apiRequest("POST", "/api/settings", settings);
+      const response = await apiRequest("POST", "/api/settings", settings);
 
-      // تحديث متغيرات CSS
-      document.documentElement.style.setProperty("--primary-color", settings.colors.primary);
-      document.documentElement.style.setProperty("--secondary-color", settings.colors.secondary);
-      document.documentElement.style.setProperty("--accent-color", settings.colors.accent);
-      document.documentElement.style.setProperty("--font-family", selectedFont.family);
-      document.documentElement.style.setProperty("--font-size-base", `${fontSizes[fontSize].base}px`);
+      if (response) {
+        // تحديث متغيرات CSS
+        document.documentElement.style.setProperty("--primary-color", selectedTheme.colors.primary);
+        document.documentElement.style.setProperty("--secondary-color", selectedTheme.colors.secondary);
+        document.documentElement.style.setProperty("--accent-color", selectedTheme.colors.accent);
+        document.documentElement.style.setProperty("--font-family", selectedFont.family);
+        document.documentElement.style.setProperty("--font-size-base", `${fontSizes[fontSize].base}px`);
 
-      // تطبيق وضع السطوع
-      applyAppearance(appearance);
+        // تطبيق وضع السطوع
+        applyAppearance(appearance);
 
-      toast({
-        title: "تم الحفظ",
-        description: "تم حفظ إعدادات المظهر في قاعدة البيانات",
-      });
+        toast({
+          title: "تم الحفظ",
+          description: "تم حفظ إعدادات المظهر بنجاح",
+        });
+      }
     } catch (error) {
       console.error("Error saving settings:", error);
       toast({
