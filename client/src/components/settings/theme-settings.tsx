@@ -80,80 +80,59 @@ export default function ThemeSettings() {
   }, []);
 
   const applyThemeSettings = (settings: typeof themeSettings) => {
-    // تطبيق متغيرات CSS على الجذر
     const root = document.documentElement;
+    const style = document.documentElement.style;
 
-    // تحويل اللون إلى مكوناته
-    const hslMatch = settings.primary.match(/hsl\((\d+\.?\d*)\s+(\d+\.?\d*)%\s+(\d+\.?\d*)%\)/);
-    if (hslMatch) {
-      const [_, hue, saturation, lightness] = hslMatch;
+    // تطبيق اللون الرئيسي
+    style.setProperty('--primary', settings.primary);
 
-      // تطبيق مكونات اللون الرئيسي
-      root.style.setProperty('--primary', settings.primary);
-      root.style.setProperty('--primary-hue', hue);
-      root.style.setProperty('--primary-saturation', `${saturation}%`);
-      root.style.setProperty('--primary-lightness', `${lightness}%`);
-
-      // تطبيق الألوان المشتقة
-      root.style.setProperty('--primary-foreground', 
-        `hsl(${hue} ${saturation}% 98%)`
-      );
-
-      // تطبيق الألوان على عناصر التصميم
-      document.body.style.setProperty('--theme-primary', settings.primary);
-      document.body.style.setProperty('--theme-primary-foreground', 
-        `hsl(${hue} ${saturation}% 98%)`
-      );
-    }
-
-    // تطبيق نصف القطر
-    root.style.setProperty('--radius', `${settings.radius}rem`);
-
-    // تطبيق الخط
-    root.style.setProperty('--font-family', 
+    // تطبيق نمط الخط
+    style.setProperty('--font-family', 
       fontStyles.find(f => f.value === settings.fontStyle)?.fontFamily || 'Noto Kufi Arabic'
     );
 
     // تطبيق النمط
     root.setAttribute('data-theme-variant', settings.variant);
 
-    // تحديث متغيرات CSS حسب النمط
+    // تطبيق نصف القطر
+    style.setProperty('--radius', `${settings.radius}rem`);
+
+    // تطبيق نمط المظهر حسب النوع
     switch (settings.variant) {
       case 'professional':
-        root.style.setProperty('--primary-saturation', '30%');
-        root.style.setProperty('--primary-lightness', '50%');
+        style.setProperty('--theme-saturation', '30%');
+        style.setProperty('--theme-lightness', '50%');
         break;
       case 'tint':
-        root.style.setProperty('--primary-saturation', '70%');
-        root.style.setProperty('--primary-lightness', '80%');
+        style.setProperty('--theme-saturation', '70%');
+        style.setProperty('--theme-lightness', '80%');
         break;
       case 'vibrant':
       default:
-        root.style.setProperty('--primary-saturation', '100%');
-        root.style.setProperty('--primary-lightness', '60%');
+        style.setProperty('--theme-saturation', '100%');
+        style.setProperty('--theme-lightness', '60%');
         break;
     }
 
-    // إعادة تطبيق التغييرات على المتغيرات العامة
-    document.documentElement.style.setProperty('--theme-primary', settings.primary);
-    document.documentElement.style.setProperty('--theme-variant', settings.variant);
-    document.documentElement.style.setProperty('--theme-font', settings.fontStyle);
+    // تحديث الألوان في ملف التصميم
+    const updatedTheme = {
+      primary: settings.primary,
+      variant: settings.variant,
+      appearance: currentTheme,
+      radius: settings.radius,
+    };
 
-    // تحديث كل العناصر التي تستخدم الألوان الرئيسية
-    document.documentElement.style.setProperty('--background', 'hsl(0 0% 100%)');
-    document.documentElement.style.setProperty('--foreground', `hsl(${hslMatch ? hue : 0} 10% 10%)`);
+    // حفظ التغييرات في localStorage
+    localStorage.setItem('theme', JSON.stringify(updatedTheme));
   };
 
   const saveSettings = async (updates: Partial<typeof themeSettings>) => {
-    const newSettings = { ...themeSettings, ...updates };
-    setThemeSettings(newSettings);
     setIsLoading(true);
+    const newSettings = { ...themeSettings, ...updates };
 
     try {
-      // تطبيق التغييرات فوراً
+      setThemeSettings(newSettings);
       applyThemeSettings(newSettings);
-
-      // حفظ الإعدادات
       localStorage.setItem("themeSettings", JSON.stringify(newSettings));
 
       toast({
