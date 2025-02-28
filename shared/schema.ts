@@ -2,6 +2,7 @@ import { pgTable, text, serial, timestamp, boolean, decimal, integer, varchar } 
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { jsonb } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -25,7 +26,7 @@ export const products = pgTable("products", {
   productCode: varchar("product_code", { length: 50 }).notNull().unique(),
   barcode: varchar("barcode", { length: 100 }).unique(),
   priceIqd: decimal("price_iqd", { precision: 10, scale: 2 }).notNull(),
-  stock: integer("stock").notNull().default(0),
+  stock: integer("stock").notNull().default(0).check(sql`stock >= 0`),
 });
 
 export const customers = pgTable("customers", {
@@ -40,12 +41,12 @@ export const customers = pgTable("customers", {
 
 export const sales = pgTable("sales", {
   id: serial("id").primaryKey(),
-  productId: integer("product_id").notNull(),
+  productId: integer("product_id").notNull().references(() => products.id),
   customerId: integer("customer_id").notNull().references(() => customers.id),
   quantity: integer("quantity").notNull(),
   priceIqd: decimal("price_iqd", { precision: 10, scale: 2 }).notNull(),
   date: timestamp("date").notNull().defaultNow(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id),
   isInstallment: boolean("is_installment").notNull().default(false),
 });
 
@@ -304,20 +305,28 @@ export const insertUserSchema = createInsertSchema(users)
   });
 
 export const insertProductSchema = createInsertSchema(products).extend({
-  name: z.string().min(1, "اسم المنتج مطلوب"),
+  name: z.string().min(3, "اسم المنتج يجب أن يكون 3 أحرف على الأقل"),
   description: z.string().optional(),
   productCode: z.string().min(1, "رمز المنتج مطلوب"),
   barcode: z.string().optional(),
-  priceIqd: z.string().or(z.number()).transform(val => val.toString()),
+  priceIqd: z.number().min(0, "السعر يجب أن يكون أكبر من 0"),
   stock: z.number().min(0, "المخزون يجب أن يكون 0 على الأقل"),
 });
 
-export const insertSaleSchema = createInsertSchema(sales).pick({
+export const insertSaleSchema = createInsertSchema(sales)
+.pick({
   productId: true,
+  customerId: true,
   quantity: true,
-}).extend({
+  priceIqd: true,
+  isInstallment: true,
+})
+.extend({
   productId: z.number().min(1, "يجب اختيار منتج"),
+  customerId: z.number().min(1, "يجب اختيار عميل"),
   quantity: z.number().min(1, "الكمية يجب أن تكون 1 على الأقل"),
+  priceIqd: z.number().min(0, "السعر يجب أن يكون أكبر من 0"),
+  isInstallment: z.boolean().default(false),
 });
 
 export const insertExchangeRateSchema = createInsertSchema(exchangeRates).pick({
