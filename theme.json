@@ -2,6 +2,6 @@
   "primary": "hsl(220, 90%, 50%)",
   "variant": "professional",
   "appearance": "system",
-  "fontStyle": "naskh",
+  "fontStyle": "modern",
   "radius": 0.5
 }
