@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check } from "lucide-react";
+import { Check, Palette, Type, Moon, Sun, Monitor } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,110 +10,145 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { apiRequest } from "@/lib/queryClient";
 
-const themeColors = [
-  // الألوان الأساسية
-  { name: "أخضر زمردي", value: "hsl(142.1 76.2% 36.3%)" },
-  { name: "أزرق سماوي", value: "hsl(221.2 83.2% 53.3%)" },
-  { name: "أرجواني ملكي", value: "hsl(262.1 83.3% 57.8%)" },
-  { name: "برتقالي ذهبي", value: "hsl(20.5 90.2% 48.2%)" },
-  { name: "أحمر ياقوتي", value: "hsl(346.8 77.2% 49.8%)" },
-
-  // إضافة ألوان جديدة عصرية
-  { name: "توركواز", value: "hsl(171.2 76.5% 36.6%)" },
-  { name: "بنفسجي غامق", value: "hsl(280.1 81.3% 40.8%)" },
-  { name: "أزرق نيلي", value: "hsl(213.8 93.9% 67.8%)" },
-  { name: "وردي عصري", value: "hsl(330.4 81.2% 60.2%)" },
-  { name: "رمادي أزرق", value: "hsl(215.4 30.3% 46.9%)" },
-  { name: "أخضر نعناعي", value: "hsl(160.1 84.1% 39.2%)" },
-  { name: "كهرماني", value: "hsl(25.3 95.3% 52.8%)" },
-
-  // إضافة ألوان جديدة للثيمات
-  { name: "أزرق داكن", value: "hsl(215.3 98.9% 27.8%)" },
-  { name: "زهري فاتح", value: "hsl(350.4 89.2% 60.2%)" },
-  { name: "أخضر زيتوني", value: "hsl(120.1 40.1% 39.2%)" },
-  { name: "بني محمر", value: "hsl(15.3 75.3% 42.8%)" },
-  { name: "رمادي دافئ", value: "hsl(200.4 15.3% 46.9%)" },
-  { name: "أرجواني فاتح", value: "hsl(280.1 65.3% 70.8%)" }
+// تعريف الثيمات المتاحة
+const themes = [
+  {
+    name: "الافتراضي",
+    colors: {
+      primary: "hsl(142.1 76.2% 36.3%)",
+      secondary: "hsl(217.2 91.2% 59.8%)",
+      accent: "hsl(316.8 81.2% 43.8%)",
+    },
+    preview: "modern",
+  },
+  {
+    name: "داكن عصري",
+    colors: {
+      primary: "hsl(215.3 98.9% 27.8%)",
+      secondary: "hsl(221.2 83.2% 53.3%)",
+      accent: "hsl(262.1 83.3% 57.8%)",
+    },
+    preview: "dark-modern",
+  },
+  {
+    name: "أنيق",
+    colors: {
+      primary: "hsl(200.4 15.3% 46.9%)",
+      secondary: "hsl(171.2 76.5% 36.6%)",
+      accent: "hsl(280.1 81.3% 40.8%)",
+    },
+    preview: "elegant",
+  },
+  {
+    name: "حيوي",
+    colors: {
+      primary: "hsl(20.5 90.2% 48.2%)",
+      secondary: "hsl(280.1 65.3% 70.8%)",
+      accent: "hsl(346.8 77.2% 49.8%)",
+    },
+    preview: "vibrant",
+  },
+  {
+    name: "طبيعي",
+    colors: {
+      primary: "hsl(120.1 40.1% 39.2%)",
+      secondary: "hsl(25.3 95.3% 52.8%)",
+      accent: "hsl(160.1 84.1% 39.2%)",
+    },
+    preview: "natural",
+  },
 ];
 
-const appearances = [
-  { name: "فاتح", value: "light" },
-  { name: "داكن", value: "dark" },
-  { name: "تلقائي", value: "system" },
-];
-
-const variants = [
-  { name: "حيوي", value: "vibrant" },
-  { name: "هادئ", value: "professional" },
-  { name: "ناعم", value: "tint" },
-  // إضافة أنماط جديدة
-  { name: "عصري", value: "modern" },
-  { name: "كلاسيكي", value: "classic" },
-  { name: "مستقبلي", value: "futuristic" },
-  { name: "طبيعي", value: "natural" },
-  { name: "مينيمال", value: "minimal" },
-  { name: "عربي تقليدي", value: "traditional-arabic" }
-];
-
-const fontStyles = [
-  { name: "تقليدي", value: "traditional", fontFamily: "Noto Kufi Arabic" },
-  { name: "عصري", value: "modern", fontFamily: "Cairo" },
-  { name: "مُبسط", value: "minimal", fontFamily: "IBM Plex Sans Arabic" },
-  // إضافة خطوط جديدة
-  { name: "رقمي", value: "digital", fontFamily: "Dubai" },
-  { name: "أنيق", value: "elegant", fontFamily: "Amiri" },
-  { name: "كوفي", value: "kufi", fontFamily: "Reem Kufi" },
-  { name: "نسخ", value: "naskh", fontFamily: "Scheherazade New" },
-  { name: "رقعة", value: "ruqaa", fontFamily: "Aref Ruqaa" },
-  { name: "ثلث", value: "thuluth", fontFamily: "Harmattan" },
-  { name: "معاصر", value: "contemporary", fontFamily: "Tajawal" }
+// تعريف الخطوط المتاحة
+const fonts = [
+  {
+    name: "نوتو كوفي",
+    family: "'Noto Kufi Arabic'",
+    weight: "400,700",
+    style: "modern",
+  },
+  {
+    name: "القاهرة",
+    family: "'Cairo'",
+    weight: "400,600,700",
+    style: "elegant",
+  },
+  {
+    name: "الأميري",
+    family: "'Amiri'",
+    weight: "400,700",
+    style: "traditional",
+  },
+  {
+    name: "تجوال",
+    family: "'Tajawal'",
+    weight: "400,500,700",
+    style: "contemporary",
+  },
+  {
+    name: "دبي",
+    family: "'Dubai'",
+    weight: "400,500,700",
+    style: "modern",
+  },
 ];
 
 const ThemeSettings = () => {
   const { toast } = useToast();
-  const [theme, setTheme] = useState({
-    primary: "hsl(142.1 76.2% 36.3%)",
-    appearance: "system",
-    variant: "vibrant",
-    fontStyle: "traditional",
-    radius: 0.75,
-  });
+  const [activeTab, setActiveTab] = useState("theme");
+  const [selectedTheme, setSelectedTheme] = useState(themes[0]);
+  const [selectedFont, setSelectedFont] = useState(fonts[0]);
+  const [appearance, setAppearance] = useState<"light" | "dark" | "system">("system");
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme) {
-      setTheme(JSON.parse(savedTheme));
+    // تحميل الإعدادات المحفوظة
+    const savedSettings = localStorage.getItem("themeSettings");
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings);
+      const theme = themes.find(t => t.name === settings.themeName) || themes[0];
+      const font = fonts.find(f => f.name === settings.fontName) || fonts[0];
+      setSelectedTheme(theme);
+      setSelectedFont(font);
+      setAppearance(settings.appearance || "system");
     }
   }, []);
 
-  const saveTheme = async (updates: Partial<typeof theme>) => {
-    const newTheme = { ...theme, ...updates };
-    setTheme(newTheme);
+  const saveSettings = async () => {
     setIsLoading(true);
-
     try {
-      await apiRequest("POST", "/api/theme", newTheme);
+      const settings = {
+        themeName: selectedTheme.name,
+        fontName: selectedFont.name,
+        appearance,
+        colors: selectedTheme.colors,
+        fontFamily: selectedFont.family,
+      };
+
+      await apiRequest("POST", "/api/theme", settings);
+      localStorage.setItem("themeSettings", JSON.stringify(settings));
 
       toast({
         title: "تم الحفظ",
-        description: "تم تحديث المظهر بنجاح",
+        description: "تم تحديث إعدادات المظهر بنجاح",
       });
 
-      // يجب إعادة تحميل الصفحة لتطبيق الخط الجديد
-      if (updates.fontStyle) {
-        window.location.reload();
-      }
+      // تحديث متغيرات CSS
+      document.documentElement.style.setProperty("--primary-color", settings.colors.primary);
+      document.documentElement.style.setProperty("--secondary-color", settings.colors.secondary);
+      document.documentElement.style.setProperty("--accent-color", settings.colors.accent);
+      document.documentElement.style.setProperty("--font-primary", settings.fontFamily);
+
+      // إعادة تحميل الصفحة لتطبيق التغييرات
+      window.location.reload();
     } catch (error) {
       toast({
         title: "خطأ",
@@ -125,108 +160,172 @@ const ThemeSettings = () => {
     }
   };
 
-  const selectedFont = fontStyles.find(font => font.value === theme.fontStyle);
-
   return (
-    <Card>
+    <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
-        <CardTitle>المظهر</CardTitle>
+        <CardTitle className="text-2xl">تخصيص المظهر</CardTitle>
         <CardDescription>
-          خصص مظهر التطبيق حسب تفضيلاتك
+          قم بتخصيص مظهر التطبيق حسب تفضيلاتك
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label>اللون الرئيسي</Label>
-          <RadioGroup
-            value={theme.primary}
-            onValueChange={(value) => saveTheme({ primary: value })}
-            className="grid grid-cols-2 gap-4"
-            disabled={isLoading}
-          >
-            {themeColors.map((color) => (
-              <Label
-                key={color.value}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <RadioGroupItem value={color.value} id={color.value} />
-                <div
-                  className="h-4 w-4 rounded-full"
-                  style={{ backgroundColor: color.value }}
-                />
-                {color.name}
-              </Label>
-            ))}
-          </RadioGroup>
-        </div>
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-3 mb-8">
+            <TabsTrigger value="theme" className="flex items-center gap-2">
+              <Palette className="w-4 h-4" />
+              الثيمات
+            </TabsTrigger>
+            <TabsTrigger value="font" className="flex items-center gap-2">
+              <Type className="w-4 h-4" />
+              الخطوط
+            </TabsTrigger>
+            <TabsTrigger value="appearance" className="flex items-center gap-2">
+              <Sun className="w-4 h-4" />
+              السطوع
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="space-y-2">
-          <Label>نمط المظهر</Label>
-          <Select
-            value={theme.variant}
-            onValueChange={(value) => saveTheme({ variant: value })}
-            disabled={isLoading}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {variants.map((variant) => (
-                <SelectItem key={variant.value} value={variant.value}>
-                  {variant.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label>نمط الخط</Label>
-          <Select
-            value={theme.fontStyle}
-            onValueChange={(value) => saveTheme({ fontStyle: value })}
-            disabled={isLoading}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {fontStyles.map((style) => (
-                <SelectItem
-                  key={style.value}
-                  value={style.value}
-                  style={{ fontFamily: style.fontFamily }}
+          <TabsContent value="theme">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {themes.map((theme) => (
+                <Card 
+                  key={theme.name}
+                  className={`cursor-pointer transition-all hover:scale-105 ${
+                    selectedTheme.name === theme.name ? 'ring-2 ring-primary' : ''
+                  }`}
+                  onClick={() => setSelectedTheme(theme)}
                 >
-                  {style.name}
-                </SelectItem>
+                  <CardHeader className="p-4">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{theme.name}</CardTitle>
+                      {selectedTheme.name === theme.name && (
+                        <Check className="w-5 h-5 text-primary" />
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <div className="flex gap-2">
+                      {Object.entries(theme.colors).map(([key, color]) => (
+                        <div
+                          key={key}
+                          className="w-8 h-8 rounded-full"
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
-            </SelectContent>
-          </Select>
-          {selectedFont && (
-            <p className="text-sm text-muted-foreground mt-2" style={{ fontFamily: selectedFont.fontFamily }}>
-              معاينة الخط: أبجد هوز حطي كلمن
-            </p>
-          )}
-        </div>
+            </div>
+          </TabsContent>
 
-        <div className="space-y-2">
-          <Label>وضع السطوع</Label>
-          <Select
-            value={theme.appearance}
-            onValueChange={(value) => saveTheme({ appearance: value })}
-            disabled={isLoading}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {appearances.map((appearance) => (
-                <SelectItem key={appearance.value} value={appearance.value}>
-                  {appearance.name}
-                </SelectItem>
+          <TabsContent value="font">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {fonts.map((font) => (
+                <Card 
+                  key={font.name}
+                  className={`cursor-pointer transition-all hover:scale-105 ${
+                    selectedFont.name === font.name ? 'ring-2 ring-primary' : ''
+                  }`}
+                  onClick={() => setSelectedFont(font)}
+                >
+                  <CardHeader className="p-4">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{font.name}</CardTitle>
+                      {selectedFont.name === font.name && (
+                        <Check className="w-5 h-5 text-primary" />
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <p
+                      className="text-xl"
+                      style={{ fontFamily: font.family }}
+                    >
+                      أبجد هوز حطي كلمن
+                    </p>
+                    <p
+                      className="text-sm text-muted-foreground"
+                      style={{ fontFamily: font.family }}
+                    >
+                      1234567890
+                    </p>
+                  </CardContent>
+                </Card>
               ))}
-            </SelectContent>
-          </Select>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="appearance">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card 
+                className={`cursor-pointer transition-all hover:scale-105 ${
+                  appearance === "light" ? 'ring-2 ring-primary' : ''
+                }`}
+                onClick={() => setAppearance("light")}
+              >
+                <CardHeader className="p-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">فاتح</CardTitle>
+                    {appearance === "light" && (
+                      <Check className="w-5 h-5 text-primary" />
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <Sun className="w-8 h-8" />
+                </CardContent>
+              </Card>
+
+              <Card 
+                className={`cursor-pointer transition-all hover:scale-105 ${
+                  appearance === "dark" ? 'ring-2 ring-primary' : ''
+                }`}
+                onClick={() => setAppearance("dark")}
+              >
+                <CardHeader className="p-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">داكن</CardTitle>
+                    {appearance === "dark" && (
+                      <Check className="w-5 h-5 text-primary" />
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <Moon className="w-8 h-8" />
+                </CardContent>
+              </Card>
+
+              <Card 
+                className={`cursor-pointer transition-all hover:scale-105 ${
+                  appearance === "system" ? 'ring-2 ring-primary' : ''
+                }`}
+                onClick={() => setAppearance("system")}
+              >
+                <CardHeader className="p-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">تلقائي</CardTitle>
+                    {appearance === "system" && (
+                      <Check className="w-5 h-5 text-primary" />
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4">
+                  <Monitor className="w-8 h-8" />
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        <div className="mt-8 flex justify-end">
+          <Button
+            onClick={saveSettings}
+            disabled={isLoading}
+            className="w-full md:w-auto"
+          >
+            حفظ التغييرات
+          </Button>
         </div>
       </CardContent>
     </Card>

@@ -9,10 +9,6 @@
     --secondary-color: theme('colors.secondary.DEFAULT');
     --accent-color: theme('colors.accent.DEFAULT');
 
-    /* تعريف متغيرات الخطوط */
-    --font-primary: 'Noto Kufi Arabic', sans-serif;
-    --font-secondary: 'Cairo', sans-serif;
-
     /* تعريف أحجام الخطوط الجديدة */
     --font-size-base: 1rem;      /* 16px */
     --font-size-lg: 1.125rem;    /* 18px */
@@ -31,23 +27,23 @@
   }
 
   body {
-    @apply font-primary antialiased bg-background text-foreground;
-    font-family: var(--font-primary);
+    @apply bg-background text-foreground antialiased;
+    font-family: theme('fontFamily.noto');
   }
 
   /* تكبير النصوص في العناصر الرئيسية */
   h1 {
-    @apply text-3xl font-bold;
+    @apply font-noto text-3xl font-bold;
     font-size: var(--font-size-3xl);
   }
 
   h2 {
-    @apply text-2xl font-semibold;
+    @apply font-noto text-2xl font-semibold;
     font-size: var(--font-size-2xl);
   }
 
   h3 {
-    @apply text-xl font-medium;
+    @apply font-noto text-xl font-medium;
     font-size: var(--font-size-xl);
   }
 
