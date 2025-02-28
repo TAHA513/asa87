@@ -24,6 +24,32 @@ import {
 } from "@/components/ui/accordion";
 import { Card } from "@/components/ui/card";
 
+async function verifyApiKeys() {
+  try {
+    const response = await fetch("/api/settings/api-keys/verify");
+    if (!response.ok) {
+      throw new Error("فشل في التحقق من مفاتيح API");
+    }
+    const result = await response.json();
+
+    toast({
+      title: result.status === "valid" ? "تم التحقق بنجاح" : "خطأ في التحقق",
+      description: result.message,
+      variant: result.status === "valid" ? "default" : "destructive",
+    });
+
+    return result.status === "valid";
+  } catch (error) {
+    console.error("Error verifying API keys:", error);
+    toast({
+      title: "خطأ",
+      description: error instanceof Error ? error.message : "فشل في التحقق من مفاتيح API",
+      variant: "destructive",
+    });
+    return false;
+  }
+}
+
 export default function ApiKeysForm() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -142,16 +168,26 @@ export default function ApiKeysForm() {
           ))}
         </Accordion>
 
-        <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin ml-2" />
-              جاري الحفظ...
-            </>
-          ) : (
-            "حفظ مفاتيح API"
-          )}
-        </Button>
+        <div className="flex gap-4">
+          <Button type="submit" disabled={isSubmitting} className="flex-1">
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                جاري الحفظ...
+              </>
+            ) : (
+              "حفظ مفاتيح API"
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={verifyApiKeys}
+            disabled={isSubmitting}
+          >
+            التحقق من المفاتيح
+          </Button>
+        </div>
       </form>
     </Form>
   );

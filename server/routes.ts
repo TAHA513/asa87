@@ -615,6 +615,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API Key verification endpoint
+  app.get("/api/settings/api-keys/verify", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const apiKeys = await storage.getApiKeys(req.user!.id);
+      if (!apiKeys) {
+        return res.json({
+          status: "missing",
+          message: "لم يتم العثور على مفاتيح API"
+        });
+      }
+
+      // Check Facebook keys specifically
+      const facebookKeys = apiKeys.facebook;
+      if (!facebookKeys) {
+        return res.json({
+          status: "missing",
+          message: "لم يتم العثور على مفاتيح Facebook"
+        });
+      }
+
+      // Validate Facebook keys format
+      if (!facebookKeys.appId || !facebookKeys.appSecret) {
+        return res.json({
+          status: "invalid",
+          message: "مفاتيح Facebook غير مكتملة"
+        });
+      }
+
+      // Test Facebook API connection
+      try {
+        const testResponse = await fetch(
+          `https://graph.facebook.com/oauth/access_token?` +
+          `client_id=${facebookKeys.appId}&` +
+          `client_secret=${facebookKeys.appSecret}&` +
+          `grant_type=client_credentials`
+        );
+
+        if (!testResponse.ok) {
+          const error = await testResponse.json();
+          return res.json({
+            status: "error",
+            message: `خطأ في الاتصال بـ Facebook: ${error.error?.message || 'خطأ غير معروف'}`
+          });
+        }
+
+        return res.json({
+          status: "valid",
+          message: "تم التحقق من مفاتيح Facebook بنجاح"
+        });
+      } catch (error) {
+        return res.json({
+          status: "error",
+          message: "فشل الاتصال بـ Facebook API"
+        });
+      }
+    } catch (error) {
+      console.error("Error verifying API keys:", error);
+      res.status(500).json({ 
+        status: "error",
+        message: "فشل في التحقق من مفاتيح API" 
+      });
+    }
+  });
+
   // Inventory Transaction Routes
   app.get("/api/inventory/transactions", async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -1047,17 +1115,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 // Helper functions to fetch stats from different platforms
 async function fetchFacebookStats(account: any, keys: any) {
-  // Using Facebook Graph API
-  const { accessToken } = account;
-  const { appId, appSecret } = keys;
+  try {
+    const { accessToken } = account;
+    const { appId, appSecret } = keys;
 
-  // TODO: Implement real Facebook API calls
-  // This is a placeholder that would be replaced with actual API implementation
-  return {
-    impressions: 0,
-    engagements: 0,
-    spend: 0
-  };
+    console.log("Attempting to fetch Facebook stats with:", {
+      appId: appId ? "Present" : "Missing",
+      appSecret: appSecret ? "Present" : "Missing",
+      accessToken: accessToken ? "Present" : "Missing"
+    });
+
+    if (!appId || !appSecret) {
+      throw new Error("Missing Facebook API credentials");
+    }
+
+    // Fetch insights using Facebook Graph API
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/me/insights?` +
+      `metric=page_impressions,page_engaged_users,page_post_engagements&` +
+      `period=day&access_token=${accessToken}`,
+      {
+        headers: {
+          'Accept': 'application/json',
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("Facebook API Error:", error);
+      throw new Error(`Facebook API Error: ${error.error?.message || 'Unknown error'}`);
+    }
+
+    const data = await response.json();
+    console.log("Facebook API Response:", data);
+
+    // Calculate metrics from the response
+    const impressions = data.data?.find((d: any) => d.name === 'page_impressions')?.values[0]?.value || 0;
+    const engagements = data.data?.find((d: any) => d.name === 'page_engaged_users')?.values[0]?.value || 0;
+
+    // Get ad spend if available
+    const adSpendResponse = await fetch(
+      `https://graph.facebook.com/v18.0/me/adaccounts?fields=spend&access_token=${accessToken}`
+    );
+    const adSpendData = await adSpendResponse.json();
+    const spend = adSpendData.data?.[0]?.spend || 0;
+
+    return {
+      impressions,
+      engagements,
+      spend: Number(spend)
+    };
+  } catch (error) {
+    console.error("Error fetching Facebook stats:", error);
+    return {
+      impressions: 0,
+      engagements: 0,
+      spend: 0,
+      error: error instanceof Error ? error.message : "Unknown error"
+    };
+  }
 }
 
 async function fetchTwitterStats(account: any, keys: any) {
