@@ -5,6 +5,7 @@ import { MdDelete } from "react-icons/md";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@shared/schema";
+import { ProductGallery } from "@/components/products/product-gallery";
 
 export default function Products() {
   const { data: products = [] } = useQuery<Product[]>({
@@ -37,7 +38,9 @@ export default function Products() {
 
   return (
     <div className="container mx-auto p-8">
-      <Card>
+      <ProductGallery />
+
+      <Card className="mt-8">
         <CardHeader>
           <CardTitle>المنتجات</CardTitle>
         </CardHeader>

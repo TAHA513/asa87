@@ -26,7 +26,11 @@ export const products = pgTable("products", {
   productCode: varchar("product_code", { length: 50 }).notNull().unique(),
   barcode: varchar("barcode", { length: 100 }).unique(),
   priceIqd: decimal("price_iqd", { precision: 10, scale: 2 }).notNull(),
-  stock: integer("stock").notNull().default(0).check(sql`stock >= 0`),
+  stock: integer("stock").notNull().default(0),
+  imageUrl: text("image_url"),
+  thumbnailUrl: text("thumbnail_url"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const customers = pgTable("customers", {
@@ -314,6 +318,8 @@ export const insertProductSchema = createInsertSchema(products).extend({
     .refine(val => !val || /^[0-9]{8,13}$/.test(val), "الباركود يجب أن يكون رقمًا من 8 إلى 13 خانة"),
   priceIqd: z.number().min(1, "السعر يجب أن يكون أكبر من 0"),
   stock: z.number().min(0, "المخزون يجب أن يكون 0 على الأقل"),
+  imageUrl: z.string().url("يجب أن يكون رابط صورة صحيح").optional(),
+  thumbnailUrl: z.string().url("يجب أن يكون رابط الصورة المصغرة صحيح").optional(),
 });
 
 export const insertSaleSchema = createInsertSchema(sales)
