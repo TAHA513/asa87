@@ -23,12 +23,25 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Calendar, Package, Users } from "lucide-react";
 import { useReactToPrint } from 'react-to-print';
 import { useRef } from "react";
 import type { Sale, Product, InsertInvoice } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Check, ChevronsUpDown } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface NewSaleFormData {
   productId: number;
@@ -42,6 +55,7 @@ interface NewSaleFormData {
 export default function Sales() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const [open, setOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
 
@@ -69,6 +83,15 @@ export default function Sales() {
 
   const onSubmit = async (data: NewSaleFormData) => {
     try {
+      if (!data.productId) {
+        toast({
+          title: "خطأ في إنشاء البيع",
+          description: "الرجاء اختيار منتج",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const sale = await apiRequest("POST", "/api/sales", {
         productId: data.productId,
         quantity: data.quantity,
@@ -91,7 +114,7 @@ export default function Sales() {
       const savedInvoice = await apiRequest("POST", "/api/invoices", invoice);
 
       if (data.printInvoice) {
-        setSelectedSale(saleData);
+        setSelectedSale({...saleData, customerName: data.customerName});
         setTimeout(handlePrint, 100);
       }
 
@@ -200,18 +223,62 @@ export default function Sales() {
                     )}
                   />
 
-                  <div className="space-y-2">
-                    <Label>بحث عن المنتج</Label>
-                    <div className="relative">
-                      <Package className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        className="pl-8"
-                        placeholder="ابحث بالاسم أو الرمز أو الباركود"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
-                    </div>
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="productId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>المنتج</FormLabel>
+                        <Popover open={open} onOpenChange={setOpen}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={open}
+                                className="w-full justify-between"
+                              >
+                                {field.value
+                                  ? products.find((product) => product.id === field.value)?.name
+                                  : "اختر منتج..."}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-full p-0">
+                            <Command>
+                              <CommandInput 
+                                placeholder="ابحث عن منتج..." 
+                                value={searchQuery}
+                                onValueChange={setSearchQuery}
+                              />
+                              <CommandEmpty>لم يتم العثور على منتجات</CommandEmpty>
+                              <CommandGroup>
+                                {products.map((product) => (
+                                  <CommandItem
+                                    key={product.id}
+                                    value={product.id.toString()}
+                                    onSelect={() => {
+                                      field.onChange(product.id);
+                                      setOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        field.value === product.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {product.name} - {product.productCode}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      </FormItem>
+                    )}
+                  />
 
                   <FormField
                     control={form.control}
@@ -230,8 +297,7 @@ export default function Sales() {
                     control={form.control}
                     name="printInvoice"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>طباعة الفاتورة</FormLabel>
+                      <FormItem className="flex items-center space-x-2">
                         <FormControl>
                           <input
                             type="checkbox"
@@ -239,6 +305,7 @@ export default function Sales() {
                             onChange={(e) => field.onChange(e.target.checked)}
                           />
                         </FormControl>
+                        <FormLabel className="mr-2">طباعة الفاتورة</FormLabel>
                       </FormItem>
                     )}
                   />
