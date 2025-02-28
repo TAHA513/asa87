@@ -397,7 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               impressions: platformStats.impressions,
               clicks: platformStats.engagements,
               conversions: 0,
-              spend: platformStats.spend.toString(),
+              spend: platformStats.spend, // Remove toString()
               date: new Date()
             });
           }

@@ -6,6 +6,7 @@ declare global {
       password: string;
       role: "admin" | "staff";
       permissions: string[];
+      createdAt?: Date;
     }
   }
 }
