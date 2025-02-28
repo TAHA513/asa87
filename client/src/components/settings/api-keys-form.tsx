@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { LOCAL_STORAGE_KEY, platformConfig, formSchema } from "./api-keys.config";
 import type { FormData } from "./api-keys.config";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
 import {
   Form,
   FormControl,
@@ -15,7 +14,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -23,32 +21,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Card } from "@/components/ui/card";
-
-async function verifyApiKeys() {
-  try {
-    const response = await fetch("/api/settings/api-keys/verify");
-    if (!response.ok) {
-      throw new Error("فشل في التحقق من مفاتيح API");
-    }
-    const result = await response.json();
-
-    toast({
-      title: result.status === "valid" ? "تم التحقق بنجاح" : "خطأ في التحقق",
-      description: result.message,
-      variant: result.status === "valid" ? "default" : "destructive",
-    });
-
-    return result.status === "valid";
-  } catch (error) {
-    console.error("Error verifying API keys:", error);
-    toast({
-      title: "خطأ",
-      description: error instanceof Error ? error.message : "فشل في التحقق من مفاتيح API",
-      variant: "destructive",
-    });
-    return false;
-  }
-}
 
 export default function ApiKeysForm() {
   const { toast } = useToast();
@@ -85,25 +57,9 @@ export default function ApiKeysForm() {
       // حفظ البيانات في LocalStorage
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
 
-      // حفظ البيانات في قاعدة البيانات
-      const response = await fetch("/api/settings/api-keys", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error("فشل في حفظ مفاتيح API في قاعدة البيانات");
-      }
-
-      // تحديث البيانات في الواجهة
-      await queryClient.invalidateQueries({ queryKey: ["/api/settings/api-keys"] });
-
       toast({
         title: "تم الحفظ بنجاح",
-        description: "تم حفظ مفاتيح API في المتصفح وقاعدة البيانات",
+        description: "تم حفظ مفاتيح API في المتصفح",
       });
     } catch (error) {
       console.error("Error saving API keys:", error);
@@ -168,26 +124,9 @@ export default function ApiKeysForm() {
           ))}
         </Accordion>
 
-        <div className="flex gap-4">
-          <Button type="submit" disabled={isSubmitting} className="flex-1">
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin ml-2" />
-                جاري الحفظ...
-              </>
-            ) : (
-              "حفظ مفاتيح API"
-            )}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={verifyApiKeys}
-            disabled={isSubmitting}
-          >
-            التحقق من المفاتيح
-          </Button>
-        </div>
+        <Button type="submit" disabled={isSubmitting} className="w-full">
+          {isSubmitting ? "جاري الحفظ..." : "حفظ مفاتيح API"}
+        </Button>
       </form>
     </Form>
   );
