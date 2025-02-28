@@ -101,7 +101,6 @@ export default function Sales() {
         return;
       }
 
-      // Combine date and time
       const [hours, minutes] = data.time.split(':');
       const saleDate = new Date(data.date);
       saleDate.setHours(parseInt(hours), parseInt(minutes));
