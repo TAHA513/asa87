@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { type Appointment, insertAppointmentSchema } from "@shared/schema";
+import { type Appointment, type Customer, insertAppointmentSchema } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
 
 type NewAppointmentForm = {
@@ -65,7 +65,7 @@ export default function AppointmentsPage() {
     queryKey: ["/api/appointments"],
   });
 
-  const { data: customers = [] } = useQuery({
+  const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
 
@@ -164,7 +164,7 @@ export default function AppointmentsPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {customers.map((customer) => (
+                          {customers.map((customer: Customer) => (
                             <SelectItem
                               key={customer.id}
                               value={customer.id.toString()}
@@ -303,7 +303,7 @@ export default function AppointmentsPage() {
                           </p>
                         )}
                         <p className="text-sm mt-1">
-                          {customers.find(c => c.id === appointment.customerId)?.name}
+                          {customers.find((c: Customer) => c.id === appointment.customerId)?.name}
                         </p>
                       </div>
                       <span className="text-sm text-muted-foreground">
