@@ -27,6 +27,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { insertProductSchema } from "@shared/schema";
+import type { z } from "zod";
+
+type ProductFormData = z.infer<typeof insertProductSchema>;
 
 export default function Products() {
   const { data: products = [] } = useQuery<Product[]>({
@@ -37,6 +43,19 @@ export default function Products() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [productImage, setProductImage] = useState<File | null>(null);
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+
+  const form = useForm<ProductFormData>({
+    resolver: zodResolver(insertProductSchema),
+    defaultValues: {
+      productType: "piece",
+      quantity: 0,
+      minQuantity: 0,
+      costPrice: 0,
+      priceIqd: 0,
+      isWeightBased: false,
+      enableDirectWeighing: false,
+    },
+  });
 
   const deleteMutation = useMutation({
     mutationFn: async (productId: number) => {
@@ -60,26 +79,41 @@ export default function Products() {
     },
   });
 
-  const createProduct = async (formData: FormData) => {
-    const response = await fetch("/api/products", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(error);
-    }
-
-    return response.json();
-  };
-
   const createMutation = useMutation({
-    mutationFn: createProduct,
+    mutationFn: async (data: ProductFormData) => {
+      const formData = new FormData();
+
+      // Append all form data
+      Object.entries(data).forEach(([key, value]) => {
+        if (value instanceof Date) {
+          formData.append(key, value.toISOString());
+        } else if (value !== undefined && value !== null) {
+          formData.append(key, String(value));
+        }
+      });
+
+      // Append image if exists
+      if (productImage) {
+        formData.append("image", productImage);
+      }
+
+      const response = await fetch("/api/products", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       setIsDialogOpen(false);
       setProductImage(null);
+      form.reset();
       toast({
         title: "تم إنشاء المنتج بنجاح",
       });
@@ -93,15 +127,8 @@ export default function Products() {
     },
   });
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-
-    if (productImage) {
-      formData.append("image", productImage);
-    }
-
-    createMutation.mutate(formData);
+  const onSubmit = (data: ProductFormData) => {
+    createMutation.mutate(data);
   };
 
   return (
@@ -116,23 +143,32 @@ export default function Products() {
             <DialogHeader>
               <DialogTitle>إضافة منتج جديد</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">اسم المنتج</Label>
-                  <Input id="name" name="name" required />
+                  <Input {...form.register("name")} />
+                  {form.formState.errors.name && (
+                    <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="barcode">الباركود</Label>
-                  <Input id="barcode" name="barcode" />
+                  <Input {...form.register("barcode")} />
+                  {form.formState.errors.barcode && (
+                    <p className="text-sm text-destructive">{form.formState.errors.barcode.message}</p>
+                  )}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="productType">نوع المنتج</Label>
-                  <Select name="productType">
+                  <Select
+                    value={form.watch("productType")}
+                    onValueChange={(value) => form.setValue("productType", value)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="قطعة" />
                     </SelectTrigger>
@@ -147,11 +183,8 @@ export default function Products() {
                 <div className="space-y-2">
                   <Label htmlFor="quantity">الكمية</Label>
                   <Input
-                    id="quantity"
-                    name="quantity"
                     type="number"
-                    min="0"
-                    defaultValue="0"
+                    {...form.register("quantity", { valueAsNumber: true })}
                   />
                 </div>
               </div>
@@ -160,35 +193,35 @@ export default function Products() {
                 <div className="space-y-2">
                   <Label htmlFor="minQuantity">الحد الأدنى</Label>
                   <Input
-                    id="minQuantity"
-                    name="minQuantity"
                     type="number"
-                    min="0"
-                    defaultValue="0"
+                    {...form.register("minQuantity", { valueAsNumber: true })}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="productionDate">تاريخ الإنتاج</Label>
-                  <DatePicker name="productionDate" />
+                  <DatePicker
+                    date={form.watch("productionDate")}
+                    onSelect={(date) => form.setValue("productionDate", date)}
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="expiryDate">تاريخ الانتهاء</Label>
-                  <DatePicker name="expiryDate" />
+                  <DatePicker
+                    date={form.watch("expiryDate")}
+                    onSelect={(date) => form.setValue("expiryDate", date)}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="costPrice">سعر التكلفة</Label>
                   <Input
-                    id="costPrice"
-                    name="costPrice"
                     type="number"
-                    min="0"
                     step="0.01"
-                    defaultValue="0"
+                    {...form.register("costPrice", { valueAsNumber: true })}
                   />
                 </div>
               </div>
@@ -197,18 +230,25 @@ export default function Products() {
                 <div className="space-y-2">
                   <Label htmlFor="priceIqd">سعر البيع</Label>
                   <Input
-                    id="priceIqd"
-                    name="priceIqd"
                     type="number"
-                    min="0"
                     step="0.01"
-                    defaultValue="0"
+                    {...form.register("priceIqd", { valueAsNumber: true })}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="categoryId">المجموعة</Label>
-                  <Select name="categoryId">
+                  <Select
+                    value={form.watch("categoryId")?.toString()}
+                    onValueChange={(value) => {
+                      if (value === "new") {
+                        setShowNewCategoryInput(true);
+                      } else {
+                        setShowNewCategoryInput(false);
+                        form.setValue("categoryId", parseInt(value));
+                      }
+                    }}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="اختر مجموعة" />
                     </SelectTrigger>
@@ -223,18 +263,26 @@ export default function Products() {
               {showNewCategoryInput && (
                 <div className="space-y-2">
                   <Label htmlFor="newCategory">اسم المجموعة الجديدة</Label>
-                  <Input id="newCategory" name="newCategory" />
+                  <Input {...form.register("newCategory")} />
                 </div>
               )}
 
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
-                  <Checkbox id="isWeightBased" name="isWeightBased" />
+                  <Checkbox
+                    id="isWeightBased"
+                    checked={form.watch("isWeightBased")}
+                    onCheckedChange={(checked) => form.setValue("isWeightBased", checked)}
+                  />
                   <Label htmlFor="isWeightBased" className="mr-2">منتج وزني</Label>
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <Checkbox id="enableDirectWeighing" name="enableDirectWeighing" />
+                  <Checkbox
+                    id="enableDirectWeighing"
+                    checked={form.watch("enableDirectWeighing")}
+                    onCheckedChange={(checked) => form.setValue("enableDirectWeighing", checked)}
+                  />
                   <Label htmlFor="enableDirectWeighing" className="mr-2">
                     تفعيل القراءة المباشرة للوزن عند المسح
                   </Label>
