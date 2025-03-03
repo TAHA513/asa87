@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +18,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { DatePicker } from "@/components/ui/date-picker";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Products() {
   const { data: products = [] } = useQuery<Product[]>({
@@ -27,6 +36,7 @@ export default function Products() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [productImage, setProductImage] = useState<File | null>(null);
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
 
   const deleteMutation = useMutation({
     mutationFn: async (productId: number) => {
@@ -102,48 +112,135 @@ export default function Products() {
           <DialogTrigger asChild>
             <Button>إضافة منتج جديد</Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[625px]">
             <DialogHeader>
               <DialogTitle>إضافة منتج جديد</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">اسم المنتج</Label>
-                <Input id="name" name="name" required />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">اسم المنتج</Label>
+                  <Input id="name" name="name" required />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="barcode">الباركود</Label>
+                  <Input id="barcode" name="barcode" />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">وصف المنتج</Label>
-                <Textarea id="description" name="description" />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="productType">نوع المنتج</Label>
+                  <Select name="productType">
+                    <SelectTrigger>
+                      <SelectValue placeholder="قطعة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="piece">قطعة</SelectItem>
+                      <SelectItem value="weight">وزن</SelectItem>
+                      <SelectItem value="length">طول</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="quantity">الكمية</Label>
+                  <Input
+                    id="quantity"
+                    name="quantity"
+                    type="number"
+                    min="0"
+                    defaultValue="0"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="productCode">رمز المنتج</Label>
-                <Input id="productCode" name="productCode" required />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="minQuantity">الحد الأدنى</Label>
+                  <Input
+                    id="minQuantity"
+                    name="minQuantity"
+                    type="number"
+                    min="0"
+                    defaultValue="0"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="productionDate">تاريخ الإنتاج</Label>
+                  <DatePicker name="productionDate" />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="barcode">الباركود</Label>
-                <Input id="barcode" name="barcode" />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="expiryDate">تاريخ الانتهاء</Label>
+                  <DatePicker name="expiryDate" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="costPrice">سعر التكلفة</Label>
+                  <Input
+                    id="costPrice"
+                    name="costPrice"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    defaultValue="0"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="priceIqd">السعر (د.ع)</Label>
-                <Input
-                  id="priceIqd"
-                  name="priceIqd"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  required
-                />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="priceIqd">سعر البيع</Label>
+                  <Input
+                    id="priceIqd"
+                    name="priceIqd"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    defaultValue="0"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="categoryId">المجموعة</Label>
+                  <Select name="categoryId">
+                    <SelectTrigger>
+                      <SelectValue placeholder="اختر مجموعة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new">إنشاء مجموعة جديدة</SelectItem>
+                      {/* Add existing categories here */}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="stock">المخزون</Label>
-                <Input
-                  id="stock"
-                  name="stock"
-                  type="number"
-                  min="0"
-                  required
-                />
+
+              {showNewCategoryInput && (
+                <div className="space-y-2">
+                  <Label htmlFor="newCategory">اسم المجموعة الجديدة</Label>
+                  <Input id="newCategory" name="newCategory" />
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="isWeightBased" name="isWeightBased" />
+                  <Label htmlFor="isWeightBased" className="mr-2">منتج وزني</Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="enableDirectWeighing" name="enableDirectWeighing" />
+                  <Label htmlFor="enableDirectWeighing" className="mr-2">
+                    تفعيل القراءة المباشرة للوزن عند المسح
+                  </Label>
+                </div>
               </div>
+
               <div className="space-y-2">
                 <Label>صورة المنتج (اختياري)</Label>
                 <div className="text-sm text-muted-foreground mb-2">
@@ -156,6 +253,7 @@ export default function Products() {
                   label="اضغط لإضافة صورة"
                 />
               </div>
+
               <Button
                 type="submit"
                 className="w-full"

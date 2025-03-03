@@ -25,12 +25,28 @@ export const products = pgTable("products", {
   description: text("description"),
   productCode: varchar("product_code", { length: 50 }).notNull().unique(),
   barcode: varchar("barcode", { length: 100 }).unique(),
+  productType: text("product_type").notNull(),
+  quantity: integer("quantity").notNull().default(0),
+  minQuantity: integer("min_quantity").notNull().default(0),
+  productionDate: timestamp("production_date"),
+  expiryDate: timestamp("expiry_date"),
+  costPrice: decimal("cost_price", { precision: 10, scale: 2 }).notNull(),
   priceIqd: decimal("price_iqd", { precision: 10, scale: 2 }).notNull(),
+  categoryId: integer("category_id").references(() => productCategories.id),
+  isWeightBased: boolean("is_weight_based").notNull().default(false),
+  enableDirectWeighing: boolean("enable_direct_weighing").notNull().default(false),
   stock: integer("stock").notNull().default(0),
   imageUrl: text("image_url"),
   thumbnailUrl: text("thumbnail_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const productCategories = pgTable("product_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const customers = pgTable("customers", {
@@ -173,7 +189,7 @@ export const inventoryAdjustments = pgTable("inventory_adjustments", {
 export const inventoryAlerts = pgTable("inventory_alerts", {
   id: serial("id").primaryKey(),
   productId: integer("product_id").notNull().references(() => products.id),
-  type: text("type").notNull(), 
+  type: text("type").notNull(),
   threshold: integer("threshold").notNull(),
   status: text("status").notNull().default("active"),
   lastTriggered: timestamp("last_triggered"),
@@ -324,8 +340,16 @@ export const insertProductSchema = createInsertSchema(products).extend({
   barcode: z.string().optional()
     .nullable()
     .refine(val => !val || /^[0-9]{8,13}$/.test(val), "الباركود يجب أن يكون رقمًا من 8 إلى 13 خانة"),
-  priceIqd: z.number().min(1, "السعر يجب أن يكون أكبر من 0"),
-  stock: z.number().min(0, "المخزون يجب أن يكون 0 على الأقل"),
+  productType: z.string().min(1, "نوع المنتج مطلوب"),
+  quantity: z.number().min(0, "الكمية يجب أن تكون 0 على الأقل"),
+  minQuantity: z.number().min(0, "الحد الأدنى يجب أن يكون 0 على الأقل"),
+  productionDate: z.date().optional().nullable(),
+  expiryDate: z.date().optional().nullable(),
+  costPrice: z.number().min(0, "سعر التكلفة يجب أن يكون أكبر من 0"),
+  priceIqd: z.number().min(0, "سعر البيع يجب أن يكون أكبر من 0"),
+  categoryId: z.number().optional().nullable(),
+  isWeightBased: z.boolean().default(false),
+  enableDirectWeighing: z.boolean().default(false),
   imageUrl: z.string().url("يجب أن يكون رابط صورة صحيح").optional(),
   thumbnailUrl: z.string().url("يجب أن يكون رابط الصورة المصغرة صحيح").optional(),
 });
