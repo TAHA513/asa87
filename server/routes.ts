@@ -36,8 +36,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/products", async (req, res) => {
-    const product = await storage.createProduct(req.body);
-    res.status(201).json(product);
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      // Handle file upload if present
+      let imageUrl = null;
+      let thumbnailUrl = null;
+
+      if (req.files && req.files.image) {
+        const file = req.files.image;
+        const fileName = `${Date.now()}-${file.name}`;
+        const filePath = path.join(process.cwd(), "uploads", fileName);
+
+        // Create uploads directory if it doesn't exist
+        await fs.mkdir(path.join(process.cwd(), "uploads"), { recursive: true });
+
+        // Save the file
+        await fs.writeFile(filePath, file.data);
+
+        // Set the URLs
+        imageUrl = `/uploads/${fileName}`;
+        thumbnailUrl = `/uploads/${fileName}`; // For now, use same image as thumbnail
+      }
+
+      const product = await storage.createProduct({
+        ...req.body,
+        imageUrl,
+        thumbnailUrl
+      });
+
+      res.status(201).json(product);
+    } catch (error) {
+      console.error("Error creating product:", error);
+      res.status(500).json({ message: "فشل في إنشاء المنتج" });
+    }
   });
 
   app.patch("/api/products/:id", async (req, res) => {
@@ -862,7 +896,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/suppliers/:id", async (req, res) => {
+app.delete("/api/suppliers/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
