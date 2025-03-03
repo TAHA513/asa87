@@ -23,7 +23,7 @@ import type { Sale, Product } from "@shared/schema";
 
 export default function Invoices() {
   const [search, setSearch] = useState("");
-  
+
   const { data: sales = [] } = useQuery<Sale[]>({
     queryKey: ["/api/sales"],
   });
@@ -38,7 +38,7 @@ export default function Invoices() {
   });
 
   const groupedSales = filteredSales.reduce((acc, sale) => {
-    const date = new Date(sale.date).toLocaleDateString();
+    const date = new Date(sale.date).toLocaleDateString('ar-IQ');
     if (!acc[date]) acc[date] = [];
     acc[date].push(sale);
     return acc;
@@ -54,14 +54,14 @@ export default function Invoices() {
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
               <FileText className="h-6 w-6" />
-              <h1 className="text-3xl font-bold">Invoices</h1>
+              <h1 className="text-3xl font-bold">الفواتير</h1>
             </div>
-            
+
             <div className="flex items-center gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search invoices..."
+                  placeholder="البحث في الفواتير..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9 w-64"
@@ -73,21 +73,21 @@ export default function Invoices() {
           {Object.entries(groupedSales).map(([date, sales]) => (
             <Card key={date} className="mb-6">
               <CardHeader>
-                <CardTitle>Invoices for {date}</CardTitle>
+                <CardTitle>فواتير {date}</CardTitle>
                 <CardDescription>
-                  {sales.length} transaction{sales.length !== 1 ? "s" : ""}
+                  {sales.length} معاملة
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Invoice ID</TableHead>
-                      <TableHead>Product</TableHead>
-                      <TableHead>Quantity</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Time</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead>رقم الفاتورة</TableHead>
+                      <TableHead>المنتج</TableHead>
+                      <TableHead>الكمية</TableHead>
+                      <TableHead>المبلغ</TableHead>
+                      <TableHead>الوقت</TableHead>
+                      <TableHead className="text-right">الإجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -99,17 +99,15 @@ export default function Invoices() {
                           <TableCell>{product?.name}</TableCell>
                           <TableCell>{sale.quantity}</TableCell>
                           <TableCell>
-                            {sale.currency === "USD"
-                              ? `$${Number(sale.priceUsd).toFixed(2)}`
-                              : `${Number(sale.priceIqd).toFixed(2)} IQD`}
+                            {Number(sale.priceIqd).toLocaleString('ar-IQ')} د.ع
                           </TableCell>
                           <TableCell>
-                            {new Date(sale.date).toLocaleTimeString()}
+                            {new Date(sale.date).toLocaleTimeString('ar-IQ')}
                           </TableCell>
                           <TableCell className="text-right">
                             <Button variant="ghost" size="sm">
                               <Printer className="h-4 w-4" />
-                              <span className="sr-only">Print</span>
+                              <span className="sr-only">طباعة</span>
                             </Button>
                           </TableCell>
                         </TableRow>

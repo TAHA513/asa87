@@ -422,11 +422,18 @@ export class DatabaseStorage {
     }
   }
 
+  // تحديث دالة إنشاء الحملة
   async createCampaign(campaign: InsertCampaign[]): Promise<Campaign> {
     try {
+      const campaignData = Array.isArray(campaign) ? campaign[0] : campaign;
       const [newCampaign] = await db
         .insert(marketingCampaigns)
-        .values(campaign)
+        .values({
+          ...campaignData,
+          budget: campaignData.budget.toString(), // تحويل الميزانية إلى نص
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
         .returning();
       return newCampaign;
     } catch (error) {
@@ -462,11 +469,21 @@ export class DatabaseStorage {
     }
   }
 
+  // تحديث دالة إنشاء تحليلات الحملة
   async createCampaignAnalytics(analytics: InsertCampaignAnalytics[]): Promise<CampaignAnalytics> {
     try {
+      const analyticsData = Array.isArray(analytics) ? analytics[0] : analytics;
       const [newAnalytics] = await db
         .insert(campaignAnalytics)
-        .values(analytics)
+        .values({
+          ...analyticsData,
+          impressions: analyticsData.impressions.toString(),
+          clicks: analyticsData.clicks.toString(),
+          conversions: analyticsData.conversions.toString(),
+          spend: analyticsData.spend.toString(),
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
         .returning();
       return newAnalytics;
     } catch (error) {
@@ -609,11 +626,18 @@ export class DatabaseStorage {
     }
   }
 
+  // تحديث دالة إنشاء المصروفات
   async createExpense(expense: InsertExpense[]): Promise<Expense> {
     try {
+      const expenseData = Array.isArray(expense) ? expense[0] : expense;
       const [newExpense] = await db
         .insert(expenses)
-        .values(expense)
+        .values({
+          ...expenseData,
+          amount: expenseData.amount.toString(), // تحويل المبلغ إلى نص
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
         .returning();
       return newExpense;
     } catch (error) {
@@ -724,11 +748,18 @@ export class DatabaseStorage {
     }
   }
 
+  // تحديث دالة إنشاء معاملة المورد
   async createSupplierTransaction(transaction: InsertSupplierTransaction[]): Promise<SupplierTransaction> {
     try {
+      const transactionData = Array.isArray(transaction) ? transaction[0] : transaction;
       const [newTransaction] = await db
         .insert(supplierTransactions)
-        .values(transaction)
+        .values({
+          ...transactionData,
+          amount: transactionData.amount.toString(), // تحويل المبلغ إلى نص
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
         .returning();
       return newTransaction;
     } catch (error) {

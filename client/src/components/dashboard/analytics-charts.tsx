@@ -31,7 +31,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -44,33 +44,41 @@ import { useState, useMemo } from "react";
 import type { Sale, Product, Customer } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
+// تحديث تعريف الألوان ليشمل accent
 const colorSchemes = {
   default: {
     primary: 'hsl(var(--primary))',
     secondary: '#82ca9d',
     tertiary: '#ffc658',
+    accent: '#ff6b6b',
     background: 'hsl(var(--background))'
   },
   warm: {
     primary: '#ff7300',
     secondary: '#ff9800',
     tertiary: '#ffc107',
+    accent: '#ff5722',
     background: '#fff5e6'
   },
   cool: {
     primary: '#00bcd4',
     secondary: '#03a9f4',
     tertiary: '#2196f3',
+    accent: '#3f51b5',
     background: '#e1f5fe'
   }
 } as const;
+
+// تحديث نوع التبويبات
+type ChartType = 'area' | 'line' | 'composed';
+type CustomerChartView = 'growth' | 'segments' | 'retention' | 'value';
 
 type ColorScheme = keyof typeof colorSchemes;
 
 export function SalesTrendsChart() {
   const [colorScheme, setColorScheme] = useState<ColorScheme>('default');
   const [updateInterval, setUpdateInterval] = useState(30000);
-  const [chartType, setChartType] = useState<'area' | 'line' | 'composed'>('area');
+  const [chartType, setChartType] = useState<ChartType>('area');
 
   const { data: sales = [] } = useQuery<Sale[]>({
     queryKey: ["/api/sales"],
@@ -126,7 +134,7 @@ export function SalesTrendsChart() {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
             <YAxis />
-            <Tooltip 
+            <Tooltip
               formatter={(value: number) => `${value.toLocaleString()} د.ع`}
               labelFormatter={(label) => `التاريخ: ${label}`}
             />
@@ -158,7 +166,7 @@ export function SalesTrendsChart() {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
             <YAxis />
-            <Tooltip 
+            <Tooltip
               formatter={(value: number) => `${value.toLocaleString()} د.ع`}
               labelFormatter={(label) => `التاريخ: ${label}`}
             />
@@ -204,7 +212,7 @@ export function SalesTrendsChart() {
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
             <YAxis />
-            <Tooltip 
+            <Tooltip
               formatter={(value: number) => `${value.toLocaleString()} د.ع`}
               labelFormatter={(label) => `التاريخ: ${label}`}
             />
@@ -270,7 +278,10 @@ export function SalesTrendsChart() {
               </SelectContent>
             </Select>
 
-            <Tabs value={chartType} onValueChange={(value: typeof chartType) => setChartType(value)}>
+            <Tabs
+              value={chartType}
+              onValueChange={(value) => setChartType(value as ChartType)}
+            >
               <TabsList>
                 <TabsTrigger value="area">مساحي</TabsTrigger>
                 <TabsTrigger value="line">خطي</TabsTrigger>
@@ -309,7 +320,7 @@ export function ProductPerformanceChart() {
     return products.map(product => {
       const productSales = sales.filter(sale => sale.productId === product.id);
       const totalQuantity = productSales.reduce((sum, sale) => sum + sale.quantity, 0);
-      const totalRevenue = productSales.reduce((sum, sale) => 
+      const totalRevenue = productSales.reduce((sum, sale) =>
         sum + (Number(sale.priceIqd) * sale.quantity), 0
       );
 
@@ -393,7 +404,7 @@ export function ProductPerformanceChart() {
 export function CustomerGrowthChart() {
   const [colorScheme, setColorScheme] = useState<ColorScheme>('default');
   const [updateInterval, setUpdateInterval] = useState(30000);
-  const [chartView, setChartView] = useState<'growth' | 'segments' | 'retention' | 'value'>('growth');
+  const [chartView, setChartView] = useState<CustomerChartView>('growth');
 
   const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
@@ -440,10 +451,10 @@ export function CustomerGrowthChart() {
 
     // تحليل شرائح العملاء
     const segments = [
-      { name: 'عملاء جدد', value: customers.filter(c => 
+      { name: 'عملاء جدد', value: customers.filter(c =>
         new Date(c.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
       ).length },
-      { name: 'عملاء نشطون', value: customers.filter(c => 
+      { name: 'عملاء نشطون', value: customers.filter(c =>
         sales.some(s => s.customerId === c.id)
       ).length },
       { name: 'عملاء متكررون', value: customers.filter(c =>
@@ -462,7 +473,7 @@ export function CustomerGrowthChart() {
 
       if (existingMonth) {
         existingMonth.total += 1;
-        existingMonth.retained = (existingMonth.retained || 0) + 
+        existingMonth.retained = (existingMonth.retained || 0) +
           (sales.some(s => s.customerId === customer.id) ? 1 : 0);
       } else {
         acc.push({
@@ -477,11 +488,11 @@ export function CustomerGrowthChart() {
     // تحليل قيمة العميل
     const customerValue = customers.map(customer => {
       const customerSales = sales.filter(s => s.customerId === customer.id);
-      const totalValue = customerSales.reduce((sum, s) => 
+      const totalValue = customerSales.reduce((sum, s) =>
         sum + (Number(s.priceIqd) * s.quantity), 0
       );
       const frequency = customerSales.length;
-      const lastPurchase = customerSales.length > 0 
+      const lastPurchase = customerSales.length > 0
         ? new Date(Math.max(...customerSales.map(s => new Date(s.date).getTime())))
         : new Date(customer.createdAt);
 
@@ -519,7 +530,7 @@ export function CustomerGrowthChart() {
               label={({ name, value }) => `${name}: ${value}`}
             >
               {customerAnalytics.segments.map((entry, index) => (
-                <Cell 
+                <Cell
                   key={`cell-${index}`}
                   fill={[colors.primary, colors.secondary, colors.tertiary, colors.accent][index % 4]}
                 />
@@ -651,7 +662,10 @@ export function CustomerGrowthChart() {
               </SelectContent>
             </Select>
 
-            <Tabs value={chartView} onValueChange={(value: typeof chartView) => setChartView(value)}>
+            <Tabs
+              value={chartView}
+              onValueChange={(value) => setChartView(value as CustomerChartView)}
+            >
               <TabsList>
                 <TabsTrigger value="growth">النمو</TabsTrigger>
                 <TabsTrigger value="segments">الشرائح</TabsTrigger>
