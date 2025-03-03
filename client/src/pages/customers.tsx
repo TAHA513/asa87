@@ -17,6 +17,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { type Customer, type Sale, type Appointment, insertCustomerSchema, insertAppointmentSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
@@ -41,14 +48,16 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 
-// ... (previous type definitions remain the same)
-
 export default function CustomersPage() {
   const [search, setSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isNewCustomerOpen, setIsNewCustomerOpen] = useState(false);
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
   const { toast } = useToast();
+
+  const [isNewCustomerFormVisible, setIsNewCustomerFormVisible] = useState(false);
+  const [selectedCustomerForAppointment, setSelectedCustomerForAppointment] = useState<Customer | null>(null);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState("");
 
   const customerForm = useForm<NewCustomerForm>({
     resolver: zodResolver(insertCustomerSchema),
@@ -156,8 +165,8 @@ export default function CustomersPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/customers", selectedCustomer?.id, "appointments"] 
+      queryClient.invalidateQueries({
+        queryKey: ["/api/customers", selectedCustomer?.id, "appointments"],
       });
       toast({
         title: "تم إنشاء الموعد بنجاح",
@@ -175,7 +184,6 @@ export default function CustomersPage() {
     },
   });
 
-  // إضافة mutation لحذف العميل
   const deleteCustomerMutation = useMutation({
     mutationFn: async (customerId: number) => {
       const response = await fetch(`/api/customers/${customerId}`, {
@@ -202,6 +210,17 @@ export default function CustomersPage() {
     },
   });
 
+  const { data: filteredCustomers = [] } = useQuery<Customer[]>({
+    queryKey: ["/api/customers", customerSearchQuery],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (customerSearchQuery) params.append("search", customerSearchQuery);
+      const res = await fetch(`/api/customers?${params.toString()}`);
+      if (!res.ok) throw new Error("فشل في جلب قائمة العملاء");
+      return res.json();
+    },
+  });
+
   const customers = data || [];
 
   const onSubmitCustomer = (data: NewCustomerForm) => {
@@ -209,7 +228,7 @@ export default function CustomersPage() {
   };
 
   const onSubmitAppointment = (data: NewAppointmentForm) => {
-    createAppointmentMutation.mutate(data);
+    createAppointmentMutation.mutate({...data, customerId: selectedCustomerForAppointment?.id});
   };
 
   return (
@@ -337,120 +356,259 @@ export default function CustomersPage() {
                 إضافة موعد
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <DialogTitle>إضافة موعد جديد</DialogTitle>
               </DialogHeader>
 
-              <Form {...appointmentForm}>
-                <form onSubmit={appointmentForm.handleSubmit(onSubmitAppointment)} className="space-y-4">
-                  <FormField
-                    control={appointmentForm.control}
-                    name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>عنوان الموعد</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <div className="space-y-6">
+                {!selectedCustomerForAppointment && !isNewCustomerFormVisible ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        placeholder="البحث عن عميل..."
+                        value={customerSearchQuery}
+                        onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsNewCustomerFormVisible(true)}
+                      >
+                        <Plus className="h-4 w-4 ml-2" />
+                        عميل جديد
+                      </Button>
+                    </div>
 
-                  <FormField
-                    control={appointmentForm.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>الوصف</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <div className="max-h-48 overflow-y-auto space-y-2">
+                      {filteredCustomers.map((customer) => (
+                        <div
+                          key={customer.id}
+                          className="p-2 border rounded-lg hover:bg-secondary/50 cursor-pointer"
+                          onClick={() => setSelectedCustomerForAppointment(customer)}
+                        >
+                          <div className="font-medium">{customer.name}</div>
+                          {customer.phone && (
+                            <div className="text-sm text-muted-foreground">
+                              {customer.phone}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
 
-                  <FormField
-                    control={appointmentForm.control}
-                    name="date"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>التاريخ والوقت</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
+                {isNewCustomerFormVisible && !selectedCustomerForAppointment ? (
+                  <Form {...customerForm}>
+                    <form onSubmit={customerForm.handleSubmit((data) => {
+                      createCustomerMutation.mutate(data, {
+                        onSuccess: (newCustomer) => {
+                          setSelectedCustomerForAppointment(newCustomer);
+                          setIsNewCustomerFormVisible(false);
+                        }
+                      });
+                    })} className="space-y-4">
+                      <FormField
+                        control={customerForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>اسم العميل</FormLabel>
                             <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-full pl-3 text-right font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? (
-                                  format(field.value, "PPP", { locale: ar })
-                                ) : (
-                                  <span>اختر تاريخ</span>
-                                )}
-                                <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
+                              <Input {...field} />
                             </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <CalendarComponent
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                  <FormField
-                    control={appointmentForm.control}
-                    name="duration"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>المدة (بالدقائق)</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="number" min="1" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      <FormField
+                        control={customerForm.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>رقم الهاتف</FormLabel>
+                            <FormControl>
+                              <Input {...field} dir="ltr" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                  <FormField
-                    control={appointmentForm.control}
-                    name="notes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>ملاحظات</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      <FormField
+                        control={customerForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>البريد الإلكتروني</FormLabel>
+                            <FormControl>
+                              <Input {...field} type="email" dir="ltr" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={createAppointmentMutation.isPending}
-                  >
-                    {createAppointmentMutation.isPending && (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent ml-2" />
-                    )}
-                    إضافة الموعد
-                  </Button>
-                </form>
-              </Form>
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setIsNewCustomerFormVisible(false)}
+                        >
+                          إلغاء
+                        </Button>
+                        <Button
+                          type="submit"
+                          disabled={createCustomerMutation.isPending}
+                        >
+                          {createCustomerMutation.isPending && (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent ml-2" />
+                          )}
+                          إضافة العميل
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                ) : null}
+
+                {selectedCustomerForAppointment ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-medium">العميل المحدد:</h3>
+                        <p className="text-muted-foreground">
+                          {selectedCustomerForAppointment.name} - {selectedCustomerForAppointment.phone}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          setSelectedCustomerForAppointment(null);
+                          setIsNewCustomerFormVisible(false);
+                        }}
+                      >
+                        تغيير العميل
+                      </Button>
+                    </div>
+
+                    <Form {...appointmentForm}>
+                      <form onSubmit={appointmentForm.handleSubmit((data) => {
+                        createAppointmentMutation.mutate({
+                          ...data,
+                          customerId: selectedCustomerForAppointment.id
+                        });
+                      })} className="space-y-4">
+                        <FormField
+                          control={appointmentForm.control}
+                          name="title"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>عنوان الموعد</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={appointmentForm.control}
+                          name="description"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>الوصف</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={appointmentForm.control}
+                          name="date"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-col">
+                              <FormLabel>التاريخ والوقت</FormLabel>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <FormControl>
+                                    <Button
+                                      variant={"outline"}
+                                      className={cn(
+                                        "w-full pl-3 text-right font-normal",
+                                        !field.value && "text-muted-foreground"
+                                      )}
+                                    >
+                                      {field.value ? (
+                                        format(field.value, "PPP", { locale: ar })
+                                      ) : (
+                                        <span>اختر تاريخ</span>
+                                      )}
+                                      <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                                    </Button>
+                                  </FormControl>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                  <CalendarComponent
+                                    mode="single"
+                                    selected={field.value}
+                                    onSelect={field.onChange}
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={appointmentForm.control}
+                          name="duration"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>المدة (بالدقائق)</FormLabel>
+                              <FormControl>
+                                <Input {...field} type="number" min="1" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={appointmentForm.control}
+                          name="notes"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>ملاحظات</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <Button
+                          type="submit"
+                          className="w-full"
+                          disabled={createAppointmentMutation.isPending}
+                        >
+                          {createAppointmentMutation.isPending && (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent ml-2" />
+                          )}
+                          إضافة الموعد
+                        </Button>
+                      </form>
+                    </Form>
+                  </>
+                ) : null}
+              </div>
             </DialogContent>
           </Dialog>
         </div>
@@ -525,7 +683,6 @@ export default function CustomersPage() {
           <ResizablePanelGroup direction="vertical">
             <ResizablePanel defaultSize={50}>
               <div className="h-full p-4">
-                {/* المواعيد والحجوزات */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold">المواعيد والحجوزات</h2>
@@ -578,7 +735,6 @@ export default function CustomersPage() {
               <div className="h-full p-4">
                 {selectedCustomer ? (
                   <>
-                    {/* تفاصيل العميل */}
                     <div className="mb-8">
                       <h2 className="text-lg font-semibold mb-4">تفاصيل العميل - {selectedCustomer.name}</h2>
                       <div className="space-y-2">
@@ -603,7 +759,6 @@ export default function CustomersPage() {
                       </div>
                     </div>
 
-                    {/* سجل المشتريات */}
                     <div>
                       <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold">سجل المشتريات</h2>
