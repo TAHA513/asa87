@@ -27,7 +27,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Calendar, Package, Users, Clock } from "lucide-react";
 import { useReactToPrint } from 'react-to-print';
 import { useRef } from "react";
-import type { Sale, Product, InsertInvoice } from "@shared/schema";
+import type { Sale, Product, InsertInvoice, InsertInstallment } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Select,
@@ -48,6 +48,13 @@ interface NewSaleFormData {
   discount: number;
   isInstallment: boolean;
   printInvoice: boolean;
+  customerPhone: string;
+  identityNumber: string;
+  downPayment: number;
+  numberOfPayments: number;
+  startDate: Date;
+  guarantorName?: string;
+  guarantorPhone?: string;
 }
 
 export default function Sales() {
@@ -76,6 +83,13 @@ export default function Sales() {
       isInstallment: false,
       printInvoice: true,
       customerName: "",
+      customerPhone: "",
+      identityNumber: "",
+      downPayment: 0,
+      numberOfPayments: 1,
+      startDate: new Date(),
+      guarantorName: "",
+      guarantorPhone: "",
     },
   });
 
@@ -83,21 +97,12 @@ export default function Sales() {
     content: () => printRef.current,
   });
 
-  const onSubmit = async (data: NewSaleFormData) => {
+  const handleSubmit = async (data: NewSaleFormData) => {
     try {
       if (!selectedProduct) {
         toast({
           title: "خطأ",
           description: "الرجاء اختيار منتج",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (!user) {
-        toast({
-          title: "خطأ",
-          description: "يجب تسجيل الدخول أولاً",
           variant: "destructive",
         });
         return;
@@ -127,6 +132,28 @@ export default function Sales() {
       }
 
       const saleData = await sale.json();
+
+      if (data.isInstallment) {
+        const installment: InsertInstallment = {
+          saleId: saleData.id,
+          customerName: data.customerName,
+          customerPhone: data.customerPhone,
+          identityNumber: data.identityNumber,
+          totalAmount: finalPrice.toString(),
+          downPayment: data.downPayment.toString(),
+          numberOfPayments: data.numberOfPayments,
+          remainingAmount: (finalPrice - data.downPayment).toString(),
+          startDate: data.startDate,
+          nextPaymentDate: data.startDate, // First payment date
+          guarantorName: data.guarantorName || undefined,
+          guarantorPhone: data.guarantorPhone || undefined,
+        };
+
+        const savedInstallment = await apiRequest("POST", "/api/installments", installment);
+        if (!savedInstallment.ok) {
+          throw new Error("فشل في إنشاء التقسيط");
+        }
+      }
 
       const invoice: InsertInvoice = {
         saleId: saleData.id,
@@ -158,7 +185,7 @@ export default function Sales() {
 
       toast({
         title: "تم بنجاح",
-        description: "تم إنشاء البيع والفاتورة بنجاح",
+        description: `تم إنشاء ${data.isInstallment ? 'البيع بالتقسيط' : 'البيع'} والفاتورة بنجاح`,
       });
     } catch (error) {
       console.error('Error creating sale:', error);
@@ -239,7 +266,7 @@ export default function Sales() {
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -287,12 +314,29 @@ export default function Sales() {
                         <FormControl>
                           <div className="relative">
                             <Users className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input 
+                            <Input
                               className="pl-8 w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                               placeholder="ادخل اسم العميل"
                               {...field}
                             />
                           </div>
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="customerPhone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium">رقم الهاتف</FormLabel>
+                        <FormControl>
+                          <Input
+                            className="w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                            placeholder="ادخل رقم الهاتف"
+                            {...field}
+                          />
                         </FormControl>
                       </FormItem>
                     )}
@@ -322,7 +366,7 @@ export default function Sales() {
                         </SelectTrigger>
                         <SelectContent>
                           {searchResults.map((product) => (
-                            <SelectItem 
+                            <SelectItem
                               key={product.id}
                               value={product.id.toString()}
                               className="cursor-pointer transition-colors duration-200 hover:bg-muted"
@@ -377,6 +421,138 @@ export default function Sales() {
                       </FormItem>
                     )}
                   />
+
+                  <FormField
+                    control={form.control}
+                    name="isInstallment"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <input
+                            type="checkbox"
+                            checked={field.value}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                            className="rounded border-input"
+                          />
+                        </FormControl>
+                        <FormLabel className="text-sm font-medium mr-2">بيع بالتقسيط</FormLabel>
+                      </FormItem>
+                    )}
+                  />
+
+                  {form.watch("isInstallment") && (
+                    <div className="space-y-4 bg-muted/30 p-4 rounded-lg">
+                      <FormField
+                        control={form.control}
+                        name="identityNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium">رقم الهوية</FormLabel>
+                            <FormControl>
+                              <Input
+                                className="w-full"
+                                placeholder="ادخل رقم الهوية"
+                                {...field}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="downPayment"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium">الدفعة الأولى</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                className="w-full"
+                                {...field}
+                                onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="numberOfPayments"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium">عدد الأقساط</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="1"
+                                className="w-full"
+                                {...field}
+                                onChange={(e) => field.onChange(parseInt(e.target.value))}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="startDate"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm font-medium">تاريخ بداية التقسيط</FormLabel>
+                            <FormControl>
+                              <DatePicker
+                                date={field.value}
+                                onSelect={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="space-y-4 border-t pt-4 mt-4">
+                        <h4 className="text-sm font-medium text-muted-foreground">معلومات الكفيل (اختياري)</h4>
+
+                        <FormField
+                          control={form.control}
+                          name="guarantorName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-medium">اسم الكفيل</FormLabel>
+                              <FormControl>
+                                <Input
+                                  className="w-full"
+                                  placeholder="ادخل اسم الكفيل"
+                                  {...field}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="guarantorPhone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-sm font-medium">رقم هاتف الكفيل</FormLabel>
+                              <FormControl>
+                                <Input
+                                  className="w-full"
+                                  placeholder="ادخل رقم هاتف الكفيل"
+                                  {...field}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {selectedProduct && form.watch("quantity") > 0 && (
                     <div className="space-y-2 bg-muted/30 p-4 rounded-lg">

@@ -75,11 +75,15 @@ export const installments = pgTable("installments", {
   saleId: integer("sale_id").notNull(),
   customerName: text("customer_name").notNull(),
   customerPhone: text("customer_phone").notNull(),
+  identityNumber: text("identity_number").notNull(),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+  downPayment: decimal("down_payment", { precision: 10, scale: 2 }).notNull().default("0"),
   numberOfPayments: integer("number_of_payments").notNull(),
   remainingAmount: decimal("remaining_amount", { precision: 10, scale: 2 }).notNull(),
   startDate: timestamp("start_date").notNull().defaultNow(),
   nextPaymentDate: timestamp("next_payment_date").notNull(),
+  guarantorName: text("guarantor_name"),
+  guarantorPhone: text("guarantor_phone"),
   status: text("status").notNull().default("active"),
 });
 
@@ -169,7 +173,7 @@ export const inventoryAdjustments = pgTable("inventory_adjustments", {
 export const inventoryAlerts = pgTable("inventory_alerts", {
   id: serial("id").primaryKey(),
   productId: integer("product_id").notNull().references(() => products.id),
-  type: text("type").notNull(), // low_stock, inactive, high_demand
+  type: text("type").notNull(), 
   threshold: integer("threshold").notNull(),
   status: text("status").notNull().default("active"),
   lastTriggered: timestamp("last_triggered"),
@@ -353,9 +357,13 @@ export const insertInstallmentSchema = createInsertSchema(installments)
   .extend({
     customerName: z.string().min(1, "اسم العميل مطلوب"),
     customerPhone: z.string().min(1, "رقم الهاتف مطلوب"),
+    identityNumber: z.string().min(1, "رقم الهوية مطلوب"),
     totalAmount: z.number().min(0, "المبلغ الإجمالي يجب أن يكون أكبر من 0"),
+    downPayment: z.number().min(0, "الدفعة الأولى يجب أن تكون 0 أو أكثر"),
     numberOfPayments: z.number().min(1, "عدد الأقساط يجب أن يكون 1 على الأقل"),
     nextPaymentDate: z.date(),
+    guarantorName: z.string().optional(),
+    guarantorPhone: z.string().optional(),
   });
 
 export const insertInstallmentPaymentSchema = createInsertSchema(installmentPayments)
