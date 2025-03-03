@@ -156,8 +156,8 @@ export default function CustomersPage() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/customers", selectedCustomer?.id, "appointments"] 
+      queryClient.invalidateQueries({
+        queryKey: ["/api/customers", selectedCustomer?.id, "appointments"],
       });
       toast({
         title: "تم إنشاء الموعد بنجاح",
@@ -179,10 +179,10 @@ export default function CustomersPage() {
   const deleteCustomerMutation = useMutation({
     mutationFn: async (customerId: number) => {
       const response = await fetch(`/api/customers/${customerId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
       if (!response.ok) {
-        throw new Error('فشل في حذف العميل');
+        throw new Error("فشل في حذف العميل");
       }
     },
     onSuccess: () => {
@@ -218,6 +218,9 @@ export default function CustomersPage() {
         <div className="flex items-center gap-4">
           <UserRound className="h-6 w-6" />
           <h1 className="text-2xl font-bold">العملاء</h1>
+          <div
+            className="w-0 h-0 border-r-[25px] border-r-transparent border-b-[50px] border-b-primary border-l-[25px] border-l-transparent"
+          />
         </div>
 
         <div className="flex items-center gap-4">
@@ -485,7 +488,7 @@ export default function CustomersPage() {
                         size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (confirm('هل أنت متأكد من حذف هذا العميل؟')) {
+                          if (confirm("هل أنت متأكد من حذف هذا العميل؟")) {
                             deleteCustomerMutation.mutate(customer.id);
                           }
                         }}
