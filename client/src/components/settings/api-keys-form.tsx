@@ -1,11 +1,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  LOCAL_STORAGE_KEY,
-  platformConfig,
-  formSchema,
-} from "./api-keys.config";
+import { LOCAL_STORAGE_KEY, platformConfig, formSchema } from "./api-keys.config";
 import type { FormData } from "./api-keys.config";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -36,9 +32,9 @@ export default function ApiKeysForm() {
       Object.entries(platformConfig).map(([platform, config]) => [
         platform,
         Object.fromEntries(
-          Object.entries(config.fields).map(([key]) => [key, ""]),
+          Object.entries(config.fields).map(([key]) => [key, ""])
         ),
-      ]),
+      ])
     ),
   });
 
@@ -69,8 +65,7 @@ export default function ApiKeysForm() {
       console.error("Error saving API keys:", error);
       toast({
         title: "خطأ",
-        description:
-          error instanceof Error ? error.message : "فشل في حفظ مفاتيح API",
+        description: error instanceof Error ? error.message : "فشل في حفظ مفاتيح API",
         variant: "destructive",
       });
     } finally {
@@ -92,29 +87,27 @@ export default function ApiKeysForm() {
                   </p>
 
                   <div className="space-y-4">
-                    {Object.entries(platform.fields).map(
-                      ([fieldKey, field]) => (
-                        <FormField
-                          key={fieldKey}
-                          control={form.control}
-                          name={`${platformKey}.${fieldKey}`}
-                          render={({ field: formField }) => (
-                            <FormItem>
-                              <FormLabel>{field.label}</FormLabel>
-                              <FormControl>
-                                <Input
-                                  type={field.type}
-                                  placeholder={field.placeholder}
-                                  {...formField}
-                                  className="font-mono"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      ),
-                    )}
+                    {Object.entries(platform.fields).map(([fieldKey, field]) => (
+                      <FormField
+                        key={fieldKey}
+                        control={form.control}
+                        name={`${platformKey}.${fieldKey}`}
+                        render={({ field: formField }) => (
+                          <FormItem>
+                            <FormLabel>{field.label}</FormLabel>
+                            <FormControl>
+                              <Input
+                                type={field.type}
+                                placeholder={field.placeholder}
+                                {...formField}
+                                className="font-mono"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    ))}
 
                     <div className="mt-4 p-4 bg-muted rounded-lg">
                       <h4 className="font-medium mb-2">تعليمات الإعداد:</h4>

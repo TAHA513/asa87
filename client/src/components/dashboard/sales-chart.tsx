@@ -16,16 +16,13 @@ export default function SalesChart() {
   });
 
   // تجميع المبيعات حسب التاريخ بالدينار العراقي
-  const salesByDate = sales.reduce(
-    (acc, sale) => {
-      const date = new Date(sale.date).toLocaleDateString("ar-IQ");
-      const amount = Number(sale.priceIqd) * sale.quantity;
+  const salesByDate = sales.reduce((acc, sale) => {
+    const date = new Date(sale.date).toLocaleDateString('ar-IQ');
+    const amount = Number(sale.priceIqd) * sale.quantity;
 
-      acc[date] = (acc[date] || 0) + amount;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
+    acc[date] = (acc[date] || 0) + amount;
+    return acc;
+  }, {} as Record<string, number>);
 
   const chartData = Object.entries(salesByDate)
     .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime())
@@ -56,11 +53,8 @@ export default function SalesChart() {
               axisLine={false}
               tickFormatter={(value) => `${value.toLocaleString()} د.ع`}
             />
-            <Tooltip
-              formatter={(value: number) => [
-                `${value.toLocaleString()} د.ع`,
-                "المبيعات",
-              ]}
+            <Tooltip 
+              formatter={(value: number) => [`${value.toLocaleString()} د.ع`, "المبيعات"]}
             />
             <Area
               type="monotone"

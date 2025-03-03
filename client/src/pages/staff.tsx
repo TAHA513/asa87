@@ -107,8 +107,7 @@ export default function Staff() {
     } catch (error) {
       toast({
         title: "حدث خطأ",
-        description:
-          error instanceof Error ? error.message : "فشل إنشاء الحساب",
+        description: error instanceof Error ? error.message : "فشل إنشاء الحساب",
         variant: "destructive",
       });
     }
@@ -139,10 +138,7 @@ export default function Staff() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
-              <MdSupervisorAccount
-                className="h-8 w-8"
-                style={{ color: "#4285F4" }}
-              />
+              <MdSupervisorAccount className="h-8 w-8" style={{ color: "#4285F4" }} />
               <h1 className="text-3xl font-bold">إدارة الموظفين</h1>
             </div>
             <Dialog>
@@ -156,15 +152,11 @@ export default function Staff() {
                 <DialogHeader>
                   <DialogTitle>إضافة موظف جديد</DialogTitle>
                   <DialogDescription>
-                    أدخل معلومات الموظف الجديد. سيتم إرسال بيانات تسجيل الدخول
-                    إلى البريد الإلكتروني المدخل.
+                    أدخل معلومات الموظف الجديد. سيتم إرسال بيانات تسجيل الدخول إلى البريد الإلكتروني المدخل.
                   </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
-                  <form
-                    onSubmit={form.handleSubmit(onSubmit)}
-                    className="space-y-4"
-                  >
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <FormField
                       control={form.control}
                       name="username"
@@ -228,7 +220,10 @@ export default function Staff() {
                         <FormItem>
                           <FormLabel>رقم الهاتف</FormLabel>
                           <FormControl>
-                            <Input {...field} value={field.value || ""} />
+                            <Input
+                              {...field}
+                              value={field.value || ""}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -240,10 +235,7 @@ export default function Staff() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>الدور</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="اختر الدور" />
@@ -292,24 +284,19 @@ export default function Staff() {
                         <TableCell className="font-medium">
                           {user.username}
                         </TableCell>
-                        <TableCell>{user.fullName}</TableCell>
                         <TableCell>
-                          <Badge
-                            variant={
-                              user.role === "admin" ? "default" : "secondary"
-                            }
-                          >
+                          {user.fullName}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={user.role === "admin" ? "default" : "secondary"}>
                             {user.role === "admin" ? "مدير" : "موظف"}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "bg-green-50",
-                              user.isActive ? "text-green-700" : "text-red-700",
-                            )}
-                          >
+                          <Badge variant="outline" className={cn(
+                            "bg-green-50",
+                            user.isActive ? "text-green-700" : "text-red-700"
+                          )}>
                             {user.isActive ? "نشط" : "معطل"}
                           </Badge>
                         </TableCell>
@@ -322,13 +309,9 @@ export default function Staff() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                تعديل المعلومات
-                              </DropdownMenuItem>
+                              <DropdownMenuItem>تعديل المعلومات</DropdownMenuItem>
                               <DropdownMenuItem>تعديل الدور</DropdownMenuItem>
-                              <DropdownMenuItem>
-                                إدارة الصلاحيات
-                              </DropdownMenuItem>
+                              <DropdownMenuItem>إدارة الصلاحيات</DropdownMenuItem>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <DropdownMenuItem className="text-destructive">
@@ -337,12 +320,9 @@ export default function Staff() {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                      هل أنت متأكد من حذف هذا الحساب؟
-                                    </AlertDialogTitle>
+                                    <AlertDialogTitle>هل أنت متأكد من حذف هذا الحساب؟</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      هذا الإجراء لا يمكن التراجع عنه. سيتم حذف
-                                      جميع بيانات الموظف نهائياً.
+                                      هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع بيانات الموظف نهائياً.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
@@ -369,20 +349,17 @@ export default function Staff() {
             <Card>
               <CardHeader>
                 <CardTitle>سجل النشاط</CardTitle>
-                <CardDescription>آخر نشاطات الموظفين في النظام</CardDescription>
+                <CardDescription>
+                  آخر نشاطات الموظفين في النظام
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {users.map((user) => (
-                    <div
-                      key={user.id}
-                      className="flex items-center gap-4 text-sm"
-                    >
+                    <div key={user.id} className="flex items-center gap-4 text-sm">
                       <div className="font-medium">{user.fullName}</div>
                       <div className="text-muted-foreground">
-                        {user.lastLoginAt
-                          ? `آخر تسجيل دخول ${new Date(user.lastLoginAt).toLocaleString("ar-SA")}`
-                          : "لم يسجل الدخول بعد"}
+                        {user.lastLoginAt ? `آخر تسجيل دخول ${new Date(user.lastLoginAt).toLocaleString('ar-SA')}` : 'لم يسجل الدخول بعد'}
                       </div>
                     </div>
                   ))}

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const LOCAL_STORAGE_KEY = "social_media_api_keys";
+export const LOCAL_STORAGE_KEY = 'social_media_api_keys';
 
 // تكوين المنصات
 export const platformConfig = {
@@ -31,8 +31,7 @@ export const platformConfig = {
   },
   twitter: {
     title: "تويتر",
-    description:
-      "قم بإنشاء تطبيق على Twitter Developer Portal وأدخل المفاتيح هنا",
+    description: "قم بإنشاء تطبيق على Twitter Developer Portal وأدخل المفاتيح هنا",
     fields: {
       apiKey: {
         name: "apiKey",
@@ -80,8 +79,7 @@ export const platformConfig = {
   },
   snapchat: {
     title: "سناب شات",
-    description:
-      "قم بإنشاء تطبيق على Snap Kit Developer Portal وأدخل المفاتيح هنا",
+    description: "قم بإنشاء تطبيق على Snap Kit Developer Portal وأدخل المفاتيح هنا",
     fields: {
       clientId: {
         name: "clientId",
@@ -139,11 +137,11 @@ export const formSchema = z.object(
           Object.entries(config.fields).map(([key, field]) => [
             key,
             z.string().min(1, `${field.label} مطلوب`),
-          ]),
-        ),
+          ])
+        )
       ),
-    ]),
-  ),
+    ])
+  )
 );
 
 export type FormData = z.infer<typeof formSchema>;

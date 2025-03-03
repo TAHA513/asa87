@@ -1,14 +1,14 @@
 /* Import the fonts first */
-@import "@fontsource/ibm-plex-sans-arabic/400.css";
-@import "@fontsource/ibm-plex-sans-arabic/500.css";
-@import "@fontsource/ibm-plex-sans-arabic/700.css";
-@import "@fontsource/aref-ruqaa/400.css";
-@import "@fontsource/aref-ruqaa/700.css";
-@import "@fontsource/lateef/400.css";
-@import "@fontsource/lateef/700.css";
-@import "@fontsource/reem-kufi/400.css";
-@import "@fontsource/reem-kufi/500.css";
-@import "@fontsource/reem-kufi/700.css";
+@import '@fontsource/ibm-plex-sans-arabic/400.css';
+@import '@fontsource/ibm-plex-sans-arabic/500.css';
+@import '@fontsource/ibm-plex-sans-arabic/700.css';
+@import '@fontsource/aref-ruqaa/400.css';
+@import '@fontsource/aref-ruqaa/700.css';
+@import '@fontsource/lateef/400.css';
+@import '@fontsource/lateef/700.css';
+@import '@fontsource/reem-kufi/400.css';
+@import '@fontsource/reem-kufi/500.css';
+@import '@fontsource/reem-kufi/700.css';
 
 /* Then Tailwind directives */
 @tailwind base;
@@ -18,16 +18,16 @@
 @layer base {
   :root {
     /* تعريف متغيرات الألوان الأساسية */
-    --primary-color: theme("colors.primary.DEFAULT");
-    --secondary-color: theme("colors.secondary.DEFAULT");
-    --accent-color: theme("colors.accent.DEFAULT");
+    --primary-color: theme('colors.primary.DEFAULT');
+    --secondary-color: theme('colors.secondary.DEFAULT');
+    --accent-color: theme('colors.accent.DEFAULT');
 
     /* تعريف أحجام الخطوط الجديدة */
-    --font-size-base: 1rem; /* 16px */
-    --font-size-lg: 1.125rem; /* 18px */
-    --font-size-xl: 1.25rem; /* 20px */
-    --font-size-2xl: 1.5rem; /* 24px */
-    --font-size-3xl: 1.875rem; /* 30px */
+    --font-size-base: 1rem;      /* 16px */
+    --font-size-lg: 1.125rem;    /* 18px */
+    --font-size-xl: 1.25rem;     /* 20px */
+    --font-size-2xl: 1.5rem;     /* 24px */
+    --font-size-3xl: 1.875rem;   /* 30px */
   }
 
   * {
@@ -44,7 +44,7 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: var(--font-family, theme("fontFamily.noto"));
+    font-family: var(--font-family, theme('fontFamily.noto'));
   }
 
   /* تكبير النصوص في العناصر الرئيسية */
@@ -63,11 +63,7 @@
     font-size: var(--font-size-xl);
   }
 
-  p,
-  li,
-  label,
-  input,
-  button {
+  p, li, label, input, button {
     @apply text-lg;
     font-size: var(--font-size-lg);
   }

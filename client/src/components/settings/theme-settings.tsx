@@ -1,23 +1,8 @@
 import { useEffect, useState } from "react";
-import {
-  Check,
-  Palette,
-  Type,
-  Moon,
-  Sun,
-  Monitor,
-  Minus,
-  Plus,
-} from "lucide-react";
+import { Check, Palette, Type, Moon, Sun, Monitor, Minus, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -168,9 +153,7 @@ const ThemeSettings = () => {
   const [selectedTheme, setSelectedTheme] = useState(themes[0]);
   const [selectedFont, setSelectedFont] = useState(fonts[0]);
   const [fontSize, setFontSize] = useState("medium");
-  const [appearance, setAppearance] = useState<"light" | "dark" | "system">(
-    "system",
-  );
+  const [appearance, setAppearance] = useState<"light" | "dark" | "system">("system");
   const [isLoading, setIsLoading] = useState(false);
 
   // تطبيق وضع السطوع المحدد
@@ -179,10 +162,7 @@ const ThemeSettings = () => {
     root.classList.remove("light", "dark");
 
     if (mode === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
-        ? "dark"
-        : "light";
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
       root.classList.add(systemTheme);
     } else {
       root.classList.add(mode);
@@ -212,10 +192,8 @@ const ThemeSettings = () => {
         const response = await apiRequest("GET", "/api/settings");
         if (response) {
           // استخدام المعرفات بدلاً من الأسماء العربية
-          const theme =
-            themes.find((t) => t.id === response.variant) || themes[0];
-          const font =
-            fonts.find((f) => f.id === response.fontStyle) || fonts[0];
+          const theme = themes.find(t => t.id === response.variant) || themes[0];
+          const font = fonts.find(f => f.id === response.fontStyle) || fonts[0];
           setSelectedTheme(theme);
           setSelectedFont(font);
           setFontSize(response.fontSize || "medium");
@@ -250,26 +228,11 @@ const ThemeSettings = () => {
 
       if (response) {
         // تحديث متغيرات CSS
-        document.documentElement.style.setProperty(
-          "--primary-color",
-          selectedTheme.colors.primary,
-        );
-        document.documentElement.style.setProperty(
-          "--secondary-color",
-          selectedTheme.colors.secondary,
-        );
-        document.documentElement.style.setProperty(
-          "--accent-color",
-          selectedTheme.colors.accent,
-        );
-        document.documentElement.style.setProperty(
-          "--font-family",
-          selectedFont.family,
-        );
-        document.documentElement.style.setProperty(
-          "--font-size-base",
-          `${fontSizes[fontSize].base}px`,
-        );
+        document.documentElement.style.setProperty("--primary-color", selectedTheme.colors.primary);
+        document.documentElement.style.setProperty("--secondary-color", selectedTheme.colors.secondary);
+        document.documentElement.style.setProperty("--accent-color", selectedTheme.colors.accent);
+        document.documentElement.style.setProperty("--font-family", selectedFont.family);
+        document.documentElement.style.setProperty("--font-size-base", `${fontSizes[fontSize].base}px`);
 
         // تطبيق وضع السطوع
         applyAppearance(appearance);
@@ -295,7 +258,9 @@ const ThemeSettings = () => {
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
         <CardTitle className="text-2xl">تخصيص المظهر</CardTitle>
-        <CardDescription>قم بتخصيص مظهر التطبيق حسب تفضيلاتك</CardDescription>
+        <CardDescription>
+          قم بتخصيص مظهر التطبيق حسب تفضيلاتك
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -324,23 +289,14 @@ const ThemeSettings = () => {
                 <Card
                   key={theme.id}
                   className={`cursor-pointer transition-all hover:scale-105 ${
-                    selectedTheme.id === theme.id ? "ring-2 ring-primary" : ""
+                    selectedTheme.id === theme.id ? 'ring-2 ring-primary' : ''
                   }`}
                   onClick={() => {
                     setSelectedTheme(theme);
                     // تطبيق ألوان الثيم فوراً
-                    document.documentElement.style.setProperty(
-                      "--primary-color",
-                      theme.colors.primary,
-                    );
-                    document.documentElement.style.setProperty(
-                      "--secondary-color",
-                      theme.colors.secondary,
-                    );
-                    document.documentElement.style.setProperty(
-                      "--accent-color",
-                      theme.colors.accent,
-                    );
+                    document.documentElement.style.setProperty("--primary-color", theme.colors.primary);
+                    document.documentElement.style.setProperty("--secondary-color", theme.colors.secondary);
+                    document.documentElement.style.setProperty("--accent-color", theme.colors.accent);
                   }}
                 >
                   <CardHeader className="p-4">
@@ -373,15 +329,12 @@ const ThemeSettings = () => {
                 <Card
                   key={font.id}
                   className={`cursor-pointer transition-all hover:scale-105 ${
-                    selectedFont.id === font.id ? "ring-2 ring-primary" : ""
+                    selectedFont.id === font.id ? 'ring-2 ring-primary' : ''
                   }`}
                   onClick={() => {
                     setSelectedFont(font);
                     // تطبيق الخط فوراً
-                    document.documentElement.style.setProperty(
-                      "--font-family",
-                      font.family,
-                    );
+                    document.documentElement.style.setProperty("--font-family", font.family);
                   }}
                 >
                   <CardHeader className="p-4">
@@ -393,7 +346,10 @@ const ThemeSettings = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="p-4">
-                    <p className="text-xl" style={{ fontFamily: font.family }}>
+                    <p
+                      className="text-xl"
+                      style={{ fontFamily: font.family }}
+                    >
                       {font.preview}
                     </p>
                   </CardContent>
@@ -415,15 +371,12 @@ const ThemeSettings = () => {
                       <Card
                         key={size}
                         className={`cursor-pointer p-4 ${
-                          fontSize === size ? "ring-2 ring-primary" : ""
+                          fontSize === size ? 'ring-2 ring-primary' : ''
                         }`}
                         onClick={() => {
                           setFontSize(size);
                           // تطبيق حجم الخط فوراً
-                          document.documentElement.style.setProperty(
-                            "--font-size-base",
-                            `${config.base}px`,
-                          );
+                          document.documentElement.style.setProperty("--font-size-base", `${config.base}px`);
                         }}
                       >
                         <div className="text-center">
@@ -443,19 +396,13 @@ const ThemeSettings = () => {
 
                   <div className="space-y-2">
                     <Label>معاينة الحجم</Label>
-                    <div
-                      className="space-y-4"
-                      style={{
-                        fontSize: `${fontSizes[fontSize].base}px`,
-                        fontFamily: selectedFont.family,
-                      }}
-                    >
+                    <div className="space-y-4" style={{
+                      fontSize: `${fontSizes[fontSize].base}px`,
+                      fontFamily: selectedFont.family
+                    }}>
                       <h1 className="font-bold">عنوان رئيسي</h1>
                       <h2 className="font-semibold">عنوان فرعي</h2>
-                      <p>
-                        هذا نص تجريبي لمعاينة حجم الخط المختار. يمكنك رؤية كيف
-                        سيظهر النص في مختلف العناصر.
-                      </p>
+                      <p>هذا نص تجريبي لمعاينة حجم الخط المختار. يمكنك رؤية كيف سيظهر النص في مختلف العناصر.</p>
                     </div>
                   </div>
                 </div>
@@ -467,7 +414,7 @@ const ThemeSettings = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card
                 className={`cursor-pointer transition-all hover:scale-105 ${
-                  appearance === "light" ? "ring-2 ring-primary" : ""
+                  appearance === "light" ? 'ring-2 ring-primary' : ''
                 }`}
                 onClick={() => {
                   setAppearance("light");
@@ -489,7 +436,7 @@ const ThemeSettings = () => {
 
               <Card
                 className={`cursor-pointer transition-all hover:scale-105 ${
-                  appearance === "dark" ? "ring-2 ring-primary" : ""
+                  appearance === "dark" ? 'ring-2 ring-primary' : ''
                 }`}
                 onClick={() => {
                   setAppearance("dark");
@@ -511,7 +458,7 @@ const ThemeSettings = () => {
 
               <Card
                 className={`cursor-pointer transition-all hover:scale-105 ${
-                  appearance === "system" ? "ring-2 ring-primary" : ""
+                  appearance === "system" ? 'ring-2 ring-primary' : ''
                 }`}
                 onClick={() => {
                   setAppearance("system");

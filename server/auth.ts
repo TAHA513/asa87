@@ -25,10 +25,10 @@ export function setupAuth(app: Express) {
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: "strict",
-      path: "/",
+      sameSite: 'strict',
+      path: '/'
     },
-    name: "sid", // تغيير اسم الكوكي الافتراضي
+    name: 'sid' // تغيير اسم الكوكي الافتراضي
   };
 
   app.set("trust proxy", 1);
@@ -53,7 +53,7 @@ export function setupAuth(app: Express) {
       } catch (err) {
         return done(err);
       }
-    }),
+    })
   );
 
   passport.serializeUser((user, done) => {
@@ -76,9 +76,7 @@ export function setupAuth(app: Express) {
     try {
       const validatedData = insertUserSchema.parse(req.body);
 
-      const existingUser = await storage.getUserByUsername(
-        validatedData.username,
-      );
+      const existingUser = await storage.getUserByUsername(validatedData.username);
       if (existingUser) {
         return res.status(400).json({ message: "اسم المستخدم موجود بالفعل" });
       }
@@ -155,7 +153,7 @@ export function setupAuth(app: Express) {
         }
 
         // مسح الكوكي من المتصفح
-        res.clearCookie("sid");
+        res.clearCookie('sid');
 
         // إرسال استجابة نجاح
         res.json({ success: true });

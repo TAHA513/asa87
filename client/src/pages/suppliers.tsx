@@ -18,14 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Loader2, Plus, Phone, Mail, MapPin, Tag } from "lucide-react";
 import type { Supplier, InsertSupplier } from "@shared/schema";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { insertSupplierSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
@@ -43,9 +36,7 @@ export default function SuppliersPage() {
   const { user } = useAuth();
   const [supplierSheetOpen, setSupplierSheetOpen] = useState(false);
 
-  const { data: suppliers = [], isLoading: isLoadingSuppliers } = useQuery<
-    Supplier[]
-  >({
+  const { data: suppliers = [], isLoading: isLoadingSuppliers } = useQuery<Supplier[]>({
     queryKey: ["/api/suppliers"],
   });
 
@@ -71,10 +62,10 @@ export default function SuppliersPage() {
 
       const response = await fetch("/api/suppliers", {
         method: "POST",
-        headers: {
+        headers: { 
           "Content-Type": "application/json",
         },
-        credentials: "include",
+        credentials: 'include', 
         body: JSON.stringify({
           ...data,
           userId: user.id,
@@ -132,7 +123,9 @@ export default function SuppliersPage() {
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-3xl font-bold">الموردين</h2>
-              <p className="text-muted-foreground">إدارة الموردين والمعاملات</p>
+              <p className="text-muted-foreground">
+                إدارة الموردين والمعاملات
+              </p>
             </div>
             <Sheet open={supplierSheetOpen} onOpenChange={setSupplierSheetOpen}>
               <SheetTrigger asChild>
@@ -146,12 +139,7 @@ export default function SuppliersPage() {
                   <SheetTitle>إضافة مورد جديد</SheetTitle>
                 </SheetHeader>
                 <Form {...form}>
-                  <form
-                    onSubmit={form.handleSubmit((data) =>
-                      createSupplierMutation.mutate(data),
-                    )}
-                    className="space-y-3 mt-4"
-                  >
+                  <form onSubmit={form.handleSubmit((data) => createSupplierMutation.mutate(data))} className="space-y-3 mt-4">
                     <FormField
                       control={form.control}
                       name="name"
@@ -214,16 +202,10 @@ export default function SuppliersPage() {
                             {DEFAULT_CATEGORIES.map((category) => (
                               <Badge
                                 key={category}
-                                variant={
-                                  field.value.includes(category)
-                                    ? "default"
-                                    : "outline"
-                                }
+                                variant={field.value.includes(category) ? "default" : "outline"}
                                 className="cursor-pointer"
                                 onClick={() => {
-                                  const newCategories = field.value.includes(
-                                    category,
-                                  )
+                                  const newCategories = field.value.includes(category)
                                     ? field.value.filter((c) => c !== category)
                                     : [...field.value, category];
                                   field.onChange(newCategories);
@@ -238,11 +220,7 @@ export default function SuppliersPage() {
                         </FormItem>
                       )}
                     />
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={createSupplierMutation.isPending}
-                    >
+                    <Button type="submit" className="w-full" disabled={createSupplierMutation.isPending}>
                       {createSupplierMutation.isPending && (
                         <Loader2 className="h-4 w-4 animate-spin ml-2" />
                       )}
@@ -311,11 +289,7 @@ export default function SuppliersPage() {
                           </div>
                         </div>
                       </div>
-                      <Badge
-                        variant={
-                          supplier.status === "active" ? "default" : "secondary"
-                        }
-                      >
+                      <Badge variant={supplier.status === "active" ? "default" : "secondary"}>
                         {supplier.status === "active" ? "نشط" : "غير نشط"}
                       </Badge>
                     </div>

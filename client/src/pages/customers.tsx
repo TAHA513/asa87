@@ -1,13 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import {
-  Search,
-  UserRound,
-  FileText,
-  Calendar,
-  Plus,
-  Trash2,
-} from "lucide-react";
+import { Search, UserRound, FileText, Calendar, Plus, Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -25,13 +18,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import {
-  type Customer,
-  type Sale,
-  type Appointment,
-  insertCustomerSchema,
-  insertAppointmentSchema,
-} from "@shared/schema";
+import { type Customer, type Sale, type Appointment, insertCustomerSchema, insertAppointmentSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -46,11 +33,7 @@ import { queryClient } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import {
   ResizableHandle,
@@ -62,9 +45,7 @@ import {
 
 export default function CustomersPage() {
   const [search, setSearch] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
-    null,
-  );
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isNewCustomerOpen, setIsNewCustomerOpen] = useState(false);
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
   const { toast } = useToast();
@@ -122,9 +103,7 @@ export default function CustomersPage() {
     queryKey: ["/api/customers", selectedCustomer?.id, "appointments"],
     queryFn: async () => {
       if (!selectedCustomer?.id) return [];
-      const res = await fetch(
-        `/api/customers/${selectedCustomer.id}/appointments`,
-      );
+      const res = await fetch(`/api/customers/${selectedCustomer.id}/appointments`);
       if (!res.ok) {
         throw new Error("فشل في جلب مواعيد العميل");
       }
@@ -166,22 +145,19 @@ export default function CustomersPage() {
   const createAppointmentMutation = useMutation({
     mutationFn: async (data: NewAppointmentForm) => {
       if (!selectedCustomer?.id) throw new Error("لم يتم اختيار العميل");
-      const res = await fetch(
-        `/api/customers/${selectedCustomer.id}/appointments`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        },
-      );
+      const res = await fetch(`/api/customers/${selectedCustomer.id}/appointments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
       if (!res.ok) {
         throw new Error("فشل في إنشاء الموعد");
       }
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["/api/customers", selectedCustomer?.id, "appointments"],
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/customers", selectedCustomer?.id, "appointments"] 
       });
       toast({
         title: "تم إنشاء الموعد بنجاح",
@@ -203,10 +179,10 @@ export default function CustomersPage() {
   const deleteCustomerMutation = useMutation({
     mutationFn: async (customerId: number) => {
       const response = await fetch(`/api/customers/${customerId}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
       if (!response.ok) {
-        throw new Error("فشل في حذف العميل");
+        throw new Error('فشل في حذف العميل');
       }
     },
     onSuccess: () => {
@@ -220,8 +196,7 @@ export default function CustomersPage() {
     onError: (error) => {
       toast({
         title: "خطأ",
-        description:
-          error instanceof Error ? error.message : "فشل في حذف العميل",
+        description: error instanceof Error ? error.message : "فشل في حذف العميل",
         variant: "destructive",
       });
     },
@@ -243,7 +218,6 @@ export default function CustomersPage() {
         <div className="flex items-center gap-4">
           <UserRound className="h-6 w-6" />
           <h1 className="text-2xl font-bold">العملاء</h1>
-          <div className="w-0 h-0 border-r-[25px] border-r-transparent border-b-[50px] border-b-primary border-l-[25px] border-l-transparent" />
         </div>
 
         <div className="flex items-center gap-4">
@@ -270,10 +244,7 @@ export default function CustomersPage() {
               </DialogHeader>
 
               <Form {...customerForm}>
-                <form
-                  onSubmit={customerForm.handleSubmit(onSubmitCustomer)}
-                  className="space-y-4"
-                >
+                <form onSubmit={customerForm.handleSubmit(onSubmitCustomer)} className="space-y-4">
                   <FormField
                     control={customerForm.control}
                     name="name"
@@ -359,10 +330,7 @@ export default function CustomersPage() {
             </DialogContent>
           </Dialog>
 
-          <Dialog
-            open={isNewAppointmentOpen}
-            onOpenChange={setIsNewAppointmentOpen}
-          >
+          <Dialog open={isNewAppointmentOpen} onOpenChange={setIsNewAppointmentOpen}>
             <DialogTrigger asChild>
               <Button variant="outline">
                 <Calendar className="h-4 w-4 ml-2" />
@@ -375,10 +343,7 @@ export default function CustomersPage() {
               </DialogHeader>
 
               <Form {...appointmentForm}>
-                <form
-                  onSubmit={appointmentForm.handleSubmit(onSubmitAppointment)}
-                  className="space-y-4"
-                >
+                <form onSubmit={appointmentForm.handleSubmit(onSubmitAppointment)} className="space-y-4">
                   <FormField
                     control={appointmentForm.control}
                     name="title"
@@ -420,7 +385,7 @@ export default function CustomersPage() {
                                 variant={"outline"}
                                 className={cn(
                                   "w-full pl-3 text-right font-normal",
-                                  !field.value && "text-muted-foreground",
+                                  !field.value && "text-muted-foreground"
                                 )}
                               >
                                 {field.value ? (
@@ -491,10 +456,7 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      <ResizablePanelGroup
-        direction="horizontal"
-        className="min-h-[800px] rounded-lg border"
-      >
+      <ResizablePanelGroup direction="horizontal" className="min-h-[800px] rounded-lg border">
         <ResizablePanel defaultSize={25} minSize={15}>
           <div className="flex h-full flex-col">
             <div className="flex-1 px-4 py-4">
@@ -505,7 +467,7 @@ export default function CustomersPage() {
                     key={customer.id}
                     className={cn(
                       "flex items-center justify-between p-4 border rounded-lg hover:bg-secondary/50 cursor-pointer",
-                      selectedCustomer?.id === customer.id && "bg-secondary",
+                      selectedCustomer?.id === customer.id && "bg-secondary"
                     )}
                     onClick={() => setSelectedCustomer(customer)}
                   >
@@ -523,7 +485,7 @@ export default function CustomersPage() {
                         size="icon"
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (confirm("هل أنت متأكد من حذف هذا العميل؟")) {
+                          if (confirm('هل أنت متأكد من حذف هذا العميل؟')) {
                             deleteCustomerMutation.mutate(customer.id);
                           }
                         }}
@@ -566,9 +528,7 @@ export default function CustomersPage() {
                 {/* المواعيد والحجوزات */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold">
-                      المواعيد والحجوزات
-                    </h2>
+                    <h2 className="text-lg font-semibold">المواعيد والحجوزات</h2>
                     <p className="text-sm text-muted-foreground">
                       {customerAppointments.length} موعد
                     </p>
@@ -576,7 +536,10 @@ export default function CustomersPage() {
                 </div>
                 <div className="space-y-4">
                   {customerAppointments.map((appointment) => (
-                    <div key={appointment.id} className="p-4 border rounded-lg">
+                    <div
+                      key={appointment.id}
+                      className="p-4 border rounded-lg"
+                    >
                       <div className="flex justify-between items-start">
                         <div>
                           <h4 className="font-medium">{appointment.title}</h4>
@@ -587,9 +550,7 @@ export default function CustomersPage() {
                           )}
                         </div>
                         <span className="text-sm text-muted-foreground">
-                          {format(new Date(appointment.date), "PPP", {
-                            locale: ar,
-                          })}
+                          {format(new Date(appointment.date), "PPP", { locale: ar })}
                         </span>
                       </div>
                       <div className="flex justify-between text-sm text-muted-foreground mt-2">
@@ -619,33 +580,23 @@ export default function CustomersPage() {
                   <>
                     {/* تفاصيل العميل */}
                     <div className="mb-8">
-                      <h2 className="text-lg font-semibold mb-4">
-                        تفاصيل العميل - {selectedCustomer.name}
-                      </h2>
+                      <h2 className="text-lg font-semibold mb-4">تفاصيل العميل - {selectedCustomer.name}</h2>
                       <div className="space-y-2">
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            رقم الهاتف:
-                          </span>
+                          <span className="text-muted-foreground">رقم الهاتف:</span>
                           <span>{selectedCustomer.phone || "غير متوفر"}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            البريد الإلكتروني:
-                          </span>
+                          <span className="text-muted-foreground">البريد الإلكتروني:</span>
                           <span>{selectedCustomer.email || "غير متوفر"}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            العنوان:
-                          </span>
+                          <span className="text-muted-foreground">العنوان:</span>
                           <span>{selectedCustomer.address || "غير متوفر"}</span>
                         </div>
                         {selectedCustomer.notes && (
                           <div className="flex justify-between">
-                            <span className="text-muted-foreground">
-                              ملاحظات:
-                            </span>
+                            <span className="text-muted-foreground">ملاحظات:</span>
                             <span>{selectedCustomer.notes}</span>
                           </div>
                         )}
@@ -662,7 +613,10 @@ export default function CustomersPage() {
                       </div>
                       <div className="space-y-4">
                         {customerSales.map((sale) => (
-                          <div key={sale.id} className="p-4 border rounded-lg">
+                          <div
+                            key={sale.id}
+                            className="p-4 border rounded-lg"
+                          >
                             <div className="flex justify-between">
                               <span className="font-medium">
                                 {sale.productId}
@@ -674,9 +628,7 @@ export default function CustomersPage() {
                             <div className="flex justify-between text-sm text-muted-foreground mt-2">
                               <span>الكمية: {sale.quantity}</span>
                               <span>
-                                {format(new Date(sale.date), "PPP", {
-                                  locale: ar,
-                                })}
+                                {format(new Date(sale.date), "PPP", { locale: ar })}
                               </span>
                             </div>
                           </div>

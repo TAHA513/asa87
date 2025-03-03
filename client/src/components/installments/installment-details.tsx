@@ -148,9 +148,7 @@ export default function InstallmentDetails({
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">عدد الأقساط:</span>
-                <span className="font-medium">
-                  {installment.numberOfPayments}
-                </span>
+                <span className="font-medium">{installment.numberOfPayments}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">القسط الشهري:</span>
@@ -161,17 +159,13 @@ export default function InstallmentDetails({
               <div className="flex justify-between">
                 <span className="text-muted-foreground">تاريخ البدء:</span>
                 <span className="font-medium">
-                  {new Date(installment.startDate).toLocaleDateString("ar-IQ")}
+                  {new Date(installment.startDate).toLocaleDateString('ar-IQ')}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">
-                  موعد القسط القادم:
-                </span>
+                <span className="text-muted-foreground">موعد القسط القادم:</span>
                 <span className="font-medium">
-                  {new Date(installment.nextPaymentDate).toLocaleDateString(
-                    "ar-IQ",
-                  )}
+                  {new Date(installment.nextPaymentDate).toLocaleDateString('ar-IQ')}
                 </span>
               </div>
             </CardContent>
@@ -181,14 +175,13 @@ export default function InstallmentDetails({
             <Card>
               <CardHeader>
                 <CardTitle>تسجيل دفعة جديدة</CardTitle>
-                <CardDescription>قم بتسجيل دفعة جديدة للتقسيط</CardDescription>
+                <CardDescription>
+                  قم بتسجيل دفعة جديدة للتقسيط
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Form {...form}>
-                  <form
-                    onSubmit={form.handleSubmit(onSubmit)}
-                    className="space-y-4"
-                  >
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <FormField
                       control={form.control}
                       name="amount"
@@ -200,9 +193,7 @@ export default function InstallmentDetails({
                               type="number"
                               min="0"
                               {...field}
-                              onChange={(e) =>
-                                field.onChange(Number(e.target.value))
-                              }
+                              onChange={(e) => field.onChange(Number(e.target.value))}
                             />
                           </FormControl>
                           <FormMessage />
@@ -258,9 +249,7 @@ export default function InstallmentDetails({
                         {Number(payment.amount).toLocaleString()} د.ع
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(payment.paymentDate).toLocaleDateString(
-                          "ar-IQ",
-                        )}
+                        {new Date(payment.paymentDate).toLocaleDateString('ar-IQ')}
                       </p>
                       {payment.notes && (
                         <p className="text-sm text-muted-foreground mt-1">

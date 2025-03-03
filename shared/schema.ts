@@ -1,13 +1,4 @@
-import {
-  pgTable,
-  text,
-  serial,
-  timestamp,
-  boolean,
-  decimal,
-  integer,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, decimal, integer, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { jsonb } from "drizzle-orm/pg-core";
@@ -43,9 +34,7 @@ export const products = pgTable("products", {
   priceIqd: decimal("price_iqd", { precision: 10, scale: 2 }).notNull(),
   categoryId: integer("category_id").references(() => productCategories.id),
   isWeightBased: boolean("is_weight_based").notNull().default(false),
-  enableDirectWeighing: boolean("enable_direct_weighing")
-    .notNull()
-    .default(false),
+  enableDirectWeighing: boolean("enable_direct_weighing").notNull().default(false),
   stock: integer("stock").notNull().default(0),
   imageUrl: text("image_url"),
   thumbnailUrl: text("thumbnail_url"),
@@ -72,25 +61,14 @@ export const customers = pgTable("customers", {
 
 export const sales = pgTable("sales", {
   id: serial("id").primaryKey(),
-  productId: integer("product_id")
-    .notNull()
-    .references(() => products.id),
-  customerId: integer("customer_id")
-    .notNull()
-    .references(() => customers.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  customerId: integer("customer_id").notNull().references(() => customers.id),
   quantity: integer("quantity").notNull(),
   priceIqd: decimal("price_iqd", { precision: 10, scale: 2 }).notNull(),
-  discount: decimal("discount", { precision: 10, scale: 2 })
-    .notNull()
-    .default("0"),
-  finalPriceIqd: decimal("final_price_iqd", {
-    precision: 10,
-    scale: 2,
-  }).notNull(),
+  discount: decimal("discount", { precision: 10, scale: 2 }).notNull().default("0"),
+  finalPriceIqd: decimal("final_price_iqd", { precision: 10, scale: 2 }).notNull(),
   date: timestamp("date").notNull().defaultNow(),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id),
+  userId: integer("user_id").notNull().references(() => users.id),
   isInstallment: boolean("is_installment").notNull().default(false),
 });
 
@@ -100,9 +78,7 @@ export const invoices = pgTable("invoices", {
   invoiceNumber: varchar("invoice_number", { length: 50 }).notNull().unique(),
   customerName: text("customer_name").notNull(),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
-  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 })
-    .notNull()
-    .default("0"),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).notNull().default("0"),
   finalAmount: decimal("final_amount", { precision: 10, scale: 2 }).notNull(),
   invoiceDate: timestamp("invoice_date").notNull().defaultNow(),
   printed: boolean("printed").notNull().default(false),
@@ -117,14 +93,9 @@ export const installments = pgTable("installments", {
   customerPhone: text("customer_phone").notNull(),
   identityNumber: text("identity_number").notNull(),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
-  downPayment: decimal("down_payment", { precision: 10, scale: 2 })
-    .notNull()
-    .default("0"),
+  downPayment: decimal("down_payment", { precision: 10, scale: 2 }).notNull().default("0"),
   numberOfPayments: integer("number_of_payments").notNull(),
-  remainingAmount: decimal("remaining_amount", {
-    precision: 10,
-    scale: 2,
-  }).notNull(),
+  remainingAmount: decimal("remaining_amount", { precision: 10, scale: 2 }).notNull(),
   startDate: timestamp("start_date").notNull().defaultNow(),
   nextPaymentDate: timestamp("next_payment_date").notNull(),
   guarantorName: text("guarantor_name"),
@@ -217,9 +188,7 @@ export const inventoryAdjustments = pgTable("inventory_adjustments", {
 
 export const inventoryAlerts = pgTable("inventory_alerts", {
   id: serial("id").primaryKey(),
-  productId: integer("product_id")
-    .notNull()
-    .references(() => products.id),
+  productId: integer("product_id").notNull().references(() => products.id),
   type: text("type").notNull(),
   threshold: integer("threshold").notNull(),
   status: text("status").notNull().default("active"),
@@ -230,9 +199,7 @@ export const inventoryAlerts = pgTable("inventory_alerts", {
 
 export const alertNotifications = pgTable("alert_notifications", {
   id: serial("id").primaryKey(),
-  alertId: integer("alert_id")
-    .notNull()
-    .references(() => inventoryAlerts.id),
+  alertId: integer("alert_id").notNull().references(() => inventoryAlerts.id),
   message: text("message").notNull(),
   read: boolean("read").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -266,9 +233,7 @@ export const expenses = pgTable("expenses", {
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   description: text("description").notNull(),
   date: timestamp("date").notNull(),
-  categoryId: integer("category_id")
-    .notNull()
-    .references(() => expenseCategories.id),
+  categoryId: integer("category_id").notNull().references(() => expenseCategories.id),
   userId: integer("user_id").notNull(),
   isRecurring: boolean("is_recurring").default(false),
   recurringPeriod: text("recurring_period"),
@@ -337,9 +302,7 @@ export const fileStorage = pgTable("file_storage", {
 
 export const userSettings = pgTable("user_settings", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id),
+  userId: integer("user_id").notNull().references(() => users.id),
   themeName: text("theme_name").notNull(),
   fontName: text("font_name").notNull(),
   fontSize: text("font_size").notNull(),
@@ -372,21 +335,11 @@ export const insertUserSchema = createInsertSchema(users)
 export const insertProductSchema = createInsertSchema(products).extend({
   name: z.string().min(3, "اسم المنتج يجب أن يكون 3 أحرف على الأقل"),
   description: z.string().optional(),
-  productCode: z
-    .string()
-    .min(1, "رمز المنتج مطلوب")
-    .regex(
-      /^[A-Za-z0-9-]+$/,
-      "رمز المنتج يجب أن يحتوي على أحرف وأرقام وشرطات فقط",
-    ),
-  barcode: z
-    .string()
-    .optional()
+  productCode: z.string().min(1, "رمز المنتج مطلوب")
+    .regex(/^[A-Za-z0-9-]+$/, "رمز المنتج يجب أن يحتوي على أحرف وأرقام وشرطات فقط"),
+  barcode: z.string().optional()
     .nullable()
-    .refine(
-      (val) => !val || /^[0-9]{8,13}$/.test(val),
-      "الباركود يجب أن يكون رقمًا من 8 إلى 13 خانة",
-    ),
+    .refine(val => !val || /^[0-9]{8,13}$/.test(val), "الباركود يجب أن يكون رقمًا من 8 إلى 13 خانة"),
   productType: z.string().min(1, "نوع المنتج مطلوب"),
   quantity: z.number().min(0, "الكمية يجب أن تكون 0 على الأقل"),
   minQuantity: z.number().min(0, "الحد الأدنى يجب أن يكون 0 على الأقل"),
@@ -398,10 +351,7 @@ export const insertProductSchema = createInsertSchema(products).extend({
   isWeightBased: z.boolean().default(false),
   enableDirectWeighing: z.boolean().default(false),
   imageUrl: z.string().url("يجب أن يكون رابط صورة صحيح").optional(),
-  thumbnailUrl: z
-    .string()
-    .url("يجب أن يكون رابط الصورة المصغرة صحيح")
-    .optional(),
+  thumbnailUrl: z.string().url("يجب أن يكون رابط الصورة المصغرة صحيح").optional(),
 });
 
 export const insertSaleSchema = createInsertSchema(sales)
@@ -440,9 +390,7 @@ export const insertInstallmentSchema = createInsertSchema(installments)
     guarantorPhone: z.string().optional(),
   });
 
-export const insertInstallmentPaymentSchema = createInsertSchema(
-  installmentPayments,
-)
+export const insertInstallmentPaymentSchema = createInsertSchema(installmentPayments)
   .omit({ id: true })
   .extend({
     amount: z.number().min(0, "مبلغ الدفعة يجب أن يكون أكبر من 0"),
@@ -469,19 +417,10 @@ export const insertAnalyticsSchema = createInsertSchema(campaignAnalytics)
     spend: z.number().min(0),
   });
 
-export const insertSocialMediaAccountSchema = createInsertSchema(
-  socialMediaAccounts,
-)
+export const insertSocialMediaAccountSchema = createInsertSchema(socialMediaAccounts)
   .omit({ id: true, createdAt: true })
   .extend({
-    platform: z.enum([
-      "facebook",
-      "instagram",
-      "twitter",
-      "linkedin",
-      "snapchat",
-      "tiktok",
-    ]),
+    platform: z.enum(["facebook", "instagram", "twitter", "linkedin", "snapchat", "tiktok"]),
     accountName: z.string().min(1, "اسم الحساب مطلوب"),
     accessToken: z.string().min(1, "رمز الوصول مطلوب"),
     refreshToken: z.string().optional(),
@@ -494,9 +433,7 @@ export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
   updatedAt: true,
 });
 
-export const insertInventoryTransactionSchema = createInsertSchema(
-  inventoryTransactions,
-)
+export const insertInventoryTransactionSchema = createInsertSchema(inventoryTransactions)
   .omit({ id: true })
   .extend({
     type: z.enum(["in", "out"]),
@@ -506,9 +443,7 @@ export const insertInventoryTransactionSchema = createInsertSchema(
     notes: z.string().optional(),
   });
 
-export const insertInventoryAdjustmentSchema = createInsertSchema(
-  inventoryAdjustments,
-)
+export const insertInventoryAdjustmentSchema = createInsertSchema(inventoryAdjustments)
   .omit({ id: true })
   .extend({
     oldQuantity: z.number().min(0, "الكمية القديمة يجب أن تكون 0 على الأقل"),
@@ -525,9 +460,7 @@ export const insertInventoryAlertSchema = createInsertSchema(inventoryAlerts)
     status: z.enum(["active", "inactive"]).default("active"),
   });
 
-export const insertAlertNotificationSchema = createInsertSchema(
-  alertNotifications,
-)
+export const insertAlertNotificationSchema = createInsertSchema(alertNotifications)
   .omit({ id: true, createdAt: true })
   .extend({
     message: z.string().min(1, "الرسالة مطلوبة"),
@@ -552,11 +485,7 @@ export const insertExpenseCategorySchema = createInsertSchema(expenseCategories)
   .extend({
     name: z.string().min(1, "اسم الفئة مطلوب"),
     description: z.string().optional().nullable(),
-    budgetAmount: z
-      .number()
-      .min(0, "الميزانية يجب أن تكون 0 على الأقل")
-      .optional()
-      .nullable(),
+    budgetAmount: z.number().min(0, "الميزانية يجب أن تكون 0 على الأقل").optional().nullable(),
   });
 
 export const insertExpenseSchema = createInsertSchema(expenses)
@@ -582,9 +511,7 @@ export const insertSupplierSchema = createInsertSchema(suppliers)
     categories: z.array(z.string()).min(1, "يجب اختيار فئة واحدة على الأقل"),
   });
 
-export const insertSupplierTransactionSchema = createInsertSchema(
-  supplierTransactions,
-)
+export const insertSupplierTransactionSchema = createInsertSchema(supplierTransactions)
   .omit({ id: true, createdAt: true })
   .extend({
     amount: z.number().min(0, "المبلغ يجب أن يكون أكبر من 0"),
@@ -608,9 +535,7 @@ export const insertAppointmentSchema = createInsertSchema(appointments)
     title: z.string().min(1, "عنوان الموعد مطلوب"),
     date: z.date(),
     duration: z.number().min(1, "مدة الموعد يجب أن تكون 1 دقيقة على الأقل"),
-    status: z
-      .enum(["scheduled", "completed", "cancelled"])
-      .default("scheduled"),
+    status: z.enum(["scheduled", "completed", "cancelled"]).default("scheduled"),
   });
 
 export const insertFileStorageSchema = createInsertSchema(fileStorage)
@@ -654,28 +579,20 @@ export type ExchangeRate = typeof exchangeRates.$inferSelect;
 export type Installment = typeof installments.$inferSelect;
 export type InstallmentPayment = typeof installmentPayments.$inferSelect;
 export type InsertInstallment = z.infer<typeof insertInstallmentSchema>;
-export type InsertInstallmentPayment = z.infer<
-  typeof insertInstallmentPaymentSchema
->;
+export type InsertInstallmentPayment = z.infer<typeof insertInstallmentPaymentSchema>;
 export type Campaign = typeof marketingCampaigns.$inferSelect;
 export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
 export type CampaignAnalytics = typeof campaignAnalytics.$inferSelect;
 export type InsertCampaignAnalytics = z.infer<typeof insertAnalyticsSchema>;
 export type SocialMediaAccount = typeof socialMediaAccounts.$inferSelect;
-export type InsertSocialMediaAccount = z.infer<
-  typeof insertSocialMediaAccountSchema
->;
+export type InsertSocialMediaAccount = z.infer<typeof insertSocialMediaAccountSchema>;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
 
 export type InventoryTransaction = typeof inventoryTransactions.$inferSelect;
-export type InsertInventoryTransaction = z.infer<
-  typeof insertInventoryTransactionSchema
->;
+export type InsertInventoryTransaction = z.infer<typeof insertInventoryTransactionSchema>;
 export type InventoryAdjustment = typeof inventoryAdjustments.$inferSelect;
-export type InsertInventoryAdjustment = z.infer<
-  typeof insertInventoryAdjustmentSchema
->;
+export type InsertInventoryAdjustment = z.infer<typeof insertInventoryAdjustmentSchema>;
 export type Report = typeof reports.$inferSelect;
 export type InsertReport = z.infer<typeof insertReportSchema>;
 export type ExpenseCategory = typeof expenseCategories.$inferSelect;
@@ -685,9 +602,7 @@ export type InsertExpense = z.infer<typeof insertExpenseSchema>;
 export type Supplier = typeof suppliers.$inferSelect;
 export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
 export type SupplierTransaction = typeof supplierTransactions.$inferSelect;
-export type InsertSupplierTransaction = z.infer<
-  typeof insertSupplierTransactionSchema
->;
+export type InsertSupplierTransaction = z.infer<typeof insertSupplierTransactionSchema>;
 export type Customer = typeof customers.$inferSelect;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 
@@ -702,6 +617,4 @@ export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;
 export type InventoryAlert = typeof inventoryAlerts.$inferSelect;
 export type InsertInventoryAlert = z.infer<typeof insertInventoryAlertSchema>;
 export type AlertNotification = typeof alertNotifications.$inferSelect;
-export type InsertAlertNotification = z.infer<
-  typeof insertAlertNotificationSchema
->;
+export type InsertAlertNotification = z.infer<typeof insertAlertNotificationSchema>;

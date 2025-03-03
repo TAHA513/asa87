@@ -20,7 +20,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
+import { 
   Select,
   SelectContent,
   SelectItem,
@@ -50,20 +50,20 @@ interface HistoricalData {
 // تعريف أنماط الألوان المتاحة
 const colorSchemes = {
   default: {
-    primary: "#8884d8",
-    secondary: "#82ca9d",
-    tertiary: "#ffc658",
+    primary: '#8884d8',
+    secondary: '#82ca9d',
+    tertiary: '#ffc658'
   },
   warm: {
-    primary: "#ff7300",
-    secondary: "#ff9800",
-    tertiary: "#ffc107",
+    primary: '#ff7300',
+    secondary: '#ff9800',
+    tertiary: '#ffc107'
   },
   cool: {
-    primary: "#00bcd4",
-    secondary: "#03a9f4",
-    tertiary: "#2196f3",
-  },
+    primary: '#00bcd4',
+    secondary: '#03a9f4',
+    tertiary: '#2196f3'
+  }
 } as const;
 
 interface ChartProps {
@@ -73,8 +73,7 @@ interface ChartProps {
 }
 
 export function PlatformPerformanceGraphs() {
-  const [colorScheme, setColorScheme] =
-    useState<keyof typeof colorSchemes>("default");
+  const [colorScheme, setColorScheme] = useState<keyof typeof colorSchemes>('default');
   const [updateInterval, setUpdateInterval] = useState(300000); // 5 minutes default
 
   // Fetch platform-specific analytics with configurable interval
@@ -97,9 +96,7 @@ export function PlatformPerformanceGraphs() {
       <div className="flex flex-wrap gap-4 mb-6">
         <Select
           value={colorScheme}
-          onValueChange={(value: keyof typeof colorSchemes) =>
-            setColorScheme(value)
-          }
+          onValueChange={(value: keyof typeof colorSchemes) => setColorScheme(value)}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="اختر نمط الألوان" />
@@ -138,30 +135,18 @@ export function PlatformPerformanceGraphs() {
             <div className="h-[300px] w-full">
               {platformStats.length === 0 ? (
                 <div className="flex h-full items-center justify-center text-muted-foreground">
-                  لا توجد بيانات للمنصات. قم بإضافة مفاتيح API للمنصات في
-                  الإعدادات.
+                  لا توجد بيانات للمنصات. قم بإضافة مفاتيح API للمنصات في الإعدادات.
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={platformStats}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
+                  <BarChart data={platformStats} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="platform" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Bar
-                      dataKey="impressions"
-                      name="الانطباعات"
-                      fill={colors.primary}
-                    />
-                    <Bar
-                      dataKey="engagements"
-                      name="التفاعلات"
-                      fill={colors.secondary}
-                    />
+                    <Bar dataKey="impressions" name="الانطباعات" fill={colors.primary} />
+                    <Bar dataKey="engagements" name="التفاعلات" fill={colors.secondary} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -172,48 +157,46 @@ export function PlatformPerformanceGraphs() {
         <Card className="w-full">
           <CardHeader>
             <CardTitle>تحليل الأداء عبر الزمن</CardTitle>
-            <CardDescription>تطور الأداء على مدار الوقت</CardDescription>
+            <CardDescription>
+              تطور الأداء على مدار الوقت
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px] w-full">
               {historicalData.length === 0 ? (
                 <div className="flex h-full items-center justify-center text-muted-foreground">
-                  لا توجد بيانات تاريخية. سيتم عرض البيانات عند توفرها من
-                  المنصات.
+                  لا توجد بيانات تاريخية. سيتم عرض البيانات عند توفرها من المنصات.
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={historicalData}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
+                  <AreaChart data={historicalData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Area
-                      type="monotone"
-                      dataKey="impressions"
+                    <Area 
+                      type="monotone" 
+                      dataKey="impressions" 
                       name="الانطباعات"
-                      stroke={colors.primary}
-                      fill={colors.primary}
+                      stroke={colors.primary} 
+                      fill={colors.primary} 
                       fillOpacity={0.3}
                     />
-                    <Area
-                      type="monotone"
-                      dataKey="engagements"
+                    <Area 
+                      type="monotone" 
+                      dataKey="engagements" 
                       name="التفاعلات"
-                      stroke={colors.secondary}
-                      fill={colors.secondary}
+                      stroke={colors.secondary} 
+                      fill={colors.secondary} 
                       fillOpacity={0.3}
                     />
-                    <Area
-                      type="monotone"
-                      dataKey="spend"
+                    <Area 
+                      type="monotone" 
+                      dataKey="spend" 
                       name="الإنفاق"
-                      stroke={colors.tertiary}
-                      fill={colors.tertiary}
+                      stroke={colors.tertiary} 
+                      fill={colors.tertiary} 
                       fillOpacity={0.3}
                     />
                   </AreaChart>
@@ -226,7 +209,9 @@ export function PlatformPerformanceGraphs() {
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>تحليل المنصات عبر الزمن</CardTitle>
-            <CardDescription>مقارنة أداء المنصات</CardDescription>
+            <CardDescription>
+              مقارنة أداء المنصات
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[400px] w-full">
@@ -236,29 +221,26 @@ export function PlatformPerformanceGraphs() {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={historicalData}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
+                  <LineChart data={historicalData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line
-                      type="monotone"
+                    <Line 
+                      type="monotone" 
                       dataKey="impressions"
                       name="الانطباعات"
                       stroke={colors.primary}
                     />
-                    <Line
-                      type="monotone"
+                    <Line 
+                      type="monotone" 
                       dataKey="engagements"
                       name="التفاعلات"
                       stroke={colors.secondary}
                     />
-                    <Line
-                      type="monotone"
+                    <Line 
+                      type="monotone" 
                       dataKey="spend"
                       name="الإنفاق"
                       stroke={colors.tertiary}

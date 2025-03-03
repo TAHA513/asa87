@@ -1,45 +1,16 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area,
-} from "recharts";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
+  ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell,
+  AreaChart, Area
+} from 'recharts';
 import { useMemo, useState } from "react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  RefreshCw,
-  TrendingUp,
-  ArrowUpRight,
-  ArrowDownRight,
-} from "lucide-react";
+import { RefreshCw, TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 // تعريف أنماط البيانات
 interface SalesData {
@@ -75,51 +46,45 @@ interface DashboardMetrics {
 // تعريف أنماط الألوان
 const colorSchemes = {
   default: {
-    primary: "hsl(var(--primary))",
-    secondary: "#82ca9d",
-    accent: "#ffc658",
-    background: "hsl(var(--background))",
+    primary: 'hsl(var(--primary))',
+    secondary: '#82ca9d',
+    accent: '#ffc658',
+    background: 'hsl(var(--background))'
   },
   warm: {
-    primary: "#ff7300",
-    secondary: "#ff9800",
-    accent: "#ffc107",
-    background: "#fff5e6",
+    primary: '#ff7300',
+    secondary: '#ff9800',
+    accent: '#ffc107',
+    background: '#fff5e6'
   },
   cool: {
-    primary: "#00bcd4",
-    secondary: "#03a9f4",
-    accent: "#2196f3",
-    background: "#e1f5fe",
-  },
+    primary: '#00bcd4',
+    secondary: '#03a9f4',
+    accent: '#2196f3',
+    background: '#e1f5fe'
+  }
 } as const;
 
 type ColorScheme = keyof typeof colorSchemes;
 
 export const AnalyticsDashboard = () => {
-  const [colorScheme, setColorScheme] = useState<ColorScheme>("default");
+  const [colorScheme, setColorScheme] = useState<ColorScheme>('default');
   const [refreshInterval, setRefreshInterval] = useState(30000);
-  const [chartType, setChartType] = useState<"line" | "area" | "bar">("area");
+  const [chartType, setChartType] = useState<'line' | 'area' | 'bar'>('area');
 
   // استعلامات البيانات مع تحديثات في الوقت الفعلي
-  const { data: salesData = [], isLoading: isSalesLoading } = useQuery<
-    SalesData[]
-  >({
-    queryKey: ["/api/analytics/sales"],
+  const { data: salesData = [], isLoading: isSalesLoading } = useQuery<SalesData[]>({
+    queryKey: ['/api/analytics/sales'],
     refetchInterval: refreshInterval,
   });
 
-  const { data: customerData = [], isLoading: isCustomerLoading } = useQuery<
-    CustomerData[]
-  >({
-    queryKey: ["/api/analytics/customers"],
+  const { data: customerData = [], isLoading: isCustomerLoading } = useQuery<CustomerData[]>({
+    queryKey: ['/api/analytics/customers'],
     refetchInterval: refreshInterval,
   });
 
-  const { data: productData = [], isLoading: isProductLoading } = useQuery<
-    ProductData[]
-  >({
-    queryKey: ["/api/analytics/products"],
+  const { data: productData = [], isLoading: isProductLoading } = useQuery<ProductData[]>({
+    queryKey: ['/api/analytics/products'],
     refetchInterval: refreshInterval,
   });
 
@@ -136,39 +101,30 @@ export const AnalyticsDashboard = () => {
       topProducts: productData.slice(0, 5),
       salesGrowth,
       customerGrowth: 15.2, // مثال - يجب استبداله ببيانات فعلية
-      revenueGrowth: 22.5, // مثال - يجب استبداله ببيانات فعلية
+      revenueGrowth: 22.5 // مثال - يجب استبداله ببيانات فعلية
     };
   }, [salesData, customerData, productData]);
 
   const colors = colorSchemes[colorScheme];
 
-  const renderMetricCard = (
-    title: string,
-    value: string | number,
-    growth: number,
-    icon: React.ReactNode,
-  ) => (
+  const renderMetricCard = (title: string, value: string | number, growth: number, icon: React.ReactNode) => (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         {icon}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">
-          {typeof value === "number" ? value.toLocaleString("ar-IQ") : value}
-        </div>
+        <div className="text-2xl font-bold">{typeof value === 'number' ? value.toLocaleString('ar-IQ') : value}</div>
         <div className="flex items-center space-x-2 text-xs">
           {growth >= 0 ? (
             <ArrowUpRight className="h-4 w-4 text-green-500" />
           ) : (
             <ArrowDownRight className="h-4 w-4 text-red-500" />
           )}
-          <span
-            className={cn(
-              "font-medium",
-              growth >= 0 ? "text-green-500" : "text-red-500",
-            )}
-          >
+          <span className={cn(
+            "font-medium",
+            growth >= 0 ? "text-green-500" : "text-red-500"
+          )}>
             {Math.abs(growth).toFixed(1)}%
           </span>
           <span className="text-muted-foreground">من الشهر الماضي</span>
@@ -178,14 +134,8 @@ export const AnalyticsDashboard = () => {
   );
 
   const renderChart = () => {
-    const ChartComponent =
-      chartType === "line"
-        ? LineChart
-        : chartType === "area"
-          ? AreaChart
-          : BarChart;
-    const DataComponent =
-      chartType === "bar" ? Bar : chartType === "area" ? Area : Line;
+    const ChartComponent = chartType === 'line' ? LineChart : chartType === 'area' ? AreaChart : BarChart;
+    const DataComponent = chartType === 'bar' ? Bar : chartType === 'area' ? Area : Line;
 
     return (
       <ResponsiveContainer width="100%" height={350}>
@@ -201,7 +151,7 @@ export const AnalyticsDashboard = () => {
             name="المبيعات"
             stroke={colors.primary}
             fill={colors.primary}
-            fillOpacity={chartType === "area" ? 0.3 : 1}
+            fillOpacity={chartType === 'area' ? 0.3 : 1}
           />
           <DataComponent
             type="monotone"
@@ -209,7 +159,7 @@ export const AnalyticsDashboard = () => {
             name="الطلبات"
             stroke={colors.secondary}
             fill={colors.secondary}
-            fillOpacity={chartType === "area" ? 0.3 : 1}
+            fillOpacity={chartType === 'area' ? 0.3 : 1}
           />
         </ChartComponent>
       </ResponsiveContainer>
@@ -265,27 +215,27 @@ export const AnalyticsDashboard = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {renderMetricCard(
           "إجمالي المبيعات",
-          `${metrics.totalSales.toLocaleString("ar-IQ")} د.ع`,
+          `${metrics.totalSales.toLocaleString('ar-IQ')} د.ع`,
           metrics.salesGrowth,
-          <TrendingUp className="h-4 w-4 text-muted-foreground" />,
+          <TrendingUp className="h-4 w-4 text-muted-foreground" />
         )}
         {renderMetricCard(
           "متوسط قيمة الطلب",
-          `${metrics.averageOrderValue.toLocaleString("ar-IQ")} د.ع`,
+          `${metrics.averageOrderValue.toLocaleString('ar-IQ')} د.ع`,
           15.2,
-          <TrendingUp className="h-4 w-4 text-muted-foreground" />,
+          <TrendingUp className="h-4 w-4 text-muted-foreground" />
         )}
         {renderMetricCard(
           "عدد العملاء",
           metrics.totalCustomers,
           metrics.customerGrowth,
-          <TrendingUp className="h-4 w-4 text-muted-foreground" />,
+          <TrendingUp className="h-4 w-4 text-muted-foreground" />
         )}
         {renderMetricCard(
           "نمو الإيرادات",
           `${metrics.revenueGrowth}%`,
           metrics.revenueGrowth,
-          <TrendingUp className="h-4 w-4 text-muted-foreground" />,
+          <TrendingUp className="h-4 w-4 text-muted-foreground" />
         )}
       </div>
 
@@ -295,14 +245,9 @@ export const AnalyticsDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>تحليل المبيعات</CardTitle>
-              <CardDescription>
-                مقارنة المبيعات والطلبات عبر الزمن
-              </CardDescription>
+              <CardDescription>مقارنة المبيعات والطلبات عبر الزمن</CardDescription>
             </div>
-            <Tabs
-              value={chartType}
-              onValueChange={(value) => setChartType(value as typeof chartType)}
-            >
+            <Tabs value={chartType} onValueChange={(value) => setChartType(value as typeof chartType)}>
               <TabsList>
                 <TabsTrigger value="area">مساحي</TabsTrigger>
                 <TabsTrigger value="line">خطي</TabsTrigger>
@@ -311,7 +256,9 @@ export const AnalyticsDashboard = () => {
             </Tabs>
           </div>
         </CardHeader>
-        <CardContent>{renderChart()}</CardContent>
+        <CardContent>
+          {renderChart()}
+        </CardContent>
       </Card>
 
       {/* المنتجات الأكثر مبيعاً */}
@@ -324,10 +271,7 @@ export const AnalyticsDashboard = () => {
           <CardContent>
             <div className="space-y-4">
               {metrics.topProducts.map((product) => (
-                <div
-                  key={product.name}
-                  className="flex items-center justify-between"
-                >
+                <div key={product.name} className="flex items-center justify-between">
                   <div>
                     <div className="font-medium">{product.name}</div>
                     <div className="text-sm text-muted-foreground">
@@ -337,18 +281,13 @@ export const AnalyticsDashboard = () => {
                   <div className="flex items-center space-x-2">
                     <div className="text-right">
                       <div className="font-medium">
-                        {product.revenue.toLocaleString("ar-IQ")} د.ع
+                        {product.revenue.toLocaleString('ar-IQ')} د.ع
                       </div>
-                      <div
-                        className={cn(
-                          "text-sm",
-                          product.growth >= 0
-                            ? "text-green-500"
-                            : "text-red-500",
-                        )}
-                      >
-                        {product.growth >= 0 ? "+" : "-"}
-                        {Math.abs(product.growth)}%
+                      <div className={cn(
+                        "text-sm",
+                        product.growth >= 0 ? "text-green-500" : "text-red-500"
+                      )}>
+                        {product.growth >= 0 ? "+" : "-"}{Math.abs(product.growth)}%
                       </div>
                     </div>
                   </div>
@@ -377,13 +316,9 @@ export const AnalyticsDashboard = () => {
                     label
                   >
                     {customerData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={
-                          [colors.primary, colors.secondary, colors.accent][
-                            index % 3
-                          ]
-                        }
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={[colors.primary, colors.secondary, colors.accent][index % 3]} 
                       />
                     ))}
                   </Pie>

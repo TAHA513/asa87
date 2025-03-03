@@ -22,35 +22,15 @@ import { Loader2, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import type { Expense, ExpenseCategory } from "@shared/schema";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  insertExpenseCategorySchema,
-  insertExpenseSchema,
-} from "@shared/schema";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { insertExpenseCategorySchema, insertExpenseSchema } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -66,15 +46,11 @@ export default function ExpensesPage() {
   const [categorySheetOpen, setCategorySheetOpen] = useState(false);
   const [expenseSheetOpen, setExpenseSheetOpen] = useState(false);
 
-  const { data: categories = [], isLoading: isLoadingCategories } = useQuery<
-    ExpenseCategory[]
-  >({
+  const { data: categories = [], isLoading: isLoadingCategories } = useQuery<ExpenseCategory[]>({
     queryKey: ["/api/expenses/categories"],
   });
 
-  const { data: expenses = [], isLoading: isLoadingExpenses } = useQuery<
-    Expense[]
-  >({
+  const { data: expenses = [], isLoading: isLoadingExpenses } = useQuery<Expense[]>({
     queryKey: ["/api/expenses"],
   });
 
@@ -210,10 +186,7 @@ export default function ExpensesPage() {
               </p>
             </div>
             <div className="space-x-4 rtl:space-x-reverse">
-              <Sheet
-                open={categorySheetOpen}
-                onOpenChange={setCategorySheetOpen}
-              >
+              <Sheet open={categorySheetOpen} onOpenChange={setCategorySheetOpen}>
                 <SheetTrigger asChild>
                   <Button>
                     <Plus className="h-4 w-4 ml-2" />
@@ -229,12 +202,7 @@ export default function ExpensesPage() {
                   </SheetHeader>
                   <div className="mt-6">
                     <Form {...categoryForm}>
-                      <form
-                        onSubmit={categoryForm.handleSubmit((data) =>
-                          createCategoryMutation.mutate(data),
-                        )}
-                        className="space-y-4"
-                      >
+                      <form onSubmit={categoryForm.handleSubmit((data) => createCategoryMutation.mutate(data))} className="space-y-4">
                         <FormField
                           control={categoryForm.control}
                           name="name"
@@ -272,20 +240,14 @@ export default function ExpensesPage() {
                                   type="number"
                                   {...field}
                                   value={field.value || ""}
-                                  onChange={(e) =>
-                                    field.onChange(e.target.valueAsNumber)
-                                  }
+                                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
                                 />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                        <Button
-                          type="submit"
-                          className="w-full"
-                          disabled={createCategoryMutation.isPending}
-                        >
+                        <Button type="submit" className="w-full" disabled={createCategoryMutation.isPending}>
                           {createCategoryMutation.isPending && (
                             <Loader2 className="h-4 w-4 animate-spin ml-2" />
                           )}
@@ -313,12 +275,7 @@ export default function ExpensesPage() {
                   </SheetHeader>
                   <div className="mt-6">
                     <Form {...expenseForm}>
-                      <form
-                        onSubmit={expenseForm.handleSubmit((data) =>
-                          createExpenseMutation.mutate(data),
-                        )}
-                        className="space-y-4"
-                      >
+                      <form onSubmit={expenseForm.handleSubmit((data) => createExpenseMutation.mutate(data))} className="space-y-4">
                         <FormField
                           control={expenseForm.control}
                           name="description"
@@ -343,9 +300,7 @@ export default function ExpensesPage() {
                                   type="number"
                                   {...field}
                                   value={field.value || ""}
-                                  onChange={(e) =>
-                                    field.onChange(e.target.valueAsNumber)
-                                  }
+                                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -360,9 +315,7 @@ export default function ExpensesPage() {
                               <FormLabel>الفئة</FormLabel>
                               <Select
                                 value={field.value?.toString()}
-                                onValueChange={(value) =>
-                                  field.onChange(parseInt(value))
-                                }
+                                onValueChange={(value) => field.onChange(parseInt(value))}
                               >
                                 <FormControl>
                                   <SelectTrigger>
@@ -397,13 +350,11 @@ export default function ExpensesPage() {
                                       variant="outline"
                                       className={cn(
                                         "w-full pl-3 text-right font-normal",
-                                        !field.value && "text-muted-foreground",
+                                        !field.value && "text-muted-foreground"
                                       )}
                                     >
                                       {field.value ? (
-                                        format(field.value, "PPP", {
-                                          locale: ar,
-                                        })
+                                        format(field.value, "PPP", { locale: ar })
                                       ) : (
                                         <span>اختر تاريخ</span>
                                       )}
@@ -411,10 +362,7 @@ export default function ExpensesPage() {
                                     </Button>
                                   </FormControl>
                                 </PopoverTrigger>
-                                <PopoverContent
-                                  className="w-auto p-0"
-                                  align="start"
-                                >
+                                <PopoverContent className="w-auto p-0" align="start">
                                   <Calendar
                                     mode="single"
                                     selected={field.value}
@@ -434,20 +382,13 @@ export default function ExpensesPage() {
                             <FormItem>
                               <FormLabel>ملاحظات</FormLabel>
                               <FormControl>
-                                <Textarea
-                                  {...field}
-                                  value={field.value || ""}
-                                />
+                                <Textarea {...field} value={field.value || ""} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                        <Button
-                          type="submit"
-                          className="w-full"
-                          disabled={createExpenseMutation.isPending}
-                        >
+                        <Button type="submit" className="w-full" disabled={createExpenseMutation.isPending}>
                           {createExpenseMutation.isPending && (
                             <Loader2 className="h-4 w-4 animate-spin ml-2" />
                           )}
@@ -474,8 +415,7 @@ export default function ExpensesPage() {
               <CardContent>
                 {categories.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    لا توجد فئات مصروفات. قم بإضافة فئة جديدة باستخدام الزر
-                    أعلاه.
+                    لا توجد فئات مصروفات. قم بإضافة فئة جديدة باستخدام الزر أعلاه.
                   </div>
                 ) : (
                   <div className="divide-y">
@@ -528,9 +468,7 @@ export default function ExpensesPage() {
                         <div>
                           <h3 className="font-medium">{expense.description}</h3>
                           <p className="text-sm text-muted-foreground">
-                            {format(new Date(expense.date), "PPP", {
-                              locale: ar,
-                            })}
+                            {format(new Date(expense.date), "PPP", { locale: ar })}
                           </p>
                         </div>
                         <div className="text-lg font-semibold">

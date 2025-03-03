@@ -51,9 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const filePath = path.join(process.cwd(), "uploads", fileName);
 
         // Create uploads directory if it doesn't exist
-        await fs.mkdir(path.join(process.cwd(), "uploads"), {
-          recursive: true,
-        });
+        await fs.mkdir(path.join(process.cwd(), "uploads"), { recursive: true });
 
         // Save the file
         await fs.writeFile(filePath, file.data);
@@ -66,7 +64,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const product = await storage.createProduct({
         ...req.body,
         imageUrl,
-        thumbnailUrl,
+        thumbnailUrl
       });
 
       res.status(201).json(product);
@@ -77,10 +75,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.patch("/api/products/:id", async (req, res) => {
-    const product = await storage.updateProduct(
-      Number(req.params.id),
-      req.body,
-    );
+    const product = await storage.updateProduct(Number(req.params.id), req.body);
     res.json(product);
   });
 
@@ -98,6 +93,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
   // Sales
   app.get("/api/sales", async (_req, res) => {
     const sales = await storage.getSales();
@@ -111,7 +107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sale = await storage.createSale({
         ...req.body,
         userId: req.user!.id,
-        date: new Date(),
+        date: new Date()
       });
 
       // Update product stock
@@ -119,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (product) {
         await storage.updateProduct(product.id, {
           ...product,
-          stock: product.stock - sale.quantity,
+          stock: product.stock - sale.quantity
         });
       }
 
@@ -130,7 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Exchange Rates
+  // Exchange Rates  
   app.get("/api/exchange-rate", async (_req, res) => {
     try {
       const rate = await storage.getCurrentExchangeRate();
@@ -143,18 +139,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/exchange-rate", async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res
-        .status(401)
-        .json({ message: "يجب تسجيل الدخول لتحديث سعر الصرف" });
+      return res.status(401).json({ message: "يجب تسجيل الدخول لتحديث سعر الصرف" });
     }
 
     try {
       console.log("Updating exchange rate with:", req.body);
       const rate = Number(req.body.usdToIqd);
       if (isNaN(rate) || rate <= 0) {
-        return res
-          .status(400)
-          .json({ message: "سعر الصرف يجب أن يكون رقماً موجباً" });
+        return res.status(400).json({ message: "سعر الصرف يجب أن يكون رقماً موجباً" });
       }
 
       const updatedRate = await storage.setExchangeRate(rate);
@@ -172,16 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum([
-          "professional",
-          "vibrant",
-          "tint",
-          "modern",
-          "classic",
-          "futuristic",
-          "elegant",
-          "natural",
-        ]),
+        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
         appearance: z.enum(["light", "dark", "system"]),
         fontStyle: z.enum([
           "traditional",
@@ -208,7 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // حفظ الثيم في ملف theme.json
       await fs.writeFile(
         path.join(process.cwd(), "theme.json"),
-        JSON.stringify(theme, null, 2),
+        JSON.stringify(theme, null, 2)
       );
 
       res.json({ success: true });
@@ -241,7 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const installment = await storage.createInstallment({
         ...req.body,
         startDate: new Date(),
-        status: "active",
+        status: "active"
       });
 
       res.status(201).json(installment);
@@ -252,9 +235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/installments/:id/payments", async (req, res) => {
-    const payments = await storage.getInstallmentPayments(
-      Number(req.params.id),
-    );
+    const payments = await storage.getInstallmentPayments(Number(req.params.id));
     res.json(payments);
   });
 
@@ -267,7 +248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const payment = await storage.createInstallmentPayment({
         ...req.body,
         installmentId: Number(req.params.id),
-        paymentDate: new Date(),
+        paymentDate: new Date()
       });
 
       res.status(201).json(payment);
@@ -401,7 +382,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         accessToken: `mock_token_${Date.now()}`,
         refreshToken: `mock_refresh_${Date.now()}`,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-        createdAt: new Date(),
+        createdAt: new Date()
       };
 
       await storage.createSocialMediaAccount(mockAccount);
@@ -456,7 +437,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({
           impressions: 0,
           engagement: 0,
-          spend: 0,
+          spend: 0
         });
       }
 
@@ -472,22 +453,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           let platformStats;
           switch (account.platform) {
-            case "facebook":
+            case 'facebook':
               platformStats = await fetchFacebookStats(account, platformKeys);
               break;
-            case "twitter":
+            case 'twitter':
               platformStats = await fetchTwitterStats(account, platformKeys);
               break;
-            case "instagram":
+            case 'instagram':
               platformStats = await fetchInstagramStats(account, platformKeys);
               break;
-            case "tiktok":
+            case 'tiktok':
               platformStats = await fetchTikTokStats(account, platformKeys);
               break;
-            case "snapchat":
+            case 'snapchat':
               platformStats = await fetchSnapchatStats(account, platformKeys);
               break;
-            case "linkedin":
+            case 'linkedin':
               platformStats = await fetchLinkedInStats(account, platformKeys);
               break;
           }
@@ -505,7 +486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               clicks: platformStats.engagements,
               conversions: 0,
               spend: platformStats.spend, // Remove toString()
-              date: new Date(),
+              date: new Date()
             });
           }
         } catch (error) {
@@ -515,19 +496,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Calculate engagement rate
-      const engagement =
-        totalImpressions > 0 ? totalEngagements / totalImpressions : 0;
+      const engagement = totalImpressions > 0 ?
+        totalEngagements / totalImpressions : 0;
 
       res.json({
         impressions: totalImpressions,
         engagement,
-        spend: totalSpend,
+        spend: totalSpend
       });
+
     } catch (error) {
       console.error("Error fetching social media stats:", error);
-      res
-        .status(500)
-        .json({ message: "فشل في جلب إحصائيات وسائل التواصل الاجتماعي" });
+      res.status(500).json({ message: "فشل في جلب إحصائيات وسائل التواصل الاجتماعي" });
     }
   });
 
@@ -547,12 +527,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const platformStats = [];
       const platformColors = {
-        facebook: "#1877F2",
-        twitter: "#1DA1F2",
-        instagram: "#E4405F",
-        tiktok: "#000000",
-        snapchat: "#FFFC00",
-        linkedin: "#0A66C2",
+        facebook: '#1877F2',
+        twitter: '#1DA1F2',
+        instagram: '#E4405F',
+        tiktok: '#000000',
+        snapchat: '#FFFC00',
+        linkedin: '#0A66C2'
       };
 
       for (const account of accounts) {
@@ -562,22 +542,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           let stats;
           switch (account.platform) {
-            case "facebook":
+            case 'facebook':
               stats = await fetchFacebookStats(account, platformKeys);
               break;
-            case "twitter":
+            case 'twitter':
               stats = await fetchTwitterStats(account, platformKeys);
               break;
-            case "instagram":
+            case 'instagram':
               stats = await fetchInstagramStats(account, platformKeys);
               break;
-            case "tiktok":
+            case 'tiktok':
               stats = await fetchTikTokStats(account, platformKeys);
               break;
-            case "snapchat":
+            case 'snapchat':
               stats = await fetchSnapchatStats(account, platformKeys);
               break;
-            case "linkedin":
+            case 'linkedin':
               stats = await fetchLinkedInStats(account, platformKeys);
               break;
           }
@@ -586,9 +566,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             platformStats.push({
               platform: account.platform,
               name: account.accountName,
-              color:
-                platformColors[account.platform as keyof typeof platformColors],
-              ...stats,
+              color: platformColors[account.platform as keyof typeof platformColors],
+              ...stats
             });
           }
         } catch (error) {
@@ -610,18 +589,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const timeRange = req.query.range || "30d"; // Default to last 30 days
+      const timeRange = req.query.range || '30d'; // Default to last 30 days
       const now = new Date();
       let startDate = new Date();
 
       switch (timeRange) {
-        case "7d":
+        case '7d':
           startDate.setDate(now.getDate() - 7);
           break;
-        case "30d":
+        case '30d':
           startDate.setDate(now.getDate() - 30);
           break;
-        case "90d":
+        case '90d':
           startDate.setDate(now.getDate() - 90);
           break;
         default:
@@ -631,15 +610,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Fetch analytics from database
       const analytics = await storage.getCampaignAnalytics(0); // 0 for general platform analytics
       const filteredAnalytics = analytics
-        .filter((a) => new Date(a.date) >= startDate)
-        .sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-        );
+        .filter(a => new Date(a.date) >= startDate)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       // Group by date
       const dailyStats = filteredAnalytics.reduce((acc: any[], curr) => {
-        const date = new Date(curr.date).toISOString().split("T")[0];
-        const existingDay = acc.find((d) => d.date === date);
+        const date = new Date(curr.date).toISOString().split('T')[0];
+        const existingDay = acc.find(d => d.date === date);
 
         if (existingDay) {
           existingDay.impressions += curr.impressions;
@@ -652,7 +629,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             impressions: curr.impressions,
             engagements: curr.clicks,
             spend: Number(curr.spend),
-            [curr.platform]: curr.impressions,
+            [curr.platform]: curr.impressions
           });
         }
 
@@ -761,19 +738,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transaction = await storage.createInventoryTransaction({
         ...req.body,
         userId: req.user!.id,
-        date: new Date(),
+        date: new Date()
       });
 
       // Update product stock
       const product = await storage.getProduct(transaction.productId);
       if (product) {
-        const stockChange =
-          transaction.type === "in"
-            ? transaction.quantity
-            : -transaction.quantity;
+        const stockChange = transaction.type === 'in' ? transaction.quantity : -transaction.quantity;
         await storage.updateProduct(product.id, {
           ...product,
-          stock: product.stock + stockChange,
+          stock: product.stock + stockChange
         });
       }
 
@@ -809,9 +783,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertExpenseCategorySchema.parse({
         name: req.body.name,
         description: req.body.description,
-        budgetAmount: req.body.budgetAmount
-          ? Number(req.body.budgetAmount)
-          : null,
+        budgetAmount: req.body.budgetAmount ? Number(req.body.budgetAmount) : null,
       });
 
       const category = await storage.createExpenseCategory({
@@ -916,10 +888,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "المورد غير موجود" });
       }
 
-      const updatedSupplier = await storage.updateSupplier(
-        supplier.id,
-        req.body,
-      );
+      const updatedSupplier = await storage.updateSupplier(supplier.id, req.body);
       res.json(updatedSupplier);
     } catch (error) {
       console.error("Error updating supplier:", error);
@@ -927,7 +896,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/suppliers/:id", async (req, res) => {
+app.delete("/api/suppliers/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -951,9 +920,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const transactions = await storage.getSupplierTransactions(
-        Number(req.params.id),
-      );
+      const transactions = await storage.getSupplierTransactions(Number(req.params.id));
       res.json(transactions);
     } catch (error) {
       console.error("Error fetching supplier transactions:", error);
@@ -1002,8 +969,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!customer) {
         return res.status(404).json({ message: "العميل غير موجود" });
       }
-      res.json(customer);
-    } catch (error) {
+      res.json(customer);    } catch (error) {
       console.error("Error fetching customer:", error);
       res.status(500).json({ message: "فشل في جلب بيانات العميل" });
     }
@@ -1057,9 +1023,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Appointment Routes
   app.get("/api/customers/:id/appointments", async (req, res) => {
     try {
-      const appointments = await storage.getCustomerAppointments(
-        Number(req.params.id),
-      );
+      const appointments = await storage.getCustomerAppointments(Number(req.params.id));
       res.json(appointments);
     } catch (error) {
       console.error("Error fetching customer appointments:", error);
@@ -1095,10 +1059,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const appointment = await storage.updateAppointment(
-        Number(req.params.id),
-        req.body,
-      );
+      const appointment = await storage.updateAppointment(Number(req.params.id), req.body);
       res.json(appointment);
     } catch (error) {
       console.error("Error updating appointment:", error);
@@ -1127,8 +1088,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const file = await storage.saveFile({
-        ...req.body,
+      const file = await storage.saveFile({        ...req.body,
         userId: req.user!.id,
       });
       res.status(201).json(file);
@@ -1207,19 +1167,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const settings = await storage.getUserSettings((req.user as any).id);
-      res.json(
-        settings || {
-          themeName: "modern",
-          fontName: "noto-kufi",
-          fontSize: "medium",
-          appearance: "system",
-          colors: {
-            primary: "#2563eb",
-            secondary: "#16a34a",
-            accent: "#db2777",
-          },
-        },
-      );
+      res.json(settings || {
+        themeName: "modern",
+        fontName: "noto-kufi",
+        fontSize: "medium",
+        appearance: "system",
+        colors: {
+          primary: "#2563eb",
+          secondary: "#16a34a",
+          accent: "#db2777"
+        }
+      });
     } catch (error) {
       console.error("Error fetching user settings:", error);
       res.status(500).json({ message: "فشل في جلب إعدادات المظهر" });
@@ -1231,16 +1189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum([
-          "professional",
-          "vibrant",
-          "tint",
-          "modern",
-          "classic",
-          "futuristic",
-          "elegant",
-          "natural",
-        ]),
+        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
         appearance: z.enum(["light", "dark", "system"]),
         fontStyle: z.enum([
           "traditional",
@@ -1273,9 +1222,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         appearance: theme.appearance,
         colors: {
           primary: theme.primary,
-          secondary: `color-mix(in srgb, ${theme.primary} 80%, ${theme.appearance === "dark" ? "white" : "black"})`,
-          accent: `color-mix(in srgb, ${theme.primary} 60%, ${theme.appearance === "dark" ? "black" : "white"})`,
-        },
+          secondary: `color-mix(in srgb, ${theme.primary} 80%, ${theme.appearance === 'dark' ? 'white' : 'black'})`,
+          accent: `color-mix(in srgb, ${theme.primary} 60%, ${theme.appearance === 'dark' ? 'black' : 'white'})`,
+        }
       };
 
       // حفظ الإعدادات في قاعدة البيانات
@@ -1284,7 +1233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // حفظ الثيم في ملف theme.json
       await fs.writeFile(
         path.join(process.cwd(), "theme.json"),
-        JSON.stringify(theme, null, 2),
+        JSON.stringify(theme, null, 2)
       );
 
       res.json({ success: true });
@@ -1321,9 +1270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating inventory alert:", error);
       if (error instanceof z.ZodError) {
-        res
-          .status(400)
-          .json({ message: "بيانات غير صالحة", errors: error.errors });
+        res.status(400).json({ message: "بيانات غير صالحة", errors: error.errors });
       } else {
         res.status(500).json({ message: "فشل في إنشاء التنبيه" });
       }
@@ -1336,10 +1283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const alert = await storage.updateInventoryAlert(
-        Number(req.params.id),
-        req.body,
-      );
+      const alert = await storage.updateInventoryAlert(Number(req.params.id), req.body);
       res.json(alert);
     } catch (error) {
       console.error("Error updating inventory alert:", error);
@@ -1381,9 +1325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const notification = await storage.markNotificationAsRead(
-        Number(req.params.id),
-      );
+      const notification = await storage.markNotificationAsRead(Number(req.params.id));
       res.json(notification);
     } catch (error) {
       console.error("Error marking notification as read:", error);
@@ -1406,7 +1348,7 @@ async function fetchFacebookStats(account: any, keys: any) {
   return {
     impressions: 0,
     engagements: 0,
-    spend: 0,
+    spend: 0
   };
 }
 
@@ -1419,7 +1361,7 @@ async function fetchTwitterStats(account: any, keys: any) {
   return {
     impressions: 0,
     engagements: 0,
-    spend: 0,
+    spend: 0
   };
 }
 
@@ -1432,7 +1374,7 @@ async function fetchInstagramStats(account: any, keys: any) {
   return {
     impressions: 0,
     engagements: 0,
-    spend: 0,
+    spend: 0
   };
 }
 
@@ -1445,7 +1387,7 @@ async function fetchTikTokStats(account: any, keys: any) {
   return {
     impressions: 0,
     engagements: 0,
-    spend: 0,
+    spend: 0
   };
 }
 
@@ -1458,7 +1400,7 @@ async function fetchSnapchatStats(account: any, keys: any) {
   return {
     impressions: 0,
     engagements: 0,
-    spend: 0,
+    spend: 0
   };
 }
 
@@ -1471,7 +1413,7 @@ async function fetchLinkedInStats(account: any, keys: any) {
   return {
     impressions: 0,
     engagements: 0,
-    spend: 0,
+    spend: 0
   };
 }
 
@@ -1484,10 +1426,7 @@ async function checkInventoryLevels() {
     for (const product of products) {
       // Check low stock alerts
       const lowStockAlert = alerts.find(
-        (a) =>
-          a.productId === product.id &&
-          a.type === "low_stock" &&
-          a.status === "active",
+        a => a.productId === product.id && a.type === "low_stock" && a.status === "active"
       );
 
       if (lowStockAlert && product.stock <= lowStockAlert.threshold) {
@@ -1499,17 +1438,11 @@ async function checkInventoryLevels() {
 
       // Check inactive products (no sales in last 30 days)
       const inactiveAlert = alerts.find(
-        (a) =>
-          a.productId === product.id &&
-          a.type === "inactive" &&
-          a.status === "active",
+        a => a.productId === product.id && a.type === "inactive" && a.status === "active"
       );
 
       if (inactiveAlert) {
-        const sales = await storage.getProductSales(
-          product.id,
-          new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        );
+        const sales = await storage.getProductSales(product.id, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
         if (sales.length === 0) {
           await storage.createAlertNotification({
             alertId: inactiveAlert.id,
@@ -1520,17 +1453,11 @@ async function checkInventoryLevels() {
 
       // Check high demand products
       const highDemandAlert = alerts.find(
-        (a) =>
-          a.productId === product.id &&
-          a.type === "high_demand" &&
-          a.status === "active",
+        a => a.productId === product.id && a.type === "high_demand" && a.status === "active"
       );
 
       if (highDemandAlert) {
-        const sales = await storage.getProductSales(
-          product.id,
-          new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-        );
+        const sales = await storage.getProductSales(product.id, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
         if (sales.length >= highDemandAlert.threshold) {
           await storage.createAlertNotification({
             alertId: highDemandAlert.id,

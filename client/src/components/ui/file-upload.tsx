@@ -60,8 +60,7 @@ export function FileUpload({
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
               <Image className="w-12 h-12 mb-4 text-muted-foreground" />
               <p className="mb-2 text-sm text-muted-foreground">
-                <span className="font-semibold">اضغط للتحميل</span> أو اسحب
-                وأفلت
+                <span className="font-semibold">اضغط للتحميل</span> أو اسحب وأفلت
               </p>
               <p className="text-xs text-muted-foreground">
                 PNG, JPG أو WEBP (حد أقصى: {maxSize}MB)

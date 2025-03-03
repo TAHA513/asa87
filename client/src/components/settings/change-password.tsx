@@ -15,19 +15,17 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
-const passwordChangeSchema = z
-  .object({
-    currentPassword: z.string().min(1, "كلمة المرور الحالية مطلوبة"),
-    newPassword: z
-      .string()
-      .min(8, "كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل")
-      .max(100, "كلمة المرور الجديدة طويلة جداً"),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "كلمات المرور غير متطابقة",
-    path: ["confirmPassword"],
-  });
+const passwordChangeSchema = z.object({
+  currentPassword: z.string().min(1, "كلمة المرور الحالية مطلوبة"),
+  newPassword: z
+    .string()
+    .min(8, "كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل")
+    .max(100, "كلمة المرور الجديدة طويلة جداً"),
+  confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "كلمات المرور غير متطابقة",
+  path: ["confirmPassword"],
+});
 
 type PasswordChangeForm = z.infer<typeof passwordChangeSchema>;
 
@@ -61,8 +59,7 @@ export default function ChangePasswordForm() {
     } catch (error) {
       toast({
         title: "خطأ",
-        description:
-          "فشل تغيير كلمة المرور. يرجى التحقق من كلمة المرور الحالية",
+        description: "فشل تغيير كلمة المرور. يرجى التحقق من كلمة المرور الحالية",
         variant: "destructive",
       });
     } finally {

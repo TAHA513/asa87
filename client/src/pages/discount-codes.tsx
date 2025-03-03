@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import Sidebar from "@/components/layout/sidebar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -16,8 +21,8 @@ import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Tag, Calendar, Percent, QrCode } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
-import JsBarcode from "jsbarcode";
-import { useReactToPrint } from "react-to-print";
+import JsBarcode from 'jsbarcode';
+import { useReactToPrint } from 'react-to-print';
 import { useRef } from "react";
 
 interface DiscountCode {
@@ -126,10 +131,7 @@ export default function DiscountCodesPage() {
               </CardHeader>
               <CardContent>
                 <Form {...form}>
-                  <form
-                    onSubmit={form.handleSubmit(onSubmit)}
-                    className="space-y-4"
-                  >
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <FormField
                       control={form.control}
                       name="code"
@@ -137,11 +139,7 @@ export default function DiscountCodesPage() {
                         <FormItem>
                           <FormLabel>كود الخصم</FormLabel>
                           <FormControl>
-                            <Input
-                              {...field}
-                              placeholder="مثال: SALE2025"
-                              dir="ltr"
-                            />
+                            <Input {...field} placeholder="مثال: SALE2025" dir="ltr" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -219,10 +217,7 @@ export default function DiscountCodesPage() {
                         <FormItem>
                           <FormLabel>الوصف</FormLabel>
                           <FormControl>
-                            <Input
-                              {...field}
-                              placeholder="وصف العرض أو الخصم"
-                            />
+                            <Input {...field} placeholder="وصف العرض أو الخصم" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -311,8 +306,7 @@ export default function DiscountCodesPage() {
                   </div>
                   <svg ref={barcodeRef} className="w-full"></svg>
                   <div className="text-sm mt-2">
-                    صالح حتى:{" "}
-                    {new Date(selectedCode.validTo).toLocaleDateString()}
+                    صالح حتى: {new Date(selectedCode.validTo).toLocaleDateString()}
                   </div>
                 </>
               )}

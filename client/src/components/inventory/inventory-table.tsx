@@ -82,13 +82,10 @@ export default function InventoryTable() {
   });
 
   const watchPriceIqd = form.watch("priceIqd");
-  const priceUsd =
-    exchangeRate && watchPriceIqd
-      ? Number(watchPriceIqd) / Number(exchangeRate.usdToIqd)
-      : 0;
+  const priceUsd = exchangeRate && watchPriceIqd ? Number(watchPriceIqd) / Number(exchangeRate.usdToIqd) : 0;
 
   const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(search.toLowerCase()),
+    product.name.toLowerCase().includes(search.toLowerCase())
   );
 
   async function onSubmit(data: any) {
@@ -147,10 +144,7 @@ export default function InventoryTable() {
                 <DialogTitle>إضافة منتج جديد</DialogTitle>
               </DialogHeader>
               <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-4"
-                >
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
                     control={form.control}
                     name="name"
@@ -218,10 +212,7 @@ export default function InventoryTable() {
                             type="text"
                             {...field}
                             onChange={(e) => {
-                              const value = e.target.value.replace(
-                                /[^0-9]/g,
-                                "",
-                              );
+                              const value = e.target.value.replace(/[^0-9]/g, '');
                               field.onChange(value);
                             }}
                           />
@@ -245,9 +236,7 @@ export default function InventoryTable() {
                             type="number"
                             min="0"
                             {...field}
-                            onChange={(e) =>
-                              field.onChange(Number(e.target.value))
-                            }
+                            onChange={(e) => field.onChange(Number(e.target.value))}
                           />
                         </FormControl>
                         <FormMessage />
@@ -303,7 +292,7 @@ export default function InventoryTable() {
                       variant="destructive"
                       size="sm"
                       onClick={() => {
-                        if (confirm("هل أنت متأكد من حذف هذا المنتج؟")) {
+                        if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
                           deleteMutation.mutate(product.id);
                         }
                       }}

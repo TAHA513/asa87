@@ -92,7 +92,7 @@ export default function AuthPage() {
       insertUserSchema.pick({
         username: true,
         password: true,
-      }),
+      })
     ),
     defaultValues: {
       username: "",
@@ -137,16 +137,12 @@ export default function AuthPage() {
       <div className="max-w-6xl w-full grid md:grid-cols-2 gap-8 items-center relative z-10">
         {/* Logo Side */}
         <div className="hidden md:flex flex-col items-center justify-center p-8">
-          <div
-            className="text-9xl font-black mb-8 bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-accent animate-gradient"
-            style={{ fontFamily: "Cairo, sans-serif" }}
-          >
+          <div className="text-9xl font-black mb-8 bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-accent animate-gradient" 
+               style={{ fontFamily: 'Cairo, sans-serif' }}>
             SAS
           </div>
-          <div
-            className="text-2xl text-center text-muted-foreground font-semibold max-w-md"
-            style={{ fontFamily: "Cairo, sans-serif" }}
-          >
+          <div className="text-2xl text-center text-muted-foreground font-semibold max-w-md"
+               style={{ fontFamily: 'Cairo, sans-serif' }}>
             نظام إدارة الأعمال المتكامل
           </div>
         </div>
@@ -154,10 +150,8 @@ export default function AuthPage() {
         {/* Form Side */}
         <div className="w-full max-w-md mx-auto">
           <div className="text-center md:hidden mb-8">
-            <h1
-              className="text-6xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-accent"
-              style={{ fontFamily: "Cairo, sans-serif" }}
-            >
+            <h1 className="text-6xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-accent"
+                style={{ fontFamily: 'Cairo, sans-serif' }}>
               SAS
             </h1>
           </div>
@@ -168,8 +162,8 @@ export default function AuthPage() {
                 {activeTab === "login" ? "تسجيل الدخول" : "إنشاء حساب جديد"}
               </CardTitle>
               <CardDescription className="text-center">
-                {activeTab === "login"
-                  ? "مرحباً بعودتك! قم بتسجيل الدخول للمتابعة"
+                {activeTab === "login" 
+                  ? "مرحباً بعودتك! قم بتسجيل الدخول للمتابعة" 
                   : "قم بإنشاء حساب جديد للبدء"}
               </CardDescription>
             </CardHeader>
@@ -184,7 +178,7 @@ export default function AuthPage() {
                   <Form {...loginForm}>
                     <form
                       onSubmit={loginForm.handleSubmit((data) =>
-                        loginMutation.mutate(data),
+                        loginMutation.mutate(data)
                       )}
                       className="space-y-4"
                     >
@@ -257,7 +251,7 @@ export default function AuthPage() {
                       onSubmit={registerForm.handleSubmit((data) =>
                         registerMutation.mutate(data, {
                           onSuccess: onRegisterSuccess,
-                        }),
+                        })
                       )}
                       className="space-y-4"
                     >
@@ -269,10 +263,7 @@ export default function AuthPage() {
                             <FormItem>
                               <FormLabel>اسم المستخدم</FormLabel>
                               <FormControl>
-                                <Input
-                                  {...field}
-                                  className="bg-background/50"
-                                />
+                                <Input {...field} className="bg-background/50" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -285,10 +276,7 @@ export default function AuthPage() {
                             <FormItem>
                               <FormLabel>الاسم الكامل</FormLabel>
                               <FormControl>
-                                <Input
-                                  {...field}
-                                  className="bg-background/50"
-                                />
+                                <Input {...field} className="bg-background/50" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -350,7 +338,7 @@ export default function AuthPage() {
                                   type="email"
                                   className="bg-background/50"
                                   {...field}
-                                  value={field.value || ""}
+                                  value={field.value || ''}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -367,7 +355,7 @@ export default function AuthPage() {
                                 <Input
                                   className="bg-background/50"
                                   {...field}
-                                  value={field.value || ""}
+                                  value={field.value || ''}
                                 />
                               </FormControl>
                               <FormMessage />

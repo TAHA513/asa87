@@ -3,7 +3,7 @@ import StatsCards from "@/components/dashboard/stats-cards";
 import {
   SalesTrendsChart,
   ProductPerformanceChart,
-  CustomerGrowthChart,
+  CustomerGrowthChart
 } from "@/components/dashboard/analytics-charts";
 import ExchangeRateCard from "@/components/dashboard/exchange-rate";
 

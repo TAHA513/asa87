@@ -36,50 +36,48 @@ const platformConfig = {
     authUrl: "https://www.facebook.com/login",
     color: "#1877F2",
     hoverColor: "#1559b7",
-    textColor: "white",
+    textColor: "white"
   },
   instagram: {
     label: "انستغرام",
     authUrl: "https://www.instagram.com/accounts/login",
     color: "linear-gradient(45deg, #833AB4, #C13584, #E1306C, #FD1D1D)",
     hoverColor: "linear-gradient(45deg, #6d2e94, #a02d6e, #bc285a, #d41919)",
-    textColor: "white",
+    textColor: "white"
   },
   twitter: {
     label: "تويتر",
     authUrl: "https://twitter.com/login",
     color: "#1DA1F2",
     hoverColor: "#1884c7",
-    textColor: "white",
+    textColor: "white"
   },
   linkedin: {
     label: "لينكد إن",
     authUrl: "https://www.linkedin.com/login",
     color: "#0A66C2",
     hoverColor: "#084d94",
-    textColor: "white",
+    textColor: "white"
   },
   snapchat: {
     label: "سناب شات",
     authUrl: "https://accounts.snapchat.com/accounts/login",
     color: "#FFFC00",
     hoverColor: "#e6e300",
-    textColor: "black",
+    textColor: "black"
   },
   tiktok: {
     label: "تيك توك",
     authUrl: "https://www.tiktok.com/login",
     color: "linear-gradient(90deg, #00f2ea, #ff0050)",
     hoverColor: "linear-gradient(90deg, #00d6cf, #e6004a)",
-    textColor: "white",
+    textColor: "white"
   },
 };
 
 export default function SocialAccounts() {
   const { toast } = useToast();
-  const [isConnecting, setIsConnecting] = useState<{ [key: string]: boolean }>(
-    {},
-  );
+  const [isConnecting, setIsConnecting] = useState<{[key: string]: boolean}>({});
 
   const { data: accounts = [] } = useQuery<SocialMediaAccount[]>({
     queryKey: ["/api/marketing/social-accounts"],
@@ -92,8 +90,8 @@ export default function SocialAccounts() {
     // فتح نافذة تسجيل الدخول بدون شريط العنوان والأزرار
     const popup = window.open(
       config.authUrl,
-      "تسجيل الدخول",
-      "popup=true,menubar=no,toolbar=no,location=no,status=no,width=600,height=700",
+      'تسجيل الدخول',
+      'popup=true,menubar=no,toolbar=no,location=no,status=no,width=600,height=700'
     );
 
     if (popup) {
@@ -123,7 +121,7 @@ export default function SocialAccounts() {
                 className="flex flex-col items-center p-4 border rounded-lg space-y-4"
                 style={{
                   background: config.color,
-                  transition: "all 0.3s ease",
+                  transition: "all 0.3s ease"
                 }}
               >
                 <Icon className="h-8 w-8" style={{ color: config.textColor }} />
@@ -135,7 +133,7 @@ export default function SocialAccounts() {
                   style={{
                     background: "transparent",
                     border: `2px solid ${config.textColor}`,
-                    color: config.textColor,
+                    color: config.textColor
                   }}
                   onClick={() => connectPlatform(platform)}
                 >

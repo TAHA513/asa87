@@ -24,9 +24,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 
 export default function InstallmentsPage() {
-  const [selectedInstallment, setSelectedInstallment] = useState<number | null>(
-    null,
-  );
+  const [selectedInstallment, setSelectedInstallment] = useState<number | null>(null);
   const [_, navigate] = useLocation();
 
   const { data: installments = [] } = useQuery<Installment[]>({
@@ -35,12 +33,12 @@ export default function InstallmentsPage() {
 
   // فلترة التقسيطات النشطة
   const activeInstallments = installments.filter(
-    (installment) => installment.status === "active",
+    (installment) => installment.status === "active"
   );
 
   // فلترة التقسيطات المكتملة
   const completedInstallments = installments.filter(
-    (installment) => installment.status === "completed",
+    (installment) => installment.status === "completed"
   );
 
   return (
@@ -92,13 +90,10 @@ export default function InstallmentsPage() {
                         </TableCell>
                         <TableCell>{installment.customerPhone}</TableCell>
                         <TableCell>
-                          {Number(installment.remainingAmount).toLocaleString()}{" "}
-                          د.ع
+                          {Number(installment.remainingAmount).toLocaleString()} د.ع
                         </TableCell>
                         <TableCell>
-                          {new Date(
-                            installment.nextPaymentDate,
-                          ).toLocaleDateString("ar-IQ")}
+                          {new Date(installment.nextPaymentDate).toLocaleDateString('ar-IQ')}
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary">نشط</Badge>
@@ -143,9 +138,7 @@ export default function InstallmentsPage() {
                           {Number(installment.totalAmount).toLocaleString()} د.ع
                         </TableCell>
                         <TableCell>
-                          {new Date(
-                            installment.nextPaymentDate,
-                          ).toLocaleDateString("ar-IQ")}
+                          {new Date(installment.nextPaymentDate).toLocaleDateString('ar-IQ')}
                         </TableCell>
                         <TableCell>
                           <Badge variant="default">مكتمل</Badge>

@@ -1,57 +1,22 @@
 import {
-  users,
-  products,
-  sales,
-  exchangeRates,
-  fileStorage,
-  installments,
-  installmentPayments,
-  marketingCampaigns,
-  campaignAnalytics,
-  socialMediaAccounts,
-  apiKeys,
-  inventoryTransactions,
-  expenseCategories,
-  expenses,
-  suppliers,
-  supplierTransactions,
-  customers,
-  appointments,
-  invoices,
-  userSettings,
-  type User,
-  type Product,
-  type Sale,
-  type ExchangeRate,
-  type FileStorage,
-  type Installment,
-  type InstallmentPayment,
-  type Campaign,
-  type InsertCampaign,
-  type CampaignAnalytics,
-  type InsertCampaignAnalytics,
-  type SocialMediaAccount,
-  type ApiKey,
-  type InsertApiKey,
-  type InventoryTransaction,
-  type InsertInventoryTransaction,
-  type ExpenseCategory,
-  type InsertExpenseCategory,
-  type Expense,
-  type InsertExpense,
-  type Supplier,
-  type InsertSupplier,
-  type SupplierTransaction,
-  type InsertSupplierTransaction,
-  type Customer,
-  type InsertCustomer,
-  type Appointment,
-  type InsertAppointment,
-  type Invoice,
-  type InsertInvoice,
-  type UserSettings,
-  type InsertUserSettings,
-  type InsertUser,
+  users, products, sales, exchangeRates, fileStorage,
+  installments, installmentPayments, marketingCampaigns,
+  campaignAnalytics, socialMediaAccounts, apiKeys,
+  inventoryTransactions, expenseCategories, expenses,
+  suppliers, supplierTransactions, customers, appointments,
+  invoices, userSettings,
+  type User, type Product, type Sale, type ExchangeRate,
+  type FileStorage, type Installment, type InstallmentPayment,
+  type Campaign, type InsertCampaign, type CampaignAnalytics,
+  type InsertCampaignAnalytics, type SocialMediaAccount,
+  type ApiKey, type InsertApiKey, type InventoryTransaction,
+  type InsertInventoryTransaction, type ExpenseCategory,
+  type InsertExpenseCategory, type Expense, type InsertExpense,
+  type Supplier, type InsertSupplier, type SupplierTransaction,
+  type InsertSupplierTransaction, type Customer, type InsertCustomer,
+  type Appointment, type InsertAppointment, type Invoice,
+  type InsertInvoice, type UserSettings, type InsertUserSettings,
+  type InsertUser
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, or, like, desc } from "drizzle-orm";
@@ -64,10 +29,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, username));
+    const [user] = await db.select().from(users).where(eq(users.username, username));
     return user || undefined;
   }
 
@@ -101,10 +63,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProduct(id: number): Promise<Product | undefined> {
-    const [product] = await db
-      .select()
-      .from(products)
-      .where(eq(products.id, id));
+    const [product] = await db.select().from(products).where(eq(products.id, id));
     return product;
   }
 
@@ -118,15 +77,13 @@ export class DatabaseStorage implements IStorage {
           productCode: product.productCode,
           barcode: product.barcode,
           priceIqd: product.priceIqd.toString(),
-          stock: product.stock,
+          stock: product.stock
         })
         .returning();
       return newProduct;
     } catch (error) {
       console.error("خطأ في إنشاء المنتج:", error);
-      throw new Error(
-        "فشل في إنشاء المنتج. تأكد من صحة البيانات المدخلة وعدم تكرار رمز المنتج أو الباركود",
-      );
+      throw new Error("فشل في إنشاء المنتج. تأكد من صحة البيانات المدخلة وعدم تكرار رمز المنتج أو الباركود");
     }
   }
 
@@ -141,7 +98,7 @@ export class DatabaseStorage implements IStorage {
         .set({
           ...update,
           priceIqd: update.priceIqd?.toString(),
-          updatedAt: new Date(),
+          updatedAt: new Date()
         })
         .where(eq(products.id, id))
         .returning();
@@ -154,16 +111,14 @@ export class DatabaseStorage implements IStorage {
           quantity: update.stock,
           reason: "تحديث يدوي",
           userId: 1, // يجب تحديث هذا ليأخذ معرف المستخدم الحالي
-          date: new Date(),
+          date: new Date()
         });
       }
 
       return product;
     } catch (error) {
       console.error("خطأ في تحديث المنتج:", error);
-      throw new Error(
-        "فشل في تحديث المنتج. تأكد من صحة البيانات وتوفر المخزون الكافي",
-      );
+      throw new Error("فشل في تحديث المنتج. تأكد من صحة البيانات وتوفر المخزون الكافي");
     }
   }
 
@@ -207,7 +162,7 @@ export class DatabaseStorage implements IStorage {
           .insert(customers)
           .values({
             name: sale.customerName,
-            createdAt: new Date(),
+            createdAt: new Date()
           })
           .returning();
         customerId = customer.id;
@@ -224,7 +179,7 @@ export class DatabaseStorage implements IStorage {
             .insert(customers)
             .values({
               name: "عميل نقدي",
-              createdAt: new Date(),
+              createdAt: new Date()
             })
             .returning();
           customerId = newDefaultCustomer.id;
@@ -249,7 +204,7 @@ export class DatabaseStorage implements IStorage {
           discount: sale.discount,
           userId: sale.userId,
           isInstallment: sale.isInstallment,
-          date: sale.date,
+          date: sale.date
         })
         .returning();
 
@@ -261,7 +216,7 @@ export class DatabaseStorage implements IStorage {
         reason: "sale",
         reference: `SALE-${newSale.id}`,
         userId: sale.userId,
-        date: new Date(),
+        date: new Date()
       });
 
       return newSale;
@@ -315,10 +270,7 @@ export class DatabaseStorage implements IStorage {
     return newInstallment;
   }
 
-  async updateInstallment(
-    id: number,
-    update: Partial<Installment>,
-  ): Promise<Installment> {
+  async updateInstallment(id: number, update: Partial<Installment>): Promise<Installment> {
     const [installment] = await db
       .update(installments)
       .set(update)
@@ -327,18 +279,14 @@ export class DatabaseStorage implements IStorage {
     return installment;
   }
 
-  async getInstallmentPayments(
-    installmentId: number,
-  ): Promise<InstallmentPayment[]> {
+  async getInstallmentPayments(installmentId: number): Promise<InstallmentPayment[]> {
     return db
       .select()
       .from(installmentPayments)
       .where(eq(installmentPayments.installmentId, installmentId));
   }
 
-  async createInstallmentPayment(
-    payment: InstallmentPayment,
-  ): Promise<InstallmentPayment> {
+  async createInstallmentPayment(payment: InstallmentPayment): Promise<InstallmentPayment> {
     const [newPayment] = await db
       .insert(installmentPayments)
       .values(payment)
@@ -366,10 +314,7 @@ export class DatabaseStorage implements IStorage {
     return newCampaign;
   }
 
-  async updateCampaign(
-    id: number,
-    update: Partial<Campaign>,
-  ): Promise<Campaign> {
+  async updateCampaign(id: number, update: Partial<Campaign>): Promise<Campaign> {
     const [campaign] = await db
       .update(marketingCampaigns)
       .set(update)
@@ -385,17 +330,13 @@ export class DatabaseStorage implements IStorage {
       .where(eq(campaignAnalytics.campaignId, campaignId));
   }
 
-  async createCampaignAnalytics(
-    analytics: InsertCampaignAnalytics,
-  ): Promise<CampaignAnalytics> {
+  async createCampaignAnalytics(analytics: InsertCampaignAnalytics): Promise<CampaignAnalytics> {
     const [newAnalytics] = await db
       .insert(campaignAnalytics)
-      .values([
-        {
-          ...analytics,
-          spend: analytics.spend.toString(),
-        },
-      ])
+      .values([{
+        ...analytics,
+        spend: analytics.spend.toString()
+      }])
       .returning();
     return newAnalytics;
   }
@@ -407,9 +348,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(socialMediaAccounts.userId, userId));
   }
 
-  async createSocialMediaAccount(
-    account: SocialMediaAccount,
-  ): Promise<SocialMediaAccount> {
+  async createSocialMediaAccount(account: SocialMediaAccount): Promise<SocialMediaAccount> {
     const [newAccount] = await db
       .insert(socialMediaAccounts)
       .values(account)
@@ -422,15 +361,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setApiKeys(userId: number, keys: Record<string, any>): Promise<void> {
-    await db.insert(apiKeys).values([
-      {
+    await db
+      .insert(apiKeys)
+      .values([{
         userId,
         platform: "general",
         keyType: "json",
         keyValue: JSON.stringify(keys),
-        createdAt: new Date(),
-      },
-    ]);
+        createdAt: new Date()
+      }]);
   }
 
   async getApiKeys(userId: number): Promise<Record<string, any> | null> {
@@ -447,10 +386,7 @@ export class DatabaseStorage implements IStorage {
     return null;
   }
 
-  async migrateLocalStorageToDb(
-    userId: number,
-    keys: Record<string, any>,
-  ): Promise<void> {
+  async migrateLocalStorageToDb(userId: number, keys: Record<string, any>): Promise<void> {
     await this.setApiKeys(userId, keys);
   }
 
@@ -458,19 +394,13 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(inventoryTransactions);
   }
 
-  async createInventoryTransaction(
-    transaction: InsertInventoryTransaction,
-  ): Promise<InventoryTransaction> {
+  async createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction> {
     const [newTransaction] = await db
       .insert(inventoryTransactions)
       .values({
         ...transaction,
         type: transaction.type as "in" | "out",
-        reason: transaction.reason as
-          | "sale"
-          | "return"
-          | "adjustment"
-          | "purchase",
+        reason: transaction.reason as "sale" | "return" | "adjustment" | "purchase",
       })
       .returning();
     return newTransaction;
@@ -497,9 +427,7 @@ export class DatabaseStorage implements IStorage {
     return category;
   }
 
-  async createExpenseCategory(
-    category: InsertExpenseCategory,
-  ): Promise<ExpenseCategory> {
+  async createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory> {
     try {
       const [newCategory] = await db
         .insert(expenseCategories)
@@ -508,7 +436,7 @@ export class DatabaseStorage implements IStorage {
           description: category.description || null,
           budgetAmount: category.budgetAmount?.toString() || null,
           userId: category.userId,
-          createdAt: new Date(),
+          createdAt: new Date()
         })
         .returning();
       return newCategory;
@@ -518,17 +446,14 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateExpenseCategory(
-    id: number,
-    update: Partial<ExpenseCategory>,
-  ): Promise<ExpenseCategory> {
+  async updateExpenseCategory(id: number, update: Partial<ExpenseCategory>): Promise<ExpenseCategory> {
     try {
       const [category] = await db
         .update(expenseCategories)
         .set({
           ...update,
           budgetAmount: update.budgetAmount?.toString(),
-          updatedAt: new Date(),
+          updatedAt: new Date()
         })
         .where(eq(expenseCategories.id, id))
         .returning();
@@ -549,7 +474,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getExpenses(userId: number): Promise<Expense[]> {
-    return db.select().from(expenses).where(eq(expenses.userId, userId));
+    return db
+      .select()
+      .from(expenses)
+      .where(eq(expenses.userId, userId));
   }
 
   async getExpense(id: number): Promise<Expense | undefined> {
@@ -566,11 +494,7 @@ export class DatabaseStorage implements IStorage {
       .values({
         ...expense,
         amount: expense.amount.toString(),
-        recurringPeriod: expense.recurringPeriod as
-          | "monthly"
-          | "weekly"
-          | "yearly"
-          | undefined,
+        recurringPeriod: expense.recurringPeriod as "monthly" | "weekly" | "yearly" | undefined,
       })
       .returning();
     return newExpense;
@@ -590,7 +514,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSuppliers(userId: number): Promise<Supplier[]> {
-    return db.select().from(suppliers).where(eq(suppliers.userId, userId));
+    return db
+      .select()
+      .from(suppliers)
+      .where(eq(suppliers.userId, userId));
   }
 
   async getSupplier(id: number): Promise<Supplier | undefined> {
@@ -612,10 +539,7 @@ export class DatabaseStorage implements IStorage {
     return newSupplier;
   }
 
-  async updateSupplier(
-    id: number,
-    update: Partial<Supplier>,
-  ): Promise<Supplier> {
+  async updateSupplier(id: number, update: Partial<Supplier>): Promise<Supplier> {
     const [supplier] = await db
       .update(suppliers)
       .set(update)
@@ -628,18 +552,14 @@ export class DatabaseStorage implements IStorage {
     await db.delete(suppliers).where(eq(suppliers.id, id));
   }
 
-  async getSupplierTransactions(
-    supplierId: number,
-  ): Promise<SupplierTransaction[]> {
+  async getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]> {
     return db
       .select()
       .from(supplierTransactions)
       .where(eq(supplierTransactions.supplierId, supplierId));
   }
 
-  async createSupplierTransaction(
-    transaction: InsertSupplierTransaction,
-  ): Promise<SupplierTransaction> {
+  async createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction> {
     const [newTransaction] = await db
       .insert(supplierTransactions)
       .values({
@@ -663,8 +583,8 @@ export class DatabaseStorage implements IStorage {
         or(
           like(customers.name, `%${search}%`),
           like(customers.phone, `%${search}%`),
-          like(customers.email, `%${search}%`),
-        ),
+          like(customers.email, `%${search}%`)
+        )
       );
   }
 
@@ -677,7 +597,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCustomerSales(customerId: number): Promise<Sale[]> {
-    return db.select().from(sales).where(eq(sales.customerId, customerId));
+    return db
+      .select()
+      .from(sales)
+      .where(eq(sales.customerId, customerId));
   }
 
   async createCustomer(customer: InsertCustomer): Promise<Customer> {
@@ -695,9 +618,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(appointments.customerId, customerId));
   }
 
-  async createAppointment(
-    appointment: InsertAppointment,
-  ): Promise<Appointment> {
+  async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
     const [newAppointment] = await db
       .insert(appointments)
       .values({
@@ -708,10 +629,7 @@ export class DatabaseStorage implements IStorage {
     return newAppointment;
   }
 
-  async updateAppointment(
-    id: number,
-    update: Partial<Appointment>,
-  ): Promise<Appointment> {
+  async updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment> {
     const [appointment] = await db
       .update(appointments)
       .set(update)
@@ -729,7 +647,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async saveFile(file: InsertFileStorage): Promise<FileStorage> {
-    const [newFile] = await db.insert(fileStorage).values(file).returning();
+    const [newFile] = await db
+      .insert(fileStorage)
+      .values(file)
+      .returning();
     return newFile;
   }
 
@@ -742,7 +663,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserFiles(userId: number): Promise<FileStorage[]> {
-    return db.select().from(fileStorage).where(eq(fileStorage.userId, userId));
+    return db
+      .select()
+      .from(fileStorage)
+      .where(eq(fileStorage.userId, userId));
   }
 
   async deleteFile(id: number): Promise<void> {
@@ -768,10 +692,7 @@ export class DatabaseStorage implements IStorage {
     return invoice;
   }
 
-  async updateInvoicePrintStatus(
-    id: number,
-    printed: boolean,
-  ): Promise<Invoice> {
+  async updateInvoicePrintStatus(id: number, printed: boolean): Promise<Invoice> {
     const [updatedInvoice] = await db
       .update(invoices)
       .set({ printed })
@@ -788,8 +709,8 @@ export class DatabaseStorage implements IStorage {
         or(
           like(products.productCode, `%${query}%`),
           like(products.barcode, `%${query}%`),
-          like(products.name, `%${query}%`),
-        ),
+          like(products.name, `%${query}%`)
+        )
       );
   }
 
@@ -803,12 +724,11 @@ export class DatabaseStorage implements IStorage {
     return settings;
   }
 
-  async saveUserSettings(
-    userId: number,
-    settings: Omit<InsertUserSettings, "userId">,
-  ): Promise<UserSettings> {
+  async saveUserSettings(userId: number, settings: Omit<InsertUserSettings, "userId">): Promise<UserSettings> {
     // Delete old settings
-    await db.delete(userSettings).where(eq(userSettings.userId, userId));
+    await db
+      .delete(userSettings)
+      .where(eq(userSettings.userId, userId));
 
     // Insert new settings
     const [newSettings] = await db
@@ -817,7 +737,7 @@ export class DatabaseStorage implements IStorage {
         userId,
         ...settings,
         createdAt: new Date(),
-        updatedAt: new Date(),
+        updatedAt: new Date()
       })
       .returning();
 
