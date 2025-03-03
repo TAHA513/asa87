@@ -9,8 +9,8 @@ interface BarcodeProps {
   className?: string;
 }
 
-export function Barcode({ 
-  value, 
+export function Barcode({
+  value,
   width = 2,
   height = 100,
   format = "CODE128",
@@ -32,7 +32,5 @@ export function Barcode({
     }
   }, [value, width, height, format]);
 
-  return (
-    <svg ref={barcodeRef} className={className}></svg>
-  );
+  return <svg ref={barcodeRef} className={className}></svg>;
 }

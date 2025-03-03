@@ -29,7 +29,8 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle>مفاتيح API للمنصات الاجتماعية</CardTitle>
                 <CardDescription>
-                  قم بإضافة مفاتيح API الخاصة بكل منصة تواصل اجتماعي لتتمكن من الربط والتحكم في الحملات الإعلانية
+                  قم بإضافة مفاتيح API الخاصة بكل منصة تواصل اجتماعي لتتمكن من
+                  الربط والتحكم في الحملات الإعلانية
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -43,7 +44,8 @@ export default function Settings() {
               <CardHeader>
                 <CardTitle>تغيير كلمة المرور</CardTitle>
                 <CardDescription>
-                  قم بتغيير كلمة المرور الخاصة بك. يجب إدخال كلمة المرور الحالية للتحقق.
+                  قم بتغيير كلمة المرور الخاصة بك. يجب إدخال كلمة المرور الحالية
+                  للتحقق.
                 </CardDescription>
               </CardHeader>
               <CardContent>

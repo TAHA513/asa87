@@ -22,7 +22,11 @@ interface InstallmentFormProps {
   onSuccess: () => void;
 }
 
-export default function InstallmentForm({ saleId, totalAmount, onSuccess }: InstallmentFormProps) {
+export default function InstallmentForm({
+  saleId,
+  totalAmount,
+  onSuccess,
+}: InstallmentFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -48,7 +52,7 @@ export default function InstallmentForm({ saleId, totalAmount, onSuccess }: Inst
       });
 
       queryClient.invalidateQueries({ queryKey: ["/api/installments"] });
-      
+
       toast({
         title: "تم بنجاح",
         description: "تم إنشاء التقسيط بنجاح",
@@ -131,7 +135,11 @@ export default function InstallmentForm({ saleId, totalAmount, onSuccess }: Inst
                 <Input
                   type="date"
                   {...field}
-                  value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : field.value}
+                  value={
+                    field.value instanceof Date
+                      ? field.value.toISOString().split("T")[0]
+                      : field.value
+                  }
                 />
               </FormControl>
               <FormMessage />

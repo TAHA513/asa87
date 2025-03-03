@@ -23,7 +23,7 @@ import type { Sale, Product } from "@shared/schema";
 
 export default function Invoices() {
   const [search, setSearch] = useState("");
-  
+
   const { data: sales = [] } = useQuery<Sale[]>({
     queryKey: ["/api/sales"],
   });
@@ -33,16 +33,19 @@ export default function Invoices() {
   });
 
   const filteredSales = sales.filter((sale) => {
-    const product = products.find(p => p.id === sale.productId);
+    const product = products.find((p) => p.id === sale.productId);
     return product?.name.toLowerCase().includes(search.toLowerCase());
   });
 
-  const groupedSales = filteredSales.reduce((acc, sale) => {
-    const date = new Date(sale.date).toLocaleDateString();
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(sale);
-    return acc;
-  }, {} as Record<string, Sale[]>);
+  const groupedSales = filteredSales.reduce(
+    (acc, sale) => {
+      const date = new Date(sale.date).toLocaleDateString();
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(sale);
+      return acc;
+    },
+    {} as Record<string, Sale[]>,
+  );
 
   return (
     <div className="flex h-screen">
@@ -56,7 +59,7 @@ export default function Invoices() {
               <FileText className="h-6 w-6" />
               <h1 className="text-3xl font-bold">Invoices</h1>
             </div>
-            
+
             <div className="flex items-center gap-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -92,10 +95,14 @@ export default function Invoices() {
                   </TableHeader>
                   <TableBody>
                     {sales.map((sale) => {
-                      const product = products.find(p => p.id === sale.productId);
+                      const product = products.find(
+                        (p) => p.id === sale.productId,
+                      );
                       return (
                         <TableRow key={sale.id}>
-                          <TableCell>INV-{sale.id.toString().padStart(4, '0')}</TableCell>
+                          <TableCell>
+                            INV-{sale.id.toString().padStart(4, "0")}
+                          </TableCell>
                           <TableCell>{product?.name}</TableCell>
                           <TableCell>{sale.quantity}</TableCell>
                           <TableCell>

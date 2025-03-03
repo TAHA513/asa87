@@ -8,7 +8,7 @@ import { ChevronRight, ChevronLeft } from "lucide-react";
 
 export function ProductGallery() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  
+
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
@@ -77,7 +77,8 @@ export function ProductGallery() {
                     {products[currentIndex].description}
                   </p>
                   <p className="text-lg font-bold text-primary">
-                    {Number(products[currentIndex].priceIqd).toLocaleString()} د.ع
+                    {Number(products[currentIndex].priceIqd).toLocaleString()}{" "}
+                    د.ع
                   </p>
                 </motion.div>
               </CardContent>

@@ -57,11 +57,13 @@ export default function NewSale() {
   });
 
   const selectedProduct = products.find(
-    (p) => p.id === Number(form.watch("productId"))
+    (p) => p.id === Number(form.watch("productId")),
   );
 
   const watchQuantity = form.watch("quantity");
-  const priceIqd = selectedProduct ? Number(selectedProduct.priceIqd) * watchQuantity : 0;
+  const priceIqd = selectedProduct
+    ? Number(selectedProduct.priceIqd) * watchQuantity
+    : 0;
 
   async function onSubmit(data: any) {
     try {
@@ -69,7 +71,7 @@ export default function NewSale() {
         productId: Number(data.productId),
         quantity: Number(data.quantity),
         priceIqd: priceIqd.toString(),
-        isInstallment
+        isInstallment,
       };
 
       const response = await apiRequest("POST", "/api/sales", saleData);
@@ -128,7 +130,10 @@ export default function NewSale() {
                   </FormControl>
                   <SelectContent>
                     {products.map((product) => (
-                      <SelectItem key={product.id} value={product.id.toString()}>
+                      <SelectItem
+                        key={product.id}
+                        value={product.id.toString()}
+                      >
                         {product.name}
                       </SelectItem>
                     ))}
@@ -146,9 +151,9 @@ export default function NewSale() {
               <FormItem>
                 <FormLabel>الكمية</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    min="1" 
+                  <Input
+                    type="number"
+                    min="1"
                     {...field}
                     onChange={(e) => field.onChange(Number(e.target.value))}
                   />
@@ -162,7 +167,9 @@ export default function NewSale() {
             <FormLabel>نوع البيع</FormLabel>
             <RadioGroup
               value={isInstallment ? "installment" : "cash"}
-              onValueChange={(value) => setIsInstallment(value === "installment")}
+              onValueChange={(value) =>
+                setIsInstallment(value === "installment")
+              }
               className="flex gap-4"
             >
               <div className="flex items-center space-x-2">
@@ -187,7 +194,11 @@ export default function NewSale() {
               <div className="flex justify-between text-sm">
                 <span>ما يعادل بالدولار:</span>
                 <span className="font-bold">
-                  ${(exchangeRate ? priceIqd / Number(exchangeRate.usdToIqd) : 0).toFixed(2)}
+                  $
+                  {(exchangeRate
+                    ? priceIqd / Number(exchangeRate.usdToIqd)
+                    : 0
+                  ).toFixed(2)}
                 </span>
               </div>
             </div>

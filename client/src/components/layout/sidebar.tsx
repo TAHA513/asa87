@@ -26,14 +26,39 @@ const navigation = [
   { name: "المبيعات", href: "/sales", icon: MdPointOfSale, color: "#EA4335" },
   { name: "العملاء", href: "/customers", icon: MdPeople, color: "#FBBC05" },
   { name: "الفواتير", href: "/invoices", icon: MdReceipt, color: "#4285F4" },
-  { name: "التقسيط", href: "/installments", icon: MdCalendarMonth, color: "#34A853" },
+  {
+    name: "التقسيط",
+    href: "/installments",
+    icon: MdCalendarMonth,
+    color: "#34A853",
+  },
   { name: "التسويق", href: "/marketing", icon: MdCampaign, color: "#EA4335" },
   { name: "التقارير", href: "/reports", icon: MdBarChart, color: "#FBBC05" },
-  { name: "المصروفات", href: "/expenses", icon: MdAccountBalance, color: "#4285F4" },
-  { name: "الموردين", href: "/suppliers", icon: MdLocalShipping, color: "#34A853" },
+  {
+    name: "المصروفات",
+    href: "/expenses",
+    icon: MdAccountBalance,
+    color: "#4285F4",
+  },
+  {
+    name: "الموردين",
+    href: "/suppliers",
+    icon: MdLocalShipping,
+    color: "#34A853",
+  },
   { name: "الباركود", href: "/barcodes", icon: MdQrCode2, color: "#EA4335" },
-  { name: "أكواد الخصم", href: "/discount-codes", icon: MdLocalOffer, color: "#FBBC05" },
-  { name: "الموظفين", href: "/staff", icon: MdSupervisorAccount, color: "#4285F4" },
+  {
+    name: "أكواد الخصم",
+    href: "/discount-codes",
+    icon: MdLocalOffer,
+    color: "#FBBC05",
+  },
+  {
+    name: "الموظفين",
+    href: "/staff",
+    icon: MdSupervisorAccount,
+    color: "#4285F4",
+  },
   { name: "الإعدادات", href: "/settings", icon: MdSettings, color: "#34A853" },
 ];
 
@@ -44,12 +69,8 @@ export default function Sidebar() {
   return (
     <div className="flex flex-col h-full bg-white border-l">
       <div className="p-4">
-        <h1 className="text-base font-medium text-black">
-          نظام إدارة الأعمال
-        </h1>
-        <p className="text-xs text-gray-600">
-          مرحباً, {user?.username}
-        </p>
+        <h1 className="text-base font-medium text-black">نظام إدارة الأعمال</h1>
+        <p className="text-xs text-gray-600">مرحباً, {user?.username}</p>
       </div>
 
       <nav className="flex-1 px-3">
@@ -64,15 +85,12 @@ export default function Sidebar() {
                     "w-full justify-start gap-3 h-10 px-3 text-sm font-normal",
                     location === item.href
                       ? "bg-gray-100 text-black"
-                      : "text-black hover:bg-gray-50"
+                      : "text-black hover:bg-gray-50",
                   )}
                   asChild
                 >
                   <Link href={item.href}>
-                    <Icon 
-                      className="h-5 w-5"
-                      style={{ color: item.color }}
-                    />
+                    <Icon className="h-5 w-5" style={{ color: item.color }} />
                     {item.name}
                   </Link>
                 </Button>

@@ -44,13 +44,16 @@ export default function MarketingPage() {
   });
 
   // تصفية الحملات النشطة
-  const activeCampaigns = campaigns.filter(campaign => campaign.status === "active");
+  const activeCampaigns = campaigns.filter(
+    (campaign) => campaign.status === "active",
+  );
 
   // تجميع الإحصائيات من API منصات التواصل الاجتماعي
-  const { data: socialStats = { impressions: 0, engagement: 0, spend: 0 } } = useQuery<SocialStats>({
-    queryKey: ["/api/marketing/social-stats"],
-    refetchInterval: 300000, // تحديث كل 5 دقائق
-  });
+  const { data: socialStats = { impressions: 0, engagement: 0, spend: 0 } } =
+    useQuery<SocialStats>({
+      queryKey: ["/api/marketing/social-stats"],
+      refetchInterval: 300000, // تحديث كل 5 دقائق
+    });
 
   return (
     <div className="flex h-screen">
@@ -66,9 +69,7 @@ export default function MarketingPage() {
             </div>
             <Dialog open={showNewCampaign} onOpenChange={setShowNewCampaign}>
               <DialogTrigger asChild>
-                <Button>
-                  إنشاء حملة إعلانية جديدة
-                </Button>
+                <Button>إنشاء حملة إعلانية جديدة</Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
@@ -93,7 +94,9 @@ export default function MarketingPage() {
                   <Megaphone className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{activeCampaigns.length}</div>
+                  <div className="text-2xl font-bold">
+                    {activeCampaigns.length}
+                  </div>
                 </CardContent>
               </Card>
               <Card>
@@ -153,25 +156,37 @@ export default function MarketingPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {activeCampaigns.map(campaign => (
+                  {activeCampaigns.map((campaign) => (
                     <Card key={campaign.id}>
                       <CardHeader>
                         <CardTitle>{campaign.name}</CardTitle>
-                        <CardDescription>{campaign.description}</CardDescription>
+                        <CardDescription>
+                          {campaign.description}
+                        </CardDescription>
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-3 gap-4">
                           <div>
-                            <p className="text-sm text-muted-foreground">المنصات</p>
+                            <p className="text-sm text-muted-foreground">
+                              المنصات
+                            </p>
                             <p>{campaign.platforms.join(", ")}</p>
                           </div>
                           <div>
-                            <p className="text-sm text-muted-foreground">الميزانية</p>
+                            <p className="text-sm text-muted-foreground">
+                              الميزانية
+                            </p>
                             <p>${Number(campaign.budget).toLocaleString()}</p>
                           </div>
                           <div>
-                            <p className="text-sm text-muted-foreground">تاريخ البدء</p>
-                            <p>{new Date(campaign.startDate).toLocaleDateString()}</p>
+                            <p className="text-sm text-muted-foreground">
+                              تاريخ البدء
+                            </p>
+                            <p>
+                              {new Date(
+                                campaign.startDate,
+                              ).toLocaleDateString()}
+                            </p>
                           </div>
                         </div>
                       </CardContent>

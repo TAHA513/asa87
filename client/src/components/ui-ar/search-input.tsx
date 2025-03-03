@@ -1,80 +1,86 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
-import { Search, X, SlidersHorizontal, ChevronDown } from "lucide-react"
-import { Button } from "./button"
-import { Input } from "./input"
+import * as React from "react";
+import { cn } from "@/lib/utils";
+import { Search, X, SlidersHorizontal, ChevronDown } from "lucide-react";
+import { Button } from "./button";
+import { Input } from "./input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@/components/ui/popover";
 
 export interface SearchFilter {
-  id: string
-  label: string
-  options: { value: string; label: string }[]
+  id: string;
+  label: string;
+  options: { value: string; label: string }[];
 }
 
-export interface SearchInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  filters?: SearchFilter[]
-  suggestions?: string[]
-  onFilterChange?: (filterId: string, value: string) => void
-  onSearch?: (value: string) => void
-  clearable?: boolean
-  loading?: boolean
-  rtl?: boolean
+export interface SearchInputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {
+  filters?: SearchFilter[];
+  suggestions?: string[];
+  onFilterChange?: (filterId: string, value: string) => void;
+  onSearch?: (value: string) => void;
+  clearable?: boolean;
+  loading?: boolean;
+  rtl?: boolean;
 }
 
 export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
-  ({ 
-    className,
-    filters,
-    suggestions,
-    onFilterChange,
-    onSearch,
-    clearable = true,
-    loading = false,
-    rtl = true,
-    value,
-    onChange,
-    ...props
-  }, ref) => {
-    const [searchValue, setSearchValue] = React.useState(value || "")
-    const [showFilters, setShowFilters] = React.useState(false)
-    const [activeFilters, setActiveFilters] = React.useState<Record<string, string>>({})
+  (
+    {
+      className,
+      filters,
+      suggestions,
+      onFilterChange,
+      onSearch,
+      clearable = true,
+      loading = false,
+      rtl = true,
+      value,
+      onChange,
+      ...props
+    },
+    ref,
+  ) => {
+    const [searchValue, setSearchValue] = React.useState(value || "");
+    const [showFilters, setShowFilters] = React.useState(false);
+    const [activeFilters, setActiveFilters] = React.useState<
+      Record<string, string>
+    >({});
 
     // تحديث قيمة البحث عند تغييرها خارجياً
     React.useEffect(() => {
       if (value !== undefined) {
-        setSearchValue(value)
+        setSearchValue(value);
       }
-    }, [value])
+    }, [value]);
 
     const handleSearch = (newValue: string) => {
-      setSearchValue(newValue)
-      onChange?.(({ target: { value: newValue } }) as any)
-      onSearch?.(newValue)
-    }
+      setSearchValue(newValue);
+      onChange?.({ target: { value: newValue } } as any);
+      onSearch?.(newValue);
+    };
 
     const handleClear = () => {
-      setSearchValue("")
-      onChange?.(({ target: { value: "" } }) as any)
-      onSearch?.("")
-      setActiveFilters({})
-    }
+      setSearchValue("");
+      onChange?.({ target: { value: "" } } as any);
+      onSearch?.("");
+      setActiveFilters({});
+    };
 
     const handleFilterChange = (filterId: string, value: string) => {
-      const newFilters = { ...activeFilters, [filterId]: value }
-      setActiveFilters(newFilters)
-      onFilterChange?.(filterId, value)
-    }
+      const newFilters = { ...activeFilters, [filterId]: value };
+      setActiveFilters(newFilters);
+      onFilterChange?.(filterId, value);
+    };
 
     return (
-      <div 
+      <div
         className={cn(
           "relative flex items-center gap-2",
           rtl ? "flex-row-reverse" : "flex-row",
-          className
+          className,
         )}
         dir={rtl ? "rtl" : "ltr"}
       >
@@ -84,17 +90,16 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
             type="search"
             value={searchValue}
             onChange={(e) => handleSearch(e.target.value)}
-            className={cn(
-              "pr-10",
-              rtl ? "text-right" : "text-left"
-            )}
+            className={cn("pr-10", rtl ? "text-right" : "text-left")}
             rtl={rtl}
             {...props}
           />
-          <div className={cn(
-            "absolute top-0 h-full flex items-center",
-            rtl ? "left-3" : "right-3"
-          )}>
+          <div
+            className={cn(
+              "absolute top-0 h-full flex items-center",
+              rtl ? "left-3" : "right-3",
+            )}
+          >
             <Search className="w-4 h-4 text-muted-foreground" />
           </div>
         </div>
@@ -118,7 +123,8 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
                 size="icon"
                 className={cn(
                   "shrink-0",
-                  Object.keys(activeFilters).length > 0 && "bg-primary text-primary-foreground"
+                  Object.keys(activeFilters).length > 0 &&
+                    "bg-primary text-primary-foreground",
                 )}
               >
                 <SlidersHorizontal className="w-4 h-4" />
@@ -133,11 +139,15 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
                 <h4 className="font-medium">خيارات البحث المتقدم</h4>
                 {filters.map((filter) => (
                   <div key={filter.id} className="space-y-2">
-                    <label className="text-sm font-medium">{filter.label}</label>
+                    <label className="text-sm font-medium">
+                      {filter.label}
+                    </label>
                     <select
                       className="w-full p-2 text-sm rounded-md border border-input bg-background"
                       value={activeFilters[filter.id] || ""}
-                      onChange={(e) => handleFilterChange(filter.id, e.target.value)}
+                      onChange={(e) =>
+                        handleFilterChange(filter.id, e.target.value)
+                      }
                     >
                       <option value="">الكل</option>
                       {filter.options.map((option) => (
@@ -157,7 +167,7 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
           <div
             className={cn(
               "absolute top-full mt-1 w-full bg-popover text-popover-foreground shadow-md rounded-md border border-border z-50",
-              rtl ? "right-0" : "left-0"
+              rtl ? "right-0" : "left-0",
             )}
           >
             <ul className="py-2">
@@ -174,8 +184,8 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
           </div>
         )}
       </div>
-    )
-  }
-)
+    );
+  },
+);
 
-SearchInput.displayName = "SearchInput"
+SearchInput.displayName = "SearchInput";

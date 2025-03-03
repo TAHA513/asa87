@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Barcode } from "@/components/ui/barcode";
 import { useForm } from "react-hook-form";
-import { useReactToPrint } from 'react-to-print';
+import { useReactToPrint } from "react-to-print";
 import { Printer, QrCode } from "lucide-react";
 
 export default function Products() {
@@ -49,14 +49,18 @@ export default function Products() {
                 <div className="space-y-2">
                   <Label>الباركود</Label>
                   <div className="flex gap-2">
-                    <Input 
-                      placeholder="ادخل الباركود" 
+                    <Input
+                      placeholder="ادخل الباركود"
                       value={barcode}
                       onChange={(e) => setBarcode(e.target.value)}
                     />
-                    <Button 
+                    <Button
                       variant="outline"
-                      onClick={() => setBarcode(Math.floor(Math.random() * 1000000000000).toString())}
+                      onClick={() =>
+                        setBarcode(
+                          Math.floor(Math.random() * 1000000000000).toString(),
+                        )
+                      }
                     >
                       <QrCode className="h-4 w-4 ml-2" />
                       توليد

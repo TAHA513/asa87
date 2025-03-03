@@ -1,19 +1,56 @@
 import { db } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
 import {
-  users, products, sales, exchangeRates, expenseCategories, fileStorage,
-  customers, installments, installmentPayments, marketingCampaigns,
-  campaignAnalytics, socialMediaAccounts, apiKeys, inventoryTransactions,
-  expenses, suppliers, supplierTransactions, appointments
+  users,
+  products,
+  sales,
+  exchangeRates,
+  expenseCategories,
+  fileStorage,
+  customers,
+  installments,
+  installmentPayments,
+  marketingCampaigns,
+  campaignAnalytics,
+  socialMediaAccounts,
+  apiKeys,
+  inventoryTransactions,
+  expenses,
+  suppliers,
+  supplierTransactions,
+  appointments,
 } from "@shared/schema";
 import type {
-  User, InsertUser, Product, Sale, ExchangeRate, ExpenseCategory,
-  FileStorage, InsertFileStorage, Customer, InsertCustomer, Installment,
-  InstallmentPayment, Campaign, InsertCampaign, CampaignAnalytics,
-  InsertCampaignAnalytics, SocialMediaAccount, InsertSocialMediaAccount,
-  ApiKey, InsertApiKey, InventoryTransaction, InsertInventoryTransaction,
-  Expense, InsertExpense, Supplier, InsertSupplier, SupplierTransaction,
-  InsertSupplierTransaction, Appointment, InsertAppointment
+  User,
+  InsertUser,
+  Product,
+  Sale,
+  ExchangeRate,
+  ExpenseCategory,
+  FileStorage,
+  InsertFileStorage,
+  Customer,
+  InsertCustomer,
+  Installment,
+  InstallmentPayment,
+  Campaign,
+  InsertCampaign,
+  CampaignAnalytics,
+  InsertCampaignAnalytics,
+  SocialMediaAccount,
+  InsertSocialMediaAccount,
+  ApiKey,
+  InsertApiKey,
+  InventoryTransaction,
+  InsertInventoryTransaction,
+  Expense,
+  InsertExpense,
+  Supplier,
+  InsertSupplier,
+  SupplierTransaction,
+  InsertSupplierTransaction,
+  Appointment,
+  InsertAppointment,
 } from "@shared/schema";
 
 export class DatabaseStorage {
@@ -54,10 +91,7 @@ export class DatabaseStorage {
   // الحصول على مستخدم بواسطة المعرف
   async getUser(id: number): Promise<User | undefined> {
     try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, id));
+      const [user] = await db.select().from(users).where(eq(users.id, id));
       return user;
     } catch (error) {
       console.error("خطأ في البحث عن المستخدم في قاعدة البيانات:", error);
@@ -140,10 +174,7 @@ export class DatabaseStorage {
   // إضافة عملية بيع
   async createSale(sale: Sale): Promise<Sale | null> {
     try {
-      const [savedSale] = await db
-        .insert(sales)
-        .values(sale)
-        .returning();
+      const [savedSale] = await db.insert(sales).values(sale).returning();
       return savedSale;
     } catch (error) {
       console.error("خطأ في حفظ عملية البيع في قاعدة البيانات:", error);
@@ -196,7 +227,7 @@ export class DatabaseStorage {
         .insert(exchangeRates)
         .values({
           usdToIqd: rate.toString(),
-          date: new Date()
+          date: new Date(),
         })
         .returning();
       return newRate;
@@ -261,9 +292,7 @@ export class DatabaseStorage {
   // حذف ملف
   async deleteFile(id: number): Promise<void> {
     try {
-      await db
-        .delete(fileStorage)
-        .where(eq(fileStorage.id, id));
+      await db.delete(fileStorage).where(eq(fileStorage.id, id));
     } catch (error) {
       console.error("خطأ في حذف الملف:", error);
       throw error;
@@ -284,7 +313,7 @@ export class DatabaseStorage {
         .where(
           sql`LOWER(${customers.name}) LIKE ${searchLower} OR 
               LOWER(${customers.phone}) LIKE ${searchLower} OR 
-              LOWER(${customers.email}) LIKE ${searchLower}`
+              LOWER(${customers.email}) LIKE ${searchLower}`,
         );
     } catch (error) {
       console.error("خطأ في البحث عن العملاء:", error);
@@ -359,7 +388,10 @@ export class DatabaseStorage {
     }
   }
 
-  async updateInstallment(id: number, update: Partial<Installment>): Promise<Installment> {
+  async updateInstallment(
+    id: number,
+    update: Partial<Installment>,
+  ): Promise<Installment> {
     try {
       const [updatedInstallment] = await db
         .update(installments)
@@ -374,7 +406,9 @@ export class DatabaseStorage {
   }
 
   // Installment Payments
-  async getInstallmentPayments(installmentId: number): Promise<InstallmentPayment[]> {
+  async getInstallmentPayments(
+    installmentId: number,
+  ): Promise<InstallmentPayment[]> {
     try {
       return await db
         .select()
@@ -386,7 +420,9 @@ export class DatabaseStorage {
     }
   }
 
-  async createInstallmentPayment(payment: InstallmentPayment): Promise<InstallmentPayment> {
+  async createInstallmentPayment(
+    payment: InstallmentPayment,
+  ): Promise<InstallmentPayment> {
     try {
       const [newPayment] = await db
         .insert(installmentPayments)
@@ -435,7 +471,10 @@ export class DatabaseStorage {
     }
   }
 
-  async updateCampaign(id: number, update: Partial<Campaign>): Promise<Campaign> {
+  async updateCampaign(
+    id: number,
+    update: Partial<Campaign>,
+  ): Promise<Campaign> {
     try {
       const [updatedCampaign] = await db
         .update(marketingCampaigns)
@@ -462,7 +501,9 @@ export class DatabaseStorage {
     }
   }
 
-  async createCampaignAnalytics(analytics: InsertCampaignAnalytics[]): Promise<CampaignAnalytics> {
+  async createCampaignAnalytics(
+    analytics: InsertCampaignAnalytics[],
+  ): Promise<CampaignAnalytics> {
     try {
       const [newAnalytics] = await db
         .insert(campaignAnalytics)
@@ -488,7 +529,9 @@ export class DatabaseStorage {
     }
   }
 
-  async createSocialMediaAccount(account: SocialMediaAccount): Promise<SocialMediaAccount> {
+  async createSocialMediaAccount(
+    account: SocialMediaAccount,
+  ): Promise<SocialMediaAccount> {
     try {
       const [newAccount] = await db
         .insert(socialMediaAccounts)
@@ -517,15 +560,13 @@ export class DatabaseStorage {
     try {
       await db.transaction(async (tx) => {
         // Delete existing keys
-        await tx
-          .delete(apiKeys)
-          .where(eq(apiKeys.userId, userId));
+        await tx.delete(apiKeys).where(eq(apiKeys.userId, userId));
 
         // Insert new keys
         const keyEntries = Object.entries(keys).map(([platform, value]) => ({
           userId,
           platform,
-          keyType: 'api',
+          keyType: "api",
           keyValue: JSON.stringify(value),
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -550,10 +591,13 @@ export class DatabaseStorage {
 
       if (userKeys.length === 0) return null;
 
-      return userKeys.reduce((acc, key) => ({
-        ...acc,
-        [key.platform]: JSON.parse(key.keyValue)
-      }), {});
+      return userKeys.reduce(
+        (acc, key) => ({
+          ...acc,
+          [key.platform]: JSON.parse(key.keyValue),
+        }),
+        {},
+      );
     } catch (error) {
       console.error("خطأ في جلب مفاتيح API:", error);
       return null;
@@ -570,7 +614,9 @@ export class DatabaseStorage {
     }
   }
 
-  async createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction> {
+  async createInventoryTransaction(
+    transaction: InsertInventoryTransaction,
+  ): Promise<InventoryTransaction> {
     try {
       const [newTransaction] = await db
         .insert(inventoryTransactions)
@@ -638,9 +684,7 @@ export class DatabaseStorage {
 
   async deleteExpense(id: number): Promise<void> {
     try {
-      await db
-        .delete(expenses)
-        .where(eq(expenses.id, id));
+      await db.delete(expenses).where(eq(expenses.id, id));
     } catch (error) {
       console.error("خطأ في حذف المصروف:", error);
       throw error;
@@ -686,7 +730,10 @@ export class DatabaseStorage {
     }
   }
 
-  async updateSupplier(id: number, update: Partial<Supplier>): Promise<Supplier> {
+  async updateSupplier(
+    id: number,
+    update: Partial<Supplier>,
+  ): Promise<Supplier> {
     try {
       const [updatedSupplier] = await db
         .update(suppliers)
@@ -702,9 +749,7 @@ export class DatabaseStorage {
 
   async deleteSupplier(id: number): Promise<void> {
     try {
-      await db
-        .delete(suppliers)
-        .where(eq(suppliers.id, id));
+      await db.delete(suppliers).where(eq(suppliers.id, id));
     } catch (error) {
       console.error("خطأ في حذف المورد:", error);
       throw error;
@@ -712,7 +757,9 @@ export class DatabaseStorage {
   }
 
   // Supplier Transactions
-  async getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]> {
+  async getSupplierTransactions(
+    supplierId: number,
+  ): Promise<SupplierTransaction[]> {
     try {
       return await db
         .select()
@@ -724,7 +771,9 @@ export class DatabaseStorage {
     }
   }
 
-  async createSupplierTransaction(transaction: InsertSupplierTransaction[]): Promise<SupplierTransaction> {
+  async createSupplierTransaction(
+    transaction: InsertSupplierTransaction[],
+  ): Promise<SupplierTransaction> {
     try {
       const [newTransaction] = await db
         .insert(supplierTransactions)
@@ -751,7 +800,9 @@ export class DatabaseStorage {
     }
   }
 
-  async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
+  async createAppointment(
+    appointment: InsertAppointment,
+  ): Promise<Appointment> {
     try {
       const [newAppointment] = await db
         .insert(appointments)
@@ -764,7 +815,10 @@ export class DatabaseStorage {
     }
   }
 
-  async updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment> {
+  async updateAppointment(
+    id: number,
+    update: Partial<Appointment>,
+  ): Promise<Appointment> {
     try {
       const [updatedAppointment] = await db
         .update(appointments)
@@ -780,9 +834,7 @@ export class DatabaseStorage {
 
   async deleteAppointment(id: number): Promise<void> {
     try {
-      await db
-        .delete(appointments)
-        .where(eq(appointments.id, id));
+      await db.delete(appointments).where(eq(appointments.id, id));
     } catch (error) {
       console.error("خطأ في حذف الموعد:", error);
       throw error;
@@ -790,7 +842,7 @@ export class DatabaseStorage {
   }
 
   // Analytics Methods
-  async getAnalyticsSales(): Promise<{ date: string; amount: number; }[]> {
+  async getAnalyticsSales(): Promise<{ date: string; amount: number }[]> {
     try {
       const results = await db.execute(sql`
         SELECT 
@@ -802,9 +854,9 @@ export class DatabaseStorage {
         LIMIT 30
       `);
 
-      return results.rows.map(row => ({
+      return results.rows.map((row) => ({
         date: String(row.date),
-        amount: Number(row.amount)
+        amount: Number(row.amount),
       }));
     } catch (error) {
       console.error("Error fetching sales analytics:", error);
@@ -812,7 +864,7 @@ export class DatabaseStorage {
     }
   }
 
-  async getAnalyticsCustomers(): Promise<{ name: string; value: number; }[]> {
+  async getAnalyticsCustomers(): Promise<{ name: string; value: number }[]> {
     try {
       const results = await db.execute(sql`
         SELECT 
@@ -825,9 +877,9 @@ export class DatabaseStorage {
         LIMIT 10
       `);
 
-      return results.rows.map(row => ({
+      return results.rows.map((row) => ({
         name: String(row.name),
-        value: Number(row.value)
+        value: Number(row.value),
       }));
     } catch (error) {
       console.error("Error fetching customer analytics:", error);
@@ -835,7 +887,7 @@ export class DatabaseStorage {
     }
   }
 
-  async getAnalyticsProducts(): Promise<{ name: string; sales: number; }[]> {
+  async getAnalyticsProducts(): Promise<{ name: string; sales: number }[]> {
     try {
       const results = await db.execute(sql`
         SELECT 
@@ -848,9 +900,9 @@ export class DatabaseStorage {
         LIMIT 10
       `);
 
-      return results.rows.map(row => ({
+      return results.rows.map((row) => ({
         name: String(row.name),
-        sales: Number(row.sales)
+        sales: Number(row.sales),
       }));
     } catch (error) {
       console.error("Error fetching product analytics:", error);

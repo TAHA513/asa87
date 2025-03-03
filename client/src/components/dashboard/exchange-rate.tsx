@@ -42,7 +42,7 @@ export default function ExchangeRateCard() {
     setIsUpdating(true);
     try {
       await apiRequest("POST", "/api/exchange-rate", {
-        usdToIqd: rateNumber
+        usdToIqd: rateNumber,
       });
 
       // تحديث البيانات مباشرة
@@ -84,7 +84,10 @@ export default function ExchangeRateCard() {
             1 دولار = {exchangeRate?.usdToIqd} دينار عراقي
           </div>
           <p className="text-xs text-muted-foreground">
-            آخر تحديث: {exchangeRate ? new Date(exchangeRate.date).toLocaleString('ar-IQ') : '-'}
+            آخر تحديث:{" "}
+            {exchangeRate
+              ? new Date(exchangeRate.date).toLocaleString("ar-IQ")
+              : "-"}
           </p>
 
           <div className="flex gap-2">

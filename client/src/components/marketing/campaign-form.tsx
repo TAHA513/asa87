@@ -74,8 +74,8 @@ export default function CampaignForm() {
     // فتح نافذة مدير الإعلانات بدون شريط العنوان والأزرار
     const popup = window.open(
       config.adManagerUrl,
-      'مدير الإعلانات',
-      'popup=true,menubar=no,toolbar=no,location=no,status=no,width=1200,height=800'
+      "مدير الإعلانات",
+      "popup=true,menubar=no,toolbar=no,location=no,status=no,width=1200,height=800",
     );
 
     if (popup) {
@@ -94,9 +94,10 @@ export default function CampaignForm() {
             key={platform}
             className="p-4 rounded-lg cursor-pointer transition-all duration-200 border-2"
             style={{
-              backgroundColor: selectedPlatform === platform ? config.color : 'transparent',
+              backgroundColor:
+                selectedPlatform === platform ? config.color : "transparent",
               borderColor: config.color,
-              color: selectedPlatform === platform ? 'white' : 'inherit',
+              color: selectedPlatform === platform ? "white" : "inherit",
             }}
             onClick={() => {
               setSelectedPlatform(platform);

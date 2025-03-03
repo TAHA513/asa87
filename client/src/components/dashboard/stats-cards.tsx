@@ -22,47 +22,62 @@ export default function StatsCards() {
   }, 0);
 
   // حساب النمو في المبيعات مقارنة بالشهر الماضي
-  const currentMonthSales = sales.filter(sale => {
-    const saleDate = new Date(sale.date);
-    const now = new Date();
-    return saleDate.getMonth() === now.getMonth() && 
-           saleDate.getFullYear() === now.getFullYear();
-  }).reduce((sum, sale) => sum + Number(sale.priceIqd) * sale.quantity, 0);
+  const currentMonthSales = sales
+    .filter((sale) => {
+      const saleDate = new Date(sale.date);
+      const now = new Date();
+      return (
+        saleDate.getMonth() === now.getMonth() &&
+        saleDate.getFullYear() === now.getFullYear()
+      );
+    })
+    .reduce((sum, sale) => sum + Number(sale.priceIqd) * sale.quantity, 0);
 
-  const lastMonthSales = sales.filter(sale => {
-    const saleDate = new Date(sale.date);
-    const now = new Date();
-    const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
-    const lastMonthYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-    return saleDate.getMonth() === lastMonth && 
-           saleDate.getFullYear() === lastMonthYear;
-  }).reduce((sum, sale) => sum + Number(sale.priceIqd) * sale.quantity, 0);
+  const lastMonthSales = sales
+    .filter((sale) => {
+      const saleDate = new Date(sale.date);
+      const now = new Date();
+      const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+      const lastMonthYear =
+        now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+      return (
+        saleDate.getMonth() === lastMonth &&
+        saleDate.getFullYear() === lastMonthYear
+      );
+    })
+    .reduce((sum, sale) => sum + Number(sale.priceIqd) * sale.quantity, 0);
 
-  const salesGrowth = lastMonthSales === 0 ? 100 : 
-    ((currentMonthSales - lastMonthSales) / lastMonthSales) * 100;
+  const salesGrowth =
+    lastMonthSales === 0
+      ? 100
+      : ((currentMonthSales - lastMonthSales) / lastMonthSales) * 100;
 
   const totalProducts = products.length;
-  const lowStock = products.filter(p => p.stock < 10).length;
+  const lowStock = products.filter((p) => p.stock < 10).length;
   const totalTransactions = sales.length;
 
   // حساب نمو المعاملات مقارنة بالساعة الماضية
-  const currentHourTransactions = sales.filter(sale => {
+  const currentHourTransactions = sales.filter((sale) => {
     const saleDate = new Date(sale.date);
     const now = new Date();
-    return saleDate.getHours() === now.getHours() &&
-           saleDate.getDate() === now.getDate() &&
-           saleDate.getMonth() === now.getMonth() &&
-           saleDate.getFullYear() === now.getFullYear();
+    return (
+      saleDate.getHours() === now.getHours() &&
+      saleDate.getDate() === now.getDate() &&
+      saleDate.getMonth() === now.getMonth() &&
+      saleDate.getFullYear() === now.getFullYear()
+    );
   }).length;
 
-  const lastHourTransactions = sales.filter(sale => {
+  const lastHourTransactions = sales.filter((sale) => {
     const saleDate = new Date(sale.date);
     const now = new Date();
     const lastHour = now.getHours() === 0 ? 23 : now.getHours() - 1;
-    return saleDate.getHours() === lastHour &&
-           saleDate.getDate() === now.getDate() &&
-           saleDate.getMonth() === now.getMonth() &&
-           saleDate.getFullYear() === now.getFullYear();
+    return (
+      saleDate.getHours() === lastHour &&
+      saleDate.getDate() === now.getDate() &&
+      saleDate.getMonth() === now.getMonth() &&
+      saleDate.getFullYear() === now.getFullYear()
+    );
   }).length;
 
   const transactionGrowth = currentHourTransactions - lastHourTransactions;
@@ -70,26 +85,33 @@ export default function StatsCards() {
   // حساب العملاء النشطين (الذين لديهم مشتريات هذا الشهر)
   const activeCustomers = new Set(
     sales
-      .filter(sale => {
+      .filter((sale) => {
         const saleDate = new Date(sale.date);
         const now = new Date();
-        return saleDate.getMonth() === now.getMonth() && 
-               saleDate.getFullYear() === now.getFullYear();
+        return (
+          saleDate.getMonth() === now.getMonth() &&
+          saleDate.getFullYear() === now.getFullYear()
+        );
       })
-      .map(sale => sale.customerId)
+      .map((sale) => sale.customerId),
   ).size;
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">إجمالي الإيرادات</CardTitle>
+          <CardTitle className="text-sm font-medium">
+            إجمالي الإيرادات
+          </CardTitle>
           <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{totalSales.toLocaleString()} د.ع</div>
+          <div className="text-2xl font-bold">
+            {totalSales.toLocaleString()} د.ع
+          </div>
           <p className="text-xs text-muted-foreground">
-            {salesGrowth >= 0 ? "+" : ""}{salesGrowth.toFixed(1)}% عن الشهر الماضي
+            {salesGrowth >= 0 ? "+" : ""}
+            {salesGrowth.toFixed(1)}% عن الشهر الماضي
           </p>
         </CardContent>
       </Card>
@@ -115,7 +137,8 @@ export default function StatsCards() {
         <CardContent>
           <div className="text-2xl font-bold">{totalTransactions}</div>
           <p className="text-xs text-muted-foreground">
-            {transactionGrowth >= 0 ? "+" : ""}{transactionGrowth} منذ الساعة الماضية
+            {transactionGrowth >= 0 ? "+" : ""}
+            {transactionGrowth} منذ الساعة الماضية
           </p>
         </CardContent>
       </Card>
@@ -127,9 +150,7 @@ export default function StatsCards() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{activeCustomers}</div>
-          <p className="text-xs text-muted-foreground">
-            عملاء نشطون هذا الشهر
-          </p>
+          <p className="text-xs text-muted-foreground">عملاء نشطون هذا الشهر</p>
         </CardContent>
       </Card>
     </div>

@@ -45,7 +45,8 @@ const EmptyState = () => (
     <CardHeader>
       <CardTitle>لا توجد بيانات</CardTitle>
       <CardDescription>
-        لم يتم تسجيل أي حركات مخزون بعد. عندما تبدأ في استخدام النظام، ستظهر هنا تقارير وإحصائيات مفصلة.
+        لم يتم تسجيل أي حركات مخزون بعد. عندما تبدأ في استخدام النظام، ستظهر هنا
+        تقارير وإحصائيات مفصلة.
       </CardDescription>
     </CardHeader>
   </Card>
@@ -58,10 +59,14 @@ const LoadingState = () => (
 );
 
 export default function ReportsPage() {
-  const [reportType, setReportType] = useState<"inventory" | "sales" | "marketing">("inventory");
+  const [reportType, setReportType] = useState<
+    "inventory" | "sales" | "marketing"
+  >("inventory");
   const [date, setDate] = useState<Date | undefined>(new Date());
 
-  const { data: inventoryTransactions = [], isLoading } = useQuery<InventoryTransaction[]>({
+  const { data: inventoryTransactions = [], isLoading } = useQuery<
+    InventoryTransaction[]
+  >({
     queryKey: ["/api/inventory/transactions"],
   });
 
@@ -75,7 +80,10 @@ export default function ReportsPage() {
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold">التقارير</h1>
             <div className="flex items-center gap-4">
-              <Select value={reportType} onValueChange={(value: any) => setReportType(value)}>
+              <Select
+                value={reportType}
+                onValueChange={(value: any) => setReportType(value)}
+              >
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="اختر نوع التقرير" />
                 </SelectTrigger>
@@ -92,7 +100,7 @@ export default function ReportsPage() {
                     variant={"outline"}
                     className={cn(
                       "w-[240px] justify-start text-right font-normal",
-                      !date && "text-muted-foreground"
+                      !date && "text-muted-foreground",
                     )}
                   >
                     <CalendarIcon className="ml-2 h-4 w-4" />
@@ -124,7 +132,9 @@ export default function ReportsPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>حركة المخزون</CardTitle>
-                  <CardDescription>تحليل حركة الدخول والخروج للمخزون</CardDescription>
+                  <CardDescription>
+                    تحليل حركة الدخول والخروج للمخزون
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="h-[400px]">
@@ -133,11 +143,15 @@ export default function ReportsPage() {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis
                           dataKey="date"
-                          tickFormatter={(date) => format(new Date(date), "MM/dd")}
+                          tickFormatter={(date) =>
+                            format(new Date(date), "MM/dd")
+                          }
                         />
                         <YAxis />
                         <Tooltip
-                          labelFormatter={(date) => format(new Date(date), "PP")}
+                          labelFormatter={(date) =>
+                            format(new Date(date), "PP")
+                          }
                         />
                         <Line
                           type="monotone"

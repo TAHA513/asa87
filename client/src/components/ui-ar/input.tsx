@@ -1,18 +1,26 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
-import { InfoIcon } from "lucide-react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import * as React from "react";
+import { cn } from "@/lib/utils";
+import { InfoIcon } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
-  rtl?: boolean
-  tooltip?: string
-  showHelper?: boolean
-  helperText?: string
+  rtl?: boolean;
+  tooltip?: string;
+  showHelper?: boolean;
+  helperText?: string;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, rtl = true, tooltip, showHelper, helperText, ...props }, ref) => {
+  (
+    { className, type, rtl = true, tooltip, showHelper, helperText, ...props },
+    ref,
+  ) => {
     const input = (
       <div className="relative">
         <input
@@ -25,7 +33,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             "disabled:cursor-not-allowed disabled:opacity-50",
             rtl && "text-right",
             showHelper && "pr-8",
-            className
+            className,
           )}
           dir={rtl ? "rtl" : "ltr"}
           ref={ref}
@@ -37,31 +45,32 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           </div>
         )}
         {helperText && (
-          <p className="mt-1 text-xs text-muted-foreground" dir={rtl ? "rtl" : "ltr"}>
+          <p
+            className="mt-1 text-xs text-muted-foreground"
+            dir={rtl ? "rtl" : "ltr"}
+          >
             {helperText}
           </p>
         )}
       </div>
-    )
+    );
 
     if (tooltip) {
       return (
         <TooltipProvider>
           <Tooltip>
-            <TooltipTrigger asChild>
-              {input}
-            </TooltipTrigger>
+            <TooltipTrigger asChild>{input}</TooltipTrigger>
             <TooltipContent side="top" align="center">
               {tooltip}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-      )
+      );
     }
 
-    return input
-  }
-)
-Input.displayName = "Input"
+    return input;
+  },
+);
+Input.displayName = "Input";
 
-export { Input }
+export { Input };

@@ -20,14 +20,25 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Calendar, Package, Users, Clock } from "lucide-react";
-import { useReactToPrint } from 'react-to-print';
+import { useReactToPrint } from "react-to-print";
 import { useRef } from "react";
-import type { Sale, Product, InsertInvoice, InsertInstallment } from "@shared/schema";
+import type {
+  Sale,
+  Product,
+  InsertInvoice,
+  InsertInstallment,
+} from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Select,
@@ -78,7 +89,7 @@ export default function Sales() {
     defaultValues: {
       quantity: 1,
       date: new Date(),
-      time: format(new Date(), 'HH:mm'),
+      time: format(new Date(), "HH:mm"),
       discount: 0,
       isInstallment: false,
       printInvoice: true,
@@ -108,7 +119,7 @@ export default function Sales() {
         return;
       }
 
-      const [hours, minutes] = data.time.split(':');
+      const [hours, minutes] = data.time.split(":");
       const saleDate = new Date(data.date);
       saleDate.setHours(parseInt(hours), parseInt(minutes));
 
@@ -149,7 +160,11 @@ export default function Sales() {
           guarantorPhone: data.guarantorPhone || undefined,
         };
 
-        const savedInstallment = await apiRequest("POST", "/api/installments", installment);
+        const savedInstallment = await apiRequest(
+          "POST",
+          "/api/installments",
+          installment,
+        );
         if (!savedInstallment.ok) {
           throw new Error("فشل في إنشاء التقسيط");
         }
@@ -185,13 +200,14 @@ export default function Sales() {
 
       toast({
         title: "تم بنجاح",
-        description: `تم إنشاء ${data.isInstallment ? 'البيع بالتقسيط' : 'البيع'} والفاتورة بنجاح`,
+        description: `تم إنشاء ${data.isInstallment ? "البيع بالتقسيط" : "البيع"} والفاتورة بنجاح`,
       });
     } catch (error) {
-      console.error('Error creating sale:', error);
+      console.error("Error creating sale:", error);
       toast({
         title: "خطأ",
-        description: error instanceof Error ? error.message : "حدث خطأ أثناء إنشاء البيع",
+        description:
+          error instanceof Error ? error.message : "حدث خطأ أثناء إنشاء البيع",
         variant: "destructive",
       });
     }
@@ -207,7 +223,9 @@ export default function Sales() {
           <div className="md:col-span-2">
             <Card className="shadow-lg transition-all duration-300 hover:shadow-xl bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60">
               <CardHeader className="space-y-1 border-b pb-7 mb-2">
-                <CardTitle className="text-2xl font-bold tracking-tight">المبيعات الأخيرة</CardTitle>
+                <CardTitle className="text-2xl font-bold tracking-tight">
+                  المبيعات الأخيرة
+                </CardTitle>
                 <CardDescription className="text-sm text-muted-foreground">
                   قائمة بجميع عمليات البيع
                 </CardDescription>
@@ -228,11 +246,20 @@ export default function Sales() {
                     </TableHeader>
                     <TableBody>
                       {sales.map((sale) => {
-                        const product = searchResults.find((p) => p.id === sale.productId);
-                        const finalPrice = Number(sale.priceIqd) * sale.quantity - Number(sale.discount);
+                        const product = searchResults.find(
+                          (p) => p.id === sale.productId,
+                        );
+                        const finalPrice =
+                          Number(sale.priceIqd) * sale.quantity -
+                          Number(sale.discount);
                         return (
-                          <TableRow key={sale.id} className="hover:bg-muted/30 transition-colors duration-200">
-                            <TableCell className="font-medium">{product?.name}</TableCell>
+                          <TableRow
+                            key={sale.id}
+                            className="hover:bg-muted/30 transition-colors duration-200"
+                          >
+                            <TableCell className="font-medium">
+                              {product?.name}
+                            </TableCell>
                             <TableCell>{sale.quantity}</TableCell>
                             <TableCell>
                               {Number(sale.priceIqd).toLocaleString()} د.ع
@@ -243,9 +270,11 @@ export default function Sales() {
                             <TableCell className="font-semibold">
                               {finalPrice.toLocaleString()} د.ع
                             </TableCell>
-                            <TableCell>{sale.customerName || "عميل نقدي"}</TableCell>
+                            <TableCell>
+                              {sale.customerName || "عميل نقدي"}
+                            </TableCell>
                             <TableCell className="text-muted-foreground">
-                              {new Date(sale.date).toLocaleDateString('ar-IQ')}
+                              {new Date(sale.date).toLocaleDateString("ar-IQ")}
                             </TableCell>
                           </TableRow>
                         );
@@ -259,21 +288,28 @@ export default function Sales() {
 
           <Card className="shadow-lg transition-all duration-300 hover:shadow-xl bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <CardHeader className="space-y-1 border-b pb-7 mb-2">
-              <CardTitle className="text-2xl font-bold tracking-tight">بيع جديد</CardTitle>
+              <CardTitle className="text-2xl font-bold tracking-tight">
+                بيع جديد
+              </CardTitle>
               <CardDescription className="text-sm text-muted-foreground">
                 إنشاء عملية بيع جديدة
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+                <form
+                  onSubmit={form.handleSubmit(handleSubmit)}
+                  className="space-y-6"
+                >
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="date"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-sm font-medium">التاريخ</FormLabel>
+                          <FormLabel className="text-sm font-medium">
+                            التاريخ
+                          </FormLabel>
                           <FormControl>
                             <DatePicker
                               date={field.value}
@@ -289,7 +325,9 @@ export default function Sales() {
                       name="time"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-sm font-medium">الوقت</FormLabel>
+                          <FormLabel className="text-sm font-medium">
+                            الوقت
+                          </FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -310,7 +348,9 @@ export default function Sales() {
                     name="customerName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium">اسم العميل</FormLabel>
+                        <FormLabel className="text-sm font-medium">
+                          اسم العميل
+                        </FormLabel>
                         <FormControl>
                           <div className="relative">
                             <Users className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -330,7 +370,9 @@ export default function Sales() {
                     name="customerPhone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium">رقم الهاتف</FormLabel>
+                        <FormLabel className="text-sm font-medium">
+                          رقم الهاتف
+                        </FormLabel>
                         <FormControl>
                           <Input
                             className="w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
@@ -357,7 +399,9 @@ export default function Sales() {
                       <Select
                         value={selectedProduct?.id.toString()}
                         onValueChange={(value) => {
-                          const product = searchResults.find(p => p.id === parseInt(value));
+                          const product = searchResults.find(
+                            (p) => p.id === parseInt(value),
+                          );
                           setSelectedProduct(product || null);
                         }}
                       >
@@ -379,7 +423,8 @@ export default function Sales() {
                     )}
                     {selectedProduct && (
                       <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
-                        <span className="font-medium">السعر:</span> {Number(selectedProduct.priceIqd).toLocaleString()} د.ع
+                        <span className="font-medium">السعر:</span>{" "}
+                        {Number(selectedProduct.priceIqd).toLocaleString()} د.ع
                       </div>
                     )}
                   </div>
@@ -389,14 +434,18 @@ export default function Sales() {
                     name="quantity"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium">الكمية</FormLabel>
+                        <FormLabel className="text-sm font-medium">
+                          الكمية
+                        </FormLabel>
                         <FormControl>
                           <Input
                             type="number"
                             min="1"
                             className="w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                             {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value))}
+                            onChange={(e) =>
+                              field.onChange(parseInt(e.target.value))
+                            }
                           />
                         </FormControl>
                       </FormItem>
@@ -408,14 +457,18 @@ export default function Sales() {
                     name="discount"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-medium">الخصم (د.ع)</FormLabel>
+                        <FormLabel className="text-sm font-medium">
+                          الخصم (د.ع)
+                        </FormLabel>
                         <FormControl>
                           <Input
                             type="number"
                             min="0"
                             className="w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                             {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value))}
+                            onChange={(e) =>
+                              field.onChange(parseInt(e.target.value))
+                            }
                           />
                         </FormControl>
                       </FormItem>
@@ -435,7 +488,9 @@ export default function Sales() {
                             className="rounded border-input"
                           />
                         </FormControl>
-                        <FormLabel className="text-sm font-medium mr-2">بيع بالتقسيط</FormLabel>
+                        <FormLabel className="text-sm font-medium mr-2">
+                          بيع بالتقسيط
+                        </FormLabel>
                       </FormItem>
                     )}
                   />
@@ -447,7 +502,9 @@ export default function Sales() {
                         name="identityNumber"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-sm font-medium">رقم الهوية</FormLabel>
+                            <FormLabel className="text-sm font-medium">
+                              رقم الهوية
+                            </FormLabel>
                             <FormControl>
                               <Input
                                 className="w-full"
@@ -464,7 +521,9 @@ export default function Sales() {
                         name="downPayment"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-sm font-medium">الدفعة الأولى</FormLabel>
+                            <FormLabel className="text-sm font-medium">
+                              الدفعة الأولى
+                            </FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
@@ -472,7 +531,9 @@ export default function Sales() {
                                 step="0.01"
                                 className="w-full"
                                 {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                                onChange={(e) =>
+                                  field.onChange(parseFloat(e.target.value))
+                                }
                               />
                             </FormControl>
                           </FormItem>
@@ -484,14 +545,18 @@ export default function Sales() {
                         name="numberOfPayments"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-sm font-medium">عدد الأقساط</FormLabel>
+                            <FormLabel className="text-sm font-medium">
+                              عدد الأقساط
+                            </FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
                                 min="1"
                                 className="w-full"
                                 {...field}
-                                onChange={(e) => field.onChange(parseInt(e.target.value))}
+                                onChange={(e) =>
+                                  field.onChange(parseInt(e.target.value))
+                                }
                               />
                             </FormControl>
                           </FormItem>
@@ -503,7 +568,9 @@ export default function Sales() {
                         name="startDate"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-sm font-medium">تاريخ بداية التقسيط</FormLabel>
+                            <FormLabel className="text-sm font-medium">
+                              تاريخ بداية التقسيط
+                            </FormLabel>
                             <FormControl>
                               <DatePicker
                                 date={field.value}
@@ -515,14 +582,18 @@ export default function Sales() {
                       />
 
                       <div className="space-y-4 border-t pt-4 mt-4">
-                        <h4 className="text-sm font-medium text-muted-foreground">معلومات الكفيل (اختياري)</h4>
+                        <h4 className="text-sm font-medium text-muted-foreground">
+                          معلومات الكفيل (اختياري)
+                        </h4>
 
                         <FormField
                           control={form.control}
                           name="guarantorName"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-sm font-medium">اسم الكفيل</FormLabel>
+                              <FormLabel className="text-sm font-medium">
+                                اسم الكفيل
+                              </FormLabel>
                               <FormControl>
                                 <Input
                                   className="w-full"
@@ -539,7 +610,9 @@ export default function Sales() {
                           name="guarantorPhone"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-sm font-medium">رقم هاتف الكفيل</FormLabel>
+                              <FormLabel className="text-sm font-medium">
+                                رقم هاتف الكفيل
+                              </FormLabel>
                               <FormControl>
                                 <Input
                                   className="w-full"
@@ -558,16 +631,30 @@ export default function Sales() {
                     <div className="space-y-2 bg-muted/30 p-4 rounded-lg">
                       <div className="flex justify-between text-sm">
                         <span>السعر الإجمالي:</span>
-                        <span>{(Number(selectedProduct.priceIqd) * form.watch("quantity")).toLocaleString()} د.ع</span>
+                        <span>
+                          {(
+                            Number(selectedProduct.priceIqd) *
+                            form.watch("quantity")
+                          ).toLocaleString()}{" "}
+                          د.ع
+                        </span>
                       </div>
                       <div className="flex justify-between text-sm text-red-500">
                         <span>الخصم:</span>
-                        <span>- {Number(form.watch("discount")).toLocaleString()} د.ع</span>
+                        <span>
+                          - {Number(form.watch("discount")).toLocaleString()}{" "}
+                          د.ع
+                        </span>
                       </div>
                       <div className="flex justify-between font-bold border-t pt-2">
                         <span>السعر النهائي:</span>
                         <span>
-                          {(Number(selectedProduct.priceIqd) * form.watch("quantity") - Number(form.watch("discount"))).toLocaleString()} د.ع
+                          {(
+                            Number(selectedProduct.priceIqd) *
+                              form.watch("quantity") -
+                            Number(form.watch("discount"))
+                          ).toLocaleString()}{" "}
+                          د.ع
                         </span>
                       </div>
                     </div>
@@ -586,7 +673,9 @@ export default function Sales() {
                             className="rounded border-input w-4 h-4 transition-all duration-200 checked:bg-primary"
                           />
                         </FormControl>
-                        <FormLabel className="text-sm font-medium mr-2 cursor-pointer">طباعة الفاتورة</FormLabel>
+                        <FormLabel className="text-sm font-medium mr-2 cursor-pointer">
+                          طباعة الفاتورة
+                        </FormLabel>
                       </FormItem>
                     )}
                   />
@@ -610,26 +699,36 @@ export default function Sales() {
               <div className="space-y-6">
                 <div className="text-center">
                   <h1 className="text-3xl font-bold mb-2">فاتورة بيع</h1>
-                  <p className="text-muted-foreground">رقم الفاتورة: {selectedSale.id}</p>
                   <p className="text-muted-foreground">
-                    التاريخ: {new Date(selectedSale.date).toLocaleDateString('ar-IQ')}
+                    رقم الفاتورة: {selectedSale.id}
                   </p>
                   <p className="text-muted-foreground">
-                    الوقت: {format(new Date(selectedSale.date), 'HH:mm')}
+                    التاريخ:{" "}
+                    {new Date(selectedSale.date).toLocaleDateString("ar-IQ")}
+                  </p>
+                  <p className="text-muted-foreground">
+                    الوقت: {format(new Date(selectedSale.date), "HH:mm")}
                   </p>
                 </div>
                 <div className="border-t border-b py-4">
                   <p>العميل: {selectedSale.customerName}</p>
                   <p className="font-semibold">
-                    المبلغ الإجمالي: {Number(selectedSale.priceIqd).toLocaleString()} د.ع
+                    المبلغ الإجمالي:{" "}
+                    {Number(selectedSale.priceIqd).toLocaleString()} د.ع
                   </p>
                   {Number(selectedSale.discount) > 0 && (
                     <p className="text-red-500">
-                      الخصم: {Number(selectedSale.discount).toLocaleString()} د.ع
+                      الخصم: {Number(selectedSale.discount).toLocaleString()}{" "}
+                      د.ع
                     </p>
                   )}
                   <p className="font-bold mt-2">
-                    المبلغ النهائي: {(Number(selectedSale.priceIqd) * selectedSale.quantity - Number(selectedSale.discount)).toLocaleString()} د.ع
+                    المبلغ النهائي:{" "}
+                    {(
+                      Number(selectedSale.priceIqd) * selectedSale.quantity -
+                      Number(selectedSale.discount)
+                    ).toLocaleString()}{" "}
+                    د.ع
                   </p>
                 </div>
                 <table className="w-full border-collapse">
@@ -644,14 +743,21 @@ export default function Sales() {
                   <tbody>
                     <tr>
                       <td className="py-2">
-                        {searchResults.find(p => p.id === selectedSale.productId)?.name}
+                        {
+                          searchResults.find(
+                            (p) => p.id === selectedSale.productId,
+                          )?.name
+                        }
                       </td>
                       <td className="py-2">{selectedSale.quantity}</td>
                       <td className="py-2">
                         {Number(selectedSale.priceIqd).toLocaleString()} د.ع
                       </td>
                       <td className="py-2 font-semibold">
-                        {(Number(selectedSale.priceIqd) * selectedSale.quantity).toLocaleString()} د.ع
+                        {(
+                          Number(selectedSale.priceIqd) * selectedSale.quantity
+                        ).toLocaleString()}{" "}
+                        د.ع
                       </td>
                     </tr>
                   </tbody>
