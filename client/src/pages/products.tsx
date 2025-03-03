@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
@@ -144,120 +143,120 @@ export default function Products() {
               <DialogTitle>إضافة منتج جديد</DialogTitle>
             </DialogHeader>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">اسم المنتج</Label>
-                  <Input {...form.register("name")} />
-                  {form.formState.errors.name && (
-                    <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="barcode">الباركود</Label>
-                  <Input {...form.register("barcode")} />
-                  {form.formState.errors.barcode && (
-                    <p className="text-sm text-destructive">{form.formState.errors.barcode.message}</p>
-                  )}
-                </div>
+              {/* 1. اسم المنتج */}
+              <div className="space-y-2">
+                <Label htmlFor="name">اسم المنتج</Label>
+                <Input {...form.register("name")} />
+                {form.formState.errors.name && (
+                  <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
+                )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="productType">نوع المنتج</Label>
-                  <Select
-                    value={form.watch("productType")}
-                    onValueChange={(value) => form.setValue("productType", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="قطعة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="piece">قطعة</SelectItem>
-                      <SelectItem value="weight">وزن</SelectItem>
-                      <SelectItem value="length">طول</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="quantity">الكمية</Label>
-                  <Input
-                    type="number"
-                    {...form.register("quantity", { valueAsNumber: true })}
-                  />
-                </div>
+              {/* 2. الباركود */}
+              <div className="space-y-2">
+                <Label htmlFor="barcode">الباركود</Label>
+                <Input {...form.register("barcode")} />
+                {form.formState.errors.barcode && (
+                  <p className="text-sm text-destructive">{form.formState.errors.barcode.message}</p>
+                )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="minQuantity">الحد الأدنى</Label>
-                  <Input
-                    type="number"
-                    {...form.register("minQuantity", { valueAsNumber: true })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="productionDate">تاريخ الإنتاج</Label>
-                  <DatePicker
-                    date={form.watch("productionDate")}
-                    onSelect={(date) => form.setValue("productionDate", date)}
-                  />
-                </div>
+              {/* 3. نوع المنتج */}
+              <div className="space-y-2">
+                <Label htmlFor="productType">نوع المنتج</Label>
+                <Select
+                  value={form.watch("productType")}
+                  onValueChange={(value) => form.setValue("productType", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="قطعة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="piece">قطعة</SelectItem>
+                    <SelectItem value="weight">وزن</SelectItem>
+                    <SelectItem value="length">طول</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="expiryDate">تاريخ الانتهاء</Label>
-                  <DatePicker
-                    date={form.watch("expiryDate")}
-                    onSelect={(date) => form.setValue("expiryDate", date)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="costPrice">سعر التكلفة</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    {...form.register("costPrice", { valueAsNumber: true })}
-                  />
-                </div>
+              {/* 4. الكمية */}
+              <div className="space-y-2">
+                <Label htmlFor="quantity">الكمية</Label>
+                <Input
+                  type="number"
+                  {...form.register("quantity", { valueAsNumber: true })}
+                />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="priceIqd">سعر البيع</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    {...form.register("priceIqd", { valueAsNumber: true })}
-                  />
-                </div>
+              {/* 5. الحد الأدنى */}
+              <div className="space-y-2">
+                <Label htmlFor="minQuantity">الحد الأدنى</Label>
+                <Input
+                  type="number"
+                  {...form.register("minQuantity", { valueAsNumber: true })}
+                />
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="categoryId">المجموعة</Label>
-                  <Select
-                    value={form.watch("categoryId")?.toString()}
-                    onValueChange={(value) => {
-                      if (value === "new") {
-                        setShowNewCategoryInput(true);
-                      } else {
-                        setShowNewCategoryInput(false);
-                        form.setValue("categoryId", parseInt(value));
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر مجموعة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="new">إنشاء مجموعة جديدة</SelectItem>
-                      {/* Add existing categories here */}
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* 6. تاريخ الإنتاج */}
+              <div className="space-y-2">
+                <Label htmlFor="productionDate">تاريخ الإنتاج</Label>
+                <DatePicker
+                  date={form.watch("productionDate")}
+                  onSelect={(date) => form.setValue("productionDate", date)}
+                />
+              </div>
+
+              {/* 7. تاريخ الانتهاء */}
+              <div className="space-y-2">
+                <Label htmlFor="expiryDate">تاريخ الانتهاء</Label>
+                <DatePicker
+                  date={form.watch("expiryDate")}
+                  onSelect={(date) => form.setValue("expiryDate", date)}
+                />
+              </div>
+
+              {/* 8. سعر التكلفة */}
+              <div className="space-y-2">
+                <Label htmlFor="costPrice">سعر التكلفة</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  {...form.register("costPrice", { valueAsNumber: true })}
+                />
+              </div>
+
+              {/* 9. سعر البيع */}
+              <div className="space-y-2">
+                <Label htmlFor="priceIqd">سعر البيع</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  {...form.register("priceIqd", { valueAsNumber: true })}
+                />
+              </div>
+
+              {/* 10. المجموعة */}
+              <div className="space-y-2">
+                <Label htmlFor="categoryId">المجموعة</Label>
+                <Select
+                  value={form.watch("categoryId")?.toString()}
+                  onValueChange={(value) => {
+                    if (value === "new") {
+                      setShowNewCategoryInput(true);
+                    } else {
+                      setShowNewCategoryInput(false);
+                      form.setValue("categoryId", parseInt(value));
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر مجموعة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">إنشاء مجموعة جديدة</SelectItem>
+                    {/* Add existing categories here */}
+                  </SelectContent>
+                </Select>
               </div>
 
               {showNewCategoryInput && (
@@ -267,6 +266,7 @@ export default function Products() {
                 </div>
               )}
 
+              {/* 11 & 12. خيارات الوزن */}
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -289,6 +289,7 @@ export default function Products() {
                 </div>
               </div>
 
+              {/* صورة المنتج */}
               <div className="space-y-2">
                 <Label>صورة المنتج (اختياري)</Label>
                 <div className="text-sm text-muted-foreground mb-2">
