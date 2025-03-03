@@ -22,6 +22,7 @@ import {
 
 const navigation = [
   { name: "لوحة التحكم", href: "/", icon: MdDashboard, color: "#4285F4" },
+  { name: "المواعيد", href: "/appointments", icon: MdCalendarMonth, color: "#EA4335" }, // Added appointments
   { name: "المخزون", href: "/inventory", icon: MdInventory2, color: "#34A853" },
   { name: "المبيعات", href: "/sales", icon: MdPointOfSale, color: "#EA4335" },
   { name: "العملاء", href: "/customers", icon: MdPeople, color: "#FBBC05" },
