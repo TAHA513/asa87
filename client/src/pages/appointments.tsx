@@ -25,15 +25,23 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { type Appointment, insertAppointmentSchema } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
 
 type NewAppointmentForm = {
   title: string;
-  description: string | null;
+  description: string;
+  customerId: number;
   date: Date;
   duration: number;
-  notes: string | null;
+  notes: string;
 };
 
 export default function AppointmentsPage() {
@@ -46,6 +54,7 @@ export default function AppointmentsPage() {
     defaultValues: {
       title: "",
       description: "",
+      customerId: 0,
       date: new Date(),
       duration: 30,
       notes: "",
@@ -54,13 +63,10 @@ export default function AppointmentsPage() {
 
   const { data: appointments = [], isLoading } = useQuery<Appointment[]>({
     queryKey: ["/api/appointments"],
-    queryFn: async () => {
-      const res = await fetch("/api/appointments");
-      if (!res.ok) {
-        throw new Error("فشل في جلب المواعيد");
-      }
-      return res.json();
-    },
+  });
+
+  const { data: customers = [] } = useQuery({
+    queryKey: ["/api/customers"],
   });
 
   const createAppointmentMutation = useMutation({
@@ -118,7 +124,7 @@ export default function AppointmentsPage() {
               إضافة موعد جديد
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-sm">
             <DialogHeader>
               <DialogTitle>إضافة موعد جديد</DialogTitle>
             </DialogHeader>
@@ -126,7 +132,7 @@ export default function AppointmentsPage() {
             <Form {...appointmentForm}>
               <form
                 onSubmit={appointmentForm.handleSubmit(onSubmitAppointment)}
-                className="space-y-4"
+                className="space-y-3"
               >
                 <FormField
                   control={appointmentForm.control}
@@ -144,12 +150,43 @@ export default function AppointmentsPage() {
 
                 <FormField
                   control={appointmentForm.control}
+                  name="customerId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>العميل</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number(value))}
+                        defaultValue={field.value?.toString()}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="اختر العميل" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {customers.map((customer) => (
+                            <SelectItem
+                              key={customer.id}
+                              value={customer.id.toString()}
+                            >
+                              {customer.name} - {customer.phone}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={appointmentForm.control}
                   name="description"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>الوصف</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} value={field.value || ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -167,7 +204,7 @@ export default function AppointmentsPage() {
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          className="rounded-md border"
+                          className="rounded-md border w-full"
                         />
                       </FormControl>
                       <FormMessage />
@@ -196,7 +233,7 @@ export default function AppointmentsPage() {
                     <FormItem>
                       <FormLabel>ملاحظات</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} value={field.value || ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -220,7 +257,7 @@ export default function AppointmentsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
+        <Card className="md:max-w-sm">
           <CardHeader>
             <CardTitle>التقويم</CardTitle>
           </CardHeader>
@@ -263,6 +300,9 @@ export default function AppointmentsPage() {
                             {appointment.description}
                           </p>
                         )}
+                        <p className="text-sm mt-1">
+                          {customers.find(c => c.id === appointment.customerId)?.name}
+                        </p>
                       </div>
                       <span className="text-sm text-muted-foreground">
                         {format(new Date(appointment.date), "p", { locale: ar })}
