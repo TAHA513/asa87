@@ -124,7 +124,7 @@ export default function AppointmentsPage() {
               إضافة موعد جديد
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-sm">
+          <DialogContent className="max-w-sm overflow-y-auto max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>إضافة موعد جديد</DialogTitle>
             </DialogHeader>
@@ -132,7 +132,7 @@ export default function AppointmentsPage() {
             <Form {...appointmentForm}>
               <form
                 onSubmit={appointmentForm.handleSubmit(onSubmitAppointment)}
-                className="space-y-3"
+                className="space-y-2"
               >
                 <FormField
                   control={appointmentForm.control}
@@ -200,12 +200,14 @@ export default function AppointmentsPage() {
                     <FormItem>
                       <FormLabel>التاريخ</FormLabel>
                       <FormControl>
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          className="rounded-md border w-full"
-                        />
+                        <div className="border rounded-md p-2">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            className="w-full"
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -242,7 +244,7 @@ export default function AppointmentsPage() {
 
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="w-full mt-4"
                   disabled={createAppointmentMutation.isPending}
                 >
                   {createAppointmentMutation.isPending && (
