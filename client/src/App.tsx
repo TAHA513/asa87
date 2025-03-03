@@ -21,12 +21,14 @@ import Suppliers from "@/pages/suppliers";
 import Barcodes from "@/pages/barcodes";
 import DiscountCodes from "@/pages/discount-codes";
 import Customers from "@/pages/customers";
+import Products from "@/pages/products";
 
 function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
       <ProtectedRoute path="/" component={Dashboard} />
+      <ProtectedRoute path="/products" component={Products} />
       <ProtectedRoute path="/inventory" component={Inventory} />
       <ProtectedRoute path="/sales" component={Sales} />
       <ProtectedRoute path="/invoices" component={Invoices} />
