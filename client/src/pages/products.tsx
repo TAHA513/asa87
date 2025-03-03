@@ -138,15 +138,15 @@ export default function Products() {
           <DialogTrigger asChild>
             <Button>إضافة منتج جديد</Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[625px]">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>إضافة منتج جديد</DialogTitle>
             </DialogHeader>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-4">
               {/* 1. اسم المنتج */}
               <div className="space-y-2">
                 <Label htmlFor="name">اسم المنتج</Label>
-                <Input {...form.register("name")} />
+                <Input {...form.register("name")} placeholder="ادخل اسم المنتج" />
                 {form.formState.errors.name && (
                   <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
                 )}
@@ -155,7 +155,7 @@ export default function Products() {
               {/* 2. الباركود */}
               <div className="space-y-2">
                 <Label htmlFor="barcode">الباركود</Label>
-                <Input {...form.register("barcode")} />
+                <Input {...form.register("barcode")} placeholder="ادخل الباركود" />
                 {form.formState.errors.barcode && (
                   <p className="text-sm text-destructive">{form.formState.errors.barcode.message}</p>
                 )}
@@ -168,7 +168,7 @@ export default function Products() {
                   value={form.watch("productType")}
                   onValueChange={(value) => form.setValue("productType", value)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="قطعة" />
                   </SelectTrigger>
                   <SelectContent>
@@ -185,6 +185,7 @@ export default function Products() {
                 <Input
                   type="number"
                   {...form.register("quantity", { valueAsNumber: true })}
+                  defaultValue="0"
                 />
               </div>
 
@@ -194,6 +195,7 @@ export default function Products() {
                 <Input
                   type="number"
                   {...form.register("minQuantity", { valueAsNumber: true })}
+                  defaultValue="0"
                 />
               </div>
 
@@ -222,6 +224,7 @@ export default function Products() {
                   type="number"
                   step="0.01"
                   {...form.register("costPrice", { valueAsNumber: true })}
+                  defaultValue="0"
                 />
               </div>
 
@@ -232,6 +235,7 @@ export default function Products() {
                   type="number"
                   step="0.01"
                   {...form.register("priceIqd", { valueAsNumber: true })}
+                  defaultValue="0"
                 />
               </div>
 
@@ -249,7 +253,7 @@ export default function Products() {
                     }
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="اختر مجموعة" />
                   </SelectTrigger>
                   <SelectContent>
@@ -262,12 +266,12 @@ export default function Products() {
               {showNewCategoryInput && (
                 <div className="space-y-2">
                   <Label htmlFor="newCategory">اسم المجموعة الجديدة</Label>
-                  <Input {...form.register("newCategory")} />
+                  <Input {...form.register("newCategory")} placeholder="ادخل اسم المجموعة الجديدة" />
                 </div>
               )}
 
               {/* 11 & 12. خيارات الوزن */}
-              <div className="space-y-4">
+              <div className="space-y-4 border-t pt-4">
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="isWeightBased"
@@ -290,7 +294,7 @@ export default function Products() {
               </div>
 
               {/* صورة المنتج */}
-              <div className="space-y-2">
+              <div className="space-y-2 border-t pt-4">
                 <Label>صورة المنتج (اختياري)</Label>
                 <div className="text-sm text-muted-foreground mb-2">
                   يمكنك رفع صورة للمنتج. الصورة اختيارية ويمكن إضافتها لاحقاً.
@@ -305,7 +309,7 @@ export default function Products() {
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full mt-6"
                 disabled={createMutation.isPending}
               >
                 {createMutation.isPending ? "جاري الإنشاء..." : "إنشاء المنتج"}
@@ -343,7 +347,7 @@ export default function Products() {
                         <p className="font-semibold">{product.priceIqd} د.ع</p>
                         <p className="text-sm text-gray-500">المخزون: {product.stock}</p>
                       </div>
-                      <Button 
+                      <Button
                         variant="destructive"
                         size="lg"
                         className="bg-red-600 hover:bg-red-700 text-white px-8 py-6 text-lg rounded-lg shadow-lg"
