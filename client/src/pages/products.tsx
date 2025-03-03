@@ -69,6 +69,7 @@ export default function Products() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       setIsDialogOpen(false);
+      setProductImage(null);
       toast({
         title: "تم إنشاء المنتج بنجاح",
       });
@@ -145,9 +146,14 @@ export default function Products() {
               </div>
               <div className="space-y-2">
                 <Label>صورة المنتج (اختياري)</Label>
+                <div className="text-sm text-muted-foreground mb-2">
+                  يمكنك رفع صورة للمنتج. الصورة اختيارية ويمكن إضافتها لاحقاً.
+                </div>
                 <FileUpload
                   onFileSelect={(file) => setProductImage(file)}
                   maxSize={2}
+                  accept="image/*"
+                  label="اضغط لإضافة صورة"
                 />
               </div>
               <Button
