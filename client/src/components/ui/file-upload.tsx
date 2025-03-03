@@ -8,6 +8,7 @@ interface FileUploadProps {
   label?: string;
   accept?: string;
   maxSize?: number; // in MB
+  name?: string; // Added name prop
 }
 
 export function FileUpload({
@@ -15,6 +16,7 @@ export function FileUpload({
   label = "اختر صورة",
   accept = "image/*",
   maxSize = 5, // 5MB default
+  name = "image", // Default name for the file input
 }: FileUploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +69,7 @@ export function FileUpload({
           )}
           <Input
             id="file-upload"
+            name={name} // Added name attribute
             type="file"
             className="hidden"
             accept={accept}
