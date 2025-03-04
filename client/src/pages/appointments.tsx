@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Calendar as CalendarIcon, Plus } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
@@ -32,6 +32,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 import { type Appointment, type Customer, insertAppointmentSchema } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
 
@@ -42,6 +49,24 @@ type NewAppointmentForm = {
   date: Date;
   duration: number;
   notes: string;
+};
+
+const statusIcons = {
+  scheduled: <Clock className="h-4 w-4 text-blue-500" />,
+  completed: <CheckCircle className="h-4 w-4 text-green-500" />,
+  cancelled: <XCircle className="h-4 w-4 text-red-500" />,
+};
+
+const statusColors = {
+  scheduled: "bg-blue-100 text-blue-800",
+  completed: "bg-green-100 text-green-800",
+  cancelled: "bg-red-100 text-red-800",
+};
+
+const statusText = {
+  scheduled: "قيد الانتظار",
+  completed: "مكتمل",
+  cancelled: "ملغي",
 };
 
 export default function AppointmentsPage() {
@@ -100,8 +125,40 @@ export default function AppointmentsPage() {
     },
   });
 
+  const updateAppointmentMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const res = await fetch(`/api/appointments/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "فشل في تحديث حالة الموعد");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      toast({
+        title: "تم تحديث حالة الموعد بنجاح",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "خطأ",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmitAppointment = (data: NewAppointmentForm) => {
     createAppointmentMutation.mutate(data);
+  };
+
+  const handleStatusChange = (id: number, newStatus: string) => {
+    updateAppointmentMutation.mutate({ id, status: newStatus });
   };
 
   const selectedDateAppointments = appointments.filter(
@@ -298,27 +355,66 @@ export default function AppointmentsPage() {
                 selectedDateAppointments.map((appointment) => (
                   <div
                     key={appointment.id}
-                    className="p-4 border rounded-lg hover:bg-secondary/50"
+                    className="p-4 border rounded-lg hover:bg-secondary/50 transition-colors"
                   >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-medium">{appointment.title}</h4>
-                        {appointment.description && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {appointment.description}
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-start gap-2">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <div className={`p-2 rounded-full ${statusColors[appointment.status]}`}>
+                                {statusIcons[appointment.status]}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>حالة الموعد: {statusText[appointment.status]}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <div>
+                          <h4 className="font-medium">{appointment.title}</h4>
+                          {appointment.description && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {appointment.description}
+                            </p>
+                          )}
+                          <p className="text-sm mt-1">
+                            {customers.find((c: Customer) => c.id === appointment.customerId)?.name}
                           </p>
-                        )}
-                        <p className="text-sm mt-1">
-                          {customers.find((c: Customer) => c.id === appointment.customerId)?.name}
-                        </p>
+                        </div>
                       </div>
                       <span className="text-sm text-muted-foreground">
                         {format(new Date(appointment.date), "p", { locale: ar })}
                       </span>
                     </div>
-                    <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                      <span>المدة: {appointment.duration} دقيقة</span>
-                      <span className="capitalize">{appointment.status}</span>
+                    <div className="flex justify-between items-center mt-4">
+                      <span className="text-sm text-muted-foreground">
+                        المدة: {appointment.duration} دقيقة
+                      </span>
+                      <div className="flex gap-2">
+                        {appointment.status === "scheduled" && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-green-600 hover:text-green-700"
+                              onClick={() => handleStatusChange(appointment.id, "completed")}
+                            >
+                              <CheckCircle className="h-4 w-4 ml-1" />
+                              إكمال
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700"
+                              onClick={() => handleStatusChange(appointment.id, "cancelled")}
+                            >
+                              <XCircle className="h-4 w-4 ml-1" />
+                              إلغاء
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
                     {appointment.notes && (
                       <p className="text-sm text-muted-foreground mt-2 border-t pt-2">
