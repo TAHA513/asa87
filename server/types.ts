@@ -6,6 +6,7 @@ import { User, InsertUser, Product, Sale, ExchangeRate, Installment, Installment
   Supplier, InsertSupplier, SupplierTransaction, InsertSupplierTransaction,
   Customer, InsertCustomer, Appointment, InsertAppointment,
   FileStorage, InsertFileStorage, Invoice, InsertInvoice } from "@shared/schema";
+import { InsertSystemActivity, SystemActivity, InsertActivityReport, ActivityReport } from "./activity-types"; // Assuming these types are defined elsewhere
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -99,4 +100,84 @@ export interface IStorage {
     name: string;
     sales: number;
   }[]>;
+
+  // Activity Logging Methods
+  logSystemActivity(activity: InsertSystemActivity): Promise<SystemActivity>;
+  getSystemActivities(filters: {
+    startDate?: Date;
+    endDate?: Date;
+    userId?: number;
+    activityType?: string;
+    entityType?: string;
+  }): Promise<SystemActivity[]>;
+
+  // Report Generation Methods
+  generateActivityReport(report: InsertActivityReport): Promise<ActivityReport>;
+  getActivityReport(id: number): Promise<ActivityReport | undefined>;
+  getActivityReports(userId: number): Promise<ActivityReport[]>;
+
+  // Advanced Analytics Methods
+  getDetailedSalesReport(dateRange: { start: Date; end: Date }): Promise<{
+    totalSales: number;
+    totalRevenue: string;
+    productsSold: {
+      productId: number;
+      name: string;
+      quantity: number;
+      revenue: string;
+    }[];
+    dailyStats: {
+      date: string;
+      sales: number;
+      revenue: string;
+    }[];
+  }>;
+
+  getInventoryReport(dateRange: { start: Date; end: Date }): Promise<{
+    totalProducts: number;
+    lowStock: {
+      productId: number;
+      name: string;
+      currentStock: number;
+      minRequired: number;
+    }[];
+    movements: {
+      date: string;
+      type: string;
+      quantity: number;
+      productId: number;
+      productName: string;
+    }[];
+  }>;
+
+  getFinancialReport(dateRange: { start: Date; end: Date }): Promise<{
+    revenue: string;
+    expenses: string;
+    profit: string;
+    topExpenses: {
+      category: string;
+      amount: string;
+    }[];
+    dailyBalance: {
+      date: string;
+      revenue: string;
+      expenses: string;
+      balance: string;
+    }[];
+  }>;
+
+  getUserActivityReport(dateRange: { start: Date; end: Date }): Promise<{
+    totalUsers: number;
+    activeUsers: number;
+    userActivities: {
+      userId: number;
+      username: string;
+      activityCount: number;
+      lastActive: Date;
+    }[];
+    activityBreakdown: {
+      activityType: string;
+      count: number;
+    }[];
+  }>;
 }

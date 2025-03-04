@@ -574,6 +574,60 @@ export const insertUserSettingsSchema = createInsertSchema(userSettings)
     }),
   });
 
+// Add new system activity logging schemas after the existing reports table
+export const systemActivities = pgTable("system_activities", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  activityType: text("activity_type").notNull(), // login, product_create, sale, etc.
+  entityType: text("entity_type").notNull(), // products, sales, expenses, etc.
+  entityId: integer("entity_id").notNull(),
+  action: text("action").notNull(), // create, update, delete, view
+  details: jsonb("details").notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+});
+
+export const activityReports = pgTable("activity_reports", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  dateRange: jsonb("date_range").notNull(),
+  filters: jsonb("filters"),
+  reportType: text("report_type").notNull(), // daily, weekly, monthly
+  generatedBy: integer("generated_by").notNull().references(() => users.id),
+  data: jsonb("data").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Add report generation schemas
+export const insertSystemActivitySchema = createInsertSchema(systemActivities)
+  .omit({ id: true, timestamp: true })
+  .extend({
+    details: z.record(z.unknown()),
+    ipAddress: z.string().optional(),
+    userAgent: z.string().optional(),
+  });
+
+export const insertActivityReportSchema = createInsertSchema(activityReports)
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .extend({
+    dateRange: z.object({
+      startDate: z.date(),
+      endDate: z.date(),
+    }),
+    filters: z.record(z.unknown()).optional(),
+    reportType: z.enum(["daily", "weekly", "monthly"]),
+    data: z.record(z.unknown()),
+  });
+
+// Add types for the new schemas
+export type SystemActivity = typeof systemActivities.$inferSelect;
+export type InsertSystemActivity = z.infer<typeof insertSystemActivitySchema>;
+export type ActivityReport = typeof activityReports.$inferSelect;
+export type InsertActivityReport = z.infer<typeof insertActivityReportSchema>;
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;

@@ -1,4 +1,9 @@
 import {
+  systemActivities, activityReports,
+  type SystemActivity, type ActivityReport,
+  type InsertSystemActivity, type InsertActivityReport
+} from "@shared/schema";
+import {
   users, products, sales, exchangeRates, fileStorage,
   installments, installmentPayments, marketingCampaigns,
   campaignAnalytics, socialMediaAccounts, apiKeys,
@@ -16,10 +21,10 @@ import {
   type InsertSupplierTransaction, type Customer, type InsertCustomer,
   type Appointment, type InsertAppointment, type Invoice,
   type InsertInvoice, type UserSettings, type InsertUserSettings,
-  type InsertUser, type InsertFileStorage
+  type InsertUser, type InsertFileStorage,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, or, like, SQL } from "drizzle-orm";
+import { eq, desc, or, like, SQL, gte, lte, and, sql, lt, gt } from "drizzle-orm";
 
 export interface IStorage {
   // ...existing methods...
@@ -829,6 +834,461 @@ export class DatabaseStorage implements IStorage {
       throw new Error("فشل في جلب المواعيد");
     }
   }
+
+
+  async logSystemActivity(activity: InsertSystemActivity): Promise<SystemActivity> {
+    const [newActivity] = await db
+      .insert(systemActivities)
+      .values({
+        userId: activity.userId,
+        activityType: activity.activityType,
+        entityType: activity.entityType,
+        entityId: activity.entityId,
+        action: activity.action,
+        details: activity.details,
+        ipAddress: activity.ipAddress,
+        userAgent: activity.userAgent,
+      })
+      .returning();
+    return newActivity;
+  }
+
+  async getSystemActivities(filters: {
+    startDate?: Date;
+    endDate?: Date;
+    userId?: number;
+    activityType?: string;
+    entityType?: string;
+  }): Promise<SystemActivity[]> {
+    let query = db.select().from(systemActivities);
+
+    if (filters.startDate) {
+      query = query.where(gte(systemActivities.timestamp, filters.startDate));
+    }
+    if (filters.endDate) {
+      query = query.where(lte(systemActivities.timestamp, filters.endDate));
+    }
+    if (filters.userId) {
+      query = query.where(eq(systemActivities.userId, filters.userId));
+    }
+    if (filters.activityType) {
+      query = query.where(eq(systemActivities.activityType, filters.activityType));
+    }
+    if (filters.entityType) {
+      query = query.where(eq(systemActivities.entityType, filters.entityType));
+    }
+
+    return query.orderBy(desc(systemActivities.timestamp));
+  }
+
+  async generateActivityReport(report: InsertActivityReport): Promise<ActivityReport> {
+    const activities = await this.getSystemActivities({
+      startDate: report.dateRange.startDate,
+      endDate: report.dateRange.endDate,
+      ...(report.filters || {})
+    });
+
+    // Process activities based on report type
+    let processedData: any = {};
+    switch (report.reportType) {
+      case "daily":
+        processedData = this.processDailyReport(activities);
+        break;
+      case "weekly":
+        processedData = this.processWeeklyReport(activities);
+        break;
+      case "monthly":
+        processedData = this.processMonthlyReport(activities);
+        break;
+    }
+
+    const [newReport] = await db
+      .insert(activityReports)
+      .values({
+        ...report,
+        data: processedData,
+      })
+      .returning();
+
+    return newReport;
+  }
+
+  private processDailyReport(activities: SystemActivity[]) {
+    const dailyActivities = activities.reduce((acc: any, activity) => {
+      const date = new Date(activity.timestamp).toISOString().split('T')[0];
+      if (!acc[date]) {
+        acc[date] = {
+          total: 0,
+          byType: {},
+          byUser: {},
+        };
+      }
+      acc[date].total++;
+      acc[date].byType[activity.activityType] = (acc[date].byType[activity.activityType] || 0) + 1;
+      acc[date].byUser[activity.userId] = (acc[date].byUser[activity.userId] || 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      type: 'daily',
+      data: dailyActivities,
+    };
+  }
+
+  private processWeeklyReport(activities: SystemActivity[]) {
+    const weeklyActivities = activities.reduce((acc: any, activity) => {
+      const date = new Date(activity.timestamp);
+      const weekStart = new Date(date.setDate(date.getDate() - date.getDay())).toISOString().split('T')[0];
+      if (!acc[weekStart]) {
+        acc[weekStart] = {
+          total: 0,
+          byType: {},
+          byUser: {},
+        };
+      }
+      acc[weekStart].total++;
+      acc[weekStart].byType[activity.activityType] = (acc[weekStart].byType[activity.activityType] || 0) + 1;
+      acc[weekStart].byUser[activity.userId] = (acc[weekStart].byUser[activity.userId] || 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      type: 'weekly',
+      data: weeklyActivities,
+    };
+  }
+
+  private processMonthlyReport(activities: SystemActivity[]) {
+    const monthlyActivities = activities.reduce((acc: any, activity) => {
+      const monthStart = new Date(activity.timestamp).toISOString().slice(0, 7);
+      if (!acc[monthStart]) {
+        acc[monthStart] = {
+          total: 0,
+          byType: {},
+          byUser: {},
+        };
+      }
+      acc[monthStart].total++;
+      acc[monthStart].byType[activity.activityType] = (acc[monthStart].byType[activity.activityType] || 0) + 1;
+      acc[monthStart].byUser[activity.userId] = (acc[monthStart].byUser[activity.userId] || 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      type: 'monthly',
+      data: monthlyActivities,
+    };
+  }
+
+  async getActivityReport(id: number): Promise<ActivityReport | undefined> {
+    const [report] = await db
+      .select()
+      .from(activityReports)
+      .where(eq(activityReports.id, id));
+    return report;
+  }
+
+  async getActivityReports(userId: number): Promise<ActivityReport[]> {
+    return db
+      .select()
+      .from(activityReports)
+      .where(eq(activityReports.generatedBy, userId))
+      .orderBy(desc(activityReports.createdAt));
+  }
+
+  async getDetailedSalesReport(dateRange: { start: Date; end: Date }) {
+    console.log("Generating detailed sales report for:", dateRange);
+
+    const saleRecords = await db
+      .select({
+        id: sales.id,
+        productId: sales.productId,
+        quantity: sales.quantity,
+        priceIqd: sales.priceIqd,
+        date: sales.date,
+      })
+      .from(sales)
+      .where(
+        and(
+          gte(sales.date, dateRange.start),
+          lte(sales.date, dateRange.end)
+        )
+      );
+
+    console.log(`Found ${saleRecords.length} sales records`);
+
+    const productSales = saleRecords.reduce((acc: Record<number, { quantity: number; revenue: number }>, sale) => {
+      if (!acc[sale.productId]) {
+        acc[sale.productId] = {
+          quantity: 0,
+          revenue: 0,
+        };
+      }
+      acc[sale.productId].quantity += sale.quantity;
+      acc[sale.productId].revenue += Number(sale.priceIqd);
+            return acc;
+    }, {});
+
+    const productsData = await Promise.all(
+      Object.entries(productSales).map(async ([productId, data]) => {
+        const [product] = await db
+          .select({
+            name: products.name,
+          })
+          .from(products)
+          .where(eq(products.id, parseInt(productId)));
+
+        return {
+          productId: parseInt(productId),
+          name: product?.name || 'منتج محذوف',
+          quantity: data.quantity,
+          revenue: data.revenue.toString(),
+        };
+      })
+    );
+
+    const dailyStats = saleRecords.reduce((acc: Record<string, { sales: number; revenue: number }>, sale) => {
+      const date = new Date(sale.date).toISOString().split('T')[0];
+      if (!acc[date]) {
+        acc[date] = {
+          sales: 0,
+          revenue: 0,
+        };
+      }
+      acc[date].sales++;
+      acc[date].revenue += Number(sale.priceIqd);
+      return acc;
+    }, {});
+
+    console.log("Successfully generated sales report");
+
+    return {
+      totalSales: saleRecords.length,
+      totalRevenue: saleRecords.reduce((sum, sale) => sum + Number(sale.priceIqd), 0).toString(),
+      productsSold: productsData,
+      dailyStats: Object.entries(dailyStats).map(([date, data]) => ({
+        date,
+        sales: data.sales,
+        revenue: data.revenue.toString(),
+      })),
+    };
+  }
+
+  async getInventoryReport(dateRange: { start: Date; end: Date }) {
+    const [productsCount] = await db
+      .select({
+        count: sql<number>`count(*)::int`,
+      })
+      .from(products);
+
+    const lowStockProducts = await db
+      .select({
+        id: products.id,
+        name: products.name,
+        stock: products.stock,
+        minQuantity: products.minQuantity,
+      })
+      .from(products)
+      .where(
+        and(
+          lt(products.stock, products.minQuantity),
+          gt(products.minQuantity, 0)
+        )
+      );
+
+    const movements = await db
+      .select({
+        date: inventoryTransactions.date,
+        type: inventoryTransactions.type,
+        quantity: inventoryTransactions.quantity,
+        productId: inventoryTransactions.productId,
+        productName: products.name,
+      })
+      .from(inventoryTransactions)
+      .leftJoin(products, eq(inventoryTransactions.productId, products.id))
+      .where(
+        and(
+          gte(inventoryTransactions.date, dateRange.start),
+          lte(inventoryTransactions.date, dateRange.end)
+        )
+      )
+      .orderBy(desc(inventoryTransactions.date));
+
+    return {
+      totalProducts: productsCount.count,
+      lowStock: lowStockProducts.map(p => ({
+        productId: p.id,
+        name: p.name,
+        currentStock: p.stock,
+        minRequired: p.minQuantity,
+      })),
+      movements: movements.map(m => ({
+        date: new Date(m.date).toISOString(),
+        type: m.type,
+        quantity: m.quantity,
+        productId: m.productId,
+        productName: m.productName,
+      })),
+    };
+  }
+
+  async getFinancialReport(dateRange: { start: Date; end: Date }) {
+    const sales = await db
+      .select({
+        date: sales.date,
+        amount: sql<string>`CAST(SUM(CAST(price_iqd AS DECIMAL)) AS TEXT)`,
+      })
+      .from(sales)
+      .where(
+        and(
+          gte(sales.date, dateRange.start),
+          lte(sales.date, dateRange.end)
+        )
+      )
+      .groupBy(sales.date);
+
+    const expenses = await db
+      .select({
+        date: expenses.date,
+        categoryId: expenses.categoryId,
+        amount: expenses.amount,
+      })
+      .from(expenses)
+      .where(
+        and(
+          gte(expenses.date, dateRange.start),
+          lte(expenses.date, dateRange.end)
+        )
+      );
+
+    const categories = await db
+      .select({
+        id: expenseCategories.id,
+        name: expenseCategories.name,
+      })
+      .from(expenseCategories);
+
+    const categoryMap = Object.fromEntries(
+      categories.map(c => [c.id, c.name])
+    );
+
+    const expensesByCategory = expenses.reduce((acc: any, expense) => {
+      const categoryName = categoryMap[expense.categoryId] || 'أخرى';
+      if (!acc[categoryName]) {
+        acc[categoryName] = 0;
+      }
+      acc[categoryName] += Number(expense.amount);
+      return acc;
+    }, {});
+
+    const dailyStats = expenses.reduce((acc: any, expense) => {
+      const date = new Date(expense.date).toISOString().split('T')[0];
+      if (!acc[date]) {
+        acc[date] = {
+          revenue: '0',
+          expenses: '0',
+        };
+      }
+      acc[date].expenses = (Number(acc[date].expenses) + Number(expense.amount)).toString();
+      return acc;
+    }, {});
+
+    sales.forEach(sale => {
+      const date = new Date(sale.date).toISOString().split('T')[0];
+      if (!dailyStats[date]) {
+        dailyStats[date] = {
+          revenue: '0',
+          expenses: '0',
+        };
+      }
+      dailyStats[date].revenue = sale.amount;
+    });
+
+    const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.amount), 0);
+    const totalExpenses = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+
+    return {
+      revenue: totalRevenue.toString(),
+      expenses: totalExpenses.toString(),
+      profit: (totalRevenue - totalExpenses).toString(),
+      topExpenses: Object.entries(expensesByCategory)
+        .map(([category, amount]) => ({
+          category,
+          amount: amount.toString(),
+        }))
+        .sort((a, b) => Number(b.amount) - Number(a.amount)),
+      dailyBalance: Object.entries(dailyStats).map(([date, data]: [string, any]) => ({
+        date,
+        revenue: data.revenue,
+        expenses: data.expenses,
+        balance: (Number(data.revenue) - Number(data.expenses)).toString(),
+      })),
+    };
+  }
+
+  async getUserActivityReport(dateRange: { start: Date; end: Date }) {
+    const activities = await db
+      .select({
+        userId: systemActivities.userId,
+        timestamp: systemActivities.timestamp,
+        activityType: systemActivities.activityType,
+      })
+      .from(systemActivities)
+      .where(
+        and(
+          gte(systemActivities.timestamp, dateRange.start),
+          lte(systemActivities.timestamp, dateRange.end)
+        )
+      );
+
+    const users = await db
+      .select()
+      .from(users);
+
+    const userMap = Object.fromEntries(
+      users.map(u => [u.id, u])
+    );
+
+    const userActivities = activities.reduce((acc: any, activity) => {
+      if (!acc[activity.userId]) {
+        acc[activity.userId] = {
+          count: 0,
+          lastActive: activity.timestamp,
+          types: {},
+        };
+      }
+      acc[activity.userId].count++;
+      acc[activity.userId].types[activity.activityType] = (acc[activity.userId].types[activity.activityType] || 0) + 1;
+      if (new Date(activity.timestamp) > new Date(acc[activity.userId].lastActive)) {
+        acc[activity.userId].lastActive = activity.timestamp;
+      }
+      return acc;
+    }, {});
+
+    const activityBreakdown = activities.reduce((acc: any, activity) => {
+      if (!acc[activity.activityType]) {
+        acc[activity.activityType] = 0;
+      }
+      acc[activity.activityType]++;
+      return acc;
+    }, {});
+
+    return {
+      totalUsers: users.length,
+      activeUsers: Object.keys(userActivities).length,
+      userActivities: Object.entries(userActivities).map(([userId, data]: [string, any]) => ({
+        userId: Number(userId),
+        username: userMap[Number(userId)]?.username || 'مستخدم محذوف',
+        activityCount: data.count,
+        lastActive: new Date(data.lastActive),
+      })),
+      activityBreakdown: Object.entries(activityBreakdown).map(([type, count]) => ({
+        activityType: type,
+        count: count as number,
+      })),
+    };
+  }
+
 }
 
 export const storage = new DatabaseStorage();

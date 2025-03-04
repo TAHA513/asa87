@@ -892,7 +892,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedSupplier);
     } catch (error) {
       console.error("Error updating supplier:", error);
-      res.status(500).json({ message: "فشل في تحديث المورد" });
+      res.status(500).json({{ message: "فشل في تحديث المورد" });
     }
   });
 
@@ -1404,6 +1404,125 @@ app.delete("/api/api/suppliers/:id", async (req, res) => {
     } catch (error) {
       console.error("Error deleting appointment:", error);
       res.status(500).json({ message: "فشل في حذف الموعد" });
+    }
+  });
+
+  // Add after existing report routes
+  app.post("/api/reports/activities", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const { startDate, endDate, type, filters } = req.body;
+
+      const report = await storage.generateActivityReport({
+        name: `تقرير النشاطات - ${new Date().toLocaleDateString('ar-IQ')}`,
+        description: `تقرير تفصيلي للنشاطات من ${new Date(startDate).toLocaleDateString('ar-IQ')} إلى ${new Date(endDate).toLocaleDateString('ar-IQ')}`,
+        dateRange: {
+          startDate: new Date(startDate),
+          endDate: new Date(endDate)
+        },
+        reportType: type,
+        filters,
+        generatedBy: req.user!.id,
+        data: {}
+      });
+
+      res.json(report);
+    } catch (error) {
+      console.error("Error generating activity report:", error);
+      res.status(500).json({ message: "فشل في إنشاء التقرير" });
+    }
+  });
+
+  app.get("/api/reports/activities/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const report = await storage.getActivityReport(Number(req.params.id));
+      if (!report) {
+        return res.status(404).json({ message: "التقرير غير موجود" });
+      }
+      res.json(report);
+    } catch (error) {
+      console.error("Error fetching activity report:", error);
+      res.status(500).json({ message: "فشل في جلب التقرير" });
+    }
+  });
+
+  // Add detailed reports endpoints
+  app.get("/api/reports/sales", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const { startDate, endDate } = req.query;
+      const report = await storage.getDetailedSalesReport({
+        start: new Date(startDate as string),
+        end: new Date(endDate as string)
+      });
+      res.json(report);
+    } catch (error) {
+      console.error("Error generating sales report:", error);
+      res.status(500).json({ message: "فشل في إنشاء تقرير المبيعات" });
+    }
+  });
+
+  app.get("/api/reports/inventory", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const { startDate, endDate } = req.query;
+      const report = await storage.getInventoryReport({
+        start: new Date(startDate as string),
+        end: new Date(endDate as string)
+      });
+      res.json(report);
+    } catch (error) {
+      console.error("Error generating inventory report:", error);
+      res.status(500).json({ message: "فشل في إنشاء تقرير المخزون" });
+    }
+  });
+
+  app.get("/api/reports/financial", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const { startDate, endDate } = req.query;
+      const report = await storage.getFinancialReport({
+        start: new Date(startDate as string),
+        end: new Date(endDate as string)
+      });
+      res.json(report);
+    } catch (error) {
+      console.error("Error generating financial report:", error);
+      res.status(500).json({ message: "فشل في إنشاء التقرير المالي" });
+    }
+  });
+
+  app.get("/api/reports/user-activity", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const { startDate, endDate } = req.query;
+      const report = await storage.getUserActivityReport({
+        start: new Date(startDate as string),
+        end: new Date(endDate as string)
+      });
+      res.json(report);
+    } catch (error) {
+      console.error("Error generating user activity report:", error);
+      res.status(500).json({ message: "فشل في إنشاء تقرير نشاط المستخدمين" });
     }
   });
 
