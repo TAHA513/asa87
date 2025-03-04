@@ -52,6 +52,7 @@ export interface IStorage {
 
   getReport(id: number): Promise<Report | undefined>;
   getUserReports(userId: number, type?: string): Promise<any>;
+  getAppointmentsReport(dateRange: { start: Date; end: Date }, userId: number): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1019,7 +1020,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(activityReports.createdAt));
   }
 
-  async getDetailedSalesReport(dateRange: { start: Date; end: Date }, userId: number, page = 1, pageSize = 50) {
+  async getDetailedSalesReport(dateRange: { startDate; end: Date }, userId: number, page = 1, pageSize = 50) {
     console.log("Generating detailed sales report for:", dateRange);
 
     const cacheKey = `sales_report:${dateRange.start.toISOString()}_${dateRange.end.toISOString()}_${page}`;
@@ -1503,6 +1504,208 @@ export class DatabaseStorage implements IStorage {
       throw new Error("فشل في جلب تقارير المستخدم");
     }
   }
+  async getAppointmentsReport(dateRange: { start: Date; end: Date }, userId: number) {
+    console.log("Generating appointments report for:", dateRange);
+
+    const cacheKey = `appointments_report:${dateRange.start.toISOString()}_${dateRange.end.toISOString()}`;
+    const cached = await this.cache.get(cacheKey);
+    if (cached) {
+      console.log("Returning cached appointments report");
+      return JSON.parse(cached);
+    }
+
+    // Get all appointments in date range
+    const appointments = await db
+      .select({
+        id: appointments.id,
+        customerId: appointments.customerId,
+        customerName: customers.name,
+        customerPhone: customers.phone,
+        date: appointments.date,
+        time: appointments.time,
+        duration: appointments.duration,
+        status: appointments.status,
+        notes: appointments.notes,
+        service: appointments.service,
+        createdAt: appointments.createdAt
+      })
+      .from(appointments)
+      .leftJoin(customers, eq(appointments.customerId, customers.id))
+      .where(
+        and(
+          gte(appointments.date, dateRange.start),
+          lte(appointments.date, dateRange.end)
+        )
+      )
+      .orderBy(desc(appointments.date));
+
+    // Process appointments data
+    const stats = {
+      total: appointments.length,
+      completed: 0,
+      cancelled: 0,
+      pending: 0,
+      byService: {} as Record<string, number>,
+      byDay: {} as Record<string, number>,
+      byTimeSlot: {} as Record<string, number>,
+      avgDuration: 0,
+      customerStats: {} as Record<number, {
+        name: string;
+        totalAppointments: number;
+        completedAppointments: number;
+        cancelledAppointments: number;
+      }>,
+      dailyDistribution: {} as Record<string, {
+        total: number;
+        completed: number;
+        cancelled: number;
+        pending: number;
+      }>,
+      timeDistribution: Array(24).fill(0)
+    };
+
+    let totalDuration = 0;
+
+    appointments.forEach(apt => {
+      // Count by status
+      switch (apt.status) {
+        case 'completed':
+          stats.completed++;
+          break;
+        case 'cancelled':
+          stats.cancelled++;
+          break;
+        case 'scheduled':
+          stats.pending++;
+          break;
+      }
+
+      // Count by service
+      stats.byService[apt.service] = (stats.byService[apt.service] || 0) + 1;
+
+      // Count by day
+      const dayKey = new Date(apt.date).toISOString().split('T')[0];
+      stats.byDay[dayKey] = (stats.byDay[dayKey] || 0) + 1;
+
+      // Count by time slot
+      const hour = new Date(apt.date).getHours();
+      stats.timeDistribution[hour]++;
+
+      // Calculate duration
+      if (apt.duration) {
+        totalDuration += apt.duration;
+      }
+
+      // Track customer stats
+      if (!stats.customerStats[apt.customerId]) {
+        stats.customerStats[apt.customerId] = {
+          name: apt.customerName,
+          totalAppointments: 0,
+          completedAppointments: 0,
+          cancelledAppointments: 0
+        };
+      }
+      stats.customerStats[apt.customerId].totalAppointments++;
+      if (apt.status === 'completed') {
+        stats.customerStats[apt.customerId].completedAppointments++;
+      } else if (apt.status === 'cancelled') {
+        stats.customerStats[apt.customerId].cancelledAppointments++;
+      }
+
+      // Daily distribution
+      if (!stats.dailyDistribution[dayKey]) {
+        stats.dailyDistribution[dayKey] = {
+          total: 0,
+          completed: 0,
+          cancelled: 0,
+          pending: 0
+        };
+      }
+      stats.dailyDistribution[dayKey].total++;
+      switch (apt.status) {
+        case 'completed':
+          stats.dailyDistribution[dayKey].completed++;
+          break;
+        case 'cancelled':
+          stats.dailyDistribution[dayKey].cancelled++;
+          break;
+        case 'scheduled':
+          stats.dailyDistribution[dayKey].pending++;
+          break;
+      }
+    });
+
+    // Calculate average duration
+    stats.avgDuration = appointments.length > 0 ? totalDuration / appointments.length : 0;
+
+    // Prepare detailed report
+    const report = {
+      summary: {
+        totalAppointments: stats.total,
+        completedAppointments: stats.completed,
+        cancelledAppointments: stats.cancelled,
+        pendingAppointments: stats.pending,
+        averageDuration: stats.avgDuration,
+        completionRate: stats.total > 0 ? (stats.completed / stats.total * 100).toFixed(2) : "0",
+        cancellationRate: stats.total > 0 ? (stats.cancelled / stats.total * 100).toFixed(2) : "0"
+      },
+      serviceBreakdown: Object.entries(stats.byService).map(([service, count]) => ({
+        service,
+        count,
+        percentage: ((count / stats.total) * 100).toFixed(2)
+      })),
+      timeAnalysis: {
+        dailyDistribution: Object.entries(stats.dailyDistribution).map(([date, data]) => ({
+          date,
+          ...data,
+          completionRate: data.total > 0 ? (data.completed / data.total * 100).toFixed(2) : "0"
+        })),
+        hourlyDistribution: stats.timeDistribution.map((count, hour) => ({
+          hour,
+          count,
+          percentage: stats.total > 0 ? ((count / stats.total) * 100).toFixed(2) : "0"
+        }))
+      },
+      customerAnalysis: Object.entries(stats.customerStats)
+        .map(([customerId, data]) => ({
+          customerId: Number(customerId),
+          ...data,
+          loyaltyScore: ((data.completedAppointments / data.totalAppointments) * 100).toFixed(2)
+        }))
+        .sort((a, b) => b.totalAppointments - a.totalAppointments)
+        .slice(0, 10), // Top 10 customers
+      appointments: appointments.map(apt => ({
+        id: apt.id,
+        customerName: apt.customerName,
+        customerPhone: apt.customerPhone,
+        date: apt.date,
+        time: apt.time,
+        duration: apt.duration,
+        status: apt.status,
+        service: apt.service,
+        notes: apt.notes
+      }))
+    };
+
+    // Save report to database
+    await this.saveReport({
+      type: "appointments",
+      title: `تقرير الحجوزات ${new Date().toLocaleDateString('ar-IQ')}`,
+      dateRange: {
+        start: dateRange.start,
+        end: dateRange.end
+      },
+      data: report,
+      userId: userId
+    });
+
+    // Cache the report
+    await this.cache.set(cacheKey, JSON.stringify(report), CACHE_TTL);
+    console.log("Successfully generated, saved and cached appointments report");
+
+    return report;
+  }
+
 }
 
 export const storage = new DatabaseStorage();

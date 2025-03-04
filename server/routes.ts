@@ -899,7 +899,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/api/suppliers/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً"});    }
-
     try {
       const supplier = await storage.getSupplier(Number(req.params.id));
       if (!supplier || supplier.userId !== req.user!.id) {
@@ -1564,6 +1563,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  // Add after existing report routes
+  app.get("/api/reports/appointments", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const { startDate, endDate } = req.query;
+      const report = await storage.getAppointmentsReport({
+        start: new Date(startDate as string),
+        end: new Date(endDate as string)
+      }, req.user!.id);
+      res.json(report);
+    } catch (error) {
+      console.error("Error generating appointments report:", error);
+      res.status(500).json({ message: "فشل في إنشاء تقرير الحجوزات" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
