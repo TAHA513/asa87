@@ -25,6 +25,9 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, or, like, SQL, gte, lte, and, sql, lt, gt } from "drizzle-orm";
+import { caching } from "./cache";
+
+const CACHE_TTL = 5 * 60; // 5 minutes cache
 
 export interface IStorage {
   // ...existing methods...
@@ -38,6 +41,12 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  private cache: typeof caching;
+
+  constructor() {
+    this.cache = caching;
+  }
+
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
@@ -996,16 +1005,23 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(activityReports.createdAt));
   }
 
-  async getDetailedSalesReport(dateRange: { start: Date; end: Date }) {
+  async getDetailedSalesReport(dateRange: { start: Date; end: Date }, page = 1, pageSize = 50) {
     console.log("Generating detailed sales report for:", dateRange);
 
-    const saleRecords = await db
+    const cacheKey = `sales_report:${dateRange.start.toISOString()}_${dateRange.end.toISOString()}_${page}`;
+    const cached = await this.cache.get(cacheKey);
+    if (cached) {
+      console.log("Returning cached sales report");
+      return JSON.parse(cached);
+    }
+
+    // Calculate offset for pagination
+    const offset = (page - 1) * pageSize;
+
+    //// Get total count first
+    const [{ count }] = await db
       .select({
-        id: sales.id,
-        productId: sales.productId,
-        quantity: sales.quantity,
-        priceIqd: sales.priceIqd,
-        date: sales.date,
+        count: sql<number>`count(*)::int`,
       })
       .from(sales)
       .where(
@@ -1015,65 +1031,174 @@ export class DatabaseStorage implements IStorage {
         )
       );
 
-    console.log(`Found ${saleRecords.length} sales records`);
-
-    const productSales = saleRecords.reduce((acc: Record<number, { quantity: number; revenue: number }>, sale) => {
-      if (!acc[sale.productId]) {
-        acc[sale.productId] = {
-          quantity: 0,
-          revenue: 0,
-        };
-      }
-      acc[sale.productId].quantity += sale.quantity;
-      acc[sale.productId].revenue += Number(sale.priceIqd);
-            return acc;
-    }, {});
-
-    const productsData = await Promise.all(
-      Object.entries(productSales).map(async ([productId, data]) => {
-        const [product] = await db
-          .select({
-            name: products.name,
-          })
-          .from(products)
-          .where(eq(products.id, parseInt(productId)));
-
-        return {
-          productId: parseInt(productId),
-          name: product?.name || 'منتج محذوف',
-          quantity: data.quantity,
-          revenue: data.revenue.toString(),
-        };
+    // Get paginated sales records with JOIN
+    const saleRecords = await db
+      .select({
+        id: sales.id,
+        productId: sales.productId,
+        quantity: sales.quantity,
+        priceIqd: sales.priceIqd,
+        date: sales.date,
+        productName: products.name,
       })
-    );
+      .from(sales)
+      .leftJoin(products, eq(sales.productId, products.id))
+      .where(
+        and(
+          gte(sales.date, dateRange.start),
+          lte(sales.date, dateRange.end)
+        )
+      )
+      .limit(pageSize)
+      .offset(offset)
+      .orderBy(desc(sales.date));
 
-    const dailyStats = saleRecords.reduce((acc: Record<string, { sales: number; revenue: number }>, sale) => {
-      const date = new Date(sale.date).toISOString().split('T')[0];
-      if (!acc[date]) {
-        acc[date] = {
-          sales: 0,
-          revenue: 0,
-        };
-      }
-      acc[date].sales++;
-      acc[date].revenue += Number(sale.priceIqd);
-      return acc;
-    }, {});
+    console.log(`Found ${saleRecords.length} sales records for page ${page}`);
 
-    console.log("Successfully generated sales report");
+    // Process sales data efficiently
+    const { productSales, dailyStats } = this.processSalesData(saleRecords);
 
-    return {
-      totalSales: saleRecords.length,
+    const report = {
+      totalRecords: count,
+      currentPage: page,
+      totalPages: Math.ceil(count / pageSize),
+      totalSales: count,
       totalRevenue: saleRecords.reduce((sum, sale) => sum + Number(sale.priceIqd), 0).toString(),
-      productsSold: productsData,
+      productsSold: Object.entries(productSales).map(([productId, data]) => ({
+        productId: Number(productId),
+        name: data.name || 'منتج محذوف',
+        quantity: data.quantity,
+        revenue: data.revenue.toString(),
+      })),
       dailyStats: Object.entries(dailyStats).map(([date, data]) => ({
         date,
         sales: data.sales,
         revenue: data.revenue.toString(),
       })),
     };
+
+    // Cache the report
+    await this.cache.set(cacheKey, JSON.stringify(report), CACHE_TTL);
+    console.log("Successfully generated and cached sales report");
+
+    return report;
   }
 
+  private processSalesData(saleRecords: any[]) {
+    const productSales: Record<number, {
+      name: string;
+      quantity: number;
+      revenue: number;
+    }> = {};
+
+    const dailyStats: Record<string, {
+      sales: number;
+      revenue: number;
+    }> = {};
+
+    for (const sale of saleRecords) {
+      // Process product sales
+      if (!productSales[sale.productId]) {
+        productSales[sale.productId] = {
+          name: sale.productName,
+          quantity: 0,
+          revenue: 0,
+        };
+      }
+      productSales[sale.productId].quantity += sale.quantity;
+      productSales[sale.productId].revenue += Number(sale.priceIqd);
+
+      // Process daily stats
+      const date = new Date(sale.date).toISOString().split('T')[0];
+      if (!dailyStats[date]) {
+        dailyStats[date] = {
+          sales: 0,
+          revenue: 0,
+        };
+      }
+      dailyStats[date].sales++;
+      dailyStats[date].revenue += Number(sale.priceIqd);
+    }
+
+    return { productSales, dailyStats };
+  }
+
+  // Similar optimizations for other report methods...
+  async getInventoryReport(dateRange: { start: Date; end: Date }, page = 1, pageSize = 50) {
+    const cacheKey = `inventory_report:${dateRange.start.toISOString()}_${dateRange.end.toISOString()}_${page}`;
+    const cached = await this.cache.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+
+    // Get total products count
+    const [{ count }] = await db
+      .select({
+        count: sql<number>`count(*)::int`,
+      })
+      .from(products);
+
+    // Get paginated low stock products
+    const lowStockProducts = await db
+      .select({
+        id: products.id,
+        name: products.name,
+        stock: products.stock,
+        minQuantity: products.minQuantity,
+      })
+      .from(products)
+      .where(
+        and(
+          lt(products.stock, products.minQuantity),
+          gt(products.minQuantity, 0)
+        )
+      )
+      .limit(pageSize)
+      .offset((page - 1) * pageSize);
+
+    // Get paginated movements with product info
+    const movements = await db
+      .select({
+        date: inventoryTransactions.date,
+        type: inventoryTransactions.type,
+        quantity: inventoryTransactions.quantity,
+        productId: inventoryTransactions.productId,
+        productName: products.name,
+      })
+      .from(inventoryTransactions)
+      .leftJoin(products, eq(inventoryTransactions.productId, products.id))
+      .where(
+        and(
+          gte(inventoryTransactions.date, dateRange.start),
+          lte(inventoryTransactions.date, dateRange.end)
+        )
+      )
+      .orderBy(desc(inventoryTransactions.date))
+      .limit(pageSize)
+      .offset((page - 1) * pageSize);
+
+    const report = {
+      totalProducts: count,
+      currentPage: page,
+      totalPages: Math.ceil(count / pageSize),
+      lowStock: lowStockProducts.map(p => ({
+        productId: p.id,
+        name: p.name,
+        currentStock: p.stock,
+        minRequired: p.minQuantity,
+      })),
+      movements: movements.map(m => ({
+        date: new Date(m.date).toISOString(),
+        type: m.type,
+        quantity: m.quantity,
+        productId: m.productId,
+        productName: m.productName,
+      })),
+    };
+
+    await this.cache.set(cacheKey, JSON.stringify(report), CACHE_TTL);
+    return report;
+  }
   async getInventoryReport(dateRange: { start: Date; end: Date }) {
     const [productsCount] = await db
       .select({
