@@ -19,8 +19,18 @@ import {
   type InsertUser
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, or, like, desc } from "drizzle-orm";
-import { IStorage } from "./types";
+import { eq, desc } from "drizzle-orm";
+
+export interface IStorage {
+  // ...existing methods...
+
+  // Add appointments methods
+  getAppointments(): Promise<Appointment[]>;
+  getCustomerAppointments(customerId: number): Promise<Appointment[]>;
+  createAppointment(appointment: InsertAppointment): Promise<Appointment>;
+  updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment>;
+  deleteAppointment(id: number): Promise<void>;
+}
 
 export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
@@ -612,34 +622,74 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCustomerAppointments(customerId: number): Promise<Appointment[]> {
-    return db
-      .select()
-      .from(appointments)
-      .where(eq(appointments.customerId, customerId));
+    try {
+      if (customerId === 0) {
+        return this.getAppointments();
+      }
+      const results = await db
+        .select()
+        .from(appointments)
+        .where(eq(appointments.customerId, customerId))
+        .orderBy(desc(appointments.date));
+      return results;
+    } catch (error) {
+      console.error("Error in getCustomerAppointments:", error);
+      throw new Error("فشل في جلب مواعيد العميل");
+    }
   }
 
   async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
-    const [newAppointment] = await db
-      .insert(appointments)
-      .values({
-        ...appointment,
-        status: appointment.status as "scheduled" | "completed" | "cancelled",
-      })
-      .returning();
-    return newAppointment;
+    try {
+      console.log("Creating new appointment:", appointment);
+      const [newAppointment] = await db
+        .insert(appointments)
+        .values({
+          ...appointment,
+          status: appointment.status || "scheduled",
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+
+      console.log("Successfully created appointment:", newAppointment);
+      return newAppointment;
+    } catch (error) {
+      console.error("Error in createAppointment:", error);
+      throw new Error("فشل في إنشاء الموعد");
+    }
   }
 
   async updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment> {
-    const [appointment] = await db
-      .update(appointments)
-      .set(update)
-      .where(eq(appointments.id, id))
-      .returning();
-    return appointment;
+    try {
+      console.log(`Updating appointment ${id} with:`, update);
+      const [updatedAppointment] = await db
+        .update(appointments)
+        .set({
+          ...update,
+          updatedAt: new Date()
+        })
+        .where(eq(appointments.id, id))
+        .returning();
+
+      console.log("Successfully updated appointment:", updatedAppointment);
+      return updatedAppointment;
+    } catch (error) {
+      console.error("Error in updateAppointment:", error);
+      throw new Error("فشل في تحديث الموعد");
+    }
   }
 
   async deleteAppointment(id: number): Promise<void> {
-    await db.delete(appointments).where(eq(appointments.id, id));
+    try {
+      console.log(`Deleting appointment ${id}`);
+      await db
+        .delete(appointments)
+        .where(eq(appointments.id, id));
+      console.log(`Successfully deleted appointment ${id}`);
+    } catch (error) {
+      console.error("Error in deleteAppointment:", error);
+      throw new Error("فشل في حذف الموعد");
+    }
   }
 
   async deleteCustomer(id: number): Promise<void> {
@@ -742,6 +792,22 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return newSettings;
+  }
+
+  async getAppointments(): Promise<Appointment[]> {
+    try {
+      console.log("Fetching all appointments from database");
+      const results = await db
+        .select()
+        .from(appointments)
+        .orderBy(desc(appointments.date));
+
+      console.log(`Retrieved ${results.length} appointments from database`);
+      return results;
+    } catch (error) {
+      console.error("Error in getAppointments:", error);
+      throw new Error("فشل في جلب المواعيد");
+    }
   }
 }
 
