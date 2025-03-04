@@ -9,7 +9,7 @@ import {
   campaignAnalytics, socialMediaAccounts, apiKeys,
   inventoryTransactions, expenseCategories, expenses,
   suppliers, supplierTransactions, customers, appointments,
-  invoices, userSettings,
+  invoices, userSettings, reports,
   type User, type Product, type Sale, type ExchangeRate,
   type FileStorage, type Installment, type InstallmentPayment,
   type Campaign, type InsertCampaign, type CampaignAnalytics,
@@ -22,6 +22,7 @@ import {
   type Appointment, type InsertAppointment, type Invoice,
   type InsertInvoice, type UserSettings, type InsertUserSettings,
   type InsertUser, type InsertFileStorage,
+  type Report, type InsertReport
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, or, like, SQL, gte, lte, and, sql, lt, gt } from "drizzle-orm";
@@ -38,6 +39,19 @@ export interface IStorage {
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
   updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment>;
   deleteAppointment(id: number): Promise<void>;
+
+  saveReport(reportData: {
+    type: string;
+    title: string;
+    dateRange: { start: Date; end: Date };
+    filters?: Record<string, unknown>;
+    data: Record<string, unknown>;
+    userId: number;
+    format?: string;
+  }): Promise<Report>;
+
+  getReport(id: number): Promise<Report | undefined>;
+  getUserReports(userId: number, type?: string): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1005,7 +1019,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(activityReports.createdAt));
   }
 
-  async getDetailedSalesReport(dateRange: { start: Date; end: Date }, page = 1, pageSize = 50) {
+  async getDetailedSalesReport(dateRange: { start: Date; end: Date }, userId: number, page = 1, pageSize = 50) {
     console.log("Generating detailed sales report for:", dateRange);
 
     const cacheKey = `sales_report:${dateRange.start.toISOString()}_${dateRange.end.toISOString()}_${page}`;
@@ -1077,9 +1091,22 @@ export class DatabaseStorage implements IStorage {
       })),
     };
 
+    // Save report to database
+    await this.saveReport({
+      type: "sales",
+      title: `تقرير المبيعات ${new Date().toLocaleDateString('ar-IQ')}`,
+      dateRange: {
+        start: dateRange.start,
+        end: dateRange.end
+      },
+      filters: { page, pageSize },
+      data: report,
+      userId: userId
+    });
+
     // Cache the report
     await this.cache.set(cacheKey, JSON.stringify(report), CACHE_TTL);
-    console.log("Successfully generated and cached sales report");
+    console.log("Successfully generated, saved and cached sales report");
 
     return report;
   }
@@ -1414,6 +1441,68 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  async saveReport(reportData: {
+    type: string;
+    title: string;
+    dateRange: { start: Date; end: Date };
+    filters?: Record<string, unknown>;
+    data: Record<string, unknown>;
+    userId: number;
+    format?: string;
+  }) {
+    try {
+      const [report] = await db
+        .insert(reports)
+        .values({
+          type: reportData.type,
+          title: reportData.title,
+          dateRange: reportData.dateRange,
+          filters: reportData.filters || {},
+          data: reportData.data,
+          userId: reportData.userId,
+          format: reportData.format || "json",
+          status: "generated",
+          createdAt: new Date()
+        })
+        .returning();
+      return report;
+    } catch (error) {
+      console.error("Error saving report:", error);
+      throw new Error("فشل في حفظ التقرير");
+    }
+  }
+
+  async getReport(id: number) {
+    try {
+      const [report] = await db
+        .select()
+        .from(reports)
+        .where(eq(reports.id, id));
+      return report;
+    } catch (error) {
+      console.error("Error fetching report:", error);
+      throw new Error("فشل في جلب التقرير");
+    }
+  }
+
+  async getUserReports(userId: number, type?: string) {
+    try {
+      let query = db
+        .select()
+        .from(reports)
+        .where(eq(reports.userId, userId))
+        .orderBy(desc(reports.createdAt));
+
+      if (type) {
+        query = query.where(eq(reports.type, type));
+      }
+
+      return query;
+    } catch (error) {
+      console.error("Error fetching user reports:", error);
+      throw new Error("فشل في جلب تقارير المستخدم");
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

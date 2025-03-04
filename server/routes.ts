@@ -892,13 +892,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedSupplier);
     } catch (error) {
       console.error("Error updating supplier:", error);
-      res.status(500).json({{ message: "فشل في تحديث المورد" });
+      res.status(500).json({ message: "فشل في تحديث المورد" });
     }
   });
 
-app.delete("/api/api/suppliers/:id", async (req, res) => {
+  app.delete("/api/api/suppliers/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });    }
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً"});    }
 
     try {
       const supplier = await storage.getSupplier(Number(req.params.id));
@@ -1460,11 +1460,15 @@ app.delete("/api/api/suppliers/:id", async (req, res) => {
     }
 
     try {
-      const { startDate, endDate } = req.query;
+      const { startDate, endDate, page = "1", pageSize = "50" } = req.query;
       const report = await storage.getDetailedSalesReport({
         start: new Date(startDate as string),
         end: new Date(endDate as string)
-      });
+      },
+        req.user!.id,
+        Number(page),
+        Number(pageSize)
+      );
       res.json(report);
     } catch (error) {
       console.error("Error generating sales report:", error);
@@ -1525,6 +1529,41 @@ app.delete("/api/api/suppliers/:id", async (req, res) => {
       res.status(500).json({ message: "فشل في إنشاء تقرير نشاط المستخدمين" });
     }
   });
+  // Add after existing report routes
+  app.get("/api/reports", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const reports = await storage.getUserReports(req.user!.id, req.query.type as string);
+      res.json(reports);
+    } catch (error) {
+      console.error("Error fetching reports:", error);
+      res.status(500).json({ message: "فشل في جلب التقارير" });
+    }
+  });
+
+  app.get("/api/reports/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const report = await storage.getReport(Number(req.params.id));
+      if (!report) {
+        return res.status(404).json({ message: "التقرير غير موجود" });
+      }
+      if (report.userId !== req.user!.id) {
+        return res.status(403).json({ message: "غير مصرح بالوصول لهذا التقرير" });
+      }
+      res.json(report);
+    } catch (error) {
+      console.error("Error fetching report:", error);
+      res.status(500).json({ message: "فشل في جلب التقرير" });
+    }
+  });
+
 
   const httpServer = createServer(app);
   return httpServer;
