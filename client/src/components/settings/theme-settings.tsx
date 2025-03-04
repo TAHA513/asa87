@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { apiRequest } from "@/lib/queryClient";
+import { motion } from "framer-motion";
 
 const themes = [
   {
@@ -156,7 +157,6 @@ const ThemeSettings = () => {
   const [appearance, setAppearance] = useState<"light" | "dark" | "system">("system");
   const [isLoading, setIsLoading] = useState(false);
 
-  // تطبيق وضع السطوع المحدد
   const applyAppearance = (mode: "light" | "dark" | "system") => {
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
@@ -168,11 +168,9 @@ const ThemeSettings = () => {
       root.classList.add(mode);
     }
 
-    // تحديث متغير CSS مخصص لتتبع الوضع الحالي
     root.style.setProperty("--current-appearance", mode);
   };
 
-  // مراقبة تغييرات وضع النظام
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
@@ -191,15 +189,12 @@ const ThemeSettings = () => {
       try {
         const response = await apiRequest("GET", "/api/settings");
         if (response) {
-          // استخدام المعرفات بدلاً من الأسماء العربية
           const theme = themes.find(t => t.id === response.variant) || themes[0];
           const font = fonts.find(f => f.id === response.fontStyle) || fonts[0];
           setSelectedTheme(theme);
           setSelectedFont(font);
           setFontSize(response.fontSize || "medium");
           setAppearance(response.appearance || "system");
-
-          // تطبيق وضع السطوع المحفوظ
           applyAppearance(response.appearance || "system");
         }
       } catch (error) {
@@ -215,26 +210,21 @@ const ThemeSettings = () => {
     try {
       const settings = {
         primary: selectedTheme.colors.primary,
-        variant: selectedTheme.id, // استخدام المعرف بدلاً من الاسم
-        fontStyle: selectedFont.id, // استخدام المعرف بدلاً من الاسم
+        variant: selectedTheme.id,
+        fontStyle: selectedFont.id,
         fontSize,
         appearance,
         radius: 0.5,
       };
 
-      console.log("Saving settings:", settings); // للتحقق من البيانات المرسلة
-
       const response = await apiRequest("POST", "/api/settings", settings);
 
       if (response) {
-        // تحديث متغيرات CSS
         document.documentElement.style.setProperty("--primary-color", selectedTheme.colors.primary);
         document.documentElement.style.setProperty("--secondary-color", selectedTheme.colors.secondary);
         document.documentElement.style.setProperty("--accent-color", selectedTheme.colors.accent);
         document.documentElement.style.setProperty("--font-family", selectedFont.family);
         document.documentElement.style.setProperty("--font-size-base", `${fontSizes[fontSize].base}px`);
-
-        // تطبيق وضع السطوع
         applyAppearance(appearance);
 
         toast({
@@ -254,242 +244,268 @@ const ThemeSettings = () => {
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1
+    }
+  };
+
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle className="text-2xl">تخصيص المظهر</CardTitle>
-        <CardDescription>
-          قم بتخصيص مظهر التطبيق حسب تفضيلاتك
-        </CardDescription>
+    <Card className="w-full max-w-4xl mx-auto overflow-hidden">
+      <CardHeader className="space-y-2 pb-6">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <CardTitle className="text-2xl font-bold">تخصيص المظهر</CardTitle>
+          <CardDescription className="text-base">
+            قم بتخصيص مظهر التطبيق حسب تفضيلاتك
+          </CardDescription>
+        </motion.div>
       </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 mb-8">
-            <TabsTrigger value="theme" className="flex items-center gap-2">
-              <Palette className="w-4 h-4" />
-              الثيمات
-            </TabsTrigger>
-            <TabsTrigger value="font" className="flex items-center gap-2">
-              <Type className="w-4 h-4" />
-              الخطوط
-            </TabsTrigger>
-            <TabsTrigger value="size" className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              حجم الخط
-            </TabsTrigger>
-            <TabsTrigger value="appearance" className="flex items-center gap-2">
-              <Sun className="w-4 h-4" />
-              السطوع
-            </TabsTrigger>
+      <CardContent className="pb-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2 mb-8">
+            {[
+              { value: "theme", icon: <Palette className="w-4 h-4" />, label: "الألوان" },
+              { value: "font", icon: <Type className="w-4 h-4" />, label: "الخطوط" },
+              { value: "size", icon: <Plus className="w-4 h-4" />, label: "الحجم" },
+              { value: "appearance", icon: <Sun className="w-4 h-4" />, label: "السطوع" }
+            ].map(tab => (
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className="flex items-center gap-2 py-2 px-4"
+              >
+                {tab.icon}
+                <span className="hidden md:inline">{tab.label}</span>
+              </TabsTrigger>
+            ))}
           </TabsList>
 
-          <TabsContent value="theme">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {themes.map((theme) => (
-                <Card
-                  key={theme.id}
-                  className={`cursor-pointer transition-all hover:scale-105 ${
-                    selectedTheme.id === theme.id ? 'ring-2 ring-primary' : ''
-                  }`}
-                  onClick={() => {
-                    setSelectedTheme(theme);
-                    // تطبيق ألوان الثيم فوراً
-                    document.documentElement.style.setProperty("--primary-color", theme.colors.primary);
-                    document.documentElement.style.setProperty("--secondary-color", theme.colors.secondary);
-                    document.documentElement.style.setProperty("--accent-color", theme.colors.accent);
-                  }}
-                >
-                  <CardHeader className="p-4">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{theme.name}</CardTitle>
-                      {selectedTheme.id === theme.id && (
-                        <Check className="w-5 h-5 text-primary" />
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-4">
-                    <div className="flex gap-2">
-                      {Object.entries(theme.colors).map(([key, color]) => (
-                        <div
-                          key={key}
-                          className="w-8 h-8 rounded-full"
-                          style={{ backgroundColor: color }}
-                        />
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <TabsContent value="theme">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {themes.map((theme) => (
+                  <motion.div
+                    key={theme.id}
+                    variants={itemVariants}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Card
+                      className={`cursor-pointer transition-all hover:shadow-lg ${
+                        selectedTheme.id === theme.id ? 'ring-2 ring-primary' : ''
+                      }`}
+                      onClick={() => {
+                        setSelectedTheme(theme);
+                        document.documentElement.style.setProperty("--primary-color", theme.colors.primary);
+                        document.documentElement.style.setProperty("--secondary-color", theme.colors.secondary);
+                        document.documentElement.style.setProperty("--accent-color", theme.colors.accent);
+                      }}
+                    >
+                      <CardHeader className="p-4">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg font-medium">{theme.name}</CardTitle>
+                          {selectedTheme.id === theme.id && (
+                            <Check className="w-5 h-5 text-primary" />
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-0">
+                        <div className="flex gap-2">
+                          {Object.entries(theme.colors).map(([key, color]) => (
+                            <div
+                              key={key}
+                              className="w-8 h-8 rounded-full shadow-inner"
+                              style={{ backgroundColor: color }}
+                            />
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="font">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {fonts.map((font) => (
+                  <motion.div
+                    key={font.id}
+                    variants={itemVariants}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Card
+                      className={`cursor-pointer transition-all hover:shadow-lg ${
+                        selectedFont.id === font.id ? 'ring-2 ring-primary' : ''
+                      }`}
+                      onClick={() => {
+                        setSelectedFont(font);
+                        document.documentElement.style.setProperty("--font-family", font.family);
+                      }}
+                    >
+                      <CardHeader className="p-4">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg font-medium">{font.name}</CardTitle>
+                          {selectedFont.id === font.id && (
+                            <Check className="w-5 h-5 text-primary" />
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-0">
+                        <p
+                          className="text-xl leading-relaxed"
+                          style={{ fontFamily: font.family }}
+                        >
+                          {font.preview}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="size">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl font-medium">حجم الخط</CardTitle>
+                  <CardDescription>اختر حجم الخط المناسب للعرض</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-8">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {Object.entries(fontSizes).map(([size, config]) => (
+                        <motion.div
+                          key={size}
+                          variants={itemVariants}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <Card
+                            className={`cursor-pointer p-4 hover:shadow-lg ${
+                              fontSize === size ? 'ring-2 ring-primary' : ''
+                            }`}
+                            onClick={() => {
+                              setFontSize(size);
+                              document.documentElement.style.setProperty("--font-size-base", `${config.base}px`);
+                            }}
+                          >
+                            <div className="text-center">
+                              <div 
+                                className="mb-2 font-medium"
+                                style={{ fontSize: `${config.base}px` }}
+                              >
+                                نص تجريبي
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {size === "small" && "صغير"}
+                                {size === "medium" && "متوسط"}
+                                {size === "large" && "كبير"}
+                                {size === "xlarge" && "كبير جداً"}
+                              </div>
+                            </div>
+                          </Card>
+                        </motion.div>
                       ))}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
 
-          <TabsContent value="font">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {fonts.map((font) => (
-                <Card
-                  key={font.id}
-                  className={`cursor-pointer transition-all hover:scale-105 ${
-                    selectedFont.id === font.id ? 'ring-2 ring-primary' : ''
-                  }`}
-                  onClick={() => {
-                    setSelectedFont(font);
-                    // تطبيق الخط فوراً
-                    document.documentElement.style.setProperty("--font-family", font.family);
-                  }}
-                >
-                  <CardHeader className="p-4">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{font.name}</CardTitle>
-                      {selectedFont.id === font.id && (
-                        <Check className="w-5 h-5 text-primary" />
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-4">
-                    <p
-                      className="text-xl"
-                      style={{ fontFamily: font.family }}
-                    >
-                      {font.preview}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="size">
-            <Card>
-              <CardHeader>
-                <CardTitle>حجم الخط</CardTitle>
-                <CardDescription>اختر حجم الخط المناسب للعرض</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {Object.entries(fontSizes).map(([size, config]) => (
-                      <Card
-                        key={size}
-                        className={`cursor-pointer p-4 ${
-                          fontSize === size ? 'ring-2 ring-primary' : ''
-                        }`}
-                        onClick={() => {
-                          setFontSize(size);
-                          // تطبيق حجم الخط فوراً
-                          document.documentElement.style.setProperty("--font-size-base", `${config.base}px`);
+                    <div className="space-y-4">
+                      <Label className="text-lg font-medium">معاينة الحجم</Label>
+                      <div 
+                        className="space-y-4 p-6 bg-card rounded-lg"
+                        style={{
+                          fontSize: `${fontSizes[fontSize as keyof typeof fontSizes].base}px`,
+                          fontFamily: selectedFont.family
                         }}
                       >
-                        <div className="text-center">
-                          <div style={{ fontSize: `${config.base}px` }}>
-                            نص تجريبي
-                          </div>
-                          <div className="mt-2 text-sm text-muted-foreground">
-                            {size === "small" && "صغير"}
-                            {size === "medium" && "متوسط"}
-                            {size === "large" && "كبير"}
-                            {size === "xlarge" && "كبير جداً"}
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>معاينة الحجم</Label>
-                    <div className="space-y-4" style={{
-                      fontSize: `${fontSizes[fontSize].base}px`,
-                      fontFamily: selectedFont.family
-                    }}>
-                      <h1 className="font-bold">عنوان رئيسي</h1>
-                      <h2 className="font-semibold">عنوان فرعي</h2>
-                      <p>هذا نص تجريبي لمعاينة حجم الخط المختار. يمكنك رؤية كيف سيظهر النص في مختلف العناصر.</p>
+                        <h1 className="text-2xl font-bold">عنوان رئيسي</h1>
+                        <h2 className="text-xl font-semibold">عنوان فرعي</h2>
+                        <p className="leading-relaxed">
+                          هذا نص تجريبي لمعاينة حجم الخط المختار. يمكنك رؤية كيف سيظهر النص في مختلف العناصر.
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="appearance">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card
-                className={`cursor-pointer transition-all hover:scale-105 ${
-                  appearance === "light" ? 'ring-2 ring-primary' : ''
-                }`}
-                onClick={() => {
-                  setAppearance("light");
-                  applyAppearance("light");
-                }}
-              >
-                <CardHeader className="p-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">فاتح</CardTitle>
-                    {appearance === "light" && (
-                      <Check className="w-5 h-5 text-primary" />
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <Sun className="w-8 h-8" />
                 </CardContent>
               </Card>
+            </TabsContent>
 
-              <Card
-                className={`cursor-pointer transition-all hover:scale-105 ${
-                  appearance === "dark" ? 'ring-2 ring-primary' : ''
-                }`}
-                onClick={() => {
-                  setAppearance("dark");
-                  applyAppearance("dark");
-                }}
-              >
-                <CardHeader className="p-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">داكن</CardTitle>
-                    {appearance === "dark" && (
-                      <Check className="w-5 h-5 text-primary" />
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <Moon className="w-8 h-8" />
-                </CardContent>
-              </Card>
-
-              <Card
-                className={`cursor-pointer transition-all hover:scale-105 ${
-                  appearance === "system" ? 'ring-2 ring-primary' : ''
-                }`}
-                onClick={() => {
-                  setAppearance("system");
-                  applyAppearance("system");
-                }}
-              >
-                <CardHeader className="p-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">تلقائي</CardTitle>
-                    {appearance === "system" && (
-                      <Check className="w-5 h-5 text-primary" />
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <Monitor className="w-8 h-8" />
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+            <TabsContent value="appearance">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  { id: "light", name: "فاتح", icon: Sun },
+                  { id: "dark", name: "داكن", icon: Moon },
+                  { id: "system", name: "تلقائي", icon: Monitor }
+                ].map((mode) => (
+                  <motion.div
+                    key={mode.id}
+                    variants={itemVariants}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Card
+                      className={`cursor-pointer transition-all hover:shadow-lg ${
+                        appearance === mode.id ? 'ring-2 ring-primary' : ''
+                      }`}
+                      onClick={() => {
+                        setAppearance(mode.id as "light" | "dark" | "system");
+                        applyAppearance(mode.id as "light" | "dark" | "system");
+                      }}
+                    >
+                      <CardHeader className="p-4">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg font-medium">{mode.name}</CardTitle>
+                          {appearance === mode.id && (
+                            <Check className="w-5 h-5 text-primary" />
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-0">
+                        <mode.icon className="w-8 h-8" />
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </TabsContent>
+          </motion.div>
         </Tabs>
 
-        <div className="mt-8 flex justify-end">
+        <motion.div
+          className="mt-8 flex justify-end"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
           <Button
             onClick={saveSettings}
             disabled={isLoading}
             className="w-full md:w-auto"
           >
-            حفظ التغييرات
+            {isLoading ? "جارِ الحفظ..." : "حفظ التغييرات"}
           </Button>
-        </div>
+        </motion.div>
       </CardContent>
     </Card>
   );
