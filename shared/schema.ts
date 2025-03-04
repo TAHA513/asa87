@@ -533,9 +533,12 @@ export const insertAppointmentSchema = createInsertSchema(appointments)
   .omit({ id: true, createdAt: true, updatedAt: true })
   .extend({
     title: z.string().min(1, "عنوان الموعد مطلوب"),
-    date: z.date(),
-    duration: z.number().min(1, "مدة الموعد يجب أن تكون 1 دقيقة على الأقل"),
+    description: z.string().optional().nullable(),
+    customerId: z.number().int().positive("يجب اختيار عميل").optional().nullable(),
+    date: z.coerce.date(),
+    duration: z.number().int().min(1, "مدة الموعد يجب أن تكون 1 دقيقة على الأقل"),
     status: z.enum(["scheduled", "completed", "cancelled"]).default("scheduled"),
+    notes: z.string().optional().nullable(),
   });
 
 export const insertFileStorageSchema = createInsertSchema(fileStorage)

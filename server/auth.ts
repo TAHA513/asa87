@@ -4,7 +4,10 @@ import { Express } from "express";
 import session from "express-session";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
-import { insertUserSchema } from "@shared/schema";
+import { insertUserSchema, type User } from "@shared/schema";
+import MemoryStore from "memorystore";
+
+const MemoryStoreSession = MemoryStore(session);
 
 async function hashPassword(password: string) {
   const salt = await bcrypt.genSalt(10);
@@ -20,7 +23,9 @@ export function setupAuth(app: Express) {
     secret: process.env.SESSION_SECRET || "dev_secret_key",
     resave: false,
     saveUninitialized: false,
-    store: storage.sessionStore,
+    store: new MemoryStoreSession({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    }),
     cookie: {
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
@@ -28,7 +33,7 @@ export function setupAuth(app: Express) {
       sameSite: 'strict',
       path: '/'
     },
-    name: 'sid' // تغيير اسم الكوكي الافتراضي
+    name: 'sid'
   };
 
   app.set("trust proxy", 1);
@@ -56,7 +61,7 @@ export function setupAuth(app: Express) {
     })
   );
 
-  passport.serializeUser((user, done) => {
+  passport.serializeUser((user: User, done) => {
     done(null, user.id);
   });
 
@@ -107,7 +112,7 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/auth/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: Error | null, user: User | false, info: { message: string } | undefined) => {
       if (err) {
         console.error("Login error:", err);
         return res.status(500).json({ message: "حدث خطأ أثناء تسجيل الدخول" });
@@ -132,7 +137,6 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/auth/logout", (req, res) => {
-    // حفظ معرف الجلسة قبل تسجيل الخروج
     const sessionId = req.sessionID;
 
     req.logout((err) => {
@@ -143,7 +147,6 @@ export function setupAuth(app: Express) {
         });
       }
 
-      // تدمير الجلسة بالكامل
       req.session.destroy((err) => {
         if (err) {
           console.error("Session destruction error:", err);
@@ -152,10 +155,7 @@ export function setupAuth(app: Express) {
           });
         }
 
-        // مسح الكوكي من المتصفح
         res.clearCookie('sid');
-
-        // إرسال استجابة نجاح
         res.json({ success: true });
       });
     });
