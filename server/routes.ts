@@ -898,8 +898,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 app.delete("/api/api/suppliers/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });    }
 
     try {
       const supplier = await storage.getSupplier(Number(req.params.id));
@@ -1341,7 +1340,7 @@ app.delete("/api/api/suppliers/:id", async (req, res) => {
 
     try {
       console.log("Fetching appointments...");
-      const appointments = await storage.getCustomerAppointments(0); // 0 to get all appointments
+      const appointments = await storage.getAppointments(); // Changed from getCustomerAppointments
       console.log("Fetched appointments:", appointments);
       res.json(appointments);
     } catch (error) {
@@ -1359,7 +1358,6 @@ app.delete("/api/api/suppliers/:id", async (req, res) => {
       console.log("Creating appointment with data:", req.body);
       const validatedData = insertAppointmentSchema.parse({
         ...req.body,
-        userId: req.user!.id,
         status: 'scheduled'
       });
 

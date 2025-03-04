@@ -741,12 +741,15 @@ export class DatabaseStorage {
   async getAppointments(): Promise<Appointment[]> {
     try {
       console.log("Fetching all appointments");
-      return await db
+      const results = await db
         .select()
         .from(appointments)
         .orderBy(desc(appointments.date));
+
+      console.log(`Retrieved ${results.length} appointments`);
+      return results;
     } catch (error) {
-      console.error("خطأ في جلب جميع المواعيد:", error);
+      console.error("Error in getAppointments:", error);
       return [];
     }
   }
@@ -771,19 +774,26 @@ export class DatabaseStorage {
   async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
     try {
       console.log("Creating appointment with data:", appointment);
+
+      // Validate required fields
+      if (!appointment.title || !appointment.date || !appointment.duration) {
+        throw new Error("Missing required fields");
+      }
+
       const [newAppointment] = await db
         .insert(appointments)
         .values({
           ...appointment,
+          status: appointment.status || "scheduled",
           createdAt: new Date(),
           updatedAt: new Date()
         })
         .returning();
 
-      console.log("Created appointment:", newAppointment);
+      console.log("Created appointment successfully:", newAppointment);
       return newAppointment;
     } catch (error) {
-      console.error("خطأ في إنشاء الموعد:", error);
+      console.error("Error in createAppointment:", error);
       throw error;
     }
   }

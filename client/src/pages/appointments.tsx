@@ -90,6 +90,9 @@ export default function AppointmentsPage() {
 
   const { data: appointments = [], isLoading } = useQuery<Appointment[]>({
     queryKey: ["/api/appointments"],
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    retry: 2,
   });
 
   const { data: customers = [] } = useQuery<Customer[]>({
@@ -98,6 +101,7 @@ export default function AppointmentsPage() {
 
   const createAppointmentMutation = useMutation({
     mutationFn: async (data: NewAppointmentForm) => {
+      console.log("Sending appointment data:", data);
       const res = await fetch("/api/appointments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
