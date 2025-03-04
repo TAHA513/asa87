@@ -16,10 +16,10 @@ import {
   type InsertSupplierTransaction, type Customer, type InsertCustomer,
   type Appointment, type InsertAppointment, type Invoice,
   type InsertInvoice, type UserSettings, type InsertUserSettings,
-  type InsertUser
+  type InsertUser, type InsertFileStorage
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, or, like, SQL } from "drizzle-orm";
 
 export interface IStorage {
   // ...existing methods...
@@ -86,8 +86,19 @@ export class DatabaseStorage implements IStorage {
           description: product.description,
           productCode: product.productCode,
           barcode: product.barcode,
+          productType: product.productType,
+          quantity: product.quantity,
+          minQuantity: product.minQuantity,
+          productionDate: product.productionDate,
+          expiryDate: product.expiryDate,
+          costPrice: product.costPrice.toString(),
           priceIqd: product.priceIqd.toString(),
-          stock: product.stock
+          categoryId: product.categoryId,
+          isWeightBased: product.isWeightBased,
+          enableDirectWeighing: product.enableDirectWeighing,
+          stock: product.stock,
+          imageUrl: product.imageUrl,
+          thumbnailUrl: product.thumbnailUrl
         })
         .returning();
       return newProduct;
@@ -151,7 +162,6 @@ export class DatabaseStorage implements IStorage {
     customerName?: string;
   }): Promise<Sale> {
     try {
-      // التحقق من توفر المخزون
       const [product] = await db
         .select()
         .from(products)
@@ -165,7 +175,6 @@ export class DatabaseStorage implements IStorage {
         throw new Error(`المخزون غير كافٍ. المتوفر: ${product.stock}`);
       }
 
-      // إنشاء العميل أو استخدام العميل النقدي
       let customerId: number;
       if (sale.customerName) {
         const [customer] = await db
@@ -196,14 +205,12 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
-      // تحديث المخزون
       const [updatedProduct] = await db
         .update(products)
         .set({ stock: product.stock - sale.quantity })
         .where(eq(products.id, sale.productId))
         .returning();
 
-      // إنشاء عملية البيع
       const [newSale] = await db
         .insert(sales)
         .values({
@@ -212,13 +219,13 @@ export class DatabaseStorage implements IStorage {
           quantity: sale.quantity,
           priceIqd: sale.priceIqd,
           discount: sale.discount,
+          finalPriceIqd: (Number(sale.priceIqd) - Number(sale.discount)).toString(),
           userId: sale.userId,
           isInstallment: sale.isInstallment,
           date: sale.date
         })
         .returning();
 
-      // تسجيل حركة المخزون
       await db.insert(inventoryTransactions).values({
         productId: sale.productId,
         type: "out",
