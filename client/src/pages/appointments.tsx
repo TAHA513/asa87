@@ -51,19 +51,21 @@ type NewAppointmentForm = {
   notes: string;
 };
 
-const statusIcons = {
+type AppointmentStatus = "scheduled" | "completed" | "cancelled";
+
+const statusIcons: Record<AppointmentStatus, JSX.Element> = {
   scheduled: <Clock className="h-4 w-4 text-blue-500" />,
   completed: <CheckCircle className="h-4 w-4 text-green-500" />,
   cancelled: <XCircle className="h-4 w-4 text-red-500" />,
 };
 
-const statusColors = {
+const statusColors: Record<AppointmentStatus, string> = {
   scheduled: "bg-blue-100 text-blue-800",
   completed: "bg-green-100 text-green-800",
   cancelled: "bg-red-100 text-red-800",
 };
 
-const statusText = {
+const statusText: Record<AppointmentStatus, string> = {
   scheduled: "قيد الانتظار",
   completed: "مكتمل",
   cancelled: "ملغي",
@@ -126,7 +128,7 @@ export default function AppointmentsPage() {
   });
 
   const updateAppointmentMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+    mutationFn: async ({ id, status }: { id: number; status: AppointmentStatus }) => {
       const res = await fetch(`/api/appointments/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -157,7 +159,7 @@ export default function AppointmentsPage() {
     createAppointmentMutation.mutate(data);
   };
 
-  const handleStatusChange = (id: number, newStatus: string) => {
+  const handleStatusChange = (id: number, newStatus: AppointmentStatus) => {
     updateAppointmentMutation.mutate({ id, status: newStatus });
   };
 
@@ -362,12 +364,12 @@ export default function AppointmentsPage() {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger>
-                              <div className={`p-2 rounded-full ${statusColors[appointment.status]}`}>
-                                {statusIcons[appointment.status]}
+                              <div className={`p-2 rounded-full ${statusColors[appointment.status as AppointmentStatus]}`}>
+                                {statusIcons[appointment.status as AppointmentStatus]}
                               </div>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>حالة الموعد: {statusText[appointment.status]}</p>
+                              <p>حالة الموعد: {statusText[appointment.status as AppointmentStatus]}</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
