@@ -10,7 +10,7 @@ import MemoryStore from "memorystore";
 const MemoryStoreSession = MemoryStore(session);
 
 async function hashPassword(password: string) {
-  const salt = await bcrypt.genSalt(10);
+  const salt = await bcrypt.genSalt(12); // زيادة قوة التشفير
   return bcrypt.hash(password, salt);
 }
 
@@ -36,11 +36,15 @@ export function setupAuth(app: Express) {
     name: 'sid'
   };
 
-  app.set("trust proxy", 1);
+  if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+  }
+
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // تحسين أمان استراتيجية تسجيل الدخول
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
@@ -49,10 +53,19 @@ export function setupAuth(app: Express) {
           return done(null, false, { message: "اسم المستخدم غير موجود" });
         }
 
+        if (!user.isActive) {
+          return done(null, false, { message: "الحساب غير نشط" });
+        }
+
         const isValidPassword = await comparePasswords(password, user.password);
         if (!isValidPassword) {
           return done(null, false, { message: "كلمة المرور غير صحيحة" });
         }
+
+        // تحديث وقت آخر تسجيل دخول
+        await storage.updateUser(user.id, {
+          lastLoginAt: new Date()
+        });
 
         return done(null, user);
       } catch (err) {
@@ -69,6 +82,9 @@ export function setupAuth(app: Express) {
     try {
       const user = await storage.getUser(id);
       if (!user) {
+        return done(null, false);
+      }
+      if (!user.isActive) {
         return done(null, false);
       }
       done(null, user);
@@ -99,7 +115,9 @@ export function setupAuth(app: Express) {
             message: "فشل في تسجيل الدخول بعد إنشاء الحساب",
           });
         }
-        res.status(201).json(user);
+        // عدم إرجاع كلمة المرور في الاستجابة
+        const { password, ...userWithoutPassword } = user;
+        res.status(201).json(userWithoutPassword);
       });
     } catch (err) {
       console.error("Registration error:", err);
@@ -131,7 +149,9 @@ export function setupAuth(app: Express) {
             message: "فشل في إنشاء جلسة المستخدم",
           });
         }
-        res.json(user);
+        // عدم إرجاع كلمة المرور في الاستجابة
+        const { password, ...userWithoutPassword } = user;
+        res.json(userWithoutPassword);
       });
     })(req, res, next);
   });
@@ -167,6 +187,8 @@ export function setupAuth(app: Express) {
         message: "يجب تسجيل الدخول أولاً",
       });
     }
-    res.json(req.user);
+    // عدم إرجاع كلمة المرور في الاستجابة
+    const { password, ...userWithoutPassword } = req.user as User;
+    res.json(userWithoutPassword);
   });
 }
