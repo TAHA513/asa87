@@ -326,7 +326,16 @@ export class DatabaseStorage implements IStorage {
   async createCampaign(campaign: InsertCampaign): Promise<Campaign> {
     const [newCampaign] = await db
       .insert(marketingCampaigns)
-      .values([campaign])
+      .values({
+        name: campaign.name,
+        description: campaign.description,
+        platforms: campaign.platforms,
+        budget: campaign.budget.toString(),
+        startDate: campaign.startDate,
+        endDate: campaign.endDate,
+        status: campaign.status,
+        userId: campaign.userId
+      })
       .returning();
     return newCampaign;
   }
@@ -334,7 +343,10 @@ export class DatabaseStorage implements IStorage {
   async updateCampaign(id: number, update: Partial<Campaign>): Promise<Campaign> {
     const [campaign] = await db
       .update(marketingCampaigns)
-      .set(update)
+      .set({
+        ...update,
+        budget: update.budget?.toString()
+      })
       .where(eq(marketingCampaigns.id, id))
       .returning();
     return campaign;
@@ -468,9 +480,10 @@ export class DatabaseStorage implements IStorage {
       const [category] = await db
         .update(expenseCategories)
         .set({
-          ...update,
+          name: update.name,
+          description: update.description,
           budgetAmount: update.budgetAmount?.toString(),
-          updatedAt: new Date()
+          parentId: update.parentId
         })
         .where(eq(expenseCategories.id, id))
         .returning();
