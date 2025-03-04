@@ -536,7 +536,7 @@ export const insertAppointmentSchema = createInsertSchema(appointments)
     description: z.string().optional().nullable(),
     customerId: z.number().int().positive("يجب اختيار عميل").optional().nullable(),
     date: z.coerce.date(),
-    duration: z.number().int().min(1, "مدة الموعد يجب أن تكون 1 دقيقة على الأقل"),
+    duration: z.coerce.number().int().min(1, "مدة الموعد يجب أن تكون 1 دقيقة على الأقل"),
     status: z.enum(["scheduled", "completed", "cancelled"]).default("scheduled"),
     notes: z.string().optional().nullable(),
   });

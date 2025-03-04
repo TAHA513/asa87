@@ -738,8 +738,25 @@ export class DatabaseStorage {
   }
 
   // Appointments
+  async getAppointments(): Promise<Appointment[]> {
+    try {
+      console.log("Fetching all appointments");
+      return await db
+        .select()
+        .from(appointments)
+        .orderBy(desc(appointments.date));
+    } catch (error) {
+      console.error("خطأ في جلب جميع المواعيد:", error);
+      return [];
+    }
+  }
+
   async getCustomerAppointments(customerId: number): Promise<Appointment[]> {
     try {
+      console.log(`Fetching appointments for customer ${customerId}`);
+      if (customerId === 0) {
+        return this.getAppointments();
+      }
       return await db
         .select()
         .from(appointments)
@@ -753,10 +770,17 @@ export class DatabaseStorage {
 
   async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
     try {
+      console.log("Creating appointment with data:", appointment);
       const [newAppointment] = await db
         .insert(appointments)
-        .values(appointment)
+        .values({
+          ...appointment,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
         .returning();
+
+      console.log("Created appointment:", newAppointment);
       return newAppointment;
     } catch (error) {
       console.error("خطأ في إنشاء الموعد:", error);
@@ -766,11 +790,17 @@ export class DatabaseStorage {
 
   async updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment> {
     try {
+      console.log(`Updating appointment ${id} with data:`, update);
       const [updatedAppointment] = await db
         .update(appointments)
-        .set(update)
+        .set({
+          ...update,
+          updatedAt: new Date()
+        })
         .where(eq(appointments.id, id))
         .returning();
+
+      console.log("Updated appointment:", updatedAppointment);
       return updatedAppointment;
     } catch (error) {
       console.error("خطأ في تحديث الموعد:", error);
@@ -780,9 +810,11 @@ export class DatabaseStorage {
 
   async deleteAppointment(id: number): Promise<void> {
     try {
+      console.log(`Deleting appointment ${id}`);
       await db
         .delete(appointments)
         .where(eq(appointments.id, id));
+      console.log(`Successfully deleted appointment ${id}`);
     } catch (error) {
       console.error("خطأ في حذف الموعد:", error);
       throw error;

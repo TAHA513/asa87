@@ -77,7 +77,8 @@ export default function AppointmentsPage() {
         body: JSON.stringify(data),
       });
       if (!res.ok) {
-        throw new Error("فشل في إنشاء الموعد");
+        const error = await res.json();
+        throw new Error(error.message || "فشل في إنشاء الموعد");
       }
       return res.json();
     },
@@ -90,7 +91,7 @@ export default function AppointmentsPage() {
       setIsNewAppointmentOpen(false);
       appointmentForm.reset();
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "خطأ",
         description: error.message,
@@ -221,7 +222,12 @@ export default function AppointmentsPage() {
                     <FormItem>
                       <FormLabel>المدة (بالدقائق)</FormLabel>
                       <FormControl>
-                        <Input {...field} type="number" min="1" />
+                        <Input
+                          {...field}
+                          type="number"
+                          min="1"
+                          onChange={(e) => field.onChange(Number(e.target.value))}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
