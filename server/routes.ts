@@ -1710,13 +1710,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      console.log(`Fetching report with ID: ${req.params.id}`);
       const report = await storage.getReport(Number(req.params.id));
+      
       if (!report) {
+        console.log(`Report with ID ${req.params.id} not found`);
         return res.status(404).json({ message: "التقرير غير موجود" });
       }
+      
       if (report.userId !== req.user!.id) {
+        console.log(`User ${req.user!.id} not authorized to access report ${req.params.id} owned by ${report.userId}`);
         return res.status(403).json({ message: "غير مصرح بالوصول لهذا التقرير" });
       }
+      
+      console.log(`Successfully retrieved report ${req.params.id}`);
       res.json(report);
     } catch (error) {
       console.error("Error fetching report:", error);

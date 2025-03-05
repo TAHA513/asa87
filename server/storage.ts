@@ -1512,6 +1512,13 @@ export class DatabaseStorage implements IStorage {
     format?: string;
   }) {
     try {
+      console.log("Saving report with data:", {
+        type: reportData.type,
+        title: reportData.title,
+        dateRange: reportData.dateRange,
+        userId: reportData.userId
+      });
+      
       const [report] = await db
         .insert(reports)
         .values({
@@ -1526,6 +1533,8 @@ export class DatabaseStorage implements IStorage {
           createdAt: new Date()
         })
         .returning();
+      
+      console.log("Report saved successfully with ID:", report.id);
       return report;
     } catch (error) {
       console.error("Error saving report:", error);
@@ -1565,12 +1574,12 @@ export class DatabaseStorage implements IStorage {
     }
   }
   async getAppointmentsReport(dateRange: { start: Date; end: Date }, userId: number) {
-    console.log("Generating appointments report for:", dateRange);
+    console.log("جاري إنشاء تقرير المواعيد للفترة:", dateRange);
 
     const cacheKey = `appointments_report:${dateRange.start.toISOString()}_${dateRange.end.toISOString()}`;
     const cached = await this.cache.get(cacheKey);
     if (cached) {
-      console.log("Returning cached appointments report");
+      console.log("استخدام التقرير المخزن مؤقتًا");
       return JSON.parse(cached);
     }
 

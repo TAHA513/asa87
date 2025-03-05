@@ -207,15 +207,15 @@ export const alertNotifications = pgTable("alert_notifications", {
 
 export const reports = pgTable("reports", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
   type: text("type").notNull(),
   title: text("title").notNull(),
   dateRange: jsonb("date_range").notNull(),
-  filters: jsonb("filters"),
+  filters: jsonb("filters").default({}).notNull(),
   data: jsonb("data").notNull(),
+  format: text("format").default("json").notNull(),
+  status: text("status").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  userId: integer("user_id").notNull(),
-  status: text("status").notNull().default("active"),
-  format: text("format").notNull().default("json"),
 });
 
 export const expenseCategories = pgTable("expense_categories", {
