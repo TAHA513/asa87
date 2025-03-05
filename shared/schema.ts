@@ -341,17 +341,17 @@ export const insertProductSchema = createInsertSchema(products).extend({
     .nullable()
     .refine(val => !val || /^[0-9]{8,13}$/.test(val), "الباركود يجب أن يكون رقمًا من 8 إلى 13 خانة"),
   productType: z.string().min(1, "نوع المنتج مطلوب"),
-  quantity: z.number().min(0, "الكمية يجب أن تكون 0 على الأقل"),
-  minQuantity: z.number().min(0, "الحد الأدنى يجب أن يكون 0 على الأقل"),
+  quantity: z.coerce.number().min(0, "الكمية يجب أن تكون 0 على الأقل"),
+  minQuantity: z.coerce.number().min(0, "الحد الأدنى يجب أن يكون 0 على الأقل"),
   productionDate: z.date().optional().nullable(),
   expiryDate: z.date().optional().nullable(),
-  costPrice: z.number().min(0, "سعر التكلفة يجب أن يكون أكبر من 0"),
-  priceIqd: z.number().min(0, "سعر البيع يجب أن يكون أكبر من 0"),
+  costPrice: z.coerce.number().min(0, "سعر التكلفة يجب أن يكون أكبر من 0"),
+  priceIqd: z.coerce.number().min(0, "سعر البيع يجب أن يكون أكبر من 0"),
   categoryId: z.number().optional().nullable(),
   isWeightBased: z.boolean().default(false),
   enableDirectWeighing: z.boolean().default(false),
-  imageUrl: z.string().url("يجب أن يكون رابط صورة صحيح").optional(),
-  thumbnailUrl: z.string().url("يجب أن يكون رابط الصورة المصغرة صحيح").optional(),
+  imageUrl: z.string().url("يجب أن يكون رابط صورة صحيح").optional().nullable(),
+  thumbnailUrl: z.string().url("يجب أن يكون رابط الصورة المصغرة صحيح").optional().nullable(),
 });
 
 export const insertSaleSchema = createInsertSchema(sales)
@@ -478,27 +478,6 @@ export const insertReportSchema = createInsertSchema(reports)
     filters: z.record(z.unknown()).optional(),
     data: z.record(z.unknown()),
     format: z.enum(["json", "csv", "pdf"]).default("json"),
-  });
-
-export const insertExpenseCategorySchema = createInsertSchema(expenseCategories)
-  .omit({ id: true, createdAt: true })
-  .extend({
-    name: z.string().min(1, "اسم الفئة مطلوب"),
-    description: z.string().optional().nullable(),
-    budgetAmount: z.number().min(0, "الميزانية يجب أن تكون 0 على الأقل").optional().nullable(),
-  });
-
-export const insertExpenseSchema = createInsertSchema(expenses)
-  .omit({ id: true, createdAt: true, updatedAt: true })
-  .extend({
-    amount: z.number().min(0, "المبلغ يجب أن يكون أكبر من 0"),
-    description: z.string().min(1, "الوصف مطلوب"),
-    date: z.date(),
-    categoryId: z.number().min(1, "يجب اختيار فئة"),
-    isRecurring: z.boolean().default(false),
-    recurringPeriod: z.enum(["monthly", "weekly", "yearly"]).optional(),
-    recurringDay: z.number().min(1).max(31).optional(),
-    attachments: z.array(z.string()).optional(),
   });
 
 export const insertSupplierSchema = createInsertSchema(suppliers)
@@ -661,3 +640,38 @@ export type InventoryAlert = typeof inventoryAlerts.$inferSelect;
 export type InsertInventoryAlert = z.infer<typeof insertInventoryAlertSchema>;
 export type AlertNotification = typeof alertNotifications.$inferSelect;
 export type InsertAlertNotification = z.infer<typeof insertAlertNotificationSchema>;
+
+export const insertExpenseCategorySchema = createInsertSchema(expenseCategories)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    name: z.string().min(1, "اسم الفئة مطلوب"),
+    description: z.string().optional().nullable(),
+    budgetAmount: z.coerce.number().min(0, "الميزانية يجب أن تكون 0 على الأقل").optional().nullable(),
+  });
+
+export const insertExpenseSchema = createInsertSchema(expenses)
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .extend({
+    amount: z.coerce.number().min(0, "المبلغ يجب أن يكون أكبر من 0"),
+    description: z.string().min(1, "الوصف مطلوب"),
+    date: z.coerce.date(),
+    categoryId: z.coerce.number().min(1, "يجب اختيار فئة"),
+    isRecurring: z.boolean().default(false),
+    recurringPeriod: z.enum(["monthly", "weekly", "yearly"]).optional(),
+    recurringDay: z.coerce.number().min(1).max(31).optional(),
+    attachments: z.array(z.string()).optional(),
+  });
+
+export const insertUserSettingsSchema = createInsertSchema(userSettings)
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .extend({
+    themeName: z.string().min(1, "اسم الثيم مطلوب"),
+    fontName: z.string().min(1, "اسم الخط مطلوب"),
+    fontSize: z.enum(["small", "medium", "large", "xlarge"]),
+    appearance: z.enum(["light", "dark", "system"]),
+    colors: z.object({
+      primary: z.string(),
+      secondary: z.string(),
+      accent: z.string(),
+    }),
+  });
