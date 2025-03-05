@@ -1122,8 +1122,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const appointment = await storage.updateAppointment(Number(req.params.id), req.body);
-      res.json(appointment);
+      const oldAppointment = await storage.getAppointment(Number(req.params.id));
+      if (!oldAppointment) {
+        return res.status(404).json({ message: "الموعد غير موجود" });
+      }
+
+      const updatedAppointment = await storage.updateAppointment(
+        Number(req.params.id), 
+        {
+          ...req.body,
+          updatedAt: new Date()
+        }
+      );
+
+      // Log the change in status if it changed
+      if (oldAppointment.status !== updatedAppointment.status) {
+        console.log(`Appointment ${updatedAppointment.id} status changed from ${oldAppointment.status} to ${updatedAppointment.status}`);
+      }
+
+      res.json(updatedAppointment);
     } catch (error) {
       console.error("Error updating appointment:", error);
       res.status(500).json({ message: "فشل في تحديث الموعد" });
@@ -1136,7 +1153,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      console.log("Deleting appointment:", req.params.id);
       await storage.deleteAppointment(Number(req.params.id));
+      console.log("Successfully deleted appointment:", req.params.id);
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting appointment:", error);
@@ -1445,10 +1464,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      console.log("Updating appointment:", req.params.id, "with data:", req.body);
-      const appointment = await storage.updateAppointment(Number(req.params.id), req.body);
-      console.log("Updated appointment:", appointment);
-      res.json(appointment);
+      const oldAppointment = await storage.getAppointment(Number(req.params.id));
+      if (!oldAppointment) {
+        return res.status(404).json({ message: "الموعد غير موجود" });
+      }
+
+      const updatedAppointment = await storage.updateAppointment(
+        Number(req.params.id), 
+        {
+          ...req.body,
+          updatedAt: new Date()
+        }
+      );
+
+      // Log the change in status if it changed
+      if (oldAppointment.status !== updatedAppointment.status) {
+        console.log(`Appointment ${updatedAppointment.id} status changed from ${oldAppointment.status} to ${updatedAppointment.status}`);
+      }
+
+      res.json(updatedAppointment);
     } catch (error) {
       console.error("Error updating appointment:", error);
       res.status(500).json({ message: "فشل في تحديث الموعد" });
