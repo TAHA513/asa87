@@ -741,7 +741,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(appointments.id, id))
         .returning();
 
-      // Log the activity if status changed
+      // Log activity if status changed
       if (update.status && oldAppointment.status !== update.status) {
         console.log("Status change detected:", {
           appointmentId: id,
@@ -751,7 +751,7 @@ export class DatabaseStorage implements IStorage {
 
         try {
           await this.logSystemActivity({
-            userId: 1, // Will be updated with actual user ID from context
+            userId: update.userId || 1, // Use provided userId or default to 1
             activityType: "appointment_status_change",
             entityType: "appointments",
             entityId: id,
@@ -769,10 +769,9 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
-      console.log("Successfully updated appointment:", updatedAppointment);
       return updatedAppointment;
     } catch (error) {
-      console.error("Error in updateAppointment:", error);
+      console.error("Error updating appointment:", error);
       throw new Error("فشل في تحديث الموعد");
     }
   }
@@ -873,23 +872,35 @@ export class DatabaseStorage implements IStorage {
   }
 
   async saveUserSettings(userId: number, settings: Omit<InsertUserSettings, "userId">): Promise<UserSettings> {
-    // Delete old settings
-    await db
-      .delete(userSettings)
-      .where(eq(userSettings.userId, userId));
+    try {
+      console.log("Saving user settings:", { userId, settings });
 
-    // Insert new settings
-    const [newSettings] = await db
-      .insert(userSettings)
-      .values({
-        userId,
-        ...settings,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      .returning();
+      // Delete old settings
+      await db
+        .delete(userSettings)
+        .where(eq(userSettings.userId, userId));
 
-    return newSettings;
+      // Insert new settings with stringified JSON for colors
+      const [newSettings] = await db
+        .insert(userSettings)
+        .values({
+          userId,
+          themeName: settings.themeName,
+          fontName: settings.fontName,
+          fontSize: settings.fontSize,
+          appearance: settings.appearance,
+          colors: JSON.stringify(settings.colors),
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+
+      console.log("Successfully saved settings:", newSettings);
+      return newSettings;
+    } catch (error) {
+      console.error("Error saving user settings:", error);
+      throw new Error("فشل في حفظ إعدادات المظهر");
+    }
   }
 
   async getAppointments(): Promise<Appointment[]> {
