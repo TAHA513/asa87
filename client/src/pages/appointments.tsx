@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, Clock, History } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
@@ -199,6 +199,16 @@ export default function AppointmentsPage() {
     enabled: !!reportDateRange.startDate && !!reportDateRange.endDate
   });
 
+  // Add new query for activities
+  const { data: appointmentActivities = [], isLoading: isActivitiesLoading } = useQuery({
+    queryKey: ["/api/activities", "appointments"],
+    queryFn: async () => {
+      const res = await fetch("/api/activities?entityType=appointments");
+      if (!res.ok) throw new Error("فشل في جلب سجل الحركات");
+      return res.json();
+    }
+  });
+
   return (
     <div className="container mx-auto py-6">
       <div className="flex items-center justify-between mb-6">
@@ -359,6 +369,7 @@ export default function AppointmentsPage() {
         <TabsList>
           <TabsTrigger value="calendar">التقويم</TabsTrigger>
           <TabsTrigger value="reports">التقارير والإحصائيات</TabsTrigger>
+          <TabsTrigger value="activities">سجل الحركات</TabsTrigger>
         </TabsList>
 
         <TabsContent value="calendar" className="space-y-4">
@@ -665,6 +676,52 @@ export default function AppointmentsPage() {
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
                   لا توجد بيانات متاحة للفترة المحددة
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="activities" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <History className="h-5 w-5" />
+                سجل حركات المواعيد
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isActivitiesLoading ? (
+                <div className="text-center py-8">جاري تحميل سجل الحركات...</div>
+              ) : appointmentActivities.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  لا توجد حركات مسجلة
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {appointmentActivities.map((activity) => (
+                    <div
+                      key={activity.id}
+                      className="p-4 border rounded-lg hover:bg-secondary/50 transition-colors"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="font-medium">
+                            {activity.details.title}
+                          </div>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            تغيير الحالة من {activity.details.oldStatus} إلى{" "}
+                            {activity.details.newStatus}
+                          </div>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {format(new Date(activity.timestamp), "PPpp", {
+                            locale: ar,
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>

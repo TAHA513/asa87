@@ -1135,9 +1135,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       );
 
-      // Log the change in status if it changed
-      if (oldAppointment.status !== updatedAppointment.status) {
-        console.log(`Appointment ${updatedAppointment.id} status changed from ${oldAppointment.status} to ${updatedAppointment.status}`);
+      // Log the activity specifically for status changes
+      if (req.body.status && oldAppointment.status !== req.body.status) {
+        await storage.logSystemActivity({
+          userId: req.user!.id,
+          activityType: "appointment_status_change",
+          entityType: "appointments",
+          entityId: updatedAppointment.id,
+          action: "update",
+          details: {
+            oldStatus: oldAppointment.status,
+            newStatus: req.body.status,
+            title: updatedAppointment.title,
+            date: updatedAppointment.date
+          }
+        });
+        console.log(`Logged activity for appointment ${updatedAppointment.id} status change from ${oldAppointment.status} to ${req.body.status}`);
       }
 
       res.json(updatedAppointment);
@@ -1160,6 +1173,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting appointment:", error);
       res.status(500).json({ message: "فشل في حذف الموعد" });
+    }
+  });
+
+  // Add after existing appointment routes
+  app.get("/api/appointments/:id/activities", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log(`Fetching activities for appointment: ${req.params.id}`);
+      const activities = await storage.getAppointmentActivities(Number(req.params.id));
+      console.log("Retrieved activities:", activities);
+      res.json(activities);
+    } catch (error) {
+      console.error("Error fetching appointment activities:", error);
+      res.status(500).json({ message: "فشل في جلب سجل حركات الموعد" });
+    }
+  });
+
+  // Add after existing appointment routes
+  app.get("/api/activities", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log("Fetching activities for entity type:", req.query.entityType);
+      const activities = await storage.getSystemActivities({
+        entityType: req.query.entityType as string
+      });
+      console.log("Retrieved activities:", activities);
+      res.json(activities);
+    } catch (error) {
+      console.error("Error fetching activities:", error);
+      res.status(500).json({ message: "فشل في جلب سجل الحركات" });
     }
   });
 
@@ -1477,9 +1526,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       );
 
-      // Log the change in status if it changed
-      if (oldAppointment.status !== updatedAppointment.status) {
-        console.log(`Appointment ${updatedAppointment.id} status changed from ${oldAppointment.status} to ${updatedAppointment.status}`);
+      // Log the activity specifically for status changes
+      if (req.body.status && oldAppointment.status !== req.body.status) {
+        await storage.logSystemActivity({
+          userId: req.user!.id,
+          activityType: "appointment_status_change",
+          entityType: "appointments",
+          entityId: updatedAppointment.id,
+          action: "update",
+          details: {
+            oldStatus: oldAppointment.status,
+            newStatus: req.body.status,
+            title: updatedAppointment.title,
+            date: updatedAppointment.date
+          }
+        });
+        console.log(`Logged activity for appointment ${updatedAppointment.id} status change from ${oldAppointment.status} to ${req.body.status}`);
       }
 
       res.json(updatedAppointment);
@@ -1687,8 +1749,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         end: new Date(endDate as string)
       }, req.user!.id);
 
-      console.log("Report generated successfully, size:", JSON.stringify(report).length);
-      res.json(report);
+      console.log("Report generated successfully, size:", JSON.stringify(report).length);      res.json(report);
 
     } catch (error) {
       console.error("Error in appointments report endpoint:", error);

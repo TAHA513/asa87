@@ -704,6 +704,18 @@ export class DatabaseStorage implements IStorage {
   async updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment> {
     try {
       console.log(`Updating appointment ${id} with:`, update);
+
+      // Get the old appointment first
+      const [oldAppointment] = await db
+        .select()
+        .from(appointments)
+        .where(eq(appointments.id, id));
+
+      if (!oldAppointment) {
+        throw new Error("الموعد غير موجود");
+      }
+
+      // Update the appointment
       const [updatedAppointment] = await db
         .update(appointments)
         .set({
@@ -712,6 +724,23 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(appointments.id, id))
         .returning();
+
+      // Log the activity if status changed
+      if (oldAppointment.status !== updatedAppointment.status) {
+        await this.logSystemActivity({
+          userId: 1, // TODO: Get from context
+          activityType: "appointment_status_change",
+          entityType: "appointments",
+          entityId: id,
+          action: "update",
+          details: {
+            oldStatus: oldAppointment.status,
+            newStatus: updatedAppointment.status,
+            title: updatedAppointment.title,
+            date: updatedAppointment.date
+          }
+        });
+      }
 
       console.log("Successfully updated appointment:", updatedAppointment);
       return updatedAppointment;
@@ -873,29 +902,51 @@ export class DatabaseStorage implements IStorage {
   async getSystemActivities(filters: {
     startDate?: Date;
     endDate?: Date;
-    userId?: number;
     activityType?: string;
     entityType?: string;
   }): Promise<SystemActivity[]> {
-    let query = db.select().from(systemActivities);
+    try {
+      let query = db.select().from(systemActivities);
 
-    if (filters.startDate) {
-      query = query.where(gte(systemActivities.timestamp, filters.startDate));
-    }
-    if (filters.endDate) {
-      query = query.where(lte(systemActivities.timestamp, filters.endDate));
-    }
-    if (filters.userId) {
-      query = query.where(eq(systemActivities.userId, filters.userId));
-    }
-    if (filters.activityType) {
-      query = query.where(eq(systemActivities.activityType, filters.activityType));
-    }
-    if (filters.entityType) {
-      query = query.where(eq(systemActivities.entityType, filters.entityType));
-    }
+      if (filters.startDate) {
+        query = query.where(gte(systemActivities.timestamp, filters.startDate));
+      }
+      if (filters.endDate) {
+        query = query.where(lte(systemActivities.timestamp, filters.endDate));
+      }
+      if (filters.activityType) {
+        query = query.where(eq(systemActivities.activityType, filters.activityType));
+      }
+      if (filters.entityType) {
+        query = query.where(eq(systemActivities.entityType, filters.entityType));
+      }
 
-    return query.orderBy(desc(systemActivities.timestamp));
+      const activities = await query.orderBy(desc(systemActivities.timestamp));
+      return activities;
+    } catch (error) {
+      console.error("Error fetching system activities:", error);
+      throw new Error("فشل في جلب سجل الحركات");
+    }
+  }
+
+  async getAppointmentActivities(appointmentId: number): Promise<SystemActivity[]> {
+    try {
+      const activities = await db
+        .select()
+        .from(systemActivities)
+        .where(
+          and(
+            eq(systemActivities.entityType, "appointments"),
+            eq(systemActivities.entityId, appointmentId)
+          )
+        )
+        .orderBy(desc(systemActivities.timestamp));
+
+      return activities;
+    } catch (error) {
+      console.error("Error fetching appointment activities:", error);
+      throw new Error("فشل في جلب سجل حركات الموعد");
+    }
   }
 
   async generateActivityReport(report: InsertActivityReport): Promise<ActivityReport> {
