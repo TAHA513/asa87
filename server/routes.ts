@@ -1122,21 +1122,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      console.log("Updating appointment:", {
+        id: req.params.id,
+        body: req.body
+      });
+
       const oldAppointment = await storage.getAppointment(Number(req.params.id));
       if (!oldAppointment) {
         return res.status(404).json({ message: "الموعد غير موجود" });
       }
 
       const updatedAppointment = await storage.updateAppointment(
-        Number(req.params.id), 
+        Number(req.params.id),
         {
           ...req.body,
           updatedAt: new Date()
         }
       );
 
-      // Log the activity specifically for status changes
+      // Log activity for status changes
       if (req.body.status && oldAppointment.status !== req.body.status) {
+        console.log("Status change detected:", {
+          old: oldAppointment.status,
+          new: req.body.status
+        });
+
         await storage.logSystemActivity({
           userId: req.user!.id,
           activityType: "appointment_status_change",
@@ -1150,13 +1160,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             date: updatedAppointment.date
           }
         });
-        console.log(`Logged activity for appointment ${updatedAppointment.id} status change from ${oldAppointment.status} to ${req.body.status}`);
       }
 
       res.json(updatedAppointment);
     } catch (error) {
       console.error("Error updating appointment:", error);
-      res.status(500).json({ message: "فشل في تحديث الموعد" });
+      res.status(500).json({ message: error instanceof Error ? error.message : "فشل في تحديث الموعد" });
     }
   });
 
@@ -1513,21 +1522,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      console.log("Updating appointment:", {
+        id: req.params.id,
+        body: req.body
+      });
+
       const oldAppointment = await storage.getAppointment(Number(req.params.id));
       if (!oldAppointment) {
         return res.status(404).json({ message: "الموعد غير موجود" });
       }
 
       const updatedAppointment = await storage.updateAppointment(
-        Number(req.params.id), 
+        Number(req.params.id),
         {
           ...req.body,
           updatedAt: new Date()
         }
       );
 
-      // Log the activity specifically for status changes
+      // Log activity for status changes
       if (req.body.status && oldAppointment.status !== req.body.status) {
+        console.log("Status change detected:", {
+          old: oldAppointment.status,
+          new: req.body.status
+        });
+
         await storage.logSystemActivity({
           userId: req.user!.id,
           activityType: "appointment_status_change",
@@ -1541,13 +1560,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             date: updatedAppointment.date
           }
         });
-        console.log(`Logged activity for appointment ${updatedAppointment.id} status change from ${oldAppointment.status} to ${req.body.status}`);
       }
 
       res.json(updatedAppointment);
     } catch (error) {
       console.error("Error updating appointment:", error);
-      res.status(500).json({ message: "فشل في تحديث الموعد" });
+      res.status(500).json({ message: error instanceof Error ? error.message : "فشل في تحديث الموعد" });
     }
   });
 

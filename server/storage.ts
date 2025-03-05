@@ -701,6 +701,22 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getAppointment(id: number): Promise<Appointment | undefined> {
+    try {
+      console.log(`Getting appointment with id: ${id}`);
+      const [appointment] = await db
+        .select()
+        .from(appointments)
+        .where(eq(appointments.id, id));
+
+      console.log("Retrieved appointment:", appointment);
+      return appointment;
+    } catch (error) {
+      console.error("Error in getAppointment:", error);
+      throw new Error("فشل في جلب الموعد");
+    }
+  }
+
   async updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment> {
     try {
       console.log(`Updating appointment ${id} with:`, update);
@@ -893,7 +909,6 @@ export class DatabaseStorage implements IStorage {
   }
 
 
-
   async logSystemActivity(activity: InsertSystemActivity): Promise<SystemActivity> {
     try {
       console.log("Attempting to log system activity:", activity);
@@ -1020,8 +1035,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   private processWeeklyReport(activities: SystemActivity[]) {
-    const weeklyActivities = activities.reduce((acc: any, activity) => {
-      const date = new Date(activity.timestamp);
+    const weeklyActivities = activities.reduce((acc: any, activity) => {      const date = new Date(activity.timestamp);
       const weekStart = new Date(date.setDate(date.getDate() - date.getDay())).toISOString().split('T')[0];
       if (!acc[weekStart]) {
         acc[weekStart] = {
@@ -1084,7 +1098,7 @@ export class DatabaseStorage implements IStorage {
     console.log("Generating detailed sales report for:", dateRange);
 
     const cacheKey = `sales_report:${dateRange.start.toISOString()}_${dateRange.end.toISOString()}_${page}`;
-    const cached= await this.cache.get(cacheKey);
+    const cached = await this.cache.get(cacheKey);
     if (cached) {
       console.log("Returning cached sales report");
       return JSON.parse(cached);
