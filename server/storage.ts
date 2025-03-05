@@ -862,13 +862,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserSettings(userId: number): Promise<UserSettings | undefined> {
-    const [settings] = await db
-      .select()
-      .from(userSettings)
-      .where(eq(userSettings.userId, userId))
-      .orderBy(desc(userSettings.createdAt))
-      .limit(1);
-    return settings;
+    try {
+      const [settings] = await db
+        .select()
+        .from(userSettings)
+        .where(eq(userSettings.userId, userId))
+        .orderBy(desc(userSettings.createdAt))
+        .limit(1);
+
+      return settings;
+    } catch (error) {
+      console.error("Error fetching user settings:", error);
+      throw new Error("فشل في جلب إعدادات المستخدم");
+    }
   }
 
   async saveUserSettings(userId: number, settings: {
@@ -876,32 +882,29 @@ export class DatabaseStorage implements IStorage {
     fontName: string;
     fontSize: string;
     appearance: string;
-    colors: Record<string, string>;
+    colors: string;
   }): Promise<UserSettings> {
     try {
       console.log("Saving user settings:", settings);
 
-      // Use default values if any field is missing
-      const dataToSave = {
-        userId,
-        themeName: settings.themeName || 'modern',
-        fontName: settings.fontName || 'noto-kufi',
-        fontSize: settings.fontSize || 'medium',
-        appearance: settings.appearance || 'system',
-        colors: JSON.stringify(settings.colors || {}),
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-
-      // Delete old settings first
+      // حذف الإعدادات القديمة
       await db
         .delete(userSettings)
         .where(eq(userSettings.userId, userId));
 
-      // Insert new settings
+      // إضافة الإعدادات الجديدة
       const [newSettings] = await db
         .insert(userSettings)
-        .values(dataToSave)
+        .values({
+          userId,
+          themeName: settings.themeName,
+          fontName: settings.fontName,
+          fontSize: settings.fontSize,
+          appearance: settings.appearance,
+          colors: settings.colors,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
         .returning();
 
       console.log("Successfully saved settings:", newSettings);

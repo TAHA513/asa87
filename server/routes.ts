@@ -709,6 +709,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Settings routes
+  app.get("/api/settings", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const settings = await storage.getUserSettings(req.user!.id);
+      if (!settings) {
+        return res.json({
+          themeName: "modern",
+          fontName: "noto-kufi",
+          fontSize: "medium",
+          appearance: "system",
+          colors: JSON.stringify({
+            primary: "#2563eb",
+            secondary: "#666666",
+            background: "#ffffff",
+            text: "#000000"
+          })
+        });
+      }
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+      res.status(500).json({ message: "فشل في جلب الإعدادات" });
+    }
+  });
+
+  app.post("/api/settings", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log("Settings request payload:", req.body);
+
+      // تحضير البيانات
+      const colors = {
+        primary: req.body.primary || "#000000",
+        secondary: req.body.secondary || "#666666",
+        background: req.body.appearance === "dark" ? "#1a1a1a" : "#ffffff",
+        text: req.body.appearance === "dark" ? "#ffffff" : "#000000"
+      };
+
+      // حفظ الإعدادات في قاعدة البيانات
+      const settings = await storage.saveUserSettings(req.user!.id, {
+        themeName: req.body.variant || "modern",
+        fontName: req.body.fontStyle || "noto-kufi",
+        fontSize: req.body.fontSize || "medium",
+        appearance: req.body.appearance || "system",
+        colors: JSON.stringify(colors)
+      });
+
+      // تحديث ملف theme.json
+      const themeData = {
+        primary: colors.primary,
+        variant: req.body.variant || "modern",
+        appearance: req.body.appearance || "system",
+        radius: req.body.radius || 0.5
+      };
+
+      await fs.writeFile(
+        path.join(process.cwd(), "theme.json"),
+        JSON.stringify(themeData, null, 2)
+      );
+
+      console.log("Settings saved successfully:", settings);
+      res.json({ success: true, settings });
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "فشل في حفظ الإعدادات" 
+      });
+    }
+  });
+
   // API Key routes
   app.post("/api/settings/api-keys", async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -1330,15 +1407,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      console.log("Saving settings for user:", req.user!.id);
-      console.log("Settings payload:", req.body);
+      console.log("Received settings payload:", req.body);
 
-      // First handle theme.json
+      // حفظ بيانات الثيم في ملف theme.json
       const themeData = {
-        primary: req.body.primary,
-        variant: req.body.variant,
-        appearance: req.body.appearance,
-        radius: req.body.radius
+        primary: req.body.primary || "#000000",
+        variant: req.body.variant || "modern",
+        appearance: req.body.appearance || "system",
+        radius: req.body.radius || 0.5
       };
 
       await fs.writeFile(
@@ -1346,23 +1422,1451 @@ export async function registerRoutes(app: Express): Promise<Server> {
         JSON.stringify(themeData, null, 2)
       );
 
-      // Then save user settings
+      // تحضير بيانات الإعدادات للحفظ في قاعدة البيانات
+      const colors = {
+        primary: req.body.primary || "#000000",
+        secondary: req.body.secondary || "#666666",
+        background: req.body.appearance === "dark" ? "#1a1a1a" : "#ffffff"
+      };
+
       const settings = await storage.saveUserSettings(req.user!.id, {
-        themeName: req.body.variant || 'modern',
-        fontName: req.body.fontStyle || 'noto-kufi',
-        fontSize: req.body.fontSize || 'medium',
-        appearance: req.body.appearance || 'system',
-        colors: {
-          primary: req.body.primary || '#000000',
-          background: req.body.appearance === 'dark' ? '#1a1a1a' : '#ffffff'
-        }
+        themeName: req.body.variant || "modern",
+        fontName: req.body.fontStyle || "noto-kufi",
+        fontSize: req.body.fontSize || "medium",
+        appearance: req.body.appearance || "system",
+        colors: JSON.stringify(colors)
       });
 
+      console.log("Settings saved successfully:", settings);
       res.json({ success: true, settings });
     } catch (error) {
-      console.error("Error updating settings:", error);
+      console.error("Error saving settings:", error);
       res.status(500).json({ 
-        message: error instanceof Error ? error.message : "فشل في تحديث الإعدادات" 
+        message: error instanceof Error ? error.message : "فشل في حفظ الإعدادات" 
+      });
+    }
+  });
+
+  // Inventory Alerts Routes
+  app.get("/api/inventory/alerts", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const alerts = await storage.getInventoryAlerts();
+      res.json(alerts);
+    } catch (error) {
+      console.error("Error fetching inventory alerts:", error);
+      res.status(500).json({ message: "فشل في جلب التنبيهات" });
+    }
+  });
+
+  app.post("/api/inventory/alerts", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const validatedData = insertInventoryAlertSchema.parse(req.body);
+      const alert = await storage.createInventoryAlert(validatedData);
+      res.status(201).json(alert);
+    } catch (error) {
+      console.error("Error creating inventory alert:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "بيانات غير صالحة", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "فشل في إنشاء التنبيه" });
+      }
+    }
+  });
+
+  app.patch("/api/inventory/alerts/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const alert = await storage.updateInventoryAlert(Number(req.params.id), req.body);
+      res.json(alert);
+    } catch (error) {
+      console.error("Error updating inventory alert:", error);
+      res.status(500).json({ message: "فشل في تحديث التنبيه" });
+    }
+  });
+
+  app.delete("/api/inventory/alerts/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      await storage.deleteInventoryAlert(Number(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting inventory alert:", error);
+      res.status(500).json({ message: "فشل في حذف التنبيه" });
+    }
+  });
+
+  app.get("/api/inventory/notifications", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const notifications = await storage.getAlertNotifications();
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching alert notifications:", error);
+      res.status(500).json({ message: "فشل في جلب الإشعارات" });
+    }
+  });
+
+  app.patch("/api/inventory/notifications/:id/read", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const notification = await storage.markNotificationAsRead(Number(req.params.id));
+      res.json(notification);
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ message: "فشل في تحديث حالة الإشعار" });
+    }
+  });
+
+  // إضافة مسارات جديدة للمواعيد بعد مسارات العملاء
+  app.get("/api/appointments", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log("Fetching appointments...");
+      const appointments = await storage.getAppointments(); // Changed from getCustomerAppointments
+      console.log("Fetched appointments:", appointments);
+      res.json(appointments);
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+      res.status(500).json({ message: "فشل في جلب المواعيد" });
+    }
+  });
+
+  app.post("/api/appointments", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log("Creating appointment with data:", req.body);
+      const validatedData = insertAppointmentSchema.parse({
+        ...req.body,
+        status: 'scheduled'
+      });
+
+      console.log("Validated appointment data:", validatedData);
+      const appointment = await storage.createAppointment(validatedData);
+      console.log("Created appointment:", appointment);
+      res.status(201).json(appointment);
+    } catch (error) {
+      console.error("Error creating appointment:", error);
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "فشل في إنشاء الموعد" });
+      }
+    }
+  });
+
+  app.patch("/api/appointments/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log("Updating appointment:", {
+        id: req.params.id,
+        body: req.body
+      });
+
+      const oldAppointment = await storage.getAppointment(Number(req.params.id));
+      if (!oldAppointment) {
+        return res.status(404).json({ message: "الموعد غير موجود" });
+      }
+
+      const updatedAppointment = await storage.updateAppointment(
+        Number(req.params.id),
+        {
+          ...req.body,
+          updatedAt: new Date()
+        }
+      );
+
+      // Log activity for status changes
+      if (req.body.status && oldAppointment.status !== req.body.status) {
+        console.log("Status change detected:", {
+          old: oldAppointment.status,
+          new: req.body.status
+        });
+
+        await storage.logSystemActivity({
+          userId: req.user!.id,
+          activityType: "appointment_status_change",
+          entityType: "appointments",
+          entityId: updatedAppointment.id,
+          action: "update",
+          details: {
+            oldStatus: oldAppointment.status,
+            newStatus: req.body.status,
+            title: updatedAppointment.title,
+            date: updatedAppointment.date
+          }
+        });
+      }
+
+      res.json(updatedAppointment);
+    } catch (error) {
+      console.error("Error updating appointment:", error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "فشل في تحديث الموعد" });
+    }
+  });
+
+  app.delete("/api/appointments/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log("Deleting appointment:", req.params.id);
+      await storage.deleteAppointment(Number(req.params.id));
+      console.log("Successfully deleted appointment:", req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting appointment:", error);
+      res.status(500).json({ message: "فشل في حذف الموعد" });
+    }
+  });
+
+  // Add after existing report routes
+  app.post("/api/reports/activities", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const { startDate, endDate, type, filters } = req.body;
+
+      const report = await storage.generateActivityReport({
+        name: `تقرير النشاطات - ${new Date().toLocaleDateString('ar-IQ')}`,
+        description: `تقرير تفصيلي للنشاطات من ${new Date(startDate).toLocaleDateString('ar-IQ')} إلى ${new Date(endDate).toLocaleDateString('ar-IQ')}`,
+        dateRange: {
+          startDate: new Date(startDate),
+          endDate: new Date(endDate)
+        },
+        reportType: type,
+        filters,
+        generatedBy: req.user!.id,
+        data: {}
+      });
+
+      res.json(report);
+    } catch (error) {
+      console.error("Error generating activity report:", error);
+      res.status(500).json({ message: "فشل في إنشاء التقرير" });
+    }
+  });
+
+  app.get("/api/reports/activities/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const report = await storage.getActivityReport(Number(req.params.id));
+      if (!report) {
+        return res.status(404).json({ message: "التقرير غير موجود" });
+      }
+      res.json(report);
+    } catch (error) {
+      console.error("Error fetching activity report:", error);
+      res.status(500).json({ message: "فشل في جلب التقرير" });
+    }
+  });
+
+  // Add detailed reports endpoints
+  app.get("/api/reports/sales", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const { startDate, endDate, page = "1", pageSize = "50" } = req.query;
+      const report = await storage.getDetailedSalesReport({
+        start: new Date(startDate as string),
+        end: new Date(endDate as string)
+      },
+        req.user!.id,
+        Number(page),
+        Number(pageSize)
+      );
+      res.json(report);
+    } catch (error) {
+      console.error("Error generating sales report:", error);
+      res.status(500).json({ message: "فشل في إنشاء تقرير المبيعات" });
+    }
+  });
+
+  app.get("/api/reports/inventory", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const { startDate, endDate } = req.query;
+      const report = await storage.getInventoryReport({
+        start: new Date(startDate as string),
+        end: new Date(endDate as string)
+      });
+      res.json(report);
+    } catch (error) {
+      console.error("Error generating inventory report:", error);
+      res.status(500).json({ message: "فشل في إنشاء تقرير المخزون" });
+    }
+  });
+
+  app.get("/api/reports/financial", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const { startDate, endDate } = req.query;
+      const report = await storage.getFinancialReport({
+        start: new Date(startDate as string),
+        end: new Date(endDate as string)
+      });
+      res.json(report);
+    } catch (error) {
+      console.error("Error generating financial report:", error);
+      res.status(500).json({ message: "فشل في إنشاء التقرير المالي" });
+    }
+  });
+
+  app.get("/api/reports/user-activity", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const { startDate, endDate } = req.query;
+      const report = await storage.getUserActivityReport({
+        start: new Date(startDate as string),
+        end: new Date(endDate as string)
+      });
+      res.json(report);
+    } catch (error) {
+      console.error("Error generating user activity report:", error);
+      res.status(500).json({ message: "فشل في إنشاء تقرير نشاط المستخدمين" });
+    }
+  });
+  // Add after existing report routes
+  app.get("/api/reports", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const reports = await storage.getUserReports(req.user!.id, req.query.type as string);
+      res.json(reports);
+    } catch (error) {
+      console.error("Error fetching reports:", error);
+      res.status(500).json({ message: "فشل في جلب التقارير" });
+    }
+  });
+
+  app.get("/api/reports/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const report = await storage.getReport(Number(req.params.id));
+      if (!report) {
+        return res.status(404).json({ message: "التقرير غير موجود" });
+      }
+      if (report.userId !== req.user!.id) {
+        return res.status(403).json({ message: "غير مصرح بالوصول لهذا التقرير" });
+      }
+      res.json(report);
+    } catch (error) {
+      console.error("Error fetching report:", error);
+      res.status(500).json({ message: "فشل في جلب التقرير" });
+    }
+  });
+
+  // Add appointment reports endpoint
+  app.get("/api/reports/appointments", async (req, res) => {
+    console.log("Received appointments report request");
+
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const { startDate, endDate } = req.query;
+
+      if (!startDate || !endDate) {
+        console.log("`Error fetching historical stats:", error);
+      res.status(500).json({ message: "فشل في جلب البيانات التاريخية" });
+    }
+  });
+
+  // API Key routes
+  app.post("/api/settings/api-keys", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      // التحقق من صحة البيانات
+      const apiKeysSchema = z.object({
+        facebook: z.object({
+          appId: z.string().min(1, "App ID مطلوب"),
+          appSecret: z.string().min(1, "App Secret مطلوب"),
+        }),
+        twitter: z.object({
+          apiKey: z.string().min(1, "API Key مطلوب"),
+          apiSecret: z.string().min(1, "API Secret مطلوب"),
+        }),
+        tiktok: z.object({
+          clientKey: z.string().min(1, "Client Key مطلوب"),
+          clientSecret: z.string().min(1, "Client Secret مطلوب"),
+        }),
+        snapchat: z.object({
+          clientId: z.string().min(1, "Client ID مطلوب"),
+          clientSecret: z.string().min(1, "Client Secret مطلوب"),
+        }),
+        linkedin: z.object({
+          clientId: z.string().min(1, "Client ID مطلوب"),
+          clientSecret: z.string().min(1, "Client Secret مطلوب"),
+        }),
+      });
+
+      const apiKeys = apiKeysSchema.parse(req.body);
+
+      // حفظ المفاتيح في قاعدة البيانات بشكل آمن
+      await storage.setApiKeys(req.user!.id, apiKeys);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating API keys:", error);
+      res.status(500).json({ message: "فشل في تحديث مفاتيح API" });
+    }
+  });
+
+  app.get("/api/settings/api-keys", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const apiKeys = await storage.getApiKeys(req.user!.id);
+      res.json(apiKeys);
+    } catch (error) {
+      console.error("Error getting API keys:", error);
+      res.status(500).json({ message: "فشل في جلب مفاتيح API" });
+    }
+  });
+
+  app.post("/api/settings/api-keys/migrate", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      await storage.migrateLocalStorageToDb(req.user!.id, req.body);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error migrating API keys:", error);
+      res.status(500).json({ message: "فشل في ترحيل مفاتيح API" });
+    }
+  });
+
+  // Inventory Transaction Routes
+  app.get("/api/inventory/transactions", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const transactions = await storage.getInventoryTransactions();
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching inventory transactions:", error);
+      res.status(500).json({ message: "فشل في جلب حركات المخزون" });
+    }
+  });
+
+  app.post("/api/inventory/transactions", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const transaction = await storage.createInventoryTransaction({
+        ...req.body,
+        userId: req.user!.id,
+        date: new Date()
+      });
+
+      // Update product stock
+      const product = await storage.getProduct(transaction.productId);
+      if (product) {
+        const stockChange = transaction.type === 'in' ? transaction.quantity : -transaction.quantity;
+        await storage.updateProduct(product.id, {
+          ...product,
+          stock: product.stock + stockChange
+        });
+      }
+
+      res.status(201).json(transaction);
+    } catch (error) {
+      console.error("Error creating inventory transaction:", error);
+      res.status(500).json({ message: "فشل في إنشاء حركة المخزون" });
+    }
+  });
+
+  // Expense Categories Routes
+  app.get("/api/expenses/categories", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const categories = await storage.getExpenseCategories(req.user!.id);
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching expense categories:", error);
+      res.status(500).json({ message: "فشل في جلب فئات المصروفات" });
+    }
+  });
+
+  app.post("/api/expenses/categories", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log("Received category data:", req.body); // للتأكد من البيانات المستلمة
+      const validatedData = insertExpenseCategorySchema.parse({
+        name: req.body.name,
+        description: req.body.description,
+        budgetAmount: req.body.budgetAmount ? Number(req.body.budgetAmount) : null,
+      });
+
+      const category = await storage.createExpenseCategory({
+        ...validatedData,
+        userId: req.user!.id,
+      });
+
+      console.log("Created category:", category); // للتأكد من نجاح العملية
+      res.status(201).json(category);
+    } catch (error) {
+      console.error("Error creating expense category:", error);
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "فشل في إنشاء فئة المصروفات" });
+      }
+    }
+  });
+
+  // Expenses Routes
+  app.get("/api/expenses", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const expenses = await storage.getExpenses(req.user!.id);
+      res.json(expenses);
+    } catch (error) {
+      console.error("Error fetching expenses:", error);
+      res.status(500).json({ message: "فشل في جلب المصروفات" });
+    }
+  });
+
+  app.post("/api/expenses", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const validatedData = insertExpenseSchema.parse(req.body);
+      const expense = await storage.createExpense({
+        ...validatedData,        userId: req.user!.id,
+      });
+      res.status(201).json(expense);
+    } catch (error) {
+      console.error("Error creating expense:", error);
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "فشل في إنشاء المصروف" });
+      }
+    }
+  });
+
+  // Suppliers Routes
+  app.get("/api/suppliers", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const suppliers = await storage.getSuppliers(req.user!.id);
+      res.json(suppliers);
+    } catch (error) {
+      console.error("Error fetching suppliers:", error);
+      res.status(500).json({ message: "فشل في جلب قائمة الموردين" });
+    }
+  });
+
+  app.post("/api/suppliers", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const validatedData = insertSupplierSchema.parse(req.body);
+      const supplier = await storage.createSupplier({
+        ...validatedData,
+        userId: req.user!.id,
+      });
+      res.status(201).json(supplier);
+    } catch (error) {
+      console.error("Error creating supplier:", error);
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "فشل في إنشاء المورد" });
+      }
+    }
+  });
+
+  app.patch("/api/suppliers/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const supplier = await storage.getSupplier(Number(req.params.id));
+      if (!supplier || supplier.userId !== req.user!.id) {
+        return res.status(404).json({ message: "المورد غير موجود" });
+      }
+
+      const updatedSupplier = await storage.updateSupplier(supplier.id, req.body);
+      res.json(updatedSupplier);
+    } catch (error) {
+      console.error("Error updating supplier:", error);
+      res.status(500).json({ message: "فشل في تحديث المورد" });
+    }
+  });
+
+  app.delete("/api/api/suppliers/:id", async (req, res)=> {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجبتسجيل الدخول أولاً"});    }
+    try {
+      const supplier = await storage.getSupplier(Number(req.params.id));
+      if (!supplier || supplier.userId !== req.user!.id) {
+        return res.status(404).json({ message: "المورد غير موجود" });
+      }
+      await storage.deleteSupplier(supplier.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting supplier:", error);
+      res.status(500).json({ message: "فشل في حذف المورد" });
+    }
+  });
+
+  app.get("/api/suppliers/:id/transactions", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجبتسجيل الدخول أولاً" });
+    }
+
+    try {
+      const transactions = await storage.getSupplierTransactions(Number(req.params.id));
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching supplier transactions:", error);
+      res.status(500).json({ message: "فشل في جلب معاملات المورد" });
+    }
+  });
+
+  app.post("/api/suppliers/:id/transactions", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const validatedData = insertSupplierTransactionSchema.parse(req.body);
+      const transaction = await storage.createSupplierTransaction({
+        ...validatedData,
+        supplierId: Number(req.params.id),
+        userId: req.user!.id,
+      });
+      res.status(201).json(transaction);
+    } catch (error) {
+      console.error("Error creating supplier transaction:", error);
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "فشل في إنشاء معاملة المورد" });
+      }
+    }
+  });
+
+  // Customer Routes
+  app.get("/api/customers", async (req, res) => {
+    try {
+      const search = req.query.search as string;
+      const customers = await storage.searchCustomers(search);
+      res.json(customers);
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+      res.status(500).json({ message: "فشل في جلب قائمة العملاء" });
+    }
+  });
+
+  app.get("/api/customers/:id", async (req, res) => {
+    try {
+      const customer = await storage.getCustomer(Number(req.params.id));
+      if (!customer) {
+        return res.status(404).json({ message: "العميل غير موجود" });
+      }
+      res.json(customer);    } catch (error) {
+      console.error("Error fetching customer:", error);
+      res.status(500).json({ message: "فشل في جلب بيانات العميل" });
+    }
+  });
+
+  app.get("/api/customers/:id/sales", async (req, res) => {
+    try {
+      const sales = await storage.getCustomerSales(Number(req.params.id));
+      res.json(sales);
+    } catch (error) {
+      console.error("Error fetching customer sales:", error);
+      res.status(500).json({ message: "فشل في جلب مشتريات العميل" });
+    }
+  });
+
+  app.post("/api/customers", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const validatedData = insertCustomerSchema.parse(req.body);
+      const customer = await storage.createCustomer(validatedData);
+      res.status(201).json(customer);
+    } catch (error) {
+      console.error("Error creating customer:", error);
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "فشل في إنشاء العميل" });
+      }
+    }
+  });
+
+  // إضافة مسار حذف العميل
+  app.delete("/api/customers/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const customerId = Number(req.params.id);
+      await storage.deleteCustomer(customerId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting customer:", error);
+      res.status(500).json({ message: "فشل في حذف العميل" });
+    }
+  });
+
+  // Appointment Routes
+  app.get("/api/customers/:id/appointments", async (req, res) => {
+    try {
+      const appointments = await storage.getCustomerAppointments(Number(req.params.id));
+      res.json(appointments);
+    } catch (error) {
+      console.error("Error fetching customer appointments:", error);
+      res.status(500).json({ message: "فشل في جلب المواعيد" });
+    }
+  });
+
+  app.post("/api/customers/:id/appointments", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const validatedData = insertAppointmentSchema.parse(req.body);
+      const appointment = await storage.createAppointment({
+        ...validatedData,
+        customerId: Number(req.params.id),
+      });
+      res.status(201).json(appointment);
+    } catch (error) {
+      console.error("Error creating appointment:", error);
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "فشل في إنشاء الموعد" });
+      }
+    }
+  });
+
+  app.patch("/api/appointments/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log("Updating appointment:", {
+        id: req.params.id,
+        body: req.body
+      });
+
+      const oldAppointment = await storage.getAppointment(Number(req.params.id));
+      if (!oldAppointment) {
+        return res.status(404).json({ message: "الموعد غير موجود" });
+      }
+
+      const updatedAppointment = await storage.updateAppointment(
+        Number(req.params.id),
+        {
+          ...req.body,
+          updatedAt: new Date()
+        }
+      );
+
+      // Log activity for status changes
+      if (req.body.status && oldAppointment.status !== req.body.status) {
+        console.log("Status change detected:", {
+          old: oldAppointment.status,
+          new: req.body.status
+        });
+
+        await storage.logSystemActivity({
+          userId: req.user!.id,
+          activityType: "appointment_status_change",
+          entityType: "appointments",
+          entityId: updatedAppointment.id,
+          action: "update",
+          details: {
+            oldStatus: oldAppointment.status,
+            newStatus: req.body.status,
+            title: updatedAppointment.title,
+            date: updatedAppointment.date
+          }
+        });
+      }
+
+      res.json(updatedAppointment);
+    } catch (error) {
+      console.error("Error updating appointment:", error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "فشل في تحديث الموعد" });
+    }
+  });
+
+  app.delete("/api/appointments/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log("Deleting appointment:", req.params.id);
+      await storage.deleteAppointment(Number(req.params.id));
+      console.log("Successfully deleted appointment:", req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting appointment:", error);
+      res.status(500).json({ message: "فشل في حذف الموعد" });
+    }
+  });
+
+  // Add after existing appointment routes
+  app.get("/api/appointments/:id/activities", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log(`Fetching activities for appointment: ${req.params.id}`);
+      const activities = await storage.getAppointmentActivities(Number(req.params.id));
+      console.log("Retrieved activities:", activities);
+      res.json(activities);
+    } catch (error) {
+      console.error("Error fetching appointment activities:", error);
+      res.status(500).json({ message: "فشل في جلب سجل حركات الموعد" });
+    }
+  });
+
+  // Add after existing appointment routes
+  app.get("/api/activities", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log("Fetching activities for entity type:", req.query.entityType);
+      const activities = await storage.getSystemActivities({
+        entityType: req.query.entityType as string
+      });
+      console.log("Retrieved activities:", activities);
+      res.json(activities);
+    } catch (error) {
+      console.error("Error fetching activities:", error);
+      res.status(500).json({ message: "فشل في جلب سجل الحركات" });
+    }
+  });
+
+  // File Storage Routes
+  app.post("/api/files", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const file = await storage.saveFile({        ...req.body,
+        userId: req.user!.id,
+      });
+      res.status(201).json(file);
+    } catch (error) {
+      console.error("Error saving file:", error);
+      res.status(500).json({ message: "فشل في حفظ الملف" });
+    }
+  });
+
+  app.get("/api/files/:id", async (req, res) => {
+    try {
+      const file = await storage.getFileById(Number(req.params.id));
+      if (!file) {
+        return res.status(404).json({ message: "الملف غير موجود" });
+      }
+      res.json(file);
+    } catch (error) {
+      console.error("Error fetching file:", error);
+      res.status(500).json({ message: "فشل في جلب الملف" });
+    }
+  });
+
+  app.get("/api/files/user", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const files = await storage.getUserFiles(req.user!.id);
+      res.json(files);
+    } catch (error) {
+      console.error("Error fetching user files:", error);
+      res.status(500).json({ message: "فشل في جلب ملفات المستخدم" });
+    }
+  });
+
+  app.delete("/api/files/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      await storage.deleteFile(Number(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      res.status(500).json({ message: "فشل في حذف الملف" });
+    }
+  });
+
+  // إضافة المسارات الجديدة للإعدادات
+  const themeSchema = z.object({
+    primary: z.string(),
+    variant: z.enum([
+      "modern", // العصري
+      "classic", // الكلاسيكي
+      "elegant", // الأنيق
+      "vibrant", // النابض بالحياة
+      "natural", // الطبيعي
+    ]),
+    appearance: z.enum(["light", "dark", "system"]),
+    fontStyle: z.enum([
+      "noto-kufi", // نوتو كوفي
+      "cairo", // القاهرة
+      "tajawal", // طجوال
+      "amiri", // أميري
+    ]),
+    fontSize: z.enum(["small", "medium", "large", "xlarge"]),
+    radius: z.number(),
+  });
+
+  app.get("/api/settings", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const settings = await storage.getUserSettings((req.user as any).id);
+      res.json(settings || {
+        themeName: "modern",
+        fontName: "noto-kufi",
+        fontSize: "medium",
+        appearance: "system",
+        colors: {
+          primary: "#2563eb",
+          secondary: "#16a34a",
+          accent: "#db2777"
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching user settings:", error);
+      res.status(500).json({ message: "فشل في جلب إعدادات المظهر" });
+    }
+  });
+
+  app.post("/api/settings", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log("Received settings payload:", req.body);
+
+      // حفظ بيانات الثيم في ملف theme.json
+      const themeData = {
+        primary: req.body.primary || "#000000",
+        variant: req.body.variant || "modern",
+        appearance: req.body.appearance || "system",
+        radius: req.body.radius || 0.5
+      };
+
+      await fs.writeFile(
+        path.join(process.cwd(), "theme.json"),
+        JSON.stringify(themeData, null, 2)
+      );
+
+      // تحضير بيانات الإعدادات للحفظ في قاعدة البيانات
+      const colors = {
+        primary: req.body.primary || "#000000",
+        secondary: req.body.secondary || "#666666",
+        background: req.body.appearance === "dark" ? "#1a1a1a" : "#ffffff"
+      };
+
+      const settings = await storage.saveUserSettings(req.user!.id, {
+        themeName: req.body.variant || "modern",
+        fontName: req.body.fontStyle || "noto-kufi",
+        fontSize: req.body.fontSize || "medium",
+        appearance: req.body.appearance || "system",
+        colors: JSON.stringify(colors)
+      });
+
+      console.log("Settings saved successfully:", settings);
+      res.json({ success: true, settings });
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "فشل في حفظ الإعدادات" 
+      });
+    }
+  });
+
+  // Inventory Alerts Routes
+  app.get("/api/inventory/alerts", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const alerts = await storage.getInventoryAlerts();
+      res.json(alerts);
+    } catch (error) {
+      console.error("Error fetching inventory alerts:", error);
+      res.status(500).json({ message: "فشل في جلب التنبيهات" });
+    }
+  });
+
+  app.post("/api/inventory/alerts", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const validatedData = insertInventoryAlertSchema.parse(req.body);
+      const alert = await storage.createInventoryAlert(validatedData);
+      res.status(201).json(alert);
+    } catch (error) {
+      console.error("Error creating inventory alert:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "بيانات غير صالحة", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "فشل في إنشاء التنبيه" });
+      }
+    }
+  });
+
+  app.patch("/api/inventory/alerts/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const alert = await storage.updateInventoryAlert(Number(req.params.id), req.body);
+      res.json(alert);
+    } catch (error) {
+      console.error("Error updating inventory alert:", error);
+      res.status(500).json({ message: "فشل في تحديث التنبيه" });
+    }
+  });
+
+  app.delete("/api/inventory/alerts/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      await storage.deleteInventoryAlert(Number(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting inventory alert:", error);
+      res.status(500).json({ message: "فشل في حذف التنبيه" });
+    }
+  });
+
+  app.get("/api/inventory/notifications", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const notifications = await storage.getAlertNotifications();
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching alert notifications:", error);
+      res.status(500).json({ message: "فشل في جلب الإشعارات" });
+    }
+  });
+
+  app.patch("/api/inventory/notifications/:id/read", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const notification = await storage.markNotificationAsRead(Number(req.params.id));
+      res.json(notification);
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ message: "فشل في تحديث حالة الإشعار" });
+    }
+  });
+
+  // إضافة مسارات جديدة للمواعيد بعد مسارات العملاء
+  app.get("/api/appointments", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log("Fetching appointments...");
+      const appointments = await storage.getAppointments(); // Changed from getCustomerAppointments
+      console.log("Fetched appointments:", appointments);
+      res.json(appointments);
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+      res.status(500).json({ message: "فشل في جلب المواعيد" });
+    }
+  });
+
+  app.post("/api/appointments", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log("Creating appointment with data:", req.body);
+      const validatedData = insertAppointmentSchema.parse({
+        ...req.body,
+        status: 'scheduled'
+      });
+
+      console.log("Validated appointment data:", validatedData);
+      const appointment = await storage.createAppointment(validatedData);
+      console.log("Created appointment:", appointment);
+      res.status(201).json(appointment);
+    } catch (error) {
+      console.error("Error creating appointment:", error);
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "فشل في إنشاء الموعد" });
+      }
+    }
+  });
+
+  app.patch("/api/appointments/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log("Updating appointment:", {
+        id: req.params.id,
+        body: req.body
+      });
+
+      const oldAppointment = await storage.getAppointment(Number(req.params.id));
+      if (!oldAppointment) {
+        return res.status(404).json({ message: "الموعد غير موجود" });
+      }
+
+      const updatedAppointment = await storage.updateAppointment(
+        Number(req.params.id),
+        {
+          ...req.body,
+          updatedAt: new Date()
+        }
+      );
+
+      // Log activity for status changes
+      if (req.body.status && oldAppointment.status !== req.body.status) {
+        console.log("Status change detected:", {
+          old: oldAppointment.status,
+          new: req.body.status
+        });
+
+        await storage.logSystemActivity({
+          userId: req.user!.id,
+          activityType: "appointment_status_change",
+          entityType: "appointments",
+          entityId: updatedAppointment.id,
+          action: "update",
+          details: {
+            oldStatus: oldAppointment.status,
+            newStatus: req.body.status,
+            title: updatedAppointment.title,
+            date: updatedAppointment.date
+          }
+        });
+      }
+
+      res.json(updatedAppointment);
+    } catch (error) {
+      console.error("Error updating appointment:", error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "فشل في تحديث الموعد" });
+    }
+  });
+
+  app.delete("/api/appointments/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log("Deleting appointment:", req.params.id);
+      await storage.deleteAppointment(Number(req.params.id));
+      console.log("Successfully deleted appointment:", req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting appointment:", error);
+      res.status(500).json({ message: "فشل في حذف الموعد" });
+    }
+  });
+
+  // Add after existing appointment routes
+  app.get("/api/appointments/:id/activities", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log(`Fetching activities for appointment: ${req.params.id}`);
+      const activities = await storage.getAppointmentActivities(Number(req.params.id));
+      console.log("Retrieved activities:", activities);
+      res.json(activities);
+    } catch (error) {
+      console.error("Error fetching appointment activities:", error);
+      res.status(500).json({ message: "فشل في جلب سجل حركات الموعد" });
+    }
+  });
+
+  // Add after existing appointment routes
+  app.get("/api/activities", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log("Fetching activities for entity type:", req.query.entityType);
+      const activities = await storage.getSystemActivities({
+        entityType: req.query.entityType as string
+      });
+      console.log("Retrieved activities:", activities);
+      res.json(activities);
+    } catch (error) {
+      console.error("Error fetching activities:", error);
+      res.status(500).json({ message: "فشل في جلب سجل الحركات" });
+    }
+  });
+
+  // File Storage Routes
+  app.post("/api/files", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const file = await storage.saveFile({        ...req.body,
+        userId: req.user!.id,
+      });
+      res.status(201).json(file);
+    } catch (error) {
+      console.error("Error saving file:", error);
+      res.status(500).json({ message: "فشل في حفظ الملف" });
+    }
+  });
+
+  app.get("/api/files/:id", async (req, res) => {
+    try {
+      const file = await storage.getFileById(Number(req.params.id));
+      if (!file) {
+        return res.status(404).json({ message: "الملف غير موجود" });
+      }
+      res.json(file);
+    } catch (error) {
+      console.error("Error fetching file:", error);
+      res.status(500).json({ message: "فشل في جلب الملف" });
+    }
+  });
+
+  app.get("/api/files/user", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const files = await storage.getUserFiles(req.user!.id);
+      res.json(files);
+    } catch (error) {
+      console.error("Error fetching user files:", error);
+      res.status(500).json({ message: "فشل في جلب ملفات المستخدم" });
+    }
+  });
+
+  app.delete("/api/files/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      await storage.deleteFile(Number(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      res.status(500).json({ message: "فشل في حذف الملف" });
+    }
+  });
+
+  // إضافة المسارات الجديدة للإعدادات
+  const themeSchema = z.object({
+    primary: z.string(),
+    variant: z.enum([
+      "modern", // العصري
+      "classic", // الكلاسيكي
+      "elegant", // الأنيق
+      "vibrant", // النابض بالحياة
+      "natural", // الطبيعي
+    ]),
+    appearance: z.enum(["light", "dark", "system"]),
+    fontStyle: z.enum([
+      "noto-kufi", // نوتو كوفي
+      "cairo", // القاهرة
+      "tajawal", // طجوال
+      "amiri", // أميري
+    ]),
+    fontSize: z.enum(["small", "medium", "large", "xlarge"]),
+    radius: z.number(),
+  });
+
+  app.get("/api/settings", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const settings = await storage.getUserSettings((req.user as any).id);
+      res.json(settings || {
+        themeName: "modern",
+        fontName: "noto-kufi",
+        fontSize: "medium",
+        appearance: "system",
+        colors: {
+          primary: "#2563eb",
+          secondary: "#16a34a",
+          accent: "#db2777"
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching user settings:", error);
+      res.status(500).json({ message: "فشل في جلب إعدادات المظهر" });
+    }
+  });
+
+  app.post("/api/settings", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      console.log("Received settings payload:", req.body);
+
+      // حفظ بيانات الثيم في ملف theme.json
+      const themeData = {
+        primary: req.body.primary || "#000000",
+        variant: req.body.variant || "modern",
+        appearance: req.body.appearance || "system",
+        radius: req.body.radius || 0.5
+      };
+
+      await fs.writeFile(
+        path.join(process.cwd(), "theme.json"),
+        JSON.stringify(themeData, null, 2)
+      );
+
+      // تحضير بيانات الإعدادات للحفظ في قاعدة البيانات
+      const colors = {
+        primary: req.body.primary || "#000000",
+        secondary: req.body.secondary || "#666666",
+        background: req.body.appearance === "dark" ? "#1a1a1a" : "#ffffff"
+      };
+
+      const settings = await storage.saveUserSettings(req.user!.id, {
+        themeName: req.body.variant || "modern",
+        fontName: req.body.fontStyle || "noto-kufi",
+        fontSize: req.body.fontSize || "medium",
+        appearance: req.body.appearance || "system",
+        colors: JSON.stringify(colors)
+      });
+
+      console.log("Settings saved successfully:", settings);
+      res.json({ success: true, settings });
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "فشل في حفظ الإعدادات" 
       });
     }
   });
