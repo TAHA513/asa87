@@ -749,7 +749,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Settings request payload:", req.body);
 
-      // تحضير بيانات الألوان
+      // تحضير بيانات الألوان ككائن مباشرة
       const colors = {
         primary: req.body.primary || "#2563eb",
         secondary: req.body.secondary || "#666666",
@@ -763,7 +763,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fontName: req.body.fontStyle || "noto-kufi",
         fontSize: req.body.fontSize || "medium",
         appearance: req.body.appearance || "system",
-        colors: JSON.stringify(colors)
+        colors // تمرير الكائن مباشرة
       });
 
       // تحديث ملف theme.json بعد نجاح حفظ الإعدادات

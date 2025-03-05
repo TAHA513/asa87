@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, jsonb, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -305,7 +305,7 @@ export const userSettings = pgTable("user_settings", {
   fontName: text("font_name").notNull(),
   fontSize: text("font_size").notNull(),
   appearance: text("appearance").notNull(),
-  colors: text("colors").notNull(),
+  colors: jsonb("colors").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -591,7 +591,12 @@ export const insertUserSettingsSchema = createInsertSchema(userSettings)
     fontName: z.string().min(1, "اسم الخط مطلوب"),
     fontSize: z.enum(["small", "medium", "large", "xlarge"]),
     appearance: z.enum(["light", "dark", "system"]),
-    colors: z.string().min(2, "يجب تحديد الألوان")
+    colors: z.object({
+      primary: z.string(),
+      secondary: z.string(),
+      background: z.string(),
+      text: z.string()
+    })
   });
 
 export const insertSystemActivitySchema = createInsertSchema(systemActivities)
@@ -667,4 +672,4 @@ export type InsertInventoryAlert = z.infer<typeof insertInventoryAlertSchema>;
 export type AlertNotification = typeof alertNotifications.$inferSelect;
 export type InsertAlertNotification = z.infer<typeof insertAlertNotificationSchema>;
 
-import { boolean, decimal, varchar, jsonb } from "drizzle-orm/pg-core";
+import { boolean, decimal, varchar } from "drizzle-orm/pg-core";

@@ -882,21 +882,15 @@ export class DatabaseStorage implements IStorage {
     fontName: string;
     fontSize: string;
     appearance: string;
-    colors: string;
+    colors: {
+      primary: string;
+      secondary: string;
+      background: string;
+      text: string;
+    };
   }): Promise<UserSettings> {
     try {
-      console.log("Received settings for user:", userId);
-
-      // تحقق من صحة تنسيق JSON للألوان
-      try {
-        const parsedColors = JSON.parse(settings.colors);
-        if (typeof parsedColors !== 'object' || parsedColors === null) {
-          throw new Error("تنسيق الألوان غير صالح");
-        }
-      } catch (error) {
-        console.error("Invalid colors JSON:", settings.colors);
-        throw new Error("تنسيق الألوان غير صالح");
-      }
+      console.log("Saving settings for user:", userId, settings);
 
       // حذف الإعدادات القديمة
       await db
@@ -912,7 +906,7 @@ export class DatabaseStorage implements IStorage {
           fontName: settings.fontName,
           fontSize: settings.fontSize,
           appearance: settings.appearance,
-          colors: settings.colors,
+          colors: JSON.stringify(settings.colors), //Corrected to stringify the colors object
           createdAt: new Date(),
           updatedAt: new Date()
         })
