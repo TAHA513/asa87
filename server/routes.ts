@@ -1331,12 +1331,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       console.log("Saving settings for user:", req.user!.id);
+      console.log("Settings payload:", req.body);
+
+      // Validate required fields
+      if (!req.body.themeName) {
+        return res.status(400).json({ message: "يجب تحديد نمط المظهر" });
+      }
+
       const settings = await storage.saveUserSettings(req.user!.id, {
-        themeName: req.body.themeName,
-        fontName: req.body.fontName,
-        fontSize: req.body.fontSize,
-        appearance: req.body.appearance,
-        colors: req.body.colors
+        themeName: req.body.themeName || 'modern', // Set default if missing
+        fontName: req.body.fontName || 'noto-kufi',
+        fontSize: req.body.fontSize || 'medium',
+        appearance: req.body.appearance || 'system',
+        colors: req.body.colors || {}
       });
 
       res.json(settings);
@@ -1731,7 +1738,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }, req.user!.id);
 
       console.log("Report generated successfully, size:", JSON.stringify(report).length);      res.json(report);
-
     } catch (error) {
       console.error("Error in appointments report endpoint:", error);
       res.status(500).json({ 

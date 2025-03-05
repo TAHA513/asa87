@@ -881,7 +881,12 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log("Saving user settings:", { userId, settings });
 
-      // Delete old settings
+      // Validate settings
+      if (!settings.themeName || !settings.fontName || !settings.fontSize || !settings.appearance) {
+        throw new Error("جميع الحقول الأساسية مطلوبة");
+      }
+
+      // Delete old settings first
       await db
         .delete(userSettings)
         .where(eq(userSettings.userId, userId));
@@ -895,7 +900,7 @@ export class DatabaseStorage implements IStorage {
           fontName: settings.fontName,
           fontSize: settings.fontSize,
           appearance: settings.appearance,
-          colors: JSON.stringify(settings.colors),
+          colors: settings.colors ? JSON.stringify(settings.colors) : '{}',
           createdAt: new Date(),
           updatedAt: new Date()
         })
