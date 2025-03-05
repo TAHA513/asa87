@@ -751,7 +751,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // تحضير بيانات الألوان
       const colors = {
-        primary: req.body.primary || "#000000",
+        primary: req.body.primary || "#2563eb",
         secondary: req.body.secondary || "#666666",
         background: req.body.appearance === "dark" ? "#1a1a1a" : "#ffffff",
         text: req.body.appearance === "dark" ? "#ffffff" : "#000000"

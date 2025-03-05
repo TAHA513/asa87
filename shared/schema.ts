@@ -305,7 +305,7 @@ export const userSettings = pgTable("user_settings", {
   fontName: text("font_name").notNull(),
   fontSize: text("font_size").notNull(),
   appearance: text("appearance").notNull(),
-  colors: jsonb("colors").notNull(),
+  colors: text("colors").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -591,17 +591,7 @@ export const insertUserSettingsSchema = createInsertSchema(userSettings)
     fontName: z.string().min(1, "اسم الخط مطلوب"),
     fontSize: z.enum(["small", "medium", "large", "xlarge"]),
     appearance: z.enum(["light", "dark", "system"]),
-    colors: z.string().refine(
-      (val) => {
-        try {
-          const parsed = JSON.parse(val);
-          return typeof parsed === 'object' && parsed !== null;
-        } catch {
-          return false;
-        }
-      },
-      "يجب أن يكون تنسيق الألوان JSON صالح"
-    )
+    colors: z.string().min(2, "يجب تحديد الألوان")
   });
 
 export const insertSystemActivitySchema = createInsertSchema(systemActivities)

@@ -885,21 +885,25 @@ export class DatabaseStorage implements IStorage {
     colors: string;
   }): Promise<UserSettings> {
     try {
-      console.log("Saving user settings:", { userId, settings });
+      console.log("Received settings for user:", userId);
 
-      // Validate colors is valid JSON
+      // تحقق من صحة تنسيق JSON للألوان
       try {
-        JSON.parse(settings.colors);
+        const parsedColors = JSON.parse(settings.colors);
+        if (typeof parsedColors !== 'object' || parsedColors === null) {
+          throw new Error("تنسيق الألوان غير صالح");
+        }
       } catch (error) {
+        console.error("Invalid colors JSON:", settings.colors);
         throw new Error("تنسيق الألوان غير صالح");
       }
 
-      // Delete old settings first
+      // حذف الإعدادات القديمة
       await db
         .delete(userSettings)
         .where(eq(userSettings.userId, userId));
 
-      // Insert new settings
+      // حفظ الإعدادات الجديدة
       const [newSettings] = await db
         .insert(userSettings)
         .values({
@@ -914,7 +918,7 @@ export class DatabaseStorage implements IStorage {
         })
         .returning();
 
-      console.log("Successfully saved settings:", newSettings);
+      console.log("Settings saved successfully:", newSettings);
       return newSettings;
     } catch (error) {
       console.error("Error saving user settings:", error);
@@ -1577,17 +1581,13 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getReport(id: number) {
-    try {
-      const [report] = await db
-        .select()
-        .from(reports)
-        .where(eq(reports.id, id));
-      return report;
-    } catch (error) {
-      console.error("Error fetching report:", error);
-      throw new Error("فشل في جلب التقرير");
-    }
+  async getReport(id: number): Promise<Report | undefined> {
+    const [report] = await db
+      .select()
+      .from(reports)
+      .where(eq(reports.id, id));
+
+    return report;
   }
 
   async getUserReports(userId: number, type?: string) {
