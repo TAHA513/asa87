@@ -45,7 +45,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip as RechartsTooltip } from "recharts";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
-
 type NewAppointmentForm = {
   title: string;
   description: string;
@@ -141,6 +140,7 @@ export default function AppointmentsPage() {
 
   const updateAppointmentMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: AppointmentStatus }) => {
+      console.log("Updating appointment status:", { id, status });
       const res = await fetch(`/api/appointments/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -153,12 +153,19 @@ export default function AppointmentsPage() {
       return res.json();
     },
     onSuccess: () => {
+      // Invalidate relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activities", "appointments"] });
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/reports/appointments", reportDateRange.startDate, reportDateRange.endDate] 
+      });
+
       toast({
         title: "تم تحديث حالة الموعد بنجاح",
       });
     },
     onError: (error: Error) => {
+      console.error("Error updating appointment:", error);
       toast({
         title: "خطأ",
         description: error.message,
@@ -172,6 +179,7 @@ export default function AppointmentsPage() {
   };
 
   const handleStatusChange = (id: number, newStatus: AppointmentStatus) => {
+    console.log("Changing appointment status:", { id, newStatus });
     updateAppointmentMutation.mutate({ id, status: newStatus });
   };
 

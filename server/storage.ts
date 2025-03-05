@@ -726,20 +726,31 @@ export class DatabaseStorage implements IStorage {
         .returning();
 
       // Log the activity if status changed
-      if (oldAppointment.status !== updatedAppointment.status) {
-        await this.logSystemActivity({
-          userId: 1, // TODO: Get from context
-          activityType: "appointment_status_change",
-          entityType: "appointments",
-          entityId: id,
-          action: "update",
-          details: {
-            oldStatus: oldAppointment.status,
-            newStatus: updatedAppointment.status,
-            title: updatedAppointment.title,
-            date: updatedAppointment.date
-          }
+      if (update.status && oldAppointment.status !== update.status) {
+        console.log("Status change detected:", {
+          appointmentId: id,
+          oldStatus: oldAppointment.status,
+          newStatus: update.status
         });
+
+        try {
+          await this.logSystemActivity({
+            userId: 1, // Will be updated with actual user ID from context
+            activityType: "appointment_status_change",
+            entityType: "appointments",
+            entityId: id,
+            action: "update",
+            details: {
+              oldStatus: oldAppointment.status,
+              newStatus: update.status,
+              title: updatedAppointment.title,
+              date: updatedAppointment.date
+            }
+          });
+          console.log("Successfully logged status change activity");
+        } catch (error) {
+          console.error("Failed to log status change activity:", error);
+        }
       }
 
       console.log("Successfully updated appointment:", updatedAppointment);
@@ -882,21 +893,24 @@ export class DatabaseStorage implements IStorage {
   }
 
 
+
   async logSystemActivity(activity: InsertSystemActivity): Promise<SystemActivity> {
-    const [newActivity] = await db
-      .insert(systemActivities)
-      .values({
-        userId: activity.userId,
-        activityType: activity.activityType,
-        entityType: activity.entityType,
-        entityId: activity.entityId,
-        action: activity.action,
-        details: activity.details,
-        ipAddress: activity.ipAddress,
-        userAgent: activity.userAgent,
-      })
-      .returning();
-    return newActivity;
+    try {
+      console.log("Attempting to log system activity:", activity);
+      const [newActivity] = await db
+        .insert(systemActivities)
+        .values({
+          ...activity,
+          timestamp: new Date()
+        })
+        .returning();
+
+      console.log("Successfully created activity record:", newActivity);
+      return newActivity;
+    } catch (error) {
+      console.error("Error in logSystemActivity:", error);
+      throw new Error("فشل في تسجيل النشاط");
+    }
   }
 
   async getSystemActivities(filters: {
@@ -906,6 +920,7 @@ export class DatabaseStorage implements IStorage {
     entityType?: string;
   }): Promise<SystemActivity[]> {
     try {
+      console.log("Getting system activities with filters:", filters);
       let query = db.select().from(systemActivities);
 
       if (filters.startDate) {
@@ -922,6 +937,7 @@ export class DatabaseStorage implements IStorage {
       }
 
       const activities = await query.orderBy(desc(systemActivities.timestamp));
+      console.log(`Retrieved ${activities.length} activities`);
       return activities;
     } catch (error) {
       console.error("Error fetching system activities:", error);
