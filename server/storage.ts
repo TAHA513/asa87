@@ -885,14 +885,21 @@ export class DatabaseStorage implements IStorage {
     colors: string;
   }): Promise<UserSettings> {
     try {
-      console.log("Saving user settings:", settings);
+      console.log("Saving user settings:", { userId, settings });
 
-      // حذف الإعدادات القديمة
+      // Validate colors is valid JSON
+      try {
+        JSON.parse(settings.colors);
+      } catch (error) {
+        throw new Error("تنسيق الألوان غير صالح");
+      }
+
+      // Delete old settings first
       await db
         .delete(userSettings)
         .where(eq(userSettings.userId, userId));
 
-      // إضافة الإعدادات الجديدة
+      // Insert new settings
       const [newSettings] = await db
         .insert(userSettings)
         .values({
@@ -911,7 +918,7 @@ export class DatabaseStorage implements IStorage {
       return newSettings;
     } catch (error) {
       console.error("Error saving user settings:", error);
-      throw new Error("فشل في حفظ إعدادات المظهر");
+      throw error instanceof Error ? error : new Error("فشل في حفظ الإعدادات");
     }
   }
 

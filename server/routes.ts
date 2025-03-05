@@ -718,17 +718,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const settings = await storage.getUserSettings(req.user!.id);
       if (!settings) {
+        // إعدادات افتراضية
+        const defaultColors = {
+          primary: "#2563eb",
+          secondary: "#666666",
+          background: "#ffffff",
+          text: "#000000"
+        };
+
         return res.json({
           themeName: "modern",
           fontName: "noto-kufi",
           fontSize: "medium",
           appearance: "system",
-          colors: JSON.stringify({
-            primary: "#2563eb",
-            secondary: "#666666",
-            background: "#ffffff",
-            text: "#000000"
-          })
+          colors: JSON.stringify(defaultColors)
         });
       }
       res.json(settings);
@@ -746,7 +749,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Settings request payload:", req.body);
 
-      // تحضير البيانات
+      // تحضير بيانات الألوان
       const colors = {
         primary: req.body.primary || "#000000",
         secondary: req.body.secondary || "#666666",
@@ -763,7 +766,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         colors: JSON.stringify(colors)
       });
 
-      // تحديث ملف theme.json
+      // تحديث ملف theme.json بعد نجاح حفظ الإعدادات
       const themeData = {
         primary: colors.primary,
         variant: req.body.variant || "modern",
