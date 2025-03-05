@@ -701,22 +701,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getAppointment(id: number): Promise<Appointment | undefined> {
-    try {
-      console.log(`Getting appointment with id: ${id}`);
-      const [appointment] = await db
-        .select()
-        .from(appointments)
-        .where(eq(appointments.id, id));
-
-      console.log("Retrieved appointment:", appointment);
-      return appointment;
-    } catch (error) {
-      console.error("Error in getAppointment:", error);
-      throw new Error("فشل في جلب الموعد");
-    }
-  }
-
   async updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment> {
     try {
       console.log(`Updating appointment ${id} with:`, update);
@@ -741,7 +725,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(appointments.id, id))
         .returning();
 
-      // Log activity if status changed
+      // Log the activity if status changed
       if (update.status && oldAppointment.status !== update.status) {
         console.log("Status change detected:", {
           appointmentId: id,
@@ -751,7 +735,7 @@ export class DatabaseStorage implements IStorage {
 
         try {
           await this.logSystemActivity({
-            userId: update.userId || 1, // Use provided userId or default to 1
+            userId: 1, // Will be updated with actual user ID from context
             activityType: "appointment_status_change",
             entityType: "appointments",
             entityId: id,
@@ -769,9 +753,10 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
+      console.log("Successfully updated appointment:", updatedAppointment);
       return updatedAppointment;
     } catch (error) {
-      console.error("Error updating appointment:", error);
+      console.error("Error in updateAppointment:", error);
       throw new Error("فشل في تحديث الموعد");
     }
   }
@@ -862,62 +847,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserSettings(userId: number): Promise<UserSettings | undefined> {
-    try {
-      const [settings] = await db
-        .select()
-        .from(userSettings)
-        .where(eq(userSettings.userId, userId))
-        .orderBy(desc(userSettings.createdAt))
-        .limit(1);
-
-      return settings;
-    } catch (error) {
-      console.error("Error fetching user settings:", error);
-      throw new Error("فشل في جلب إعدادات المستخدم");
-    }
+    const [settings] = await db
+      .select()
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId))
+      .orderBy(desc(userSettings.createdAt))
+      .limit(1);
+    return settings;
   }
 
-  async saveUserSettings(userId: number, settings: {
-    themeName: string;
-    fontName: string;
-    fontSize: string;
-    appearance: string;
-    colors: {
-      primary: string;
-      secondary: string;
-      background: string;
-      text: string;
-    };
-  }): Promise<UserSettings> {
-    try {
-      console.log("Saving settings for user:", userId, settings);
+  async saveUserSettings(userId: number, settings: Omit<InsertUserSettings, "userId">): Promise<UserSettings> {
+    // Delete old settings
+    await db
+      .delete(userSettings)
+      .where(eq(userSettings.userId, userId));
 
-      // حذف الإعدادات القديمة
-      await db
-        .delete(userSettings)
-        .where(eq(userSettings.userId, userId));
+    // Insert new settings
+    const [newSettings] = await db
+      .insert(userSettings)
+      .values({
+        userId,
+        ...settings,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
 
-      // حفظ الإعدادات الجديدة
-      const [newSettings] = await db
-        .insert(userSettings)
-        .values({
-          userId,
-          themeName: settings.themeName,
-          fontName: settings.fontName,
-          fontSize: settings.fontSize,
-          appearance: settings.appearance,
-          colors: JSON.stringify(settings.colors), //Corrected to stringify the colors object
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
-        .returning();
-
-      console.log("Settings saved successfully:", newSettings);
-      return newSettings;
-    } catch (error) {
-      console.error("Error saving user settings:", error);
-      throw error instanceof Error ? error : new Error("فشل في حفظ الإعدادات");
-    }
+    return newSettings;
   }
 
   async getAppointments(): Promise<Appointment[]> {
@@ -935,6 +891,7 @@ export class DatabaseStorage implements IStorage {
       throw new Error("فشل في جلب المواعيد");
     }
   }
+
 
 
   async logSystemActivity(activity: InsertSystemActivity): Promise<SystemActivity> {
@@ -1063,7 +1020,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   private processWeeklyReport(activities: SystemActivity[]) {
-    const weeklyActivities = activities.reduce((acc: any, activity) => {      const date = new Date(activity.timestamp);
+    const weeklyActivities = activities.reduce((acc: any, activity) => {
+      const date = new Date(activity.timestamp);
       const weekStart = new Date(date.setDate(date.getDate() - date.getDay())).toISOString().split('T')[0];
       if (!acc[weekStart]) {
         acc[weekStart] = {
@@ -1126,7 +1084,7 @@ export class DatabaseStorage implements IStorage {
     console.log("Generating detailed sales report for:", dateRange);
 
     const cacheKey = `sales_report:${dateRange.start.toISOString()}_${dateRange.end.toISOString()}_${page}`;
-    const cached = await this.cache.get(cacheKey);
+    const cached= await this.cache.get(cacheKey);
     if (cached) {
       console.log("Returning cached sales report");
       return JSON.parse(cached);
@@ -1575,13 +1533,17 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getReport(id: number): Promise<Report | undefined> {
-    const [report] = await db
-      .select()
-      .from(reports)
-      .where(eq(reports.id, id));
-
-    return report;
+  async getReport(id: number) {
+    try {
+      const [report] = await db
+        .select()
+        .from(reports)
+        .where(eq(reports.id, id));
+      return report;
+    } catch (error) {
+      console.error("Error fetching report:", error);
+      throw new Error("فشل في جلب التقرير");
+    }
   }
 
   async getUserReports(userId: number, type?: string) {
