@@ -1,13 +1,13 @@
-import express from "express";
-import fileUpload from "express-fileupload";
-import { createServer } from "vite";
-import cors from "cors";
-import cookieParser from "cookie-parser";
-import session from "express-session";
-import { registerRoutes } from "./routes";
-import path from "node:path";
-import bodyParser from "body-parser";
-import { runMigrations } from "./migration";
+import express from 'express';
+import fileUpload from 'express-fileupload';
+import { createServer } from 'vite';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import session from 'express-session';
+import { registerRoutes } from './routes';
+import path from 'node:path';
+import bodyParser from 'body-parser';
+import { runMigrations } from './migration';
 
 async function main() {
   const app = express();
@@ -16,9 +16,9 @@ async function main() {
   // تشغيل التهجير قبل بدء تشغيل التطبيق
   try {
     await runMigrations();
-    console.log("تم تهجير قاعدة البيانات بنجاح");
+    console.log('تم تهجير قاعدة البيانات بنجاح');
   } catch (error) {
-    console.error("خطأ في تهجير قاعدة البيانات:", error);
+    console.error('خطأ في تهجير قاعدة البيانات:', error);
     // استمر في تشغيل التطبيق حتى لو فشل التهجير
   }
 
@@ -31,7 +31,7 @@ async function main() {
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
   const sessionMiddleware = session({
-    secret: process.env.SESSION_SECRET || "my-secret",
+    secret: process.env.SESSION_SECRET || 'my-secret',
     resave: false,
     saveUninitialized: true,
     cookie: {
@@ -49,16 +49,16 @@ async function main() {
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   // In development, use Vite's development server
-  if (process.env.NODE_ENV !== "production") {
-    const viteDevMiddleware = await import("./vite").then(
-      (module) => module.createViteDevMiddleware(),
+  if (process.env.NODE_ENV !== 'production') {
+    const viteDevMiddleware = await import('./vite').then(module =>
+      module.createViteDevMiddleware()
     );
     app.use(viteDevMiddleware);
   } else {
     // In production, serve the built client files
-    app.use(express.static(path.join(process.cwd(), "dist", "client")));
-    app.get("*", (_req, res) => {
-      res.sendFile(path.join(process.cwd(), "dist", "client", "index.html"));
+    app.use(express.static(path.join(process.cwd(), 'dist', 'client')));
+    app.get('*', (_req, res) => {
+      res.sendFile(path.join(process.cwd(), 'dist', 'client', 'index.html'));
     });
   }
 
@@ -68,7 +68,7 @@ async function main() {
   });
 }
 
-main().catch((err) => {
+main().catch(err => {
   console.error(err);
   process.exit(1);
 });

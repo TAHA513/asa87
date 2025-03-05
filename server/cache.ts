@@ -1,5 +1,5 @@
 import { createClient } from '@neondatabase/serverless';
-import { db } from "./db";
+import { db } from './db';
 
 class CacheManager {
   private cache: Map<string, { value: string; expiry: number }>;
@@ -23,7 +23,7 @@ class CacheManager {
   async set(key: string, value: string, ttlSeconds: number): Promise<void> {
     this.cache.set(key, {
       value,
-      expiry: Date.now() + (ttlSeconds * 1000)
+      expiry: Date.now() + ttlSeconds * 1000,
     });
 
     // Clean up expired items periodically

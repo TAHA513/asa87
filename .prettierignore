@@ -1,0 +1,30 @@
+# Build output
+dist/
+build/
+.next/
+
+# Dependencies
+node_modules/
+
+# Cache
+.cache/
+.npm/
+
+# Environment variables
+.env
+.env.*
+
+# Logs
+*.log
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Generated files
+generated/

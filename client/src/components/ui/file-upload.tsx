@@ -1,7 +1,7 @@
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useState } from "react";
-import { Image } from "lucide-react";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useState } from 'react';
+import { Image } from 'lucide-react';
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
@@ -13,10 +13,10 @@ interface FileUploadProps {
 
 export function FileUpload({
   onFileSelect,
-  label = "اختر صورة",
-  accept = "image/*",
+  label = 'اختر صورة',
+  accept = 'image/*',
   maxSize = 5, // 5MB default
-  name = "image", // Default name for the file input
+  name = 'image', // Default name for the file input
 }: FileUploadProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -45,20 +45,16 @@ export function FileUpload({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col items-center justify-center w-full">
+      <div className="flex w-full flex-col items-center justify-center">
         <Label
           htmlFor="file-upload"
-          className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted/30 hover:bg-muted/50 transition-colors duration-200"
+          className="flex h-64 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed bg-muted/30 transition-colors duration-200 hover:bg-muted/50"
         >
           {preview ? (
-            <img
-              src={preview}
-              alt="معاينة"
-              className="w-full h-full object-contain rounded-lg"
-            />
+            <img src={preview} alt="معاينة" className="h-full w-full rounded-lg object-contain" />
           ) : (
-            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-              <Image className="w-12 h-12 mb-4 text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center pb-6 pt-5">
+              <Image className="mb-4 h-12 w-12 text-muted-foreground" />
               <p className="mb-2 text-sm text-muted-foreground">
                 <span className="font-semibold">اضغط للتحميل</span> أو اسحب وأفلت
               </p>

@@ -1,10 +1,10 @@
-import type { Express } from "express";
-import { createServer, type Server } from "http";
-import { setupAuth } from "./auth";
-import { storage } from "./storage";
-import { z } from "zod";
-import fs from "fs/promises";
-import path from "path";
+import type { Express } from 'express';
+import { createServer, type Server } from 'http';
+import { setupAuth } from './auth';
+import { storage } from './storage';
+import { z } from 'zod';
+import fs from 'fs/promises';
+import path from 'path';
 import {
   insertProductSchema,
   insertSaleSchema,
@@ -18,23 +18,35 @@ import {
   insertCustomerSchema,
   insertAppointmentSchema,
   type Customer,
-} from "@shared/schema";
+} from '@shared/schema';
 
 // Helper functions for platform stats
 function mockPlatformStats() {
   return {
     impressions: Math.floor(Math.random() * 10000),
     engagements: Math.floor(Math.random() * 1000),
-    spend: Math.floor(Math.random() * 500)
+    spend: Math.floor(Math.random() * 500),
   };
 }
 
-async function fetchFacebookStats() { return mockPlatformStats(); }
-async function fetchTwitterStats() { return mockPlatformStats(); }
-async function fetchInstagramStats() { return mockPlatformStats(); }
-async function fetchTikTokStats() { return mockPlatformStats(); }
-async function fetchSnapchatStats() { return mockPlatformStats(); }
-async function fetchLinkedInStats() { return mockPlatformStats(); }
+async function fetchFacebookStats() {
+  return mockPlatformStats();
+}
+async function fetchTwitterStats() {
+  return mockPlatformStats();
+}
+async function fetchInstagramStats() {
+  return mockPlatformStats();
+}
+async function fetchTikTokStats() {
+  return mockPlatformStats();
+}
+async function fetchSnapchatStats() {
+  return mockPlatformStats();
+}
+async function fetchLinkedInStats() {
+  return mockPlatformStats();
+}
 
 // Inventory check function
 async function checkInventoryLevels() {
@@ -45,7 +57,7 @@ async function checkInventoryLevels() {
     for (const product of products) {
       // Check low stock alerts
       const lowStockAlert = alerts.find(
-        a => a.productId === product.id && a.type === "low_stock" && a.status === "active"
+        a => a.productId === product.id && a.type === 'low_stock' && a.status === 'active'
       );
 
       if (lowStockAlert && product.stock <= lowStockAlert.threshold) {
@@ -57,11 +69,14 @@ async function checkInventoryLevels() {
 
       // Check inactive products (no sales in last 30 days)
       const inactiveAlert = alerts.find(
-        a => a.productId === product.id && a.type === "inactive" && a.status === "active"
+        a => a.productId === product.id && a.type === 'inactive' && a.status === 'active'
       );
 
       if (inactiveAlert) {
-        const sales = await storage.getProductSales(product.id, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+        const sales = await storage.getProductSales(
+          product.id,
+          new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+        );
         if (sales.length === 0) {
           await storage.createAlertNotification({
             alertId: inactiveAlert.id,
@@ -72,11 +87,14 @@ async function checkInventoryLevels() {
 
       // Check high demand products
       const highDemandAlert = alerts.find(
-        a => a.productId === product.id && a.type === "high_demand" && a.status === "active"
+        a => a.productId === product.id && a.type === 'high_demand' && a.status === 'active'
       );
 
       if (highDemandAlert) {
-        const sales = await storage.getProductSales(product.id, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
+        const sales = await storage.getProductSales(
+          product.id,
+          new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        );
         if (sales.length >= highDemandAlert.threshold) {
           await storage.createAlertNotification({
             alertId: highDemandAlert.id,
@@ -86,24 +104,24 @@ async function checkInventoryLevels() {
       }
     }
   } catch (error) {
-    console.error("Error checking inventory levels:", error);
+    console.error('Error checking inventory levels:', error);
   }
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  console.log("Starting to register routes...");
+  console.log('Starting to register routes...');
 
   setupAuth(app);
 
   // Products routes
-  app.get("/api/products", async (_req, res) => {
+  app.get('/api/products', async (_req, res) => {
     const products = await storage.getProducts();
     res.json(products);
   });
 
-  app.post("/api/products", async (req, res) => {
+  app.post('/api/products', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
@@ -114,10 +132,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.files && req.files.image) {
         const file = req.files.image;
         const fileName = `${Date.now()}-${file.name}`;
-        const filePath = path.join(process.cwd(), "uploads", fileName);
+        const filePath = path.join(process.cwd(), 'uploads', fileName);
 
         // Create uploads directory if it doesn't exist
-        await fs.mkdir(path.join(process.cwd(), "uploads"), { recursive: true });
+        await fs.mkdir(path.join(process.cwd(), 'uploads'), { recursive: true });
 
         // Save the file
         await fs.writeFile(filePath, file.data);
@@ -130,50 +148,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const product = await storage.createProduct({
         ...req.body,
         imageUrl,
-        thumbnailUrl
+        thumbnailUrl,
       });
 
       res.status(201).json(product);
     } catch (error) {
-      console.error("Error creating product:", error);
-      res.status(500).json({ message: "فشل في إنشاء المنتج" });
+      console.error('Error creating product:', error);
+      res.status(500).json({ message: 'فشل في إنشاء المنتج' });
     }
   });
 
-  app.patch("/api/products/:id", async (req, res) => {
+  app.patch('/api/products/:id', async (req, res) => {
     const product = await storage.updateProduct(Number(req.params.id), req.body);
     res.json(product);
   });
 
-  app.delete("/api/products/:id", async (req, res) => {
+  app.delete('/api/products/:id', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       await storage.deleteProduct(Number(req.params.id));
       res.json({ success: true });
     } catch (error) {
-      console.error("Error deleting product:", error);
-      res.status(500).json({ message: "فشل في حذف المنتج" });
+      console.error('Error deleting product:', error);
+      res.status(500).json({ message: 'فشل في حذف المنتج' });
     }
   });
 
-
   // Sales
-  app.get("/api/sales", async (_req, res) => {
+  app.get('/api/sales', async (_req, res) => {
     const sales = await storage.getSales();
     res.json(sales);
   });
 
-  app.post("/api/sales", async (req, res) => {
+  app.post('/api/sales', async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
       const sale = await storage.createSale({
         ...req.body,
         userId: req.user!.id,
-        date: new Date()
+        date: new Date(),
       });
 
       // Update product stock
@@ -181,166 +198,172 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (product) {
         await storage.updateProduct(product.id, {
           ...product,
-          stock: product.stock - sale.quantity
+          stock: product.stock - sale.quantity,
         });
       }
 
       res.status(201).json(sale);
     } catch (error) {
-      console.error("Error creating sale:", error);
-      res.status(500).json({ message: "فشل في إنشاء عملية البيع" });
+      console.error('Error creating sale:', error);
+      res.status(500).json({ message: 'فشل في إنشاء عملية البيع' });
     }
   });
 
-  // Exchange Rates  
-  app.get("/api/exchange-rate", async (_req, res) => {
+  // Exchange Rates
+  app.get('/api/exchange-rate', async (_req, res) => {
     try {
       const rate = await storage.getCurrentExchangeRate();
       res.json(rate);
     } catch (error) {
-      console.error("Error getting exchange rate:", error);
-      res.status(500).json({ message: "فشل في جلب سعر الصرف" });
+      console.error('Error getting exchange rate:', error);
+      res.status(500).json({ message: 'فشل في جلب سعر الصرف' });
     }
   });
 
-  app.post("/api/exchange-rate", async (req, res) => {
+  app.post('/api/exchange-rate', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول لتحديث سعر الصرف" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول لتحديث سعر الصرف' });
     }
 
     try {
-      console.log("Updating exchange rate with:", req.body);
+      console.log('Updating exchange rate with:', req.body);
       const rate = Number(req.body.usdToIqd);
       if (isNaN(rate) || rate <= 0) {
-        return res.status(400).json({ message: "سعر الصرف يجب أن يكون رقماً موجباً" });
+        return res.status(400).json({ message: 'سعر الصرف يجب أن يكون رقماً موجباً' });
       }
 
       const updatedRate = await storage.setExchangeRate(rate);
-      console.log("Exchange rate updated to:", updatedRate);
+      console.log('Exchange rate updated to:', updatedRate);
       res.status(201).json(updatedRate);
     } catch (error) {
-      console.error("Error updating exchange rate:", error);
-      res.status(500).json({ message: "فشل في تحديث سعر الصرف" });
+      console.error('Error updating exchange rate:', error);
+      res.status(500).json({ message: 'فشل في تحديث سعر الصرف' });
     }
   });
 
   // Theme Settings
-  app.post("/api/theme", async (req, res) => {
+  app.post('/api/theme', async (req, res) => {
     try {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
-        appearance: z.enum(["light", "dark", "system"]),
+        variant: z.enum([
+          'professional',
+          'vibrant',
+          'tint',
+          'modern',
+          'classic',
+          'futuristic',
+          'elegant',
+          'natural',
+        ]),
+        appearance: z.enum(['light', 'dark', 'system']),
         fontStyle: z.enum([
-          "traditional",
-          "modern",
-          "minimal",
-          "digital",
-          "elegant",
-          "kufi",
-          "naskh",
-          "ruqaa",
-          "thuluth",
-          "contemporary",
-          "noto-kufi", // نوتو كوفي
-          "cairo", // القاهرة
-          "tajawal", // طجوال
-          "amiri", // أميري
+          'traditional',
+          'modern',
+          'minimal',
+          'digital',
+          'elegant',
+          'kufi',
+          'naskh',
+          'ruqaa',
+          'thuluth',
+          'contemporary',
+          'noto-kufi', // نوتو كوفي
+          'cairo', // القاهرة
+          'tajawal', // طجوال
+          'amiri', // أميري
         ]),
         radius: z.number(),
-        fontSize: z.enum(["small", "medium", "large", "xlarge"]), //Added fontSize
+        fontSize: z.enum(['small', 'medium', 'large', 'xlarge']), //Added fontSize
       });
 
       const theme = themeSchema.parse(req.body);
 
       // حفظ الثيم في ملف theme.json
-      await fs.writeFile(
-        path.join(process.cwd(), "theme.json"),
-        JSON.stringify(theme, null, 2)
-      );
+      await fs.writeFile(path.join(process.cwd(), 'theme.json'), JSON.stringify(theme, null, 2));
 
       res.json({ success: true });
     } catch (error) {
-      console.error("Error updating theme:", error);
-      res.status(500).json({ message: "فشل في تحديث المظهر" });
+      console.error('Error updating theme:', error);
+      res.status(500).json({ message: 'فشل في تحديث المظهر' });
     }
   });
 
   // طرق التقسيط
-  app.get("/api/installments", async (_req, res) => {
+  app.get('/api/installments', async (_req, res) => {
     const installments = await storage.getInstallments();
     res.json(installments);
   });
 
-  app.get("/api/installments/:id", async (req, res) => {
+  app.get('/api/installments/:id', async (req, res) => {
     const installment = await storage.getInstallment(Number(req.params.id));
     if (!installment) {
-      return res.status(404).json({ message: "التقسيط غير موجود" });
+      return res.status(404).json({ message: 'التقسيط غير موجود' });
     }
     res.json(installment);
   });
 
-  app.post("/api/installments", async (req, res) => {
+  app.post('/api/installments', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const installment = await storage.createInstallment({
         ...req.body,
         startDate: new Date(),
-        status: "active"
+        status: 'active',
       });
 
       res.status(201).json(installment);
     } catch (error) {
-      console.error("Error creating installment:", error);
-      res.status(500).json({ message: "فشل في إنشاء التقسيط" });
+      console.error('Error creating installment:', error);
+      res.status(500).json({ message: 'فشل في إنشاء التقسيط' });
     }
   });
 
-  app.get("/api/installments/:id/payments", async (req, res) => {
+  app.get('/api/installments/:id/payments', async (req, res) => {
     const payments = await storage.getInstallmentPayments(Number(req.params.id));
     res.json(payments);
   });
 
-  app.post("/api/installments/:id/payments", async (req, res) => {
+  app.post('/api/installments/:id/payments', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const payment = await storage.createInstallmentPayment({
         ...req.body,
         installmentId: Number(req.params.id),
-        paymentDate: new Date()
+        paymentDate: new Date(),
       });
 
       res.status(201).json(payment);
     } catch (error) {
-      console.error("Error creating payment:", error);
-      res.status(500).json({ message: "فشل في إنشاء الدفعة" });
+      console.error('Error creating payment:', error);
+      res.status(500).json({ message: 'فشل في إنشاء الدفعة' });
     }
   });
 
   // Marketing Campaign Routes
-  app.get("/api/marketing/campaigns", async (_req, res) => {
+  app.get('/api/marketing/campaigns', async (_req, res) => {
     const campaigns = await storage.getCampaigns();
     res.json(campaigns);
   });
 
-  app.get("/api/marketing/campaigns/:id", async (req, res) => {
+  app.get('/api/marketing/campaigns/:id', async (req, res) => {
     const campaign = await storage.getCampaign(Number(req.params.id));
     if (!campaign) {
-      return res.status(404).json({ message: "الحملة غير موجودة" });
+      return res.status(404).json({ message: 'الحملة غير موجودة' });
     }
     res.json(campaign);
   });
 
-  app.post("/api/marketing/campaigns", async (req, res) => {
+  app.post('/api/marketing/campaigns', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
@@ -351,19 +374,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.status(201).json(campaign);
     } catch (error) {
-      console.error("Error creating campaign:", error);
-      res.status(500).json({ message: "فشل في إنشاء الحملة" });
+      console.error('Error creating campaign:', error);
+      res.status(500).json({ message: 'فشل في إنشاء الحملة' });
     }
   });
 
-  app.get("/api/marketing/campaigns/:id/analytics", async (req, res) => {
+  app.get('/api/marketing/campaigns/:id/analytics', async (req, res) => {
     const analytics = await storage.getCampaignAnalytics(Number(req.params.id));
     res.json(analytics);
   });
 
-  app.post("/api/marketing/campaigns/:id/analytics", async (req, res) => {
+  app.post('/api/marketing/campaigns/:id/analytics', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
@@ -374,66 +397,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.status(201).json(analytics);
     } catch (error) {
-      console.error("Error creating analytics:", error);
-      res.status(500).json({ message: "فشل في تسجيل التحليلات" });
+      console.error('Error creating analytics:', error);
+      res.status(500).json({ message: 'فشل في تسجيل التحليلات' });
     }
   });
 
   // Analytics Routes
-  app.get("/api/analytics/sales", async (req, res) => {
+  app.get('/api/analytics/sales', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const sales = await storage.getAnalyticsSales();
       res.json(sales);
     } catch (error) {
-      console.error("Error fetching sales analytics:", error);
-      res.status(500).json({ message: "فشل في جلب تحليلات المبيعات" });
+      console.error('Error fetching sales analytics:', error);
+      res.status(500).json({ message: 'فشل في جلب تحليلات المبيعات' });
     }
   });
 
-  app.get("/api/analytics/customers", async (req, res) => {
+  app.get('/api/analytics/customers', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const customers = await storage.getAnalyticsCustomers();
       res.json(customers);
     } catch (error) {
-      console.error("Error fetching customer analytics:", error);
-      res.status(500).json({ message: "فشل في جلب تحليلات العملاء" });
+      console.error('Error fetching customer analytics:', error);
+      res.status(500).json({ message: 'فشل في جلب تحليلات العملاء' });
     }
   });
 
-  app.get("/api/analytics/products", async (req, res) => {
+  app.get('/api/analytics/products', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const products = await storage.getAnalyticsProducts();
       res.json(products);
     } catch (error) {
-      console.error("Error fetching product analytics:", error);
-      res.status(500).json({ message: "فشل في جلب تحليلات المنتجات" });
+      console.error('Error fetching product analytics:', error);
+      res.status(500).json({ message: 'فشل في جلب تحليلات المنتجات' });
     }
   });
 
   // Social Media Auth Routes
-  app.get("/api/marketing/social-accounts", async (req, res) => {
+  app.get('/api/marketing/social-accounts', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
     const accounts = await storage.getSocialMediaAccounts(req.user!.id);
     res.json(accounts);
   });
 
-  app.get("/api/marketing/social-auth/:platform", async (req, res) => {
+  app.get('/api/marketing/social-auth/:platform', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     const { platform } = req.params;
@@ -448,7 +471,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         accessToken: `mock_token_${Date.now()}`,
         refreshToken: `mock_refresh_${Date.now()}`,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-        createdAt: new Date()
+        createdAt: new Date(),
       };
 
       await storage.createSocialMediaAccount(mockAccount);
@@ -470,28 +493,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       `);
     } catch (error) {
       console.error(`Error authenticating with ${platform}:`, error);
-      res.status(500).json({ message: "فشل في عملية المصادقة" });
+      res.status(500).json({ message: 'فشل في عملية المصادقة' });
     }
   });
 
-  app.delete("/api/marketing/social-accounts/:id", async (req, res) => {
+  app.delete('/api/marketing/social-accounts/:id', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       await storage.deleteSocialMediaAccount(Number(req.params.id));
       res.json({ success: true });
     } catch (error) {
-      console.error("Error deleting social account:", error);
-      res.status(500).json({ message: "فشل في إلغاء ربط الحساب" });
+      console.error('Error deleting social account:', error);
+      res.status(500).json({ message: 'فشل في إلغاء ربط الحساب' });
     }
   });
 
   // Get aggregated social media statistics from all connected platforms
-  app.get("/api/marketing/social-stats", async (req, res) => {
+  app.get('/api/marketing/social-stats', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
@@ -503,7 +526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({
           impressions: 0,
           engagement: 0,
-          spend: 0
+          spend: 0,
         });
       }
 
@@ -552,7 +575,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               clicks: platformStats.engagements,
               conversions: 0,
               spend: platformStats.spend, // Remove toString()
-              date: new Date()
+              date: new Date(),
             });
           }
         } catch (error) {
@@ -562,25 +585,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Calculate engagement rate
-      const engagement = totalImpressions > 0 ?
-        totalEngagements / totalImpressions : 0;
+      const engagement = totalImpressions > 0 ? totalEngagements / totalImpressions : 0;
 
       res.json({
         impressions: totalImpressions,
         engagement,
-        spend: totalSpend
+        spend: totalSpend,
       });
-
     } catch (error) {
-      console.error("Error fetching social media stats:", error);
-      res.status(500).json({ message: "فشل في جلب إحصائيات وسائل التواصل الاجتماعي" });
+      console.error('Error fetching social media stats:', error);
+      res.status(500).json({ message: 'فشل في جلب إحصائيات وسائل التواصل الاجتماعي' });
     }
   });
 
   // Get platform-specific statistics
-  app.get("/api/marketing/platform-stats", async (req, res) => {
+  app.get('/api/marketing/platform-stats', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
@@ -598,7 +619,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         instagram: '#E4405F',
         tiktok: '#000000',
         snapchat: '#FFFC00',
-        linkedin: '#0A66C2'
+        linkedin: '#0A66C2',
       };
 
       for (const account of accounts) {
@@ -633,7 +654,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               platform: account.platform,
               name: account.accountName,
               color: platformColors[account.platform as keyof typeof platformColors],
-              ...stats
+              ...stats,
             });
           }
         } catch (error) {
@@ -643,15 +664,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(platformStats);
     } catch (error) {
-      console.error("Error fetching platform stats:", error);
-      res.status(500).json({ message: "فشل في جلب إحصائيات المنصات" });
+      console.error('Error fetching platform stats:', error);
+      res.status(500).json({ message: 'فشل في جلب إحصائيات المنصات' });
     }
   });
 
   // Get historical analytics data
-  app.get("/api/marketing/historical-stats", async (req, res) => {
+  app.get('/api/marketing/historical-stats', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
@@ -695,7 +716,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             impressions: curr.impressions,
             engagements: curr.clicks,
             spend: Number(curr.spend),
-            [curr.platform]: curr.impressions
+            [curr.platform]: curr.impressions,
           });
         }
 
@@ -704,39 +725,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(dailyStats);
     } catch (error) {
-      console.error("Error fetching historical stats:", error);
-      res.status(500).json({ message: "فشل في جلب البيانات التاريخية" });
+      console.error('Error fetching historical stats:', error);
+      res.status(500).json({ message: 'فشل في جلب البيانات التاريخية' });
     }
   });
 
   // API Key routes
-  app.post("/api/settings/api-keys", async (req, res) => {
+  app.post('/api/settings/api-keys', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       // التحقق من صحة البيانات
       const apiKeysSchema = z.object({
         facebook: z.object({
-          appId: z.string().min(1, "App ID مطلوب"),
-          appSecret: z.string().min(1, "App Secret مطلوب"),
+          appId: z.string().min(1, 'App ID مطلوب'),
+          appSecret: z.string().min(1, 'App Secret مطلوب'),
         }),
         twitter: z.object({
-          apiKey: z.string().min(1, "API Key مطلوب"),
-          apiSecret: z.string().min(1, "API Secret مطلوب"),
+          apiKey: z.string().min(1, 'API Key مطلوب'),
+          apiSecret: z.string().min(1, 'API Secret مطلوب'),
         }),
         tiktok: z.object({
-          clientKey: z.string().min(1, "Client Key مطلوب"),
-          clientSecret: z.string().min(1, "Client Secret مطلوب"),
+          clientKey: z.string().min(1, 'Client Key مطلوب'),
+          clientSecret: z.string().min(1, 'Client Secret مطلوب'),
         }),
         snapchat: z.object({
-          clientId: z.string().min(1, "Client ID مطلوب"),
-          clientSecret: z.string().min(1, "Client Secret مطلوب"),
+          clientId: z.string().min(1, 'Client ID مطلوب'),
+          clientSecret: z.string().min(1, 'Client Secret مطلوب'),
         }),
         linkedin: z.object({
-          clientId: z.string().min(1, "Client ID مطلوب"),
-          clientSecret: z.string().min(1, "Client Secret مطلوب"),
+          clientId: z.string().min(1, 'Client ID مطلوب'),
+          clientSecret: z.string().min(1, 'Client Secret مطلوب'),
         }),
       });
 
@@ -747,105 +768,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ success: true });
     } catch (error) {
-      console.error("Error updating API keys:", error);
-      res.status(500).json({ message: "فشل في تحديث مفاتيح API" });
+      console.error('Error updating API keys:', error);
+      res.status(500).json({ message: 'فشل في تحديث مفاتيح API' });
     }
   });
 
-  app.get("/api/settings/api-keys", async (req, res) => {
+  app.get('/api/settings/api-keys', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const apiKeys = await storage.getApiKeys(req.user!.id);
       res.json(apiKeys);
     } catch (error) {
-      console.error("Error getting API keys:", error);
-      res.status(500).json({ message: "فشل في جلب مفاتيح API" });
+      console.error('Error getting API keys:', error);
+      res.status(500).json({ message: 'فشل في جلب مفاتيح API' });
     }
   });
 
-  app.post("/api/settings/api-keys/migrate", async (req, res) => {
+  app.post('/api/settings/api-keys/migrate', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       await storage.migrateLocalStorageToDb(req.user!.id, req.body);
       res.json({ success: true });
     } catch (error) {
-      console.error("Error migrating API keys:", error);
-      res.status(500).json({ message: "فشل في ترحيل مفاتيح API" });
+      console.error('Error migrating API keys:', error);
+      res.status(500).json({ message: 'فشل في ترحيل مفاتيح API' });
     }
   });
 
   // Inventory Transaction Routes
-  app.get("/api/inventory/transactions", async (req, res) => {
+  app.get('/api/inventory/transactions', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const transactions = await storage.getInventoryTransactions();
       res.json(transactions);
     } catch (error) {
-      console.error("Error fetching inventory transactions:", error);
-      res.status(500).json({ message: "فشل في جلب حركات المخزون" });
+      console.error('Error fetching inventory transactions:', error);
+      res.status(500).json({ message: 'فشل في جلب حركات المخزون' });
     }
   });
 
-  app.post("/api/inventory/transactions", async (req, res) => {
+  app.post('/api/inventory/transactions', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const transaction = await storage.createInventoryTransaction({
         ...req.body,
         userId: req.user!.id,
-        date: new Date()
+        date: new Date(),
       });
 
       // Update product stock
       const product = await storage.getProduct(transaction.productId);
       if (product) {
-        const stockChange = transaction.type === 'in' ? transaction.quantity : -transaction.quantity;
+        const stockChange =
+          transaction.type === 'in' ? transaction.quantity : -transaction.quantity;
         await storage.updateProduct(product.id, {
           ...product,
-          stock: product.stock + stockChange
+          stock: product.stock + stockChange,
         });
       }
 
       res.status(201).json(transaction);
     } catch (error) {
-      console.error("Error creating inventory transaction:", error);
-      res.status(500).json({ message: "فشل في إنشاء حركة المخزون" });
+      console.error('Error creating inventory transaction:', error);
+      res.status(500).json({ message: 'فشل في إنشاء حركة المخزون' });
     }
   });
 
   // Expense Categories Routes
-  app.get("/api/expenses/categories", async (req, res) => {
+  app.get('/api/expenses/categories', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const categories = await storage.getExpenseCategories(req.user!.id);
       res.json(categories);
     } catch (error) {
-      console.error("Error fetching expense categories:", error);
-      res.status(500).json({ message: "فشل في جلب فئات المصروفات" });
+      console.error('Error fetching expense categories:', error);
+      res.status(500).json({ message: 'فشل في جلب فئات المصروفات' });
     }
   });
 
-  app.post("/api/expenses/categories", async (req, res) => {
+  app.post('/api/expenses/categories', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
-      console.log("Received category data:", req.body); // للتأكد من البيانات المستلمة
+      console.log('Received category data:', req.body); // للتأكد من البيانات المستلمة
       const validatedData = insertExpenseCategorySchema.parse({
         name: req.body.name,
         description: req.body.description,
@@ -857,72 +879,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: req.user!.id,
       });
 
-      console.log("Created category:", category); // للتأكد من نجاح العملية
+      console.log('Created category:', category); // للتأكد من نجاح العملية
       res.status(201).json(category);
     } catch (error) {
-      console.error("Error creating expense category:", error);
+      console.error('Error creating expense category:', error);
       if (error instanceof Error) {
         res.status(400).json({ message: error.message });
       } else {
-        res.status(500).json({ message: "فشل في إنشاء فئة المصروفات" });
+        res.status(500).json({ message: 'فشل في إنشاء فئة المصروفات' });
       }
     }
   });
 
   // Expenses Routes
-  app.get("/api/expenses", async (req, res) => {
+  app.get('/api/expenses', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const expenses = await storage.getExpenses(req.user!.id);
       res.json(expenses);
     } catch (error) {
-      console.error("Error fetching expenses:", error);
-      res.status(500).json({ message: "فشل في جلب المصروفات" });
+      console.error('Error fetching expenses:', error);
+      res.status(500).json({ message: 'فشل في جلب المصروفات' });
     }
   });
 
-  app.post("/api/expenses", async (req, res) => {
+  app.post('/api/expenses', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const validatedData = insertExpenseSchema.parse(req.body);
       const expense = await storage.createExpense({
-        ...validatedData,        userId: req.user!.id,
+        ...validatedData,
+        userId: req.user!.id,
       });
       res.status(201).json(expense);
     } catch (error) {
-      console.error("Error creating expense:", error);
+      console.error('Error creating expense:', error);
       if (error instanceof Error) {
         res.status(400).json({ message: error.message });
       } else {
-        res.status(500).json({ message: "فشل في إنشاء المصروف" });
+        res.status(500).json({ message: 'فشل في إنشاء المصروف' });
       }
     }
   });
 
   // Suppliers Routes
-  app.get("/api/suppliers", async (req, res) => {
+  app.get('/api/suppliers', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const suppliers = await storage.getSuppliers(req.user!.id);
       res.json(suppliers);
     } catch (error) {
-      console.error("Error fetching suppliers:", error);
-      res.status(500).json({ message: "فشل في جلب قائمة الموردين" });
+      console.error('Error fetching suppliers:', error);
+      res.status(500).json({ message: 'فشل في جلب قائمة الموردين' });
     }
   });
 
-  app.post("/api/suppliers", async (req, res) => {
+  app.post('/api/suppliers', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
@@ -933,67 +956,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       res.status(201).json(supplier);
     } catch (error) {
-      console.error("Error creating supplier:", error);
+      console.error('Error creating supplier:', error);
       if (error instanceof Error) {
         res.status(400).json({ message: error.message });
       } else {
-        res.status(500).json({ message: "فشل في إنشاء المورد" });
+        res.status(500).json({ message: 'فشل في إنشاء المورد' });
       }
     }
   });
 
-  app.patch("/api/suppliers/:id", async (req, res) => {
+  app.patch('/api/suppliers/:id', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const supplier = await storage.getSupplier(Number(req.params.id));
       if (!supplier || supplier.userId !== req.user!.id) {
-        return res.status(404).json({ message: "المورد غير موجود" });
+        return res.status(404).json({ message: 'المورد غير موجود' });
       }
 
       const updatedSupplier = await storage.updateSupplier(supplier.id, req.body);
       res.json(updatedSupplier);
     } catch (error) {
-      console.error("Error updating supplier:", error);
-      res.status(500).json({ message: "فشل في تحديث المورد" });
+      console.error('Error updating supplier:', error);
+      res.status(500).json({ message: 'فشل في تحديث المورد' });
     }
   });
 
-  app.delete("/api/api/suppliers/:id", async (req, res)=> {
+  app.delete('/api/api/suppliers/:id', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجبتسجيل الدخول أولاً"});    }
+      return res.status(401).json({ message: 'يجبتسجيل الدخول أولاً' });
+    }
     try {
       const supplier = await storage.getSupplier(Number(req.params.id));
       if (!supplier || supplier.userId !== req.user!.id) {
-        return res.status(404).json({ message: "المورد غير موجود" });
+        return res.status(404).json({ message: 'المورد غير موجود' });
       }
       await storage.deleteSupplier(supplier.id);
       res.json({ success: true });
     } catch (error) {
-      console.error("Error deleting supplier:", error);
-      res.status(500).json({ message: "فشل في حذف المورد" });
+      console.error('Error deleting supplier:', error);
+      res.status(500).json({ message: 'فشل في حذف المورد' });
     }
   });
 
-  app.get("/api/suppliers/:id/transactions", async (req, res) => {
+  app.get('/api/suppliers/:id/transactions', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجبتسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجبتسجيل الدخول أولاً' });
     }
 
     try {
       const transactions = await storage.getSupplierTransactions(Number(req.params.id));
       res.json(transactions);
     } catch (error) {
-      console.error("Error fetching supplier transactions:", error);
-      res.status(500).json({ message: "فشل في جلب معاملات المورد" });
+      console.error('Error fetching supplier transactions:', error);
+      res.status(500).json({ message: 'فشل في جلب معاملات المورد' });
     }
   });
 
-  app.post("/api/suppliers/:id/transactions", async (req, res) => {
+  app.post('/api/suppliers/:id/transactions', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
@@ -1005,52 +1029,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       res.status(201).json(transaction);
     } catch (error) {
-      console.error("Error creating supplier transaction:", error);
+      console.error('Error creating supplier transaction:', error);
       if (error instanceof Error) {
         res.status(400).json({ message: error.message });
       } else {
-        res.status(500).json({ message: "فشل في إنشاء معاملة المورد" });
+        res.status(500).json({ message: 'فشل في إنشاء معاملة المورد' });
       }
     }
   });
 
   // Customer Routes
-  app.get("/api/customers", async (req, res) => {
+  app.get('/api/customers', async (req, res) => {
     try {
       const search = req.query.search as string;
       const customers = await storage.searchCustomers(search);
       res.json(customers);
     } catch (error) {
-      console.error("Error fetching customers:", error);
-      res.status(500).json({ message: "فشل في جلب قائمة العملاء" });
+      console.error('Error fetching customers:', error);
+      res.status(500).json({ message: 'فشل في جلب قائمة العملاء' });
     }
   });
 
-  app.get("/api/customers/:id", async (req, res) => {
+  app.get('/api/customers/:id', async (req, res) => {
     try {
       const customer = await storage.getCustomer(Number(req.params.id));
       if (!customer) {
-        return res.status(404).json({ message: "العميل غير موجود" });
+        return res.status(404).json({ message: 'العميل غير موجود' });
       }
-      res.json(customer);    } catch (error) {
-      console.error("Error fetching customer:", error);
-      res.status(500).json({ message: "فشل في جلب بيانات العميل" });
+      res.json(customer);
+    } catch (error) {
+      console.error('Error fetching customer:', error);
+      res.status(500).json({ message: 'فشل في جلب بيانات العميل' });
     }
   });
 
-  app.get("/api/customers/:id/sales", async (req, res) => {
+  app.get('/api/customers/:id/sales', async (req, res) => {
     try {
       const sales = await storage.getCustomerSales(Number(req.params.id));
       res.json(sales);
     } catch (error) {
-      console.error("Error fetching customer sales:", error);
-      res.status(500).json({ message: "فشل في جلب مشتريات العميل" });
+      console.error('Error fetching customer sales:', error);
+      res.status(500).json({ message: 'فشل في جلب مشتريات العميل' });
     }
   });
 
-  app.post("/api/customers", async (req, res) => {
+  app.post('/api/customers', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
@@ -1058,19 +1083,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const customer = await storage.createCustomer(validatedData);
       res.status(201).json(customer);
     } catch (error) {
-      console.error("Error creating customer:", error);
+      console.error('Error creating customer:', error);
       if (error instanceof Error) {
         res.status(400).json({ message: error.message });
       } else {
-        res.status(500).json({ message: "فشل في إنشاء العميل" });
+        res.status(500).json({ message: 'فشل في إنشاء العميل' });
       }
     }
   });
 
   // إضافة مسار حذف العميل
-  app.delete("/api/customers/:id", async (req, res) => {
+  app.delete('/api/customers/:id', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
@@ -1078,25 +1103,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteCustomer(customerId);
       res.json({ success: true });
     } catch (error) {
-      console.error("Error deleting customer:", error);
-      res.status(500).json({ message: "فشل في حذف العميل" });
+      console.error('Error deleting customer:', error);
+      res.status(500).json({ message: 'فشل في حذف العميل' });
     }
   });
 
   // Appointment Routes
-  app.get("/api/customers/:id/appointments", async (req, res) => {
+  app.get('/api/customers/:id/appointments', async (req, res) => {
     try {
       const appointments = await storage.getCustomerAppointments(Number(req.params.id));
       res.json(appointments);
     } catch (error) {
-      console.error("Error fetching customer appointments:", error);
-      res.status(500).json({ message: "فشل في جلب المواعيد" });
+      console.error('Error fetching customer appointments:', error);
+      res.status(500).json({ message: 'فشل في جلب المواعيد' });
     }
   });
 
-  app.post("/api/customers/:id/appointments", async (req, res) => {
+  app.post('/api/customers/:id/appointments', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
@@ -1107,166 +1132,163 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       res.status(201).json(appointment);
     } catch (error) {
-      console.error("Error creating appointment:", error);
+      console.error('Error creating appointment:', error);
       if (error instanceof Error) {
         res.status(400).json({ message: error.message });
       } else {
-        res.status(500).json({ message: "فشل في إنشاء الموعد" });
+        res.status(500).json({ message: 'فشل في إنشاء الموعد' });
       }
     }
   });
 
-  app.patch("/api/appointments/:id", async (req, res) => {
+  app.patch('/api/appointments/:id', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const oldAppointment = await storage.getAppointment(Number(req.params.id));
       if (!oldAppointment) {
-        return res.status(404).json({ message: "الموعد غير موجود" });
+        return res.status(404).json({ message: 'الموعد غير موجود' });
       }
 
-      const updatedAppointment = await storage.updateAppointment(
-        Number(req.params.id), 
-        {
-          ...req.body,
-          updatedAt: new Date()
-        }
-      );
+      const updatedAppointment = await storage.updateAppointment(Number(req.params.id), {
+        ...req.body,
+        updatedAt: new Date(),
+      });
 
       // Log the activity specifically for status changes
       if (req.body.status && oldAppointment.status !== req.body.status) {
         await storage.logSystemActivity({
           userId: req.user!.id,
-          activityType: "appointment_status_change",
-          entityType: "appointments",
+          activityType: 'appointment_status_change',
+          entityType: 'appointments',
           entityId: updatedAppointment.id,
-          action: "update",
+          action: 'update',
           details: {
             oldStatus: oldAppointment.status,
             newStatus: req.body.status,
             title: updatedAppointment.title,
-            date: updatedAppointment.date
-          }
+            date: updatedAppointment.date,
+          },
         });
-        console.log(`Logged activity for appointment ${updatedAppointment.id} status change from ${oldAppointment.status} to ${req.body.status}`);
+        console.log(
+          `Logged activity for appointment ${updatedAppointment.id} status change from ${oldAppointment.status} to ${req.body.status}`
+        );
       }
 
       res.json(updatedAppointment);
     } catch (error) {
-      console.error("Error updating appointment:", error);
-      res.status(500).json({ message: "فشل في تحديث الموعد" });
+      console.error('Error updating appointment:', error);
+      res.status(500).json({ message: 'فشل في تحديث الموعد' });
     }
   });
 
-  app.delete("/api/appointments/:id", async (req, res) => {
+  app.delete('/api/appointments/:id', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
-      console.log("Deleting appointment:", req.params.id);
+      console.log('Deleting appointment:', req.params.id);
       await storage.deleteAppointment(Number(req.params.id));
-      console.log("Successfully deleted appointment:", req.params.id);
+      console.log('Successfully deleted appointment:', req.params.id);
       res.json({ success: true });
     } catch (error) {
-      console.error("Error deleting appointment:", error);
-      res.status(500).json({ message: "فشل في حذف الموعد" });
+      console.error('Error deleting appointment:', error);
+      res.status(500).json({ message: 'فشل في حذف الموعد' });
     }
   });
 
   // Add after existing appointment routes
-  app.get("/api/appointments/:id/activities", async (req, res) => {
+  app.get('/api/appointments/:id/activities', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       console.log(`Fetching activities for appointment: ${req.params.id}`);
       const activities = await storage.getAppointmentActivities(Number(req.params.id));
-      console.log("Retrieved activities:", activities);
+      console.log('Retrieved activities:', activities);
       res.json(activities);
     } catch (error) {
-      console.error("Error fetching appointment activities:", error);
-      res.status(500).json({ message: "فشل في جلب سجل حركات الموعد" });
+      console.error('Error fetching appointment activities:', error);
+      res.status(500).json({ message: 'فشل في جلب سجل حركات الموعد' });
     }
   });
 
   // Add after existing appointment routes
-  app.get("/api/activities", async (req, res) => {
+  app.get('/api/activities', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
-      console.log("Fetching activities for entity type:", req.query.entityType);
+      console.log('Fetching activities for entity type:', req.query.entityType);
       const activities = await storage.getSystemActivities({
-        entityType: req.query.entityType as string
+        entityType: req.query.entityType as string,
       });
-      console.log("Retrieved activities:", activities);
+      console.log('Retrieved activities:', activities);
       res.json(activities);
     } catch (error) {
-      console.error("Error fetching activities:", error);
-      res.status(500).json({ message: "فشل في جلب سجل الحركات" });
+      console.error('Error fetching activities:', error);
+      res.status(500).json({ message: 'فشل في جلب سجل الحركات' });
     }
   });
 
   // File Storage Routes
-  app.post("/api/files", async (req, res) => {
+  app.post('/api/files', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
-      const file = await storage.saveFile({        ...req.body,
-        userId: req.user!.id,
-      });
+      const file = await storage.saveFile({ ...req.body, userId: req.user!.id });
       res.status(201).json(file);
     } catch (error) {
-      console.error("Error saving file:", error);
-      res.status(500).json({ message: "فشل في حفظ الملف" });
+      console.error('Error saving file:', error);
+      res.status(500).json({ message: 'فشل في حفظ الملف' });
     }
   });
 
-  app.get("/api/files/:id", async (req, res) => {
+  app.get('/api/files/:id', async (req, res) => {
     try {
       const file = await storage.getFileById(Number(req.params.id));
       if (!file) {
-        return res.status(404).json({ message: "الملف غير موجود" });
+        return res.status(404).json({ message: 'الملف غير موجود' });
       }
       res.json(file);
     } catch (error) {
-      console.error("Error fetching file:", error);
-      res.status(500).json({ message: "فشل في جلب الملف" });
+      console.error('Error fetching file:', error);
+      res.status(500).json({ message: 'فشل في جلب الملف' });
     }
   });
 
-  app.get("/api/files/user", async (req, res) => {
+  app.get('/api/files/user', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const files = await storage.getUserFiles(req.user!.id);
       res.json(files);
     } catch (error) {
-      console.error("Error fetching user files:", error);
-      res.status(500).json({ message: "فشل في جلب ملفات المستخدم" });
+      console.error('Error fetching user files:', error);
+      res.status(500).json({ message: 'فشل في جلب ملفات المستخدم' });
     }
   });
 
-  app.delete("/api/files/:id", async (req, res) => {
+  app.delete('/api/files/:id', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       await storage.deleteFile(Number(req.params.id));
       res.json({ success: true });
     } catch (error) {
-      console.error("Error deleting file:", error);
-      res.status(500).json({ message: "فشل في حذف الملف" });
+      console.error('Error deleting file:', error);
+      res.status(500).json({ message: 'فشل في حذف الملف' });
     }
   });
 
@@ -1274,71 +1296,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const themeSchema = z.object({
     primary: z.string(),
     variant: z.enum([
-      "modern", // العصري
-      "classic", // الكلاسيكي
-      "elegant", // الأنيق
-      "vibrant", // النابض بالحياة
-      "natural", // الطبيعي
+      'modern', // العصري
+      'classic', // الكلاسيكي
+      'elegant', // الأنيق
+      'vibrant', // النابض بالحياة
+      'natural', // الطبيعي
     ]),
-    appearance: z.enum(["light", "dark", "system"]),
+    appearance: z.enum(['light', 'dark', 'system']),
     fontStyle: z.enum([
-      "noto-kufi", // نوتو كوفي
-      "cairo", // القاهرة
-      "tajawal", // طجوال
-      "amiri", // أميري
+      'noto-kufi', // نوتو كوفي
+      'cairo', // القاهرة
+      'tajawal', // طجوال
+      'amiri', // أميري
     ]),
-    fontSize: z.enum(["small", "medium", "large", "xlarge"]),
+    fontSize: z.enum(['small', 'medium', 'large', 'xlarge']),
     radius: z.number(),
   });
 
-  app.get("/api/settings", async (req, res) => {
+  app.get('/api/settings', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const settings = await storage.getUserSettings((req.user as any).id);
-      res.json(settings || {
-        themeName: "modern",
-        fontName: "noto-kufi",
-        fontSize: "medium",
-        appearance: "system",
-        colors: {
-          primary: "#2563eb",
-          secondary: "#16a34a",
-          accent: "#db2777"
+      res.json(
+        settings || {
+          themeName: 'modern',
+          fontName: 'noto-kufi',
+          fontSize: 'medium',
+          appearance: 'system',
+          colors: {
+            primary: '#2563eb',
+            secondary: '#16a34a',
+            accent: '#db2777',
+          },
         }
-      });
+      );
     } catch (error) {
-      console.error("Error fetching user settings:", error);
-      res.status(500).json({ message: "فشل في جلب إعدادات المظهر" });
+      console.error('Error fetching user settings:', error);
+      res.status(500).json({ message: 'فشل في جلب إعدادات المظهر' });
     }
   });
 
-  app.post("/api/settings", async (req, res) => {
+  app.post('/api/settings', async (req, res) => {
     try {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
-        appearance: z.enum(["light", "dark", "system"]),
-        fontStyle: z.enum([
-          "traditional",
-          "modern",
-          "minimal",
-          "digital",
-          "elegant",
-          "kufi",
-          "naskh",
-          "ruqaa",
-          "thuluth",
-          "contemporary",
-          "noto-kufi",
-          "cairo",
-          "tajawal",
-          "amiri",
+        variant: z.enum([
+          'professional',
+          'vibrant',
+          'tint',
+          'modern',
+          'classic',
+          'futuristic',
+          'elegant',
+          'natural',
         ]),
-        fontSize: z.enum(["small", "medium", "large", "xlarge"]),
+        appearance: z.enum(['light', 'dark', 'system']),
+        fontStyle: z.enum([
+          'traditional',
+          'modern',
+          'minimal',
+          'digital',
+          'elegant',
+          'kufi',
+          'naskh',
+          'ruqaa',
+          'thuluth',
+          'contemporary',
+          'noto-kufi',
+          'cairo',
+          'tajawal',
+          'amiri',
+        ]),
+        fontSize: z.enum(['small', 'medium', 'large', 'xlarge']),
         radius: z.number(),
       });
 
@@ -1355,43 +1388,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
           primary: theme.primary,
           secondary: `color-mix(in srgb, ${theme.primary} 80%, ${theme.appearance === 'dark' ? 'white' : 'black'})`,
           accent: `color-mix(in srgb, ${theme.primary} 60%, ${theme.appearance === 'dark' ? 'black' : 'white'})`,
-        }
+        },
       };
 
       // حفظ الإعدادات في قاعدة البيانات
       await storage.saveUserSettings(userSettings);
 
       // حفظ الثيم في ملف theme.json
-      await fs.writeFile(
-        path.join(process.cwd(), "theme.json"),
-        JSON.stringify(theme, null, 2)
-      );
+      await fs.writeFile(path.join(process.cwd(), 'theme.json'), JSON.stringify(theme, null, 2));
 
       res.json({ success: true });
     } catch (error) {
-      console.error("Error updating theme:", error);
-      res.status(500).json({ message: "فشل في حفظ إعدادات المظهر" });
+      console.error('Error updating theme:', error);
+      res.status(500).json({ message: 'فشل في حفظ إعدادات المظهر' });
     }
   });
 
   // Inventory Alerts Routes
-  app.get("/api/inventory/alerts", async (req, res) => {
+  app.get('/api/inventory/alerts', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const alerts = await storage.getInventoryAlerts();
       res.json(alerts);
     } catch (error) {
-      console.error("Error fetching inventory alerts:", error);
-      res.status(500).json({ message: "فشل في جلب التنبيهات" });
+      console.error('Error fetching inventory alerts:', error);
+      res.status(500).json({ message: 'فشل في جلب التنبيهات' });
     }
   });
 
-  app.post("/api/inventory/alerts", async (req, res) => {
+  app.post('/api/inventory/alerts', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
@@ -1399,178 +1429,177 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const alert = await storage.createInventoryAlert(validatedData);
       res.status(201).json(alert);
     } catch (error) {
-      console.error("Error creating inventory alert:", error);
+      console.error('Error creating inventory alert:', error);
       if (error instanceof z.ZodError) {
-        res.status(400).json({ message: "بيانات غير صالحة", errors: error.errors });
+        res.status(400).json({ message: 'بيانات غير صالحة', errors: error.errors });
       } else {
-        res.status(500).json({ message: "فشل في إنشاء التنبيه" });
+        res.status(500).json({ message: 'فشل في إنشاء التنبيه' });
       }
     }
   });
 
-  app.patch("/api/inventory/alerts/:id", async (req, res) => {
+  app.patch('/api/inventory/alerts/:id', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const alert = await storage.updateInventoryAlert(Number(req.params.id), req.body);
       res.json(alert);
     } catch (error) {
-      console.error("Error updating inventory alert:", error);
-      res.status(500).json({ message: "فشل في تحديث التنبيه" });
+      console.error('Error updating inventory alert:', error);
+      res.status(500).json({ message: 'فشل في تحديث التنبيه' });
     }
   });
 
-  app.delete("/api/inventory/alerts/:id", async (req, res) => {
+  app.delete('/api/inventory/alerts/:id', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       await storage.deleteInventoryAlert(Number(req.params.id));
       res.json({ success: true });
     } catch (error) {
-      console.error("Error deleting inventory alert:", error);
-      res.status(500).json({ message: "فشل في حذف التنبيه" });
+      console.error('Error deleting inventory alert:', error);
+      res.status(500).json({ message: 'فشل في حذف التنبيه' });
     }
   });
 
-  app.get("/api/inventory/notifications", async (req, res) => {
+  app.get('/api/inventory/notifications', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const notifications = await storage.getAlertNotifications();
       res.json(notifications);
     } catch (error) {
-      console.error("Error fetching alert notifications:", error);
-      res.status(500).json({ message: "فشل في جلب الإشعارات" });
+      console.error('Error fetching alert notifications:', error);
+      res.status(500).json({ message: 'فشل في جلب الإشعارات' });
     }
   });
 
-  app.patch("/api/inventory/notifications/:id/read", async (req, res) => {
+  app.patch('/api/inventory/notifications/:id/read', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const notification = await storage.markNotificationAsRead(Number(req.params.id));
       res.json(notification);
     } catch (error) {
-      console.error("Error marking notification as read:", error);
-      res.status(500).json({ message: "فشل في تحديث حالة الإشعار" });
+      console.error('Error marking notification as read:', error);
+      res.status(500).json({ message: 'فشل في تحديث حالة الإشعار' });
     }
   });
 
   // إضافة مسارات جديدة للمواعيد بعد مسارات العملاء
-  app.get("/api/appointments", async (req, res) => {
+  app.get('/api/appointments', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
-      console.log("Fetching appointments...");
+      console.log('Fetching appointments...');
       const appointments = await storage.getAppointments(); // Changed from getCustomerAppointments
-      console.log("Fetched appointments:", appointments);
+      console.log('Fetched appointments:', appointments);
       res.json(appointments);
     } catch (error) {
-      console.error("Error fetching appointments:", error);
-      res.status(500).json({ message: "فشل في جلب المواعيد" });
+      console.error('Error fetching appointments:', error);
+      res.status(500).json({ message: 'فشل في جلب المواعيد' });
     }
   });
 
-  app.post("/api/appointments", async (req, res) => {
+  app.post('/api/appointments', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
-      console.log("Creating appointment with data:", req.body);
+      console.log('Creating appointment with data:', req.body);
       const validatedData = insertAppointmentSchema.parse({
         ...req.body,
-        status: 'scheduled'
+        status: 'scheduled',
       });
 
-      console.log("Validated appointment data:", validatedData);
+      console.log('Validated appointment data:', validatedData);
       const appointment = await storage.createAppointment(validatedData);
-      console.log("Created appointment:", appointment);
+      console.log('Created appointment:', appointment);
       res.status(201).json(appointment);
     } catch (error) {
-      console.error("Error creating appointment:", error);
+      console.error('Error creating appointment:', error);
       if (error instanceof Error) {
         res.status(400).json({ message: error.message });
       } else {
-        res.status(500).json({ message: "فشل في إنشاء الموعد" });
+        res.status(500).json({ message: 'فشل في إنشاء الموعد' });
       }
     }
   });
 
-  app.patch("/api/appointments/:id", async (req, res) => {
+  app.patch('/api/appointments/:id', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const oldAppointment = await storage.getAppointment(Number(req.params.id));
       if (!oldAppointment) {
-        return res.status(404).json({ message: "الموعد غير موجود" });
+        return res.status(404).json({ message: 'الموعد غير موجود' });
       }
 
-      const updatedAppointment = await storage.updateAppointment(
-        Number(req.params.id), 
-        {
-          ...req.body,
-          updatedAt: new Date()
-        }
-      );
+      const updatedAppointment = await storage.updateAppointment(Number(req.params.id), {
+        ...req.body,
+        updatedAt: new Date(),
+      });
 
       // Log the activity specifically for status changes
       if (req.body.status && oldAppointment.status !== req.body.status) {
         await storage.logSystemActivity({
           userId: req.user!.id,
-          activityType: "appointment_status_change",
-          entityType: "appointments",
+          activityType: 'appointment_status_change',
+          entityType: 'appointments',
           entityId: updatedAppointment.id,
-          action: "update",
+          action: 'update',
           details: {
             oldStatus: oldAppointment.status,
             newStatus: req.body.status,
             title: updatedAppointment.title,
-            date: updatedAppointment.date
-          }
+            date: updatedAppointment.date,
+          },
         });
-        console.log(`Logged activity for appointment ${updatedAppointment.id} status change from ${oldAppointment.status} to ${req.body.status}`);
+        console.log(
+          `Logged activity for appointment ${updatedAppointment.id} status change from ${oldAppointment.status} to ${req.body.status}`
+        );
       }
 
       res.json(updatedAppointment);
     } catch (error) {
-      console.error("Error updating appointment:", error);
-      res.status(500).json({ message: "فشل في تحديث الموعد" });
+      console.error('Error updating appointment:', error);
+      res.status(500).json({ message: 'فشل في تحديث الموعد' });
     }
   });
 
-  app.delete("/api/appointments/:id", async (req, res) => {
+  app.delete('/api/appointments/:id', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
-      console.log("Deleting appointment:", req.params.id);
+      console.log('Deleting appointment:', req.params.id);
       await storage.deleteAppointment(Number(req.params.id));
-      console.log("Successfully deleted appointment:", req.params.id);
+      console.log('Successfully deleted appointment:', req.params.id);
       res.json({ success: true });
     } catch (error) {
-      console.error("Error deleting appointment:", error);
-      res.status(500).json({ message: "فشل في حذف الموعد" });
+      console.error('Error deleting appointment:', error);
+      res.status(500).json({ message: 'فشل في حذف الموعد' });
     }
   });
 
   // Add after existing report routes
-  app.post("/api/reports/activities", async (req, res) => {
+  app.post('/api/reports/activities', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
@@ -1581,198 +1610,203 @@ export async function registerRoutes(app: Express): Promise<Server> {
         description: `تقرير تفصيلي للنشاطات من ${new Date(startDate).toLocaleDateString('ar-IQ')} إلى ${new Date(endDate).toLocaleDateString('ar-IQ')}`,
         dateRange: {
           startDate: new Date(startDate),
-          endDate: new Date(endDate)
+          endDate: new Date(endDate),
         },
         reportType: type,
         filters,
         generatedBy: req.user!.id,
-        data: {}
+        data: {},
       });
 
       res.json(report);
     } catch (error) {
-      console.error("Error generating activity report:", error);
-      res.status(500).json({ message: "فشل في إنشاء التقرير" });
+      console.error('Error generating activity report:', error);
+      res.status(500).json({ message: 'فشل في إنشاء التقرير' });
     }
   });
 
-  app.get("/api/reports/activities/:id", async (req, res) => {
+  app.get('/api/reports/activities/:id', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const report = await storage.getActivityReport(Number(req.params.id));
       if (!report) {
-        return res.status(404).json({ message: "التقرير غير موجود" });
+        return res.status(404).json({ message: 'التقرير غير موجود' });
       }
       res.json(report);
     } catch (error) {
-      console.error("Error fetching activity report:", error);
-      res.status(500).json({ message: "فشل في جلب التقرير" });
+      console.error('Error fetching activity report:', error);
+      res.status(500).json({ message: 'فشل في جلب التقرير' });
     }
   });
 
   // Add detailed reports endpoints
-  app.get("/api/reports/sales", async (req, res) => {
+  app.get('/api/reports/sales', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
-      const { startDate, endDate, page = "1", pageSize = "50" } = req.query;
-      const report = await storage.getDetailedSalesReport({
-        start: new Date(startDate as string),
-        end: new Date(endDate as string)
-      },
+      const { startDate, endDate, page = '1', pageSize = '50' } = req.query;
+      const report = await storage.getDetailedSalesReport(
+        {
+          start: new Date(startDate as string),
+          end: new Date(endDate as string),
+        },
         req.user!.id,
         Number(page),
         Number(pageSize)
       );
       res.json(report);
     } catch (error) {
-      console.error("Error generating sales report:", error);
-      res.status(500).json({ message: "فشل في إنشاء تقرير المبيعات" });
+      console.error('Error generating sales report:', error);
+      res.status(500).json({ message: 'فشل في إنشاء تقرير المبيعات' });
     }
   });
 
-  app.get("/api/reports/inventory", async (req, res) => {
+  app.get('/api/reports/inventory', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const { startDate, endDate } = req.query;
       const report = await storage.getInventoryReport({
         start: new Date(startDate as string),
-        end: new Date(endDate as string)
+        end: new Date(endDate as string),
       });
       res.json(report);
     } catch (error) {
-      console.error("Error generating inventory report:", error);
-      res.status(500).json({ message: "فشل في إنشاء تقرير المخزون" });
+      console.error('Error generating inventory report:', error);
+      res.status(500).json({ message: 'فشل في إنشاء تقرير المخزون' });
     }
   });
 
-  app.get("/api/reports/financial", async (req, res) => {
+  app.get('/api/reports/financial', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const { startDate, endDate } = req.query;
       const report = await storage.getFinancialReport({
         start: new Date(startDate as string),
-        end: new Date(endDate as string)
+        end: new Date(endDate as string),
       });
       res.json(report);
     } catch (error) {
-      console.error("Error generating financial report:", error);
-      res.status(500).json({ message: "فشل في إنشاء التقرير المالي" });
+      console.error('Error generating financial report:', error);
+      res.status(500).json({ message: 'فشل في إنشاء التقرير المالي' });
     }
   });
 
-  app.get("/api/reports/user-activity", async (req, res) => {
+  app.get('/api/reports/user-activity', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const { startDate, endDate } = req.query;
       const report = await storage.getUserActivityReport({
         start: new Date(startDate as string),
-        end: new Date(endDate as string)
+        end: new Date(endDate as string),
       });
       res.json(report);
     } catch (error) {
-      console.error("Error generating user activity report:", error);
-      res.status(500).json({ message: "فشل في إنشاء تقرير نشاط المستخدمين" });
+      console.error('Error generating user activity report:', error);
+      res.status(500).json({ message: 'فشل في إنشاء تقرير نشاط المستخدمين' });
     }
   });
   // Add after existing report routes
-  app.get("/api/reports", async (req, res) => {
+  app.get('/api/reports', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const reports = await storage.getUserReports(req.user!.id, req.query.type as string);
       res.json(reports);
     } catch (error) {
-      console.error("Error fetching reports:", error);
-      res.status(500).json({ message: "فشل في جلب التقارير" });
+      console.error('Error fetching reports:', error);
+      res.status(500).json({ message: 'فشل في جلب التقارير' });
     }
   });
 
-  app.get("/api/reports/:id", async (req, res) => {
+  app.get('/api/reports/:id', async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       console.log(`Fetching report with ID: ${req.params.id}`);
       const report = await storage.getReport(Number(req.params.id));
-      
+
       if (!report) {
         console.log(`Report with ID ${req.params.id} not found`);
-        return res.status(404).json({ message: "التقرير غير موجود" });
+        return res.status(404).json({ message: 'التقرير غير موجود' });
       }
-      
+
       if (report.userId !== req.user!.id) {
-        console.log(`User ${req.user!.id} not authorized to access report ${req.params.id} owned by ${report.userId}`);
-        return res.status(403).json({ message: "غير مصرح بالوصول لهذا التقرير" });
+        console.log(
+          `User ${req.user!.id} not authorized to access report ${req.params.id} owned by ${report.userId}`
+        );
+        return res.status(403).json({ message: 'غير مصرح بالوصول لهذا التقرير' });
       }
-      
+
       console.log(`Successfully retrieved report ${req.params.id}`);
       res.json(report);
     } catch (error) {
-      console.error("Error fetching report:", error);
-      res.status(500).json({ message: "فشل في جلب التقرير" });
+      console.error('Error fetching report:', error);
+      res.status(500).json({ message: 'فشل في جلب التقرير' });
     }
   });
 
   // Add appointment reports endpoint
-  app.get("/api/reports/appointments", async (req, res) => {
-    console.log("Received appointments report request");
+  app.get('/api/reports/appointments', async (req, res) => {
+    console.log('Received appointments report request');
 
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: 'يجب تسجيل الدخول أولاً' });
     }
 
     try {
       const { startDate, endDate } = req.query;
 
       if (!startDate || !endDate) {
-        console.log("Missing date parameters:", { startDate, endDate });
-        return res.status(400).json({ 
-          message: "يجب تحديد تاريخ البداية والنهاية" 
+        console.log('Missing date parameters:', { startDate, endDate });
+        return res.status(400).json({
+          message: 'يجب تحديد تاريخ البداية والنهاية',
         });
       }
 
-      console.log("Generating report for date range:", { startDate, endDate });
+      console.log('Generating report for date range:', { startDate, endDate });
 
-      const report = await storage.getAppointmentsReport({
-        start: new Date(startDate as string),
-        end: new Date(endDate as string)
-      }, req.user!.id);
+      const report = await storage.getAppointmentsReport(
+        {
+          start: new Date(startDate as string),
+          end: new Date(endDate as string),
+        },
+        req.user!.id
+      );
 
-      console.log("Report generated successfully, size:", JSON.stringify(report).length);      res.json(report);
-
+      console.log('Report generated successfully, size:', JSON.stringify(report).length);
+      res.json(report);
     } catch (error) {
-      console.error("Error in appointments report endpoint:", error);
-      res.status(500).json({ 
-        message: "فشل في إنشاء تقرير المواعيد",
-        error: error instanceof Error ? error.message : "خطأ غير معروف"
+      console.error('Error in appointments report endpoint:', error);
+      res.status(500).json({
+        message: 'فشل في إنشاء تقرير المواعيد',
+        error: error instanceof Error ? error.message : 'خطأ غير معروف',
       });
     }
   });
-
 
   const httpServer = createServer(app);
 
   // Start inventory check timer
   setInterval(checkInventoryLevels, 60 * 60 * 1000);
 
-  console.log("All routes registered successfully");
+  console.log('All routes registered successfully');
   return httpServer;
 }

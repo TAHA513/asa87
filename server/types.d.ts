@@ -4,7 +4,7 @@ declare global {
       id: number;
       username: string;
       password: string;
-      role: "admin" | "staff";
+      role: 'admin' | 'staff';
       permissions: string[];
       createdAt?: Date;
     }

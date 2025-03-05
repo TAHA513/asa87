@@ -1,30 +1,25 @@
-import { useState, useRef } from "react";
-import { useAuth } from "@/hooks/use-auth";
-import Sidebar from "@/components/layout/sidebar";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useState, useRef } from 'react';
+import { useAuth } from '@/hooks/use-auth';
+import Sidebar from '@/components/layout/sidebar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Loader2, Printer, QrCode, Plus, Trash2 } from "lucide-react";
+} from '@/components/ui/select';
+import { Loader2, Printer, QrCode, Plus, Trash2 } from 'lucide-react';
 import { useReactToPrint } from 'react-to-print';
 import JsBarcode from 'jsbarcode';
 
 const BARCODE_TYPES = [
-  { value: "CODE128", label: "Code 128" },
-  { value: "EAN13", label: "EAN-13" },
-  { value: "UPC", label: "UPC" },
-  { value: "CODE39", label: "Code 39" },
+  { value: 'CODE128', label: 'Code 128' },
+  { value: 'EAN13', label: 'EAN-13' },
+  { value: 'UPC', label: 'UPC' },
+  { value: 'CODE39', label: 'Code 39' },
 ];
 
 interface BarcodeItem {
@@ -44,7 +39,7 @@ export default function BarcodesPage() {
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
     onBeforeGetContent: () => {
-      return new Promise((resolve) => {
+      return new Promise(resolve => {
         generateBarcodes();
         resolve();
       });
@@ -76,8 +71,8 @@ export default function BarcodesPage() {
   const addBarcodeItem = () => {
     const newBarcode: BarcodeItem = {
       id: Date.now().toString(),
-      text: "",
-      type: "CODE128",
+      text: '',
+      type: 'CODE128',
       quantity: 1,
     };
     setBarcodes([...barcodes, newBarcode]);
@@ -88,7 +83,7 @@ export default function BarcodesPage() {
   };
 
   const updateBarcodeItem = (id: string, updates: Partial<BarcodeItem>) => {
-    setBarcodes(barcodes.map(b => b.id === id ? { ...b, ...updates } : b));
+    setBarcodes(barcodes.map(b => (b.id === id ? { ...b, ...updates } : b)));
   };
 
   const generateBarcodes = () => {
@@ -103,7 +98,7 @@ export default function BarcodesPage() {
               width: 2,
               height: 80,
               displayValue: true,
-              font: "monospace",
+              font: 'monospace',
               fontSize: 14,
               margin: 10,
             });
@@ -111,23 +106,21 @@ export default function BarcodesPage() {
         });
       });
     } catch (error) {
-      console.error("خطأ في إنشاء الباركود:", error);
+      console.error('خطأ في إنشاء الباركود:', error);
     }
     setIsGenerating(false);
   };
 
   return (
     <div className="flex h-screen">
-      <div className="w-64 h-full">
+      <div className="h-full w-64">
         <Sidebar />
       </div>
       <main className="flex-1 p-8">
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="mx-auto max-w-4xl space-y-6">
           <div>
             <h2 className="text-3xl font-bold">إنشاء الباركود</h2>
-            <p className="text-muted-foreground">
-              إنشاء وطباعة الباركود للمنتجات والعناصر
-            </p>
+            <p className="text-muted-foreground">إنشاء وطباعة الباركود للمنتجات والعناصر</p>
           </div>
 
           <Card>
@@ -136,24 +129,27 @@ export default function BarcodesPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Button onClick={addBarcodeItem}>
-                <Plus className="h-4 w-4 ml-2" />
+                <Plus className="ml-2 h-4 w-4" />
                 إضافة باركود جديد
               </Button>
 
               <div className="space-y-4">
-                {barcodes.map((barcode) => (
-                  <div key={barcode.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg">
+                {barcodes.map(barcode => (
+                  <div
+                    key={barcode.id}
+                    className="grid grid-cols-1 gap-4 rounded-lg border p-4 md:grid-cols-4"
+                  >
                     <div>
                       <label className="text-sm font-medium">نوع الباركود</label>
                       <Select
                         value={barcode.type}
-                        onValueChange={(value) => updateBarcodeItem(barcode.id, { type: value })}
+                        onValueChange={value => updateBarcodeItem(barcode.id, { type: value })}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="اختر نوع الباركود" />
                         </SelectTrigger>
                         <SelectContent>
-                          {BARCODE_TYPES.map((type) => (
+                          {BARCODE_TYPES.map(type => (
                             <SelectItem key={type.value} value={type.value}>
                               {type.label}
                             </SelectItem>
@@ -166,7 +162,7 @@ export default function BarcodesPage() {
                       <label className="text-sm font-medium">النص</label>
                       <Input
                         value={barcode.text}
-                        onChange={(e) => updateBarcodeItem(barcode.id, { text: e.target.value })}
+                        onChange={e => updateBarcodeItem(barcode.id, { text: e.target.value })}
                         placeholder="أدخل النص أو الرقم"
                         dir="ltr"
                       />
@@ -179,7 +175,9 @@ export default function BarcodesPage() {
                         min="1"
                         max="100"
                         value={barcode.quantity}
-                        onChange={(e) => updateBarcodeItem(barcode.id, { quantity: Number(e.target.value) })}
+                        onChange={e =>
+                          updateBarcodeItem(barcode.id, { quantity: Number(e.target.value) })
+                        }
                         placeholder="عدد النسخ المطلوبة"
                       />
                     </div>
@@ -198,31 +196,37 @@ export default function BarcodesPage() {
               </div>
 
               <div className="flex gap-2">
-                <Button 
-                  onClick={generateBarcodes} 
+                <Button
+                  onClick={generateBarcodes}
                   disabled={barcodes.length === 0 || isGenerating || !barcodes.some(b => b.text)}
                 >
-                  {isGenerating && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
-                  <QrCode className="h-4 w-4 ml-2" />
+                  {isGenerating && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                  <QrCode className="ml-2 h-4 w-4" />
                   إنشاء الباركود
                 </Button>
-                <Button variant="outline" onClick={() => {
-                  generateBarcodes();
-                  setTimeout(handlePrint, 100);
-                }}>
-                  <Printer className="h-4 w-4 ml-2" />
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    generateBarcodes();
+                    setTimeout(handlePrint, 100);
+                  }}
+                >
+                  <Printer className="ml-2 h-4 w-4" />
                   طباعة
                 </Button>
               </div>
 
-              <div ref={printRef} className="mt-6 p-4 border rounded-lg">
-                {barcodes.map((barcode) => (
+              <div ref={printRef} className="mt-6 rounded-lg border p-4">
+                {barcodes.map(barcode => (
                   <div key={barcode.id} className="mb-6">
-                    <div className="print-grid grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="print-grid grid grid-cols-2 gap-4 md:grid-cols-3">
                       {Array.from({ length: barcode.quantity }).map((_, index) => (
-                        <div key={index} className="print-item border p-2 rounded print:border-none">
+                        <div
+                          key={index}
+                          className="print-item rounded border p-2 print:border-none"
+                        >
                           <svg
-                            ref={(el) => {
+                            ref={el => {
                               if (!barcodeRefs.current[barcode.id]) {
                                 barcodeRefs.current[barcode.id] = [];
                               }

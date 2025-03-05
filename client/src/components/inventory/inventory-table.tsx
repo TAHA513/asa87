@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { Package, Plus, Trash2 } from "lucide-react";
+import { useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { Package, Plus, Trash2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -8,18 +8,18 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+} from '@/components/ui/dialog';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Form,
   FormControl,
@@ -27,23 +27,23 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { useToast } from "@/hooks/use-toast";
-import type { Product, ExchangeRate } from "@shared/schema";
-import { insertProductSchema } from "@shared/schema";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+} from '@/components/ui/form';
+import { useToast } from '@/hooks/use-toast';
+import type { Product, ExchangeRate } from '@shared/schema';
+import { insertProductSchema } from '@shared/schema';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 
 export default function InventoryTable() {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: products = [] } = useQuery<Product[]>({
-    queryKey: ["/api/products"],
+    queryKey: ['/api/products'],
   });
 
   const { data: exchangeRate } = useQuery<ExchangeRate>({
-    queryKey: ["/api/exchange-rate"],
+    queryKey: ['/api/exchange-rate'],
     staleTime: 0,
     refetchInterval: 5000,
   });
@@ -51,74 +51,75 @@ export default function InventoryTable() {
   const form = useForm({
     resolver: zodResolver(insertProductSchema),
     defaultValues: {
-      name: "",
-      description: "",
-      priceIqd: "",
+      name: '',
+      description: '',
+      priceIqd: '',
       stock: 0,
-      productCode: "",
-      barcode: "",
+      productCode: '',
+      barcode: '',
     },
   });
 
   // إضافة mutation للحذف
   const deleteMutation = useMutation({
     mutationFn: async (productId: number) => {
-      await apiRequest("DELETE", `/api/products/${productId}`);
+      await apiRequest('DELETE', `/api/products/${productId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
       toast({
-        title: "تم الحذف بنجاح",
-        description: "تم حذف المنتج بنجاح",
+        title: 'تم الحذف بنجاح',
+        description: 'تم حذف المنتج بنجاح',
       });
     },
-    onError: (error) => {
+    onError: error => {
       toast({
-        title: "خطأ",
-        description: "فشل في حذف المنتج",
-        variant: "destructive",
+        title: 'خطأ',
+        description: 'فشل في حذف المنتج',
+        variant: 'destructive',
       });
     },
   });
 
-  const watchPriceIqd = form.watch("priceIqd");
-  const priceUsd = exchangeRate && watchPriceIqd ? Number(watchPriceIqd) / Number(exchangeRate.usdToIqd) : 0;
+  const watchPriceIqd = form.watch('priceIqd');
+  const priceUsd =
+    exchangeRate && watchPriceIqd ? Number(watchPriceIqd) / Number(exchangeRate.usdToIqd) : 0;
 
-  const filteredProducts = products.filter((product) =>
+  const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(search.toLowerCase())
   );
 
   async function onSubmit(data: any) {
     try {
-      await apiRequest("POST", "/api/products", {
+      await apiRequest('POST', '/api/products', {
         name: data.name,
-        description: data.description || "",
+        description: data.description || '',
         priceIqd: data.priceIqd.toString(),
         stock: Number(data.stock),
         productCode: data.productCode,
         barcode: data.barcode || null,
       });
 
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
       setIsDialogOpen(false);
       form.reset();
 
       toast({
-        title: "تم بنجاح",
-        description: "تم إضافة المنتج بنجاح",
+        title: 'تم بنجاح',
+        description: 'تم إضافة المنتج بنجاح',
       });
     } catch (error) {
       toast({
-        title: "خطأ",
-        description: "فشل في إضافة المنتج. الرجاء المحاولة مرة أخرى",
-        variant: "destructive",
+        title: 'خطأ',
+        description: 'فشل في إضافة المنتج. الرجاء المحاولة مرة أخرى',
+        variant: 'destructive',
       });
     }
   }
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Package className="h-6 w-6" />
           <h2 className="text-2xl font-bold">المخزون</h2>
@@ -128,14 +129,14 @@ export default function InventoryTable() {
           <Input
             placeholder="بحث عن المنتجات..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={e => setSearch(e.target.value)}
             className="w-64"
           />
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button>
-                <Plus className="h-4 w-4 ml-2" />
+                <Plus className="ml-2 h-4 w-4" />
                 إضافة منتج
               </Button>
             </DialogTrigger>
@@ -211,7 +212,7 @@ export default function InventoryTable() {
                           <Input
                             type="text"
                             {...field}
-                            onChange={(e) => {
+                            onChange={e => {
                               const value = e.target.value.replace(/[^0-9]/g, '');
                               field.onChange(value);
                             }}
@@ -236,7 +237,7 @@ export default function InventoryTable() {
                             type="number"
                             min="0"
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            onChange={e => field.onChange(Number(e.target.value))}
                           />
                         </FormControl>
                         <FormMessage />
@@ -254,7 +255,7 @@ export default function InventoryTable() {
         </div>
       </div>
 
-      <div className="border rounded-md">
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -268,7 +269,7 @@ export default function InventoryTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredProducts.map((product) => {
+            {filteredProducts.map(product => {
               const priceUsd = exchangeRate
                 ? Number(product.priceIqd) / Number(exchangeRate.usdToIqd)
                 : 0;
@@ -282,9 +283,7 @@ export default function InventoryTable() {
                   <TableCell>
                     {Number(product.priceIqd).toLocaleString()} د.ع
                     <br />
-                    <span className="text-sm text-muted-foreground">
-                      ${priceUsd.toFixed(2)}
-                    </span>
+                    <span className="text-sm text-muted-foreground">${priceUsd.toFixed(2)}</span>
                   </TableCell>
                   <TableCell>{product.stock}</TableCell>
                   <TableCell>
@@ -297,7 +296,7 @@ export default function InventoryTable() {
                         }
                       }}
                     >
-                      <Trash2 className="h-4 w-4 ml-2" />
+                      <Trash2 className="ml-2 h-4 w-4" />
                       حذف
                     </Button>
                   </TableCell>

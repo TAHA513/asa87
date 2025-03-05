@@ -23,11 +23,11 @@
     --accent-color: theme('colors.accent.DEFAULT');
 
     /* تعريف أحجام الخطوط الجديدة */
-    --font-size-base: 1rem;      /* 16px */
-    --font-size-lg: 1.125rem;    /* 18px */
-    --font-size-xl: 1.25rem;     /* 20px */
-    --font-size-2xl: 1.5rem;     /* 24px */
-    --font-size-3xl: 1.875rem;   /* 30px */
+    --font-size-base: 1rem; /* 16px */
+    --font-size-lg: 1.125rem; /* 18px */
+    --font-size-xl: 1.25rem; /* 20px */
+    --font-size-2xl: 1.5rem; /* 24px */
+    --font-size-3xl: 1.875rem; /* 30px */
   }
 
   * {
@@ -63,7 +63,11 @@
     font-size: var(--font-size-xl);
   }
 
-  p, li, label, input, button {
+  p,
+  li,
+  label,
+  input,
+  button {
     @apply text-lg;
     font-size: var(--font-size-lg);
   }
@@ -73,9 +77,9 @@
     text-align: right;
     line-height: 1.8;
     letter-spacing: 0;
-    font-feature-settings: "kern", "liga", "calt";
-    -webkit-font-feature-settings: "kern", "liga", "calt";
-    -ms-font-feature-settings: "kern", "liga", "calt";
+    font-feature-settings: 'kern', 'liga', 'calt';
+    -webkit-font-feature-settings: 'kern', 'liga', 'calt';
+    -ms-font-feature-settings: 'kern', 'liga', 'calt';
     font-variant-ligatures: common-ligatures;
   }
 
@@ -122,11 +126,11 @@
 /* تعريف الأنماط المخصصة */
 @layer components {
   .card-hover {
-    @apply transition-all duration-200 hover:shadow-lg hover:scale-[1.02];
+    @apply transition-all duration-200 hover:scale-[1.02] hover:shadow-lg;
   }
 
   .input-rtl {
-    @apply text-right pr-4 text-lg;
+    @apply pr-4 text-right text-lg;
   }
 
   .button-rtl {
@@ -135,7 +139,7 @@
 
   /* تكبير حجم عناصر القوائم */
   .sidebar-item {
-    @apply text-lg py-3;
+    @apply py-3 text-lg;
   }
 
   /* تكبير حجم العناوين في البطاقات */
