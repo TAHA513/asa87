@@ -33,13 +33,6 @@ const CACHE_TTL = 5 * 60; // 5 minutes cache
 export interface IStorage {
   // ...existing methods...
 
-  // Add appointments methods
-  getAppointments(): Promise<Appointment[]>;
-  getCustomerAppointments(customerId: number): Promise<Appointment[]>;
-  createAppointment(appointment: InsertAppointment): Promise<Appointment>;
-  updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment>;
-  deleteAppointment(id: number): Promise<void>;
-
   saveReport(reportData: {
     type: string;
     title: string;
@@ -1020,11 +1013,11 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(activityReports.createdAt));
   }
 
-  async getDetailedSalesReport(dateRange: { startDate; end: Date }, userId: number, page = 1, pageSize = 50) {
+  async getDetailedSalesReport(dateRange: { start: Date; end: Date }, userId: number, page = 1, pageSize = 50) {
     console.log("Generating detailed sales report for:", dateRange);
 
     const cacheKey = `sales_report:${dateRange.start.toISOString()}_${dateRange.end.toISOString()}_${page}`;
-    const cached = await this.cache.get(cacheKey);
+    const cached= await this.cache.get(cacheKey);
     if (cached) {
       console.log("Returning cached sales report");
       return JSON.parse(cached);

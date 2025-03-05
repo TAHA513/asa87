@@ -1,4 +1,4 @@
-import { createClient } from "@neondatabase/serverless";
+import { createClient } from '@neondatabase/serverless';
 import { db } from "./db";
 
 class CacheManager {
