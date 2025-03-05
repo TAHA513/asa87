@@ -41,6 +41,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { type Appointment, type Customer, insertAppointmentSchema } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip as RechartsTooltip } from "recharts";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+
 
 type NewAppointmentForm = {
   title: string;
@@ -75,6 +79,10 @@ export default function AppointmentsPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
   const { toast } = useToast();
+  const [reportDateRange, setReportDateRange] = useState({
+    startDate: new Date(new Date().setDate(1)), // First day of current month
+    endDate: new Date()
+  });
 
   const appointmentForm = useForm<NewAppointmentForm>({
     resolver: zodResolver(insertAppointmentSchema),
@@ -173,6 +181,24 @@ export default function AppointmentsPage() {
       format(selectedDate, "yyyy-MM-dd")
   );
 
+  const { data: appointmentsReport, isLoading: isReportLoading } = useQuery({
+    queryKey: [
+      "/api/reports/appointments",
+      reportDateRange.startDate,
+      reportDateRange.endDate
+    ],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        startDate: reportDateRange.startDate.toISOString(),
+        endDate: reportDateRange.endDate.toISOString()
+      });
+      const res = await fetch(`/api/reports/appointments?${params}`);
+      if (!res.ok) throw new Error("فشل في جلب تقرير المواعيد");
+      return res.json();
+    },
+    enabled: !!reportDateRange.startDate && !!reportDateRange.endDate
+  });
+
   return (
     <div className="container mx-auto py-6">
       <div className="flex items-center justify-between mb-6">
@@ -181,259 +207,470 @@ export default function AppointmentsPage() {
           <h1 className="text-2xl font-bold">المواعيد</h1>
         </div>
 
-        <Dialog open={isNewAppointmentOpen} onOpenChange={setIsNewAppointmentOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 ml-2" />
-              إضافة موعد جديد
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-sm overflow-y-auto max-h-[90vh]">
-            <DialogHeader>
-              <DialogTitle>إضافة موعد جديد</DialogTitle>
-            </DialogHeader>
+        <div className="flex items-center gap-4">
+          <Dialog open={isNewAppointmentOpen} onOpenChange={setIsNewAppointmentOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 ml-2" />
+                إضافة موعد جديد
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-sm overflow-y-auto max-h-[90vh]">
+              <DialogHeader>
+                <DialogTitle>إضافة موعد جديد</DialogTitle>
+              </DialogHeader>
 
-            <Form {...appointmentForm}>
-              <form
-                onSubmit={appointmentForm.handleSubmit(onSubmitAppointment)}
-                className="space-y-2"
-              >
-                <FormField
-                  control={appointmentForm.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>عنوان الموعد</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={appointmentForm.control}
-                  name="customerId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>العميل</FormLabel>
-                      <Select
-                        onValueChange={(value) => field.onChange(Number(value))}
-                        defaultValue={field.value?.toString()}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر العميل" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {customers.map((customer: Customer) => (
-                            <SelectItem
-                              key={customer.id}
-                              value={customer.id.toString()}
-                            >
-                              {customer.name} - {customer.phone}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={appointmentForm.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>الوصف</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={appointmentForm.control}
-                  name="date"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>التاريخ</FormLabel>
-                      <FormControl>
-                        <div className="border rounded-md p-2">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            className="w-full"
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={appointmentForm.control}
-                  name="duration"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>المدة (بالدقائق)</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          min="1"
-                          onChange={(e) => field.onChange(Number(e.target.value))}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={appointmentForm.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ملاحظات</FormLabel>
-                      <FormControl>
-                        <Input {...field} value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <Button
-                  type="submit"
-                  className="w-full mt-4"
-                  disabled={createAppointmentMutation.isPending}
+              <Form {...appointmentForm}>
+                <form
+                  onSubmit={appointmentForm.handleSubmit(onSubmitAppointment)}
+                  className="space-y-2"
                 >
-                  {createAppointmentMutation.isPending && (
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent ml-2" />
-                  )}
-                  إضافة الموعد
-                </Button>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+                  <FormField
+                    control={appointmentForm.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>عنوان الموعد</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={appointmentForm.control}
+                    name="customerId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>العميل</FormLabel>
+                        <Select
+                          onValueChange={(value) => field.onChange(Number(value))}
+                          defaultValue={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="اختر العميل" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {customers.map((customer: Customer) => (
+                              <SelectItem
+                                key={customer.id}
+                                value={customer.id.toString()}
+                              >
+                                {customer.name} - {customer.phone}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={appointmentForm.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>الوصف</FormLabel>
+                        <FormControl>
+                          <Input {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={appointmentForm.control}
+                    name="date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>التاريخ</FormLabel>
+                        <FormControl>
+                          <div className="border rounded-md p-2">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              className="w-full"
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={appointmentForm.control}
+                    name="duration"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>المدة (بالدقائق)</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="number"
+                            min="1"
+                            onChange={(e) => field.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={appointmentForm.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ملاحظات</FormLabel>
+                        <FormControl>
+                          <Input {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button
+                    type="submit"
+                    className="w-full mt-4"
+                    disabled={createAppointmentMutation.isPending}
+                  >
+                    {createAppointmentMutation.isPending && (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent ml-2" />
+                    )}
+                    إضافة الموعد
+                  </Button>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="md:max-w-sm">
-          <CardHeader>
-            <CardTitle>التقويم</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(date) => setSelectedDate(date || new Date())}
-              className="rounded-md border"
-              locale={ar}
-            />
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="calendar" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="calendar">التقويم</TabsTrigger>
+          <TabsTrigger value="reports">التقارير والإحصائيات</TabsTrigger>
+        </TabsList>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              مواعيد {format(selectedDate, "yyyy/MM/dd", { locale: ar })}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {isLoading ? (
-                <div className="text-center py-4">جاري التحميل...</div>
-              ) : selectedDateAppointments.length === 0 ? (
-                <div className="text-center py-4 text-muted-foreground">
-                  لا توجد مواعيد لهذا اليوم
-                </div>
-              ) : (
-                selectedDateAppointments.map((appointment) => (
-                  <div
-                    key={appointment.id}
-                    className="p-4 border rounded-lg hover:bg-secondary/50 transition-colors"
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex items-start gap-2">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <div className={`p-2 rounded-full ${statusColors[appointment.status as AppointmentStatus]}`}>
-                                {statusIcons[appointment.status as AppointmentStatus]}
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>حالة الموعد: {statusText[appointment.status as AppointmentStatus]}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        <div>
-                          <h4 className="font-medium">{appointment.title}</h4>
-                          {appointment.description && (
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {appointment.description}
-                            </p>
-                          )}
-                          <p className="text-sm mt-1">
-                            {customers.find((c: Customer) => c.id === appointment.customerId)?.name}
-                          </p>
-                        </div>
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        {format(new Date(appointment.date), "p", { locale: ar })}
-                      </span>
+        <TabsContent value="calendar" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="md:max-w-sm">
+              <CardHeader>
+                <CardTitle>التقويم</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => setSelectedDate(date || new Date())}
+                  className="rounded-md border"
+                  locale={ar}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  مواعيد {format(selectedDate, "yyyy/MM/dd", { locale: ar })}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {isLoading ? (
+                    <div className="text-center py-4">جاري التحميل...</div>
+                  ) : selectedDateAppointments.length === 0 ? (
+                    <div className="text-center py-4 text-muted-foreground">
+                      لا توجد مواعيد لهذا اليوم
                     </div>
-                    <div className="flex justify-between items-center mt-4">
-                      <span className="text-sm text-muted-foreground">
-                        المدة: {appointment.duration} دقيقة
-                      </span>
-                      <div className="flex gap-2">
-                        {appointment.status === "scheduled" && (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-green-600 hover:text-green-700"
-                              onClick={() => handleStatusChange(appointment.id, "completed")}
-                            >
-                              <CheckCircle className="h-4 w-4 ml-1" />
-                              إكمال
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="text-red-600 hover:text-red-700"
-                              onClick={() => handleStatusChange(appointment.id, "cancelled")}
-                            >
-                              <XCircle className="h-4 w-4 ml-1" />
-                              إلغاء
-                            </Button>
-                          </>
+                  ) : (
+                    selectedDateAppointments.map((appointment) => (
+                      <div
+                        key={appointment.id}
+                        className="p-4 border rounded-lg hover:bg-secondary/50 transition-colors"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex items-start gap-2">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <div className={`p-2 rounded-full ${statusColors[appointment.status as AppointmentStatus]}`}>
+                                    {statusIcons[appointment.status as AppointmentStatus]}
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>حالة الموعد: {statusText[appointment.status as AppointmentStatus]}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <div>
+                              <h4 className="font-medium">{appointment.title}</h4>
+                              {appointment.description && (
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  {appointment.description}
+                                </p>
+                              )}
+                              <p className="text-sm mt-1">
+                                {customers.find((c: Customer) => c.id === appointment.customerId)?.name}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            {format(new Date(appointment.date), "p", { locale: ar })}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center mt-4">
+                          <span className="text-sm text-muted-foreground">
+                            المدة: {appointment.duration} دقيقة
+                          </span>
+                          <div className="flex gap-2">
+                            {appointment.status === "scheduled" && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-green-600 hover:text-green-700"
+                                  onClick={() => handleStatusChange(appointment.id, "completed")}
+                                >
+                                  <CheckCircle className="h-4 w-4 ml-1" />
+                                  إكمال
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700"
+                                  onClick={() => handleStatusChange(appointment.id, "cancelled")}
+                                >
+                                  <XCircle className="h-4 w-4 ml-1" />
+                                  إلغاء
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        {appointment.notes && (
+                          <p className="text-sm text-muted-foreground mt-2 border-t pt-2">
+                            {appointment.notes}
+                          </p>
                         )}
                       </div>
-                    </div>
-                    {appointment.notes && (
-                      <p className="text-sm text-muted-foreground mt-2 border-t pt-2">
-                        {appointment.notes}
-                      </p>
-                    )}
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="reports" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>تقرير المواعيد</CardTitle>
+              <div className="flex gap-4 mt-4">
+                <div>
+                  <p className="text-sm font-medium mb-2">من تاريخ</p>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline">
+                        {format(reportDateRange.startDate, "yyyy/MM/dd", { locale: ar })}
+                        <CalendarIcon className="ml-2 h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent>
+                      <Calendar
+                        mode="single"
+                        selected={reportDateRange.startDate}
+                        onSelect={(date) =>
+                          setReportDateRange((prev) => ({
+                            ...prev,
+                            startDate: date || prev.startDate
+                          }))
+                        }
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-2">إلى تاريخ</p>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline">
+                        {format(reportDateRange.endDate, "yyyy/MM/dd", { locale: ar })}
+                        <CalendarIcon className="ml-2 h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent>
+                      <Calendar
+                        mode="single"
+                        selected={reportDateRange.endDate}
+                        onSelect={(date) =>
+                          setReportDateRange((prev) => ({
+                            ...prev,
+                            endDate: date || prev.endDate
+                          }))
+                        }
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isReportLoading ? (
+                <div className="text-center py-8">جاري تحميل التقرير...</div>
+              ) : appointmentsReport ? (
+                <div className="space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-2xl font-bold">
+                          {appointmentsReport.summary.totalAppointments}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          إجمالي المواعيد
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-2xl font-bold text-green-600">
+                          {appointmentsReport.summary.completedAppointments}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          المواعيد المكتملة
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-2xl font-bold text-red-600">
+                          {appointmentsReport.summary.cancelledAppointments}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          المواعيد الملغاة
+                        </p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="text-2xl font-bold text-blue-600">
+                          {appointmentsReport.summary.pendingAppointments}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          المواعيد المعلقة
+                        </p>
+                      </CardContent>
+                    </Card>
                   </div>
-                ))
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>توزيع المواعيد حسب الساعة</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={appointmentsReport.timeAnalysis.hourlyDistribution}>
+                            <XAxis dataKey="hour" />
+                            <YAxis />
+                            <RechartsTooltip />
+                            <Bar
+                              dataKey="count"
+                              fill="var(--primary)"
+                              radius={[4, 4, 0, 0]}
+                            />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>التوزيع اليومي للمواعيد</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {appointmentsReport.timeAnalysis.dailyDistribution.map(
+                          (day) => (
+                            <div
+                              key={day.date}
+                              className="flex items-center justify-between"
+                            >
+                              <div>
+                                <p className="font-medium">
+                                  {format(new Date(day.date), "yyyy/MM/dd", {
+                                    locale: ar,
+                                  })}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  نسبة الإكمال: {day.completionRate}%
+                                </p>
+                              </div>
+                              <div className="flex gap-4 text-sm">
+                                <span className="text-green-600">
+                                  مكتمل: {day.completed}
+                                </span>
+                                <span className="text-red-600">
+                                  ملغي: {day.cancelled}
+                                </span>
+                                <span className="text-blue-600">
+                                  معلق: {day.pending}
+                                </span>
+                              </div>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>أفضل العملاء</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {appointmentsReport.customerAnalysis.map((customer) => (
+                          <div
+                            key={customer.customerId}
+                            className="flex items-center justify-between"
+                          >
+                            <div>
+                              <p className="font-medium">{customer.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                عدد المواعيد: {customer.totalAppointments}
+                              </p>
+                            </div>
+                            <div className="text-sm">
+                              <span className="text-green-600">
+                                نسبة الإكمال: {customer.loyaltyScore}%
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  لا توجد بيانات متاحة للفترة المحددة
+                </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
