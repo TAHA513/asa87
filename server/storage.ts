@@ -871,7 +871,13 @@ export class DatabaseStorage implements IStorage {
     return settings;
   }
 
-  async saveUserSettings(userId: number, settings: Omit<InsertUserSettings, "userId">): Promise<UserSettings> {
+  async saveUserSettings(userId: number, settings: {
+    themeName: string;
+    fontName: string;
+    fontSize: string;
+    appearance: string;
+    colors: Record<string, string>;
+  }): Promise<UserSettings> {
     try {
       console.log("Saving user settings:", { userId, settings });
 
@@ -880,7 +886,7 @@ export class DatabaseStorage implements IStorage {
         .delete(userSettings)
         .where(eq(userSettings.userId, userId));
 
-      // Insert new settings with stringified JSON for colors
+      // Insert new settings
       const [newSettings] = await db
         .insert(userSettings)
         .values({
@@ -1034,7 +1040,7 @@ export class DatabaseStorage implements IStorage {
         };
       }
       acc[date].total++;
-      acc[date].byType[activity.activityType] = (acc[date].byType[activity.activityType] || 0) + 1;
+      acc[date].byType[activity.activityType] =(acc[date].byType[activity.activityType] || 0) + 1;
       acc[date].byUser[activity.userId] = (acc[date].byUser[activity.userId] || 0) + 1;
       return acc;
     }, {});

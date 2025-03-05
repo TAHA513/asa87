@@ -1325,61 +1325,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/settings", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
     try {
-      // التحقق من صحة البيانات
-      const themeSchema = z.object({
-        primary: z.string(),
-        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
-        appearance: z.enum(["light", "dark", "system"]),
-        fontStyle: z.enum([
-          "traditional",
-          "modern",
-          "minimal",
-          "digital",
-          "elegant",
-          "kufi",
-          "naskh",
-          "ruqaa",
-          "thuluth",
-          "contemporary",
-          "noto-kufi",
-          "cairo",
-          "tajawal",
-          "amiri",
-        ]),
-        fontSize: z.enum(["small", "medium", "large", "xlarge"]),
-        radius: z.number(),
+      console.log("Saving settings for user:", req.user!.id);
+      const settings = await storage.saveUserSettings(req.user!.id, {
+        themeName: req.body.themeName,
+        fontName: req.body.fontName,
+        fontSize: req.body.fontSize,
+        appearance: req.body.appearance,
+        colors: req.body.colors
       });
 
-      const theme = themeSchema.parse(req.body);
-
-      // تحويل البيانات إلى الشكل المطلوب لقاعدة البيانات
-      const userSettings = {
-        userId: req.user!.id,
-        themeName: theme.variant,
-        fontName: theme.fontStyle,
-        fontSize: theme.fontSize,
-        appearance: theme.appearance,
-        colors: {
-          primary: theme.primary,
-          secondary: `color-mix(in srgb, ${theme.primary} 80%, ${theme.appearance === 'dark' ? 'white' : 'black'})`,
-          accent: `color-mix(in srgb, ${theme.primary} 60%, ${theme.appearance === 'dark' ? 'black' : 'white'})`,
-        }
-      };
-
-      // حفظ الإعدادات في قاعدة البيانات
-      await storage.saveUserSettings(userSettings);
-
-      // حفظ الثيم في ملف theme.json
-      await fs.writeFile(
-        path.join(process.cwd(), "theme.json"),
-        JSON.stringify(theme, null, 2)
-      );
-
-      res.json({ success: true });
+      res.json(settings);
     } catch (error) {
-      console.error("Error updating theme:", error);
-      res.status(500).json({ message: "فشل في حفظ إعدادات المظهر" });
+      console.error("Error updating settings:", error);
+      res.status(500).json({ message: error instanceof Error ? error.message : "فشل في تحديث الإعدادات" });
     }
   });
 
