@@ -879,12 +879,19 @@ export class DatabaseStorage implements IStorage {
     colors: Record<string, string>;
   }): Promise<UserSettings> {
     try {
-      console.log("Saving user settings:", { userId, settings });
+      console.log("Saving user settings:", settings);
 
-      // Validate settings
-      if (!settings.themeName || !settings.fontName || !settings.fontSize || !settings.appearance) {
-        throw new Error("جميع الحقول الأساسية مطلوبة");
-      }
+      // Use default values if any field is missing
+      const dataToSave = {
+        userId,
+        themeName: settings.themeName || 'modern',
+        fontName: settings.fontName || 'noto-kufi',
+        fontSize: settings.fontSize || 'medium',
+        appearance: settings.appearance || 'system',
+        colors: JSON.stringify(settings.colors || {}),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
 
       // Delete old settings first
       await db
@@ -894,16 +901,7 @@ export class DatabaseStorage implements IStorage {
       // Insert new settings
       const [newSettings] = await db
         .insert(userSettings)
-        .values({
-          userId,
-          themeName: settings.themeName,
-          fontName: settings.fontName,
-          fontSize: settings.fontSize,
-          appearance: settings.appearance,
-          colors: settings.colors ? JSON.stringify(settings.colors) : '{}',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
+        .values(dataToSave)
         .returning();
 
       console.log("Successfully saved settings:", newSettings);
@@ -1045,7 +1043,7 @@ export class DatabaseStorage implements IStorage {
         };
       }
       acc[date].total++;
-      acc[date].byType[activity.activityType] =(acc[date].byType[activity.activityType] || 0) + 1;
+      acc[date].byType[activity.activityType] = (acc[date].byType[activity.activityType] || 0) + 1;
       acc[date].byUser[activity.userId] = (acc[date].byUser[activity.userId] || 0) + 1;
       return acc;
     }, {});

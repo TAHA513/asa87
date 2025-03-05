@@ -1333,23 +1333,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Saving settings for user:", req.user!.id);
       console.log("Settings payload:", req.body);
 
-      // Validate required fields
-      if (!req.body.themeName) {
-        return res.status(400).json({ message: "يجب تحديد نمط المظهر" });
-      }
+      // First handle theme.json
+      const themeData = {
+        primary: req.body.primary,
+        variant: req.body.variant,
+        appearance: req.body.appearance,
+        radius: req.body.radius
+      };
 
+      await fs.writeFile(
+        path.join(process.cwd(), "theme.json"),
+        JSON.stringify(themeData, null, 2)
+      );
+
+      // Then save user settings
       const settings = await storage.saveUserSettings(req.user!.id, {
-        themeName: req.body.themeName || 'modern', // Set default if missing
-        fontName: req.body.fontName || 'noto-kufi',
+        themeName: req.body.variant || 'modern',
+        fontName: req.body.fontStyle || 'noto-kufi',
         fontSize: req.body.fontSize || 'medium',
         appearance: req.body.appearance || 'system',
-        colors: req.body.colors || {}
+        colors: {
+          primary: req.body.primary || '#000000',
+          background: req.body.appearance === 'dark' ? '#1a1a1a' : '#ffffff'
+        }
       });
 
-      res.json(settings);
+      res.json({ success: true, settings });
     } catch (error) {
       console.error("Error updating settings:", error);
-      res.status(500).json({ message: error instanceof Error ? error.message : "فشل في تحديث الإعدادات" });
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "فشل في تحديث الإعدادات" 
+      });
     }
   });
 
