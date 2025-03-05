@@ -214,7 +214,7 @@ export const reports = pgTable("reports", {
   data: jsonb("data").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   userId: integer("user_id").notNull(),
-  status: text("status").notNull().default("generated"),
+  status: text("status").notNull().default("active"),
   format: text("format").notNull().default("json"),
 });
 
@@ -558,20 +558,6 @@ export const insertInvoiceSchema = createInsertSchema(invoices)
     invoiceNumber: z.string().min(1, "رقم الفاتورة مطلوب"),
     customerName: z.string().min(1, "اسم العميل مطلوب"),
     totalAmount: z.number().min(0, "المبلغ الإجمالي يجب أن يكون أكبر من 0"),
-  });
-
-export const insertUserSettingsSchema = createInsertSchema(userSettings)
-  .omit({ id: true, createdAt: true, updatedAt: true })
-  .extend({
-    themeName: z.string().min(1, "اسم الثيم مطلوب"),
-    fontName: z.string().min(1, "اسم الخط مطلوب"),
-    fontSize: z.enum(["small", "medium", "large", "xlarge"]),
-    appearance: z.enum(["light", "dark", "system"]),
-    colors: z.object({
-      primary: z.string(),
-      secondary: z.string(),
-      accent: z.string(),
-    }),
   });
 
 // Add new system activity logging schemas after the existing reports table
