@@ -597,16 +597,23 @@ export default function Sales() {
                     control={form.control}
                     name="printInvoice"
                     render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2 bg-muted/30 p-3 rounded-lg">
-                        <FormControl>
-                          <input
-                            type="checkbox"
-                            checked={field.value}
-                            onChange={(e) => field.onChange(e.target.checked)}
-                            className="rounded border-input w-4 h-4 transition-all duration-200 checked:bg-primary"
-                          />
-                        </FormControl>
-                        <FormLabel className="text-sm font-medium mr-2 cursor-pointer">طباعة الفاتورة</FormLabel>
+                      <FormItem className="flex flex-col space-y-2 bg-muted/30 p-4 rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <FormControl>
+                            <input
+                              type="checkbox"
+                              checked={field.value}
+                              onChange={(e) => field.onChange(e.target.checked)}
+                              className="rounded border-input w-4 h-4 transition-all duration-200 checked:bg-primary"
+                            />
+                          </FormControl>
+                          <FormLabel className="text-base font-medium mr-2 cursor-pointer">
+                            طباعة الفاتورة مع البيع
+                          </FormLabel>
+                        </div>
+                        <p className="text-sm text-muted-foreground mr-6">
+                          سيتم فتح نافذة الطباعة تلقائياً بعد إتمام عملية البيع
+                        </p>
                       </FormItem>
                     )}
                   />
@@ -614,8 +621,9 @@ export default function Sales() {
                   <Button
                     type="submit"
                     className="w-full bg-primary hover:bg-primary/90 text-white transition-all duration-200 shadow-lg hover:shadow-xl"
+                    disabled={isPrinting}
                   >
-                    إتمام البيع
+                    {isPrinting ? "جاري الطباعة..." : "إتمام البيع"}
                   </Button>
                 </form>
               </Form>
