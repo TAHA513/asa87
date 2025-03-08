@@ -894,8 +894,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const expense = await storage.createExpense({
         ...validatedData,        userId: req.user!.id,
       });
-      res.status(201).json(expense);
-    } catch (error) {
+      res.status(201).json(expense);    } catch (error) {
       console.error("Error creating expense:", error);
       if (error instanceof Error) {
         res.status(400).json({ message: error.message });
@@ -1760,6 +1759,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/invoices", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const filters = {
+        search: req.query.search as string,
+        startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
+        endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined,
+        status: req.query.status as string,
+      };
+
+      console.log("Fetching invoices with filters:", filters);
+      const invoices = await storage.getInvoices(filters);
+      console.log(`Retrieved ${invoices.length} invoices`);
+      res.json(invoices);
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
+      res.status(500).json({ message: "فشل في جلب الفواتير" });
+    }
+  });
 
   const httpServer = createServer(app);
 

@@ -33,7 +33,13 @@ export default function InvoicesPage() {
   });
 
   const { data: invoices, isLoading } = useQuery<Invoice[]>({
-    queryKey: ["/api/invoices", searchTerm, dateRange],
+    queryKey: ["/api/invoices", { 
+      search: searchTerm,
+      startDate: dateRange.from,
+      endDate: dateRange.to,
+    }],
+    staleTime: 30000, // 30 seconds
+    cacheTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const handlePrint = async (invoice: Invoice) => {
@@ -72,20 +78,6 @@ export default function InvoicesPage() {
     }
   };
 
-  const filteredInvoices = invoices?.filter((invoice) => {
-    const matchesSearch =
-      !searchTerm ||
-      invoice.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.customerName.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const invoiceDate = new Date(invoice.createdAt);
-    const isInDateRange =
-      (!dateRange.from || invoiceDate >= dateRange.from) &&
-      (!dateRange.to || invoiceDate <= dateRange.to);
-
-    return matchesSearch && isInDateRange;
-  });
-
   if (isLoading) {
     return <div>جاري التحميل...</div>;
   }
@@ -120,7 +112,7 @@ export default function InvoicesPage() {
         </div>
       </div>
 
-      <DataTable columns={columns} data={filteredInvoices || []} />
+      <DataTable columns={columns} data={invoices || []} />
 
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <AlertDialogContent>

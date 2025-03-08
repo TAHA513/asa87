@@ -9,7 +9,7 @@ import {
   campaignAnalytics, socialMediaAccounts, apiKeys,
   inventoryTransactions, expenseCategories, expenses,
   suppliers, supplierTransactions, customers, appointments,
-  invoices, userSettings, reports,
+  invoices, invoiceItems, userSettings, reports,
   type User, type Product, type Sale, type ExchangeRate,
   type FileStorage, type Installment, type InstallmentPayment,
   type Campaign, type InsertCampaign, type CampaignAnalytics,
@@ -22,7 +22,7 @@ import {
   type Appointment, type InsertAppointment, type Invoice,
   type InsertInvoice, type UserSettings, type InsertUserSettings,
   type InsertUser, type InsertFileStorage,
-  type Report, type InsertReport
+  type Report, type InsertReport, type InvoiceItem
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, or, like, SQL, gte, lte, and, sql, lt, gt } from "drizzle-orm";
@@ -46,6 +46,12 @@ export interface IStorage {
   getReport(id: number): Promise<Report | undefined>;
   getUserReports(userId: number, type?: string): Promise<any>;
   getAppointmentsReport(dateRange: { start: Date; end: Date }, userId: number): Promise<any>;
+  getInvoices(filters?: {
+    search?: string;
+    startDate?: Date;
+    endDate?: Date;
+    status?: string;
+  }): Promise<Invoice[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -891,7 +897,6 @@ export class DatabaseStorage implements IStorage {
       throw new Error("فشل في جلب المواعيد");
     }
   }
-
 
 
   async logSystemActivity(activity: InsertSystemActivity): Promise<SystemActivity> {
@@ -1761,6 +1766,63 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error generating appointments report:", error);
       throw new Error("فشل في إنشاء تقرير المواعيد");
+    }
+  }
+
+  async getInvoices(filters?: {
+    search?: string;
+    startDate?: Date;
+    endDate?: Date;
+    status?: string;
+  }): Promise<Invoice[]> {
+    try {
+      let query = db.select().from(invoices)
+        .leftJoin(invoiceItems, eq(invoices.id, invoiceItems.invoiceId))
+        .orderBy(desc(invoices.createdAt));
+
+      if (filters?.search) {
+        query = query.where(
+          or(
+            like(invoices.invoiceNumber, `%${filters.search}%`),
+            like(invoices.customerName, `%${filters.search}%`)
+          )
+        );
+      }
+
+      if (filters?.startDate) {
+        query = query.where(gte(invoices.createdAt, filters.startDate));
+      }
+
+      if (filters?.endDate) {
+        query = query.where(lte(invoices.createdAt, filters.endDate));
+      }
+
+      if (filters?.status) {
+        query = query.where(eq(invoices.status, filters.status));
+      }
+
+      const results = await query;
+
+      // تجميع النتائج وإزالة التكرار
+      const invoiceMap = new Map<number, Invoice>();
+      results.forEach((row) => {
+        if (!invoiceMap.has(row.invoice.id)) {
+          invoiceMap.set(row.invoice.id, {
+            ...row.invoice,
+            items: []
+          });
+        }
+        if (row.invoiceItem) {
+          const invoice = invoiceMap.get(row.invoice.id);
+          invoice?.items.push(row.invoiceItem);
+        }
+      });
+
+      console.log(`Retrieved ${invoiceMap.size} invoices`);
+      return Array.from(invoiceMap.values());
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
+      throw new Error("فشل في جلب الفواتير");
     }
   }
 

@@ -2,7 +2,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Invoice } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Eye, Printer, XCircle } from "lucide-react";
+import { Eye, Printer, FilePenLine, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export const columns: ColumnDef<Invoice>[] = [
@@ -37,7 +37,7 @@ export const columns: ColumnDef<Invoice>[] = [
             status === "active"
               ? "default"
               : status === "modified"
-              ? "warning"
+              ? "secondary"
               : "destructive"
           }
         >
@@ -73,25 +73,40 @@ export const columns: ColumnDef<Invoice>[] = [
               <Eye className="h-4 w-4" />
             </Link>
           </Button>
+          {invoice.status === "active" && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => window.location.href = `/invoices/${invoice.id}/edit`}
+              >
+                <FilePenLine className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  if (typeof setSelectedInvoice === 'function') {
+                    setSelectedInvoice(invoice);
+                    setShowCancelDialog(true);
+                  }
+                }}
+              >
+                <XCircle className="h-4 w-4" />
+              </Button>
+            </>
+          )}
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => handlePrint(invoice)}
+            onClick={() => {
+              if (typeof handlePrint === 'function') {
+                handlePrint(invoice);
+              }
+            }}
           >
             <Printer className="h-4 w-4" />
           </Button>
-          {invoice.status === "active" && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                setSelectedInvoice(invoice);
-                setShowCancelDialog(true);
-              }}
-            >
-              <XCircle className="h-4 w-4" />
-            </Button>
-          )}
         </div>
       );
     },
