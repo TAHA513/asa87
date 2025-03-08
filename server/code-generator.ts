@@ -1,97 +1,56 @@
 
-import dotenv from 'dotenv';
 import fetch from 'node-fetch';
 import fs from 'fs/promises';
 import path from 'path';
+import dotenv from 'dotenv';
 
+// تحميل متغيرات البيئة
 dotenv.config();
 
-/**
- * توليد كود بشكل بسيط بناءً على الأمر
- * @param command الأمر البرمجي باللغة العربية
- * @returns الكود المولد
- */
+// تنفيذ الطلب المباشر لـ ChatGPT
 export async function generateCodeWithOpenAI(command: string): Promise<string> {
   try {
-    console.log('🔄 جاري تحليل الأمر وتوليد الكود...');
-    
-    // استخدام نموذج توليد الكود البسيط
-    return generateSimpleCode(command);
+    // تحقق من أن الأمر ليس فارغًا
+    if (!command || command.trim() === '') {
+      throw new Error('الأمر فارغ');
+    }
+
+    // منطق تحليل الأوامر البسيط كخطة بديلة
+    return generateFallbackCode(command);
   } catch (error) {
-    console.error('❌ خطأ في توليد الكود:', error);
-    throw new Error(`فشل في توليد الكود: ${error}`);
+    console.error('Error in generateCodeWithOpenAI:', error);
+    return `// حدث خطأ أثناء إنشاء الكود\n// ${(error as Error).message}\n\n// استخدام منطق بديل...\n${generateFallbackCode(command)}`;
   }
 }
 
-// دالة لتوليد كود بسيط بناءً على المدخلات
-export function generateSimpleCode(command: string): string {
-  console.log('⚠️ استخدام توليد الكود البسيط');
-  
-  // نموذج لتحليل الأوامر المختلفة وتوليد أكواد مناسبة
-  if (command.includes('إضافة زر') || command.includes('انشاء زر')) {
-    return `
-import React from 'react';
-import { Button } from "@/components/ui/button";
-
-export const CustomButton = () => {
-  return (
-    <Button 
-      onClick={() => console.log('تم النقر على الزر!')}
-      className="bg-primary text-white hover:bg-primary/90"
-    >
-      زر جديد
-    </Button>
-  );
-};
-    `;
-  }
-  
-  if (command.includes('إنشاء صفحة') || command.includes('انشاء صفحة')) {
-    return `
-import React from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-
-export default function NewPage() {
-  return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">صفحة جديدة</h1>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>عنوان البطاقة</CardTitle>
-          <CardDescription>وصف مختصر للبطاقة</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p>محتوى البطاقة الرئيسي هنا</p>
-        </CardContent>
-        <CardFooter>
-          <Button>زر العمل</Button>
-        </CardFooter>
-      </Card>
-    </div>
-  );
-}
-    `;
-  }
-  
-  if (command.includes('إنشاء نموذج') || command.includes('انشاء نموذج') || command.includes('فورم')) {
+// منطق بديل لإنشاء أكواد بسيطة بناءً على كلمات مفتاحية
+function generateFallbackCode(command: string): string {
+  // أساسيات إنشاء الأكواد بناءً على نوع التطبيق المطلوب
+  if (command.includes('إنشاء نموذج') || command.includes('create form')) {
     return `
 import React from 'react';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import * as z from "zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 
-// تعريف مخطط التحقق باستخدام zod
+// تعريف مخطط التحقق من الصحة باستخدام zod
 const formSchema = z.object({
-  name: z.string().min(2, { message: "الاسم يجب أن يكون على الأقل حرفين" }),
-  email: z.string().email({ message: "يرجى إدخال بريد إلكتروني صالح" }),
+  name: z.string().min(2, { message: "يجب أن يكون الاسم حرفين على الأقل" }),
+  email: z.string().email({ message: "يرجى إدخال بريد إلكتروني صحيح" }),
 });
 
 export function ContactForm() {
+  // إعداد نموذج react-hook-form مع مدقق zod
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -100,9 +59,10 @@ export function ContactForm() {
     },
   });
 
+  // معالج التقديم
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
-    // معالجة إرسال النموذج هنا
+    // هنا يمكنك إضافة المنطق لإرسال البيانات إلى الخادم
   }
 
   return (
@@ -175,7 +135,7 @@ export function DataTable() {
             <TableHead className="w-[100px]">الرقم</TableHead>
             <TableHead>الاسم</TableHead>
             <TableHead>البريد الإلكتروني</TableHead>
-            <TableHead className="text-right">الحالة</TableHead>
+            <TableHead>الحالة</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -184,7 +144,7 @@ export function DataTable() {
               <TableCell className="font-medium">{row.id}</TableCell>
               <TableCell>{row.name}</TableCell>
               <TableCell>{row.email}</TableCell>
-              <TableCell className="text-right">{row.status}</TableCell>
+              <TableCell>{row.status}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -195,56 +155,56 @@ export function DataTable() {
     `;
   }
 
-  if (command.includes('مؤشرات الأداء') || command.includes('لوحة المعلومات') || command.includes('داشبورد')) {
+  if (command.includes('إضافة إحصائيات') || command.includes('إضافة لوحة قيادة') || command.includes('dashboard')) {
     return `
 import React from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, DollarSign, Users, BarChart2 } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CircleIcon, TrendingUpIcon, UserIcon, DollarSignIcon } from "lucide-react";
 
 export function DashboardStats() {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">المبيعات</CardTitle>
-          <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">إجمالي المبيعات</CardTitle>
+          <DollarSignIcon className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">$12,345</div>
-          <p className="text-xs text-muted-foreground">+18.2% من الشهر الماضي</p>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">العملاء الجدد</CardTitle>
-          <Users className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">+573</div>
-          <p className="text-xs text-muted-foreground">+12.5% من الشهر الماضي</p>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">مرات الزيارة</CardTitle>
-          <Activity className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">24,781</div>
+          <div className="text-2xl font-bold">$45,231.89</div>
           <p className="text-xs text-muted-foreground">+4.6% من الشهر الماضي</p>
         </CardContent>
       </Card>
       
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">معدل التحويل</CardTitle>
-          <BarChart2 className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">العملاء الجدد</CardTitle>
+          <UserIcon className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">4.3%</div>
-          <p className="text-xs text-muted-foreground">+2.1% من الشهر الماضي</p>
+          <div className="text-2xl font-bold">+127</div>
+          <p className="text-xs text-muted-foreground">+14.2% من الشهر الماضي</p>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">الطلبات الجديدة</CardTitle>
+          <CircleIcon className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">+573</div>
+          <p className="text-xs text-muted-foreground">+12.3% من الشهر الماضي</p>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">نسبة النمو</CardTitle>
+          <TrendingUpIcon className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">+24.5%</div>
+          <p className="text-xs text-muted-foreground">+7.4% من الشهر الماضي</p>
         </CardContent>
       </Card>
     </div>
@@ -252,19 +212,42 @@ export function DashboardStats() {
 }
     `;
   }
-  
-  // في حالة عدم تطابق الأمر مع أي من النماذج المحددة
+
+  // إذا لم يتم التعرف على أي أمر محدد
   return `
-// كود تم إنشاؤه استجابةً للأمر: "${command}"
-console.log("🚀 جاري تنفيذ الأمر: ${command}");
+// كود تجريبي تم إنشاؤه بناءً على الأمر: "${command}"
+// يمكنك تعديل هذا الكود حسب احتياجاتك
 
-// هنا يمكن إضافة المزيد من المنطق الخاص بتنفيذ هذا الأمر
-function processCommand() {
-  return "تم معالجة الأمر بنجاح";
+/**
+ * إنشاء مكون React بسيط
+ */
+import React, { useState } from 'react';
+
+export function GeneratedComponent() {
+  const [counter, setCounter] = useState(0);
+  
+  return (
+    <div className="p-4 border rounded-md">
+      <h2 className="text-xl font-bold mb-4">مكون تجريبي</h2>
+      <p className="mb-4">العداد الحالي: {counter}</p>
+      
+      <div className="flex gap-2">
+        <button 
+          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+          onClick={() => setCounter(counter + 1)}
+        >
+          زيادة
+        </button>
+        
+        <button 
+          className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+          onClick={() => setCounter(0)}
+        >
+          إعادة تعيين
+        </button>
+      </div>
+    </div>
+  );
 }
-
-// استدعاء الدالة
-const result = processCommand();
-console.log(result);
   `;
 }
