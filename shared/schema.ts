@@ -80,10 +80,35 @@ export const invoices = pgTable("invoices", {
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).notNull().default("0"),
   finalAmount: decimal("final_amount", { precision: 10, scale: 2 }).notNull(),
-  invoiceDate: timestamp("invoice_date").notNull().defaultNow(),
+  status: text("status").notNull().default("active"), // active, modified, cancelled
+  paymentMethod: text("payment_method").notNull().default("cash"),
+  notes: text("notes"),
   printed: boolean("printed").notNull().default(false),
+  originalInvoiceId: integer("original_invoice_id").references(() => invoices.id),
+  modificationReason: text("modification_reason"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const invoiceItems = pgTable("invoice_items", {
+  id: serial("id").primaryKey(),
+  invoiceId: integer("invoice_id").notNull().references(() => invoices.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  quantity: decimal("quantity", { precision: 10, scale: 3 }).notNull(),
+  unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
+  discount: decimal("discount", { precision: 10, scale: 2 }).notNull().default("0"),
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const invoiceHistory = pgTable("invoice_history", {
+  id: serial("id").primaryKey(),
+  invoiceId: integer("invoice_id").notNull().references(() => invoices.id),
+  action: text("action").notNull(), // create, modify, cancel
+  userId: integer("user_id").notNull().references(() => users.id),
+  changes: jsonb("changes").notNull(),
+  reason: text("reason"),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
 });
 
 export const installments = pgTable("installments", {
@@ -312,6 +337,32 @@ export const userSettings = pgTable("user_settings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const systemActivities = pgTable("system_activities", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  activityType: text("activity_type").notNull(), // login, product_create, sale, etc.
+  entityType: text("entity_type").notNull(), // products, sales, expenses, etc.
+  entityId: integer("entity_id").notNull(),
+  action: text("action").notNull(), // create, update, delete, view
+  details: jsonb("details").notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+});
+
+export const activityReports = pgTable("activity_reports", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  dateRange: jsonb("date_range").notNull(),
+  filters: jsonb("filters"),
+  reportType: text("report_type").notNull(), // daily, weekly, monthly
+  generatedBy: integer("generated_by").notNull().references(() => users.id),
+  data: jsonb("data").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users)
   .pick({
     username: true,
@@ -536,37 +587,36 @@ export const insertInvoiceSchema = createInsertSchema(invoices)
     saleId: z.number().min(1, "معرف البيع مطلوب"),
     invoiceNumber: z.string().min(1, "رقم الفاتورة مطلوب"),
     customerName: z.string().min(1, "اسم العميل مطلوب"),
-    totalAmount: z.number().min(0, "المبلغ الإجمالي يجب أن يكون أكبر من 0"),
+    totalAmount: z.coerce.number().min(0, "المبلغ الإجمالي يجب أن يكون أكبر من 0"),
+    discountAmount: z.coerce.number().min(0, "قيمة الخصم يجب أن تكون 0 أو أكثر"),
+    finalAmount: z.coerce.number().min(0, "المبلغ النهائي يجب أن يكون أكبر من 0"),
+    status: z.enum(["active", "modified", "cancelled"]).default("active"),
+    paymentMethod: z.enum(["cash", "card", "transfer"]).default("cash"),
+    notes: z.string().optional(),
+    originalInvoiceId: z.number().optional(),
+    modificationReason: z.string().optional(),
   });
 
-// Add new system activity logging schemas after the existing reports table
-export const systemActivities = pgTable("system_activities", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  activityType: text("activity_type").notNull(), // login, product_create, sale, etc.
-  entityType: text("entity_type").notNull(), // products, sales, expenses, etc.
-  entityId: integer("entity_id").notNull(),
-  action: text("action").notNull(), // create, update, delete, view
-  details: jsonb("details").notNull(),
-  ipAddress: text("ip_address"),
-  userAgent: text("user_agent"),
-  timestamp: timestamp("timestamp").notNull().defaultNow(),
-});
+export const insertInvoiceItemSchema = createInsertSchema(invoiceItems)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    invoiceId: z.number().min(1, "معرف الفاتورة مطلوب"),
+    productId: z.number().min(1, "معرف المنتج مطلوب"),
+    quantity: z.coerce.number().min(0.001, "الكمية يجب أن تكون أكبر من 0"),
+    unitPrice: z.coerce.number().min(0, "سعر الوحدة يجب أن يكون أكبر من 0"),
+    discount: z.coerce.number().min(0, "قيمة الخصم يجب أن تكون 0 أو أكثر"),
+    totalPrice: z.coerce.number().min(0, "السعر الإجمالي يجب أن يكون أكبر من 0"),
+  });
 
-export const activityReports = pgTable("activity_reports", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description"),
-  dateRange: jsonb("date_range").notNull(),
-  filters: jsonb("filters"),
-  reportType: text("report_type").notNull(), // daily, weekly, monthly
-  generatedBy: integer("generated_by").notNull().references(() => users.id),
-  data: jsonb("data").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+export const insertInvoiceHistorySchema = createInsertSchema(invoiceHistory)
+  .omit({ id: true, timestamp: true })
+  .extend({
+    invoiceId: z.number().min(1, "معرف الفاتورة مطلوب"),
+    action: z.enum(["create", "modify", "cancel"]),
+    changes: z.record(z.unknown()),
+    reason: z.string().optional(),
+  });
 
-// Add report generation schemas
 export const insertSystemActivitySchema = createInsertSchema(systemActivities)
   .omit({ id: true, timestamp: true })
   .extend({
@@ -587,7 +637,41 @@ export const insertActivityReportSchema = createInsertSchema(activityReports)
     data: z.record(z.unknown()),
   });
 
-// Add types for the new schemas
+export const insertExpenseCategorySchema = createInsertSchema(expenseCategories)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    name: z.string().min(1, "اسم الفئة مطلوب"),
+    description: z.string().optional().nullable(),
+    budgetAmount: z.coerce.number().min(0, "الميزانية يجب أن تكون 0 على الأقل").optional().nullable(),
+  });
+
+export const insertExpenseSchema = createInsertSchema(expenses)
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .extend({
+    amount: z.coerce.number().min(0, "المبلغ يجب أن يكون أكبر من 0"),
+    description: z.string().min(1, "الوصف مطلوب"),
+    date: z.coerce.date(),
+    categoryId: z.coerce.number().min(1, "يجب اختيار فئة"),
+    isRecurring: z.boolean().default(false),
+    recurringPeriod: z.enum(["monthly", "weekly", "yearly"]).optional(),
+    recurringDay: z.coerce.number().min(1).max(31).optional(),
+    attachments: z.array(z.string()).optional(),
+  });
+
+export const insertUserSettingsSchema = createInsertSchema(userSettings)
+  .omit({ id: true, createdAt: true, updatedAt: true })
+  .extend({
+    themeName: z.string().min(1, "اسم الثيم مطلوب"),
+    fontName: z.string().min(1, "اسم الخط مطلوب"),
+    fontSize: z.enum(["small", "medium", "large", "xlarge"]),
+    appearance: z.enum(["light", "dark", "system"]),
+    colors: z.object({
+      primary: z.string(),
+      secondary: z.string(),
+      accent: z.string(),
+    }),
+  });
+
 export type SystemActivity = typeof systemActivities.$inferSelect;
 export type InsertSystemActivity = z.infer<typeof insertSystemActivitySchema>;
 export type ActivityReport = typeof activityReports.$inferSelect;
@@ -640,38 +724,7 @@ export type InventoryAlert = typeof inventoryAlerts.$inferSelect;
 export type InsertInventoryAlert = z.infer<typeof insertInventoryAlertSchema>;
 export type AlertNotification = typeof alertNotifications.$inferSelect;
 export type InsertAlertNotification = z.infer<typeof insertAlertNotificationSchema>;
-
-export const insertExpenseCategorySchema = createInsertSchema(expenseCategories)
-  .omit({ id: true, createdAt: true })
-  .extend({
-    name: z.string().min(1, "اسم الفئة مطلوب"),
-    description: z.string().optional().nullable(),
-    budgetAmount: z.coerce.number().min(0, "الميزانية يجب أن تكون 0 على الأقل").optional().nullable(),
-  });
-
-export const insertExpenseSchema = createInsertSchema(expenses)
-  .omit({ id: true, createdAt: true, updatedAt: true })
-  .extend({
-    amount: z.coerce.number().min(0, "المبلغ يجب أن يكون أكبر من 0"),
-    description: z.string().min(1, "الوصف مطلوب"),
-    date: z.coerce.date(),
-    categoryId: z.coerce.number().min(1, "يجب اختيار فئة"),
-    isRecurring: z.boolean().default(false),
-    recurringPeriod: z.enum(["monthly", "weekly", "yearly"]).optional(),
-    recurringDay: z.coerce.number().min(1).max(31).optional(),
-    attachments: z.array(z.string()).optional(),
-  });
-
-export const insertUserSettingsSchema = createInsertSchema(userSettings)
-  .omit({ id: true, createdAt: true, updatedAt: true })
-  .extend({
-    themeName: z.string().min(1, "اسم الثيم مطلوب"),
-    fontName: z.string().min(1, "اسم الخط مطلوب"),
-    fontSize: z.enum(["small", "medium", "large", "xlarge"]),
-    appearance: z.enum(["light", "dark", "system"]),
-    colors: z.object({
-      primary: z.string(),
-      secondary: z.string(),
-      accent: z.string(),
-    }),
-  });
+export type InvoiceItem = typeof invoiceItems.$inferSelect;
+export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
+export type InvoiceHistory = typeof invoiceHistory.$inferSelect;
+export type InsertInvoiceHistory = z.infer<typeof insertInvoiceHistorySchema>;
