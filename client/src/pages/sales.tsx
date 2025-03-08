@@ -294,7 +294,7 @@ export default function Sales() {
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+                <form onSubmit={form.handleSubmit((data) => handleSaleSubmit(data, false))} className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -642,12 +642,9 @@ export default function Sales() {
 
                   <div className="flex gap-4 mt-6">
                     <Button
-                      type="button"
+                      type="submit"
                       className="flex-1 bg-primary hover:bg-primary/90 text-white transition-all duration-200"
                       disabled={isPrinting}
-                      onClick={() => {
-                        form.handleSubmit((data) => handleSaleSubmit(data, false))();
-                      }}
                     >
                       إتمام البيع
                     </Button>
