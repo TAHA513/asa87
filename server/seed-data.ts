@@ -399,7 +399,8 @@ export async function seedData() {
 }
 
 // تشغيل الوظيفة إذا تم استدعاء الملف مباشرة
-if (require.main === module) {
+// استخدام import.meta.url بدلاً من require.main === module في ESM
+if (import.meta.url === `file://${process.argv[1]}`) {
   Promise.all([seedDatabase(), seedData()])
     .then(() => {
       console.log("تمت زراعة البيانات بنجاح!");
