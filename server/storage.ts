@@ -862,24 +862,33 @@ export class DatabaseStorage implements IStorage {
     return settings;
   }
 
-  async saveUserSettings(userId: number, settings: Omit<InsertUserSettings, "userId">): Promise<UserSettings> {
-    // Delete old settings
-    await db
-      .delete(userSettings)
-      .where(eq(userSettings.userId, userId));
+  async saveUserSettings(userId: number, settings: InsertUserSettings): Promise<UserSettings> {
+    try {
+      // Delete old settings
+      await db
+        .delete(userSettings)
+        .where(eq(userSettings.userId, userId));
 
-    // Insert new settings
-    const [newSettings] = await db
-      .insert(userSettings)
-      .values({
-        userId,
-        ...settings,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      .returning();
+      // Insert new settings
+      const [newSettings] = await db
+        .insert(userSettings)
+        .values({
+          userId,
+          themeName: settings.themeName,
+          fontName: settings.fontName,
+          fontSize: settings.fontSize,
+          appearance: settings.appearance,
+          colors: settings.colors,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
 
-    return newSettings;
+      return newSettings;
+    } catch (error) {
+      console.error("Error saving user settings:", error);
+      throw new Error("فشل في حفظ إعدادات المظهر");
+    }
   }
 
   async getAppointments(): Promise<Appointment[]> {
