@@ -127,6 +127,16 @@ export default function Sales() {
         return;
       }
 
+      // التحقق من المخزون
+      if (selectedProduct.stock < data.quantity) {
+        toast({
+          title: "خطأ في المخزون",
+          description: `المخزون غير كافٍ. المتوفر: ${selectedProduct.stock} قطعة`,
+          variant: "destructive",
+        });
+        return;
+      }
+
       const [hours, minutes] = data.time.split(':');
       const saleDate = new Date(data.date);
       saleDate.setHours(parseInt(hours), parseInt(minutes));
@@ -141,7 +151,7 @@ export default function Sales() {
         isInstallment: data.isInstallment,
         priceIqd: selectedProduct.priceIqd,
         discount: data.discount.toString(),
-        userId: user.id,
+        userId: user?.id,
         customerName: data.customerName || undefined,
       });
 
