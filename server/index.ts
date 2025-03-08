@@ -3,16 +3,41 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import fileUpload from "express-fileupload";
 import path from "path";
-import { seedData } from "./seed-data"; // Added import for seedData function
+import session from "express-session";
+import { db, sql } from "./db"; // Import sql from db.ts
+import { seedData } from "./seed-data";
+import MemoryStore from 'memorystore';
+
+const MemoryStoreSession = MemoryStore(session);
 
 const app = express();
+
+// إعداد الجلسات مع تخزين محسن للذاكرة
+app.use(session({
+  store: new MemoryStoreSession({
+    checkPeriod: 86400000 // تنظيف الجلسات منتهية الصلاحية كل 24 ساعة
+  }),
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 86400000 // 24 ساعة
+  }
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(fileUpload());
+app.use(fileUpload({
+  limits: { fileSize: 50 * 1024 * 1024 }, // حد أقصى 50 ميجابايت
+  useTempFiles: true,
+  tempFileDir: '/tmp/'
+}));
 
-// Serve uploaded files statically
+// خدمة الملفات المرفوعة بشكل ثابت
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
+// تسجيل وقت الطلب
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -43,39 +68,64 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
-  const server = await registerRoutes(app);
+// معالجة الأخطاء
+const errorHandler = (err: any, _req: Request, res: Response, next: NextFunction) => {
+  console.error('خطأ في السيرفر:', err);
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+  if (res.headersSent) {
+    return next(err);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
-})();
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "خطأ في السيرفر";
 
-// إضافة بيانات المستخدم الافتراضي للنظام
-seedData().catch(err => {
-  console.error("فشل في تنفيذ عملية بذر البيانات:", err);
-});
+  res.status(status).json({ 
+    error: true,
+    message 
+  });
+};
+
+// التأكد من اتصال قاعدة البيانات قبل بدء السيرفر
+async function startServer() {
+  try {
+    // اختبار اتصال قاعدة البيانات
+    console.log('جاري اختبار الاتصال بقاعدة البيانات...');
+    try {
+      const result = await db.execute(sql`SELECT 1`);
+      console.log('نتيجة اختبار قاعدة البيانات:', result);
+      console.log('تم الاتصال بقاعدة البيانات بنجاح');
+    } catch (dbError) {
+      console.error('خطأ في اتصال قاعدة البيانات:', dbError);
+      throw dbError;
+    }
+
+    const server = await registerRoutes(app);
+    app.use(errorHandler);
+
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
+    }
+
+    const port = 5000;
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`تم تشغيل السيرفر على المنفذ ${port}`);
+    });
+
+    // تنفيذ البذور بعد بدء السيرفر
+    await seedData().catch(err => {
+      console.error("خطأ في تنفيذ البذور:", err);
+    });
+
+  } catch (error) {
+    console.error('فشل في بدء السيرفر:', error);
+    process.exit(1);
+  }
+}
+
+startServer();

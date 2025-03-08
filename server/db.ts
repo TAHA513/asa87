@@ -2,9 +2,11 @@ import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
+import { sql } from 'drizzle-orm';
 
 neonConfig.webSocketConstructor = ws;
-neonConfig.patchWebsocketDanglingTimeout = 5000; // Add timeout for dangling connections
+// Remove the unsupported patchWebsocketDanglingTimeout config
+// Add proper connection retry logic instead
 
 // Validate database URL
 if (!process.env.DATABASE_URL) {
@@ -56,3 +58,6 @@ process.on('SIGTERM', () => {
     process.exit(0);
   });
 });
+
+// Export sql for use in other files
+export { sql };
