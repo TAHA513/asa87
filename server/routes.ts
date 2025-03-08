@@ -891,10 +891,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const validatedData = insertExpenseSchema.parse(req.body);
-      const expense = await storage.createExpense({
-        ...validatedData,        userId: req.user!.id,
+      const expense= await storage.createExpense({
+        ...validatedData,
+        userId: req.user!.id,
       });
-      res.status(201).json(expense);    } catch (error) {
+      res.status(201).json(expense);
+    } catch (error) {
       console.error("Error creating expense:", error);
       if (error instanceof Error) {
         res.status(400).json({ message: error.message });
@@ -1728,7 +1730,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("Received appointments report request");
 
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(4011).json({ message: "يجب تسجيل الدخول أولاً" });
     }
 
     try {
@@ -1765,6 +1767,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
       const filters = {
         search: req.query.search as string,
         startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
@@ -1773,9 +1777,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       console.log("Fetching invoices with filters:", filters);
-      const invoices = await storage.getInvoices(filters);
-      console.log(`Retrieved ${invoices.length} invoices`);
-      res.json(invoices);
+      const sales = await storage.getSales();
+
+      // تحويل المبيعات إلى فواتير مع تحسين الأداء
+      const formattedInvoices = sales
+        .slice((page - 1) * limit, page * limit)
+        .map(sale => ({
+          id: sale.id,
+          invoiceNumber: `INV-${sale.id}`,
+          customerName: sale.customerName || "زبون نقدي",
+          totalAmount: Number(sale.finalPriceIqd),
+          status: "active",
+          createdAt: sale.date,
+          items: [{
+            id: 1,
+            productId: sale.productId,
+            quantity: sale.quantity,
+            unitPrice: Number(sale.priceIqd),
+            totalPrice: Number(sale.finalPriceIqd)
+          }]
+        }));
+
+      console.log(`Retrieved ${formattedInvoices.length} invoices`);
+      res.json({
+        data: formattedInvoices,
+        pagination: {
+          total: sales.length,
+          page,
+          limit,
+          pages: Math.ceil(sales.length / limit)
+        }
+      });
     } catch (error) {
       console.error("Error fetching invoices:", error);
       res.status(500).json({ message: "فشل في جلب الفواتير" });

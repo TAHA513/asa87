@@ -64,47 +64,12 @@ export const columns: ColumnDef<Invoice>[] = [
       const invoice = row.original;
       return (
         <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            asChild
-          >
+          <Button variant="ghost" size="icon" asChild>
             <Link to={`/invoices/${invoice.id}`}>
               <Eye className="h-4 w-4" />
             </Link>
           </Button>
-          {invoice.status === "active" && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => window.location.href = `/invoices/${invoice.id}/edit`}
-              >
-                <FilePenLine className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  if (typeof setSelectedInvoice === 'function') {
-                    setSelectedInvoice(invoice);
-                    setShowCancelDialog(true);
-                  }
-                }}
-              >
-                <XCircle className="h-4 w-4" />
-              </Button>
-            </>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              if (typeof handlePrint === 'function') {
-                handlePrint(invoice);
-              }
-            }}
-          >
+          <Button variant="ghost" size="icon" onClick={() => window.print()}>
             <Printer className="h-4 w-4" />
           </Button>
         </div>

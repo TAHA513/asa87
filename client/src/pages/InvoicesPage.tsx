@@ -23,6 +23,16 @@ import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { addDays } from "date-fns";
 import { useDebounce } from "@/hooks/use-debounce";
 
+interface InvoiceResponse {
+  data: Invoice[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
+}
+
 export default function InvoicesPage() {
   const { toast } = useToast();
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -32,16 +42,19 @@ export default function InvoicesPage() {
     from: addDays(new Date(), -30),
     to: new Date(),
   });
+  const [page, setPage] = useState(1);
 
   // استخدام debounce للبحث
   const debouncedSearch = useDebounce(searchTerm, 500);
   const debouncedDateRange = useDebounce(dateRange, 500);
 
-  const { data: invoices, isLoading } = useQuery<Invoice[]>({
+  const { data: response, isLoading } = useQuery<InvoiceResponse>({
     queryKey: ["/api/invoices", { 
       search: debouncedSearch,
       startDate: debouncedDateRange.from,
       endDate: debouncedDateRange.to,
+      page,
+      limit: 10
     }],
     staleTime: 30000, // 30 seconds
     gcTime: 5 * 60 * 1000, // 5 minutes
@@ -118,12 +131,19 @@ export default function InvoicesPage() {
         <div className="flex justify-center items-center h-32">
           <div className="text-lg">جاري تحميل الفواتير...</div>
         </div>
-      ) : !invoices?.length ? (
+      ) : !response?.data.length ? (
         <div className="flex justify-center items-center h-32">
           <div className="text-lg">لا توجد فواتير متطابقة مع معايير البحث</div>
         </div>
       ) : (
-        <DataTable columns={columns} data={invoices} />
+        <>
+          <DataTable 
+            columns={columns} 
+            data={response.data}
+            onPageChange={setPage}
+            pagination={response.pagination}
+          />
+        </>
       )}
 
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
