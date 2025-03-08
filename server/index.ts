@@ -85,6 +85,15 @@ const errorHandler = (err: any, _req: Request, res: Response, next: NextFunction
   });
 };
 
+// معالجة الأخطاء غير المتوقعة في العملية
+process.on('uncaughtException', (error) => {
+  console.error('خطأ غير متوقع:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('وعد مرفوض غير معالج:', promise, 'السبب:', reason);
+});
+
 // التأكد من اتصال قاعدة البيانات قبل بدء السيرفر
 async function startServer() {
   try {
