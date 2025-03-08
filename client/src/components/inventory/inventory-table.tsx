@@ -85,32 +85,47 @@ export default function InventoryTable() {
   // إضافة mutation للتعديل
   const updateMutation = useMutation({
     mutationFn: async (data: { id: number; updates: Partial<Product> }) => {
-      await apiRequest("PATCH", `/api/products/${data.id}`, data.updates);
+      const response = await apiRequest(`/api/products/${data.id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data.updates),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error("فشل في تحديث المنتج");
+      }
+
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({
         title: "تم التحديث",
-        description: "تم تحديث المنتج بنجاح",
+        description: "تم تحديث المخزون بنجاح",
       });
-      setEditingProduct(null);
     },
     onError: (error) => {
       toast({
         title: "خطأ",
-        description: "فشل في تحديث المنتج",
+        description: error instanceof Error ? error.message : "فشل في تحديث المخزون",
         variant: "destructive",
       });
     },
   });
 
-  const handleUpdateStock = (product: Product) => {
+  const handleUpdateStock = async (product: Product) => {
     const newStock = window.prompt("أدخل الكمية الجديدة للمخزون:", product.stock.toString());
     if (newStock && !isNaN(Number(newStock))) {
-      updateMutation.mutate({
-        id: product.id,
-        updates: { stock: Number(newStock) }
-      });
+      try {
+        await updateMutation.mutateAsync({
+          id: product.id,
+          updates: { stock: Number(newStock) }
+        });
+      } catch (error) {
+        console.error("خطأ في تحديث المخزون:", error);
+      }
     }
   };
 
