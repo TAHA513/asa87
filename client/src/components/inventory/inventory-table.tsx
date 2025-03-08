@@ -85,13 +85,7 @@ export default function InventoryTable() {
   // إضافة mutation للتعديل
   const updateMutation = useMutation({
     mutationFn: async (data: { id: number; updates: Partial<Product> }) => {
-      const response = await apiRequest(`/api/products/${data.id}`, {
-        method: "PATCH",
-        body: JSON.stringify(data.updates),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await apiRequest("PATCH", `/api/products/${data.id}`, data.updates);
 
       if (!response.ok) {
         throw new Error("فشل في تحديث المنتج");
