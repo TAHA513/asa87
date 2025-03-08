@@ -36,15 +36,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         date: new Date()
       });
 
-      // تحديث مخزون المنتج
-      const product = await storage.getProduct(sale.productId);
-      if (product) {
-        await storage.updateProduct(product.id, {
-          ...product,
-          stock: product.stock - sale.quantity
-        });
-      }
-
       res.status(201).json(sale);
     } catch (error) {
       console.error("Error creating sale:", error);
