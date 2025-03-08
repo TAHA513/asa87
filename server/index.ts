@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import fileUpload from "express-fileupload";
 import path from "path";
+import { seedData } from "./seed-data"; // Added import for seedData function
 
 const app = express();
 app.use(express.json());
@@ -73,3 +74,8 @@ app.use((req, res, next) => {
     log(`serving on port ${port}`);
   });
 })();
+
+// إضافة بيانات المستخدم الافتراضي للنظام
+seedData().catch(err => {
+  console.error("فشل في تنفيذ عملية بذر البيانات:", err);
+});
