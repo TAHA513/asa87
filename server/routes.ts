@@ -895,7 +895,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...validatedData,
         userId: req.user!.id,
       });
-      res.status(201).json(expense);
+      res.json(expense);
     } catch (error) {
       console.error("Error creating expense:", error);
       if (error instanceof Error) {
@@ -1811,6 +1811,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching invoices:", error);
       res.status(500).json({ message: "فشل في جلب الفواتير" });
+    }
+  });
+
+  // تعريف نقطة نهاية جديدة لجلب تفاصيل فاتورة واحدة
+  app.get("/api/invoices/:id", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "معرف الفاتورة غير صالح" });
+      }
+
+      const sale = await storage.getSale(id);
+      if (!sale) {
+        return res.status(404).json({ message: "الفاتورة غير موجودة" });
+      }
+
+      // تحويل بيانات البيع إلى تنسيق الفاتورة
+      const invoice = {
+        id: sale.id,
+        invoiceNumber: `INV-${sale.id}`,
+        customerName: sale.customerName || "زبون نقدي",
+        totalAmount: Number(sale.finalPriceIqd),
+        status: "active",
+        createdAt: sale.date,
+        items: [{
+          id: 1,
+          productId: sale.productId,
+          quantity: sale.quantity,
+          unitPrice: Number(sale.priceIqd),
+          totalPrice: Number(sale.finalPriceIqd),
+          productName: "المنتج" // سيتم إضافة اسم المنتج لاحقاً
+        }]
+      };
+
+      res.json(invoice);
+    } catch (error) {
+      console.error("Error fetching invoice:", error);
+      res.status(500).json({ message: "فشل في جلب تفاصيل الفاتورة" });
     }
   });
 

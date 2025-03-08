@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Invoice, InvoiceHistory, InvoiceItem } from "@shared/schema";
+import { Invoice } from "@shared/schema";
 import { useParams } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,29 +7,28 @@ import { ArrowRight, FileEdit, Printer, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Link } from "wouter";
-import { InvoiceHistoryList } from "@/components/invoices/InvoiceHistoryList";
 
 export default function InvoiceDetailsPage() {
   const { id } = useParams<{ id: string }>();
 
-  const { data: invoice, isLoading: isLoadingInvoice } = useQuery<Invoice>({
+  const { data: invoice, isLoading } = useQuery<Invoice>({
     queryKey: ["/api/invoices", id],
   });
 
-  const { data: items, isLoading: isLoadingItems } = useQuery<InvoiceItem[]>({
-    queryKey: ["/api/invoices", id, "items"],
-  });
-
-  const { data: history, isLoading: isLoadingHistory } = useQuery<InvoiceHistory[]>({
-    queryKey: ["/api/invoices", id, "history"],
-  });
-
-  if (isLoadingInvoice || isLoadingItems || isLoadingHistory) {
-    return <div>جاري التحميل...</div>;
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-lg">جاري تحميل تفاصيل الفاتورة...</div>
+      </div>
+    );
   }
 
   if (!invoice) {
-    return <div>الفاتورة غير موجودة</div>;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-lg">الفاتورة غير موجودة</div>
+      </div>
+    );
   }
 
   return (
@@ -46,37 +45,13 @@ export default function InvoiceDetailsPage() {
             فاتورة رقم {invoice.invoiceNumber}
           </h1>
           <Badge
-            variant={
-              invoice.status === "active"
-                ? "default"
-                : invoice.status === "modified"
-                ? "warning"
-                : "destructive"
-            }
+            variant={invoice.status === "active" ? "default" : "destructive"}
           >
-            {invoice.status === "active"
-              ? "نشط"
-              : invoice.status === "modified"
-              ? "معدل"
-              : "ملغي"}
+            {invoice.status === "active" ? "نشط" : "ملغي"}
           </Badge>
         </div>
         <div className="flex gap-2">
-          {invoice.status === "active" && (
-            <>
-              <Button variant="outline" asChild>
-                <Link to={`/invoices/${id}/edit`}>
-                  <FileEdit className="ml-2 h-4 w-4" />
-                  تعديل
-                </Link>
-              </Button>
-              <Button variant="destructive">
-                <XCircle className="ml-2 h-4 w-4" />
-                إلغاء
-              </Button>
-            </>
-          )}
-          <Button>
+          <Button variant="outline" onClick={() => window.print()}>
             <Printer className="ml-2 h-4 w-4" />
             طباعة
           </Button>
@@ -102,16 +77,6 @@ export default function InvoiceDetailsPage() {
                 <dt>تاريخ الإنشاء</dt>
                 <dd>{new Date(invoice.createdAt).toLocaleDateString("ar-IQ")}</dd>
               </div>
-              <div className="flex justify-between">
-                <dt>طريقة الدفع</dt>
-                <dd>
-                  {invoice.paymentMethod === "cash"
-                    ? "نقدي"
-                    : invoice.paymentMethod === "card"
-                    ? "بطاقة"
-                    : "تحويل"}
-                </dd>
-              </div>
             </dl>
           </CardContent>
         </Card>
@@ -128,26 +93,7 @@ export default function InvoiceDetailsPage() {
                   {new Intl.NumberFormat("ar-IQ", {
                     style: "currency",
                     currency: "IQD",
-                  }).format(parseFloat(invoice.totalAmount))}
-                </dd>
-              </div>
-              <div className="flex justify-between">
-                <dt>الخصم</dt>
-                <dd>
-                  {new Intl.NumberFormat("ar-IQ", {
-                    style: "currency",
-                    currency: "IQD",
-                  }).format(parseFloat(invoice.discountAmount))}
-                </dd>
-              </div>
-              <Separator />
-              <div className="flex justify-between font-bold">
-                <dt>المبلغ النهائي</dt>
-                <dd>
-                  {new Intl.NumberFormat("ar-IQ", {
-                    style: "currency",
-                    currency: "IQD",
-                  }).format(parseFloat(invoice.finalAmount))}
+                  }).format(invoice.totalAmount)}
                 </dd>
               </div>
             </dl>
@@ -166,32 +112,25 @@ export default function InvoiceDetailsPage() {
                 <th className="text-right py-2">المنتج</th>
                 <th className="text-right py-2">الكمية</th>
                 <th className="text-right py-2">السعر</th>
-                <th className="text-right py-2">الخصم</th>
                 <th className="text-right py-2">الإجمالي</th>
               </tr>
             </thead>
             <tbody>
-              {items?.map((item) => (
+              {invoice.items?.map((item) => (
                 <tr key={item.id} className="border-b">
-                  <td className="py-2">{item.productId}</td>
+                  <td className="py-2">{item.productName || `منتج ${item.productId}`}</td>
                   <td className="py-2">{item.quantity}</td>
                   <td className="py-2">
                     {new Intl.NumberFormat("ar-IQ", {
                       style: "currency",
                       currency: "IQD",
-                    }).format(parseFloat(item.unitPrice))}
+                    }).format(item.unitPrice)}
                   </td>
                   <td className="py-2">
                     {new Intl.NumberFormat("ar-IQ", {
                       style: "currency",
                       currency: "IQD",
-                    }).format(parseFloat(item.discount))}
-                  </td>
-                  <td className="py-2">
-                    {new Intl.NumberFormat("ar-IQ", {
-                      style: "currency",
-                      currency: "IQD",
-                    }).format(parseFloat(item.totalPrice))}
+                    }).format(item.totalPrice)}
                   </td>
                 </tr>
               ))}
@@ -199,17 +138,6 @@ export default function InvoiceDetailsPage() {
           </table>
         </CardContent>
       </Card>
-
-      {history && history.length > 0 && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>سجل التغييرات</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <InvoiceHistoryList history={history} />
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
