@@ -1,46 +1,19 @@
-// اختبار الاتصال بقاعدة البيانات
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import ws from "ws";
-import * as schema from "@shared/schema";
 
-console.log("بدء اختبار الاتصال بقاعدة البيانات...");
+import { Pool } from '@neondatabase/serverless';
+import { neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
+import dotenv from 'dotenv';
 
-// التحقق من وجود متغير البيئة
-console.log(`متغير البيئة DATABASE_URL موجود: ${process.env.DATABASE_URL ? 'نعم' : 'لا'}`);
+// تحميل متغيرات البيئة من ملف .env
+dotenv.config();
 
-if (process.env.DATABASE_URL) {
-  // طباعة URL بدون كلمة المرور للأمان
-  const safeUrl = process.env.DATABASE_URL.replace(/:[^:@]*@/, ":***@");
-  console.log(`شكل عنوان قاعدة البيانات: ${safeUrl}`);
+// تكوين Neon لاستخدام WebSockets
+neonConfig.webSocketConstructor = ws;
 
-  // التحقق من شكل URL
-  const urlParts = process.env.DATABASE_URL.split(":");
-
-  if (urlParts.length < 3) {
-    console.log("تنسيق URL غير صحيح. يجب أن يكون: postgres://username:password@hostname:port/database_name");
-  } else {
-    // تحليل URL بالكامل
-    try {
-      const dbUrl = new URL(process.env.DATABASE_URL);
-      console.log(`البروتوكول: ${dbUrl.protocol}`);
-      console.log(`اسم المستخدم: ${dbUrl.username}`);
-      console.log(`اسم المضيف: ${dbUrl.hostname}`);
-      console.log(`المنفذ: ${dbUrl.port || 'الافتراضي (5432)'}`);
-      console.log(`اسم قاعدة البيانات: ${dbUrl.pathname.replace('/', '')}`);
-    } catch (e) {
-      console.log("تعذر تحليل عنوان قاعدة البيانات بشكل صحيح");
-
-      // تحليل يدوي بسيط
-      const hostPortPart = urlParts[2].split("@")[1] || "غير موجود";
-      const hostPart = hostPortPart.split("/")[0] || "غير موجود";
-      const port = hostPart.split(":")[1] || "غير موجود";
-      const host = hostPart.split(":")[0] || "غير موجود";
-
-      console.log(`اسم المضيف (تحليل يدوي): ${host}`);
-      console.log(`المنفذ (تحليل يدوي): ${port}`);
-    }
-  }
+// التحقق من متغير البيئة
+if (!process.env.DATABASE_URL) {
+  console.error("❌ خطأ: متغير البيئة DATABASE_URL غير موجود");
+  process.exit(1);
 }
 
 async function testConnection() {
@@ -50,48 +23,70 @@ async function testConnection() {
 
     // محاولة الاتصال
     const connectionString = process.env.DATABASE_URL;
-
-    if (!connectionString) {
-      console.log("خطأ: متغير البيئة DATABASE_URL غير موجود");
-      return;
-    }
-
-    console.log("جاري محاولة الاتصال بقاعدة البيانات...");
+    console.log("🔄 جاري محاولة الاتصال بقاعدة البيانات...");
+    
     const pool = new Pool({ connectionString });
 
     // اختبار الاتصال
     const client = await pool.connect();
-
-    console.log("تم الاتصال بقاعدة البيانات بنجاح!");
+    console.log("✅ تم الاتصال بقاعدة البيانات بنجاح!");
 
     // اختبار الاستعلام
-    console.log("جاري اختبار استعلام بسيط...");
-    const result = await client.query("SELECT current_timestamp as time, current_database() as database");
-    console.log("نتيجة الاستعلام:", result.rows[0]);
+    console.log("🔍 معلومات قاعدة البيانات:");
+    const dbInfoResult = await client.query("SELECT current_database() as db_name, current_user as username");
+    console.log(`   📊 اسم قاعدة البيانات: ${dbInfoResult.rows[0].db_name}`);
+    console.log(`   👤 اسم المستخدم: ${dbInfoResult.rows[0].username}`);
 
-    // اختبار وجود جدول المستخدمين
-    console.log("التحقق من وجود جدول المستخدمين...");
-    const tableResult = await client.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'users'
-      )
+    // الحصول على قائمة الجداول
+    console.log("\n📋 التحقق من الجداول الموجودة في قاعدة البيانات:");
+    const tablesResult = await client.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public'
+      ORDER BY table_name;
     `);
 
-    console.log(`جدول المستخدمين موجود: ${tableResult.rows[0].exists ? 'نعم' : 'لا'}`);
+    // الجداول المتوقعة من ملف schema.ts
+    const expectedTables = [
+      'users', 'products', 'product_categories', 'customers', 'sales', 
+      'invoices', 'invoice_items', 'invoice_history', 'installments', 
+      'installment_payments', 'exchange_rates', 'marketing_campaigns', 
+      'campaign_analytics', 'social_media_accounts', 'api_keys', 
+      'inventory_transactions', 'inventory_adjustments', 'inventory_alerts', 
+      'alert_notifications', 'reports', 'expense_categories', 'expenses', 
+      'suppliers', 'supplier_transactions', 'appointments', 'file_storage',
+      'user_settings', 'system_activities', 'activity_reports'
+    ];
+
+    if (tablesResult.rows.length === 0) {
+      console.log("❌ لا توجد جداول في قاعدة البيانات!");
+    } else {
+      console.log(`✅ تم العثور على ${tablesResult.rows.length} جدول:`);
+      
+      const existingTables = tablesResult.rows.map(row => row.table_name);
+      console.table(existingTables);
+      
+      // التحقق من الجداول المفقودة
+      const missingTables = expectedTables.filter(table => !existingTables.includes(table));
+      
+      if (missingTables.length > 0) {
+        console.log(`\n⚠️ الجداول المفقودة (${missingTables.length}):`);
+        console.table(missingTables);
+        console.log("\nℹ️ لإنشاء الجداول المفقودة، قم بتنفيذ الأمر التالي:");
+        console.log("npx drizzle-kit push:pg");
+      } else {
+        console.log("\n✅ جميع الجداول المتوقعة موجودة في قاعدة البيانات!");
+      }
+    }
 
     // إغلاق الاتصال
-    client.release();
-    console.log("تم إغلاق الاتصال بنجاح");
-
+    await client.release();
+    await pool.end();
+    
   } catch (error) {
-    console.log("فشل الاتصال بقاعدة البيانات:", error);
-  } finally {
-    console.log("إغلاق اتصال قاعدة البيانات...");
-    console.log("اكتمل اختبار الاتصال");
-    process.exit(0);
+    console.error("❌ خطأ في الاتصال بقاعدة البيانات:", error);
   }
 }
 
+// تنفيذ الاختبار
 testConnection();
