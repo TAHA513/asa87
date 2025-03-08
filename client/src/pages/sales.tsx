@@ -47,7 +47,6 @@ interface NewSaleFormData {
   time: string;
   discount: number;
   isInstallment: boolean;
-  printInvoice: boolean;
   customerPhone: string;
   identityNumber: string;
   downPayment: number;
@@ -82,7 +81,6 @@ export default function Sales() {
       time: format(new Date(), 'HH:mm'),
       discount: 0,
       isInstallment: false,
-      printInvoice: true,
       customerName: "",
       customerPhone: "",
       identityNumber: "",
@@ -116,7 +114,7 @@ export default function Sales() {
     },
   });
 
-  const handleSubmit = async (data: NewSaleFormData) => {
+  const handleSaleSubmit = async (data: NewSaleFormData, withPrint: boolean = false) => {
     try {
       if (!selectedProduct) {
         toast({
@@ -199,7 +197,7 @@ export default function Sales() {
         throw new Error("فشل في إنشاء الفاتورة");
       }
 
-      if (data.printInvoice) {
+      if (withPrint) {
         setSelectedSale({
           ...saleData,
           customerName: data.customerName || "عميل نقدي",
@@ -642,38 +640,28 @@ export default function Sales() {
                     </div>
                   )}
 
-                  <FormField
-                    control={form.control}
-                    name="printInvoice"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col space-y-2 bg-muted/30 p-4 rounded-lg">
-                        <div className="flex items-center space-x-2">
-                          <FormControl>
-                            <input
-                              type="checkbox"
-                              checked={field.value}
-                              onChange={(e) => field.onChange(e.target.checked)}
-                              className="rounded border-input w-4 h-4 transition-all duration-200 checked:bg-primary"
-                            />
-                          </FormControl>
-                          <FormLabel className="text-base font-medium mr-2 cursor-pointer">
-                            طباعة الفاتورة مع البيع
-                          </FormLabel>
-                        </div>
-                        <p className="text-sm text-muted-foreground mr-6">
-                          سيتم فتح نافذة الطباعة تلقائياً بعد إتمام عملية البيع
-                        </p>
-                      </FormItem>
-                    )}
-                  />
-
-                  <Button
-                    type="submit"
-                    className="w-full bg-primary hover:bg-primary/90 text-white transition-all duration-200 shadow-lg hover:shadow-xl"
-                    disabled={isPrinting}
-                  >
-                    {isPrinting ? "جاري الطباعة..." : "إتمام البيع"}
-                  </Button>
+                  <div className="flex gap-4 mt-6">
+                    <Button
+                      type="button"
+                      className="flex-1 bg-primary hover:bg-primary/90 text-white transition-all duration-200"
+                      disabled={isPrinting}
+                      onClick={() => {
+                        form.handleSubmit((data) => handleSaleSubmit(data, false))();
+                      }}
+                    >
+                      إتمام البيع
+                    </Button>
+                    <Button
+                      type="button"
+                      className="flex-1 bg-primary hover:bg-primary/90 text-white transition-all duration-200"
+                      disabled={isPrinting}
+                      onClick={() => {
+                        form.handleSubmit((data) => handleSaleSubmit(data, true))();
+                      }}
+                    >
+                      {isPrinting ? "جاري الطباعة..." : "البيع مع طباعة الفاتورة"}
+                    </Button>
+                  </div>
                 </form>
               </Form>
             </CardContent>
