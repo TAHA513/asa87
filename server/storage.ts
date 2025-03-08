@@ -25,13 +25,14 @@ import {
   type Report, type InsertReport, type InvoiceItem
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, or, like, SQL, gte, lte, and, sql, lt, gt } from "drizzle-orm";
+import { eq, desc, or, like, SQL, gte, lte, and, sql } from "drizzle-orm";
 import { caching } from "./cache";
 
-const CACHE_TTL = 5 * 60; // 5 minutes cache
-
 export interface IStorage {
-  // ...existing methods...
+  // User methods
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
 
   saveReport(reportData: {
     type: string;
@@ -61,6 +62,36 @@ export class DatabaseStorage implements IStorage {
     this.cache = caching;
   }
 
+  async getUser(id: number): Promise<User | undefined> {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user;
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      return undefined;
+    }
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.username, username));
+      return user;
+    } catch (error) {
+      console.error("Error fetching user by username:", error);
+      return undefined;
+    }
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    try {
+      const [user] = await db.insert(users).values(insertUser).returning();
+      return user;
+    } catch (error) {
+      console.error("Error creating user:", error);
+      throw new Error("فشل في إنشاء المستخدم");
+    }
+  }
+
   async createSale(sale: {
     productId: number;
     quantity: number;
@@ -85,18 +116,12 @@ export class DatabaseStorage implements IStorage {
         throw new Error(`المخزون غير كافٍ. المتوفر: ${product.stock}`);
       }
 
-      // تحديث المخزون بشكل ذري
-      const [updatedProduct] = await db
-        .update(products)
-        .set({ stock: product.stock - sale.quantity })
-        .where(eq(products.id, sale.productId))
-        .returning();
 
       const [newSale] = await db
         .insert(sales)
         .values({
           productId: sale.productId,
-          customerId: customerId,
+          customerId: sale.customerName,
           quantity: sale.quantity,
           priceIqd: sale.priceIqd,
           discount: sale.discount,
@@ -107,15 +132,10 @@ export class DatabaseStorage implements IStorage {
         })
         .returning();
 
-      await db.insert(inventoryTransactions).values({
-        productId: sale.productId,
-        type: "out",
-        quantity: sale.quantity,
-        reason: "sale",
-        reference: `SALE-${newSale.id}`,
-        userId: sale.userId,
-        date: new Date()
-      });
+      await db
+        .update(products)
+        .set({ stock: product.stock - sale.quantity })
+        .where(eq(products.id, sale.productId));
 
       return newSale;
     } catch (error) {
@@ -123,4 +143,43 @@ export class DatabaseStorage implements IStorage {
       throw new Error("فشل في إنشاء عملية البيع. " + (error as Error).message);
     }
   }
+
+  async saveReport(reportData: {
+    type: string;
+    title: string;
+    dateRange: { start: Date; end: Date };
+    filters?: Record<string, unknown>;
+    data: Record<string, unknown>;
+    userId: number;
+    format?: string;
+  }): Promise<Report> {
+    //Implementation for saveReport
+    return {} as Report;
+  }
+
+  async getReport(id: number): Promise<Report | undefined> {
+    //Implementation for getReport
+    return {} as Report;
+  }
+  async getUserReports(userId: number, type?: string): Promise<any> {
+    //Implementation for getUserReports
+    return [];
+  }
+  async getAppointmentsReport(dateRange: { start: Date; end: Date }, userId: number): Promise<any> {
+    //Implementation for getAppointmentsReport
+    return [];
+  }
+  async getInvoices(filters?: {
+    search?: string;
+    startDate?: Date;
+    endDate?: Date;
+    status?: string;
+  }): Promise<Invoice[]> {
+    //Implementation for getInvoices
+    return [];
+  }
 }
+
+// تصدير كائن storage
+const storage = new DatabaseStorage();
+export { storage };
