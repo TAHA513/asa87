@@ -1,395 +1,377 @@
 
 import { db } from "./db";
-import * as schema from "@shared/schema";
-import bcrypt from "bcrypt";
+import { users, products, customers, productCategories, suppliers, expenses, expenseCategories } from "@shared/schema";
+import bcrypt from "bcryptjs";
 
-async function seedDatabase() {
-  console.log("بدء إضافة البيانات الاختبارية...");
+export async function seedDatabase() {
+  console.log("بدء زراعة البيانات الاختبارية في قاعدة البيانات...");
 
-  try {
-    // 1. إضافة مستخدمين
-    const hashedPassword = await bcrypt.hash("123456", 10);
-    
-    const [adminUser] = await db.insert(schema.users).values({
-      username: "admin",
-      password: hashedPassword,
-      fullName: "مدير النظام",
-      role: "admin",
-      email: "admin@example.com",
-      phone: "07700000000",
-      isActive: true,
+  // إضافة فئات المنتجات
+  const categories = await db.insert(productCategories).values([
+    { name: "إلكترونيات", description: "منتجات إلكترونية متنوعة", createdAt: new Date() },
+    { name: "ملابس", description: "ملابس رجالية ونسائية", createdAt: new Date() },
+    { name: "أجهزة منزلية", description: "أجهزة للمنزل", createdAt: new Date() },
+    { name: "أثاث", description: "أثاث منزلي ومكتبي", createdAt: new Date() },
+    { name: "مستلزمات أطفال", description: "منتجات خاصة بالأطفال", createdAt: new Date() }
+  ]).returning();
+
+  console.log(`تم إضافة ${categories.length} فئة للمنتجات`);
+
+  // إضافة منتجات
+  const productsList = await db.insert(products).values([
+    {
+      name: "هاتف ذكي سامسونج A52",
+      description: "هاتف ذكي بشاشة 6.5 بوصة وكاميرا 64 ميجابكسل",
+      productCode: "PHONE-001",
+      barcode: "1234567890123",
+      productType: "إلكترونيات",
+      quantity: 50,
+      minQuantity: 10,
+      productionDate: new Date("2023-01-01"),
+      expiryDate: null,
+      costPrice: 200,
+      priceIqd: 300000,
+      categoryId: categories[0].id,
+      isWeightBased: false,
+      enableDirectWeighing: false,
+      stock: 50,
+      imageUrl: null,
+      thumbnailUrl: null,
       createdAt: new Date(),
       updatedAt: new Date()
-    }).returning();
-    
-    console.log("✅ تم إنشاء المستخدم الأول:", adminUser.username);
-    
-    await db.insert(schema.users).values({
-      username: "موظف1",
-      password: hashedPassword,
-      fullName: "موظف المبيعات",
-      role: "staff",
-      email: "staff@example.com",
-      phone: "07700000001",
-      isActive: true,
+    },
+    {
+      name: "لابتوب HP Pavilion",
+      description: "لابتوب للاستخدام المكتبي والألعاب بمعالج i5",
+      productCode: "LAPTOP-001",
+      barcode: "9876543210123",
+      productType: "إلكترونيات",
+      quantity: 20,
+      minQuantity: 5,
+      productionDate: new Date("2023-02-15"),
+      expiryDate: null,
+      costPrice: 450,
+      priceIqd: 700000,
+      categoryId: categories[0].id,
+      isWeightBased: false,
+      enableDirectWeighing: false,
+      stock: 20,
+      imageUrl: null,
+      thumbnailUrl: null,
       createdAt: new Date(),
       updatedAt: new Date()
-    });
-    
-    console.log("✅ تم إنشاء المستخدم الثاني");
-
-    // 2. إضافة فئات المنتجات
-    const categories = [
-      { name: "إلكترونيات", description: "أجهزة إلكترونية متنوعة" },
-      { name: "ملابس", description: "ملابس رجالية ونسائية" },
-      { name: "أثاث", description: "أثاث منزلي ومكتبي" },
-      { name: "مواد غذائية", description: "منتجات غذائية متنوعة" }
-    ];
-    
-    for (const category of categories) {
-      await db.insert(schema.productCategories).values({
-        name: category.name,
-        description: category.description,
-        createdAt: new Date()
-      });
+    },
+    {
+      name: "قميص رجالي",
+      description: "قميص رجالي بأكمام طويلة قطن 100%",
+      productCode: "SHIRT-001",
+      barcode: "1122334455667",
+      productType: "ملابس",
+      quantity: 100,
+      minQuantity: 20,
+      productionDate: null,
+      expiryDate: null,
+      costPrice: 15,
+      priceIqd: 25000,
+      categoryId: categories[1].id,
+      isWeightBased: false,
+      enableDirectWeighing: false,
+      stock: 100,
+      imageUrl: null,
+      thumbnailUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      name: "فستان نسائي",
+      description: "فستان نسائي مقاس متوسط",
+      productCode: "DRESS-001",
+      barcode: "7788990011223",
+      productType: "ملابس",
+      quantity: 30,
+      minQuantity: 10,
+      productionDate: null,
+      expiryDate: null,
+      costPrice: 25,
+      priceIqd: 45000,
+      categoryId: categories[1].id,
+      isWeightBased: false,
+      enableDirectWeighing: false,
+      stock: 30,
+      imageUrl: null,
+      thumbnailUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      name: "ثلاجة سامسونج",
+      description: "ثلاجة منزلية سعة 500 لتر",
+      productCode: "FRIDGE-001",
+      barcode: "3344556677889",
+      productType: "أجهزة منزلية",
+      quantity: 15,
+      minQuantity: 3,
+      productionDate: new Date("2023-03-10"),
+      expiryDate: null,
+      costPrice: 300,
+      priceIqd: 500000,
+      categoryId: categories[2].id,
+      isWeightBased: false,
+      enableDirectWeighing: false,
+      stock: 15,
+      imageUrl: null,
+      thumbnailUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
     }
-    
-    console.log("✅ تم إنشاء فئات المنتجات");
+  ]).returning();
 
-    // الحصول على معرفات الفئات
-    const categoryRecords = await db.select().from(schema.productCategories);
-    const categoryMap = categoryRecords.reduce((map, cat) => {
-      map[cat.name] = cat.id;
-      return map;
-    }, {} as Record<string, number>);
+  console.log(`تم إضافة ${productsList.length} منتج`);
 
-    // 3. إضافة منتجات
-    const products = [
-      {
-        name: "تلفزيون ذكي 55 بوصة",
-        description: "تلفزيون ذكي بشاشة 4K عالية الدقة",
-        productCode: "TV-55-SMART",
-        barcode: "12345678901",
-        productType: "إلكترونيات",
-        quantity: 25,
-        minQuantity: 5,
-        costPrice: "250000",
-        priceIqd: "280000",
-        categoryId: categoryMap["إلكترونيات"],
-        stock: 25,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        name: "هاتف ذكي",
-        description: "هاتف ذكي مع كاميرا عالية الدقة",
-        productCode: "PHONE-PRO",
-        barcode: "12345678902",
-        productType: "إلكترونيات",
-        quantity: 50,
-        minQuantity: 10,
-        costPrice: "150000",
-        priceIqd: "170000",
-        categoryId: categoryMap["إلكترونيات"],
-        stock: 50,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        name: "قميص رجالي",
-        description: "قميص رجالي قطني",
-        productCode: "SHIRT-M",
-        barcode: "12345678903",
-        productType: "ملابس",
-        quantity: 100,
-        minQuantity: 20,
-        costPrice: "15000",
-        priceIqd: "20000",
-        categoryId: categoryMap["ملابس"],
-        stock: 100,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        name: "طاولة خشبية",
-        description: "طاولة خشبية للمكتب",
-        productCode: "TABLE-WOOD",
-        barcode: "12345678904",
-        productType: "أثاث",
-        quantity: 15,
-        minQuantity: 3,
-        costPrice: "75000",
-        priceIqd: "85000",
-        categoryId: categoryMap["أثاث"],
-        stock: 15,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        name: "أرز بسمتي",
-        description: "أرز بسمتي فاخر - 5 كيلو",
-        productCode: "RICE-PREMIUM",
-        barcode: "12345678905",
-        productType: "مواد غذائية",
-        quantity: 200,
-        minQuantity: 50,
-        costPrice: "7500",
-        priceIqd: "9000",
-        categoryId: categoryMap["مواد غذائية"],
-        isWeightBased: true,
-        stock: 200,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-    ];
-
-    for (const product of products) {
-      await db.insert(schema.products).values(product);
+  // إضافة عملاء
+  const customersList = await db.insert(customers).values([
+    {
+      name: "أحمد محمد",
+      phone: "07701234567",
+      email: "ahmed@example.com",
+      address: "بغداد - الكرادة",
+      notes: "عميل منتظم",
+      createdAt: new Date()
+    },
+    {
+      name: "زينب علي",
+      phone: "07709876543",
+      email: "zainab@example.com",
+      address: "بغداد - المنصور",
+      notes: "",
+      createdAt: new Date()
+    },
+    {
+      name: "محمد عبد الله",
+      phone: "07712345678",
+      email: null,
+      address: "بصرة - العشار",
+      notes: "يفضل التواصل عبر الهاتف",
+      createdAt: new Date()
+    },
+    {
+      name: "فاطمة حسين",
+      phone: "07798765432",
+      email: "fatima@example.com",
+      address: "أربيل - عنكاوا",
+      notes: "",
+      createdAt: new Date()
+    },
+    {
+      name: "علي حسن",
+      phone: "07756781234",
+      email: "ali@example.com",
+      address: "النجف",
+      notes: "عميل VIP",
+      createdAt: new Date()
     }
-    
-    console.log("✅ تم إنشاء المنتجات");
+  ]).returning();
 
-    // 4. إضافة عملاء
-    const customers = [
-      {
-        name: "محمد أحمد",
-        phone: "07700001234",
-        email: "mohammed@example.com",
-        address: "بغداد - الكرادة",
-        notes: "عميل مميز",
-        createdAt: new Date()
-      },
-      {
-        name: "فاطمة علي",
-        phone: "07700005678",
-        email: "fatima@example.com",
-        address: "بغداد - المنصور",
-        notes: "تفضل المنتجات الإلكترونية",
-        createdAt: new Date()
-      },
-      {
-        name: "أحمد محمود",
-        phone: "07700009012",
-        email: "ahmed@example.com",
-        address: "البصرة - العشار",
-        notes: "",
-        createdAt: new Date()
-      }
-    ];
+  console.log(`تم إضافة ${customersList.length} عميل`);
 
-    for (const customer of customers) {
-      await db.insert(schema.customers).values(customer);
+  // إضافة موردين
+  const suppliersList = await db.insert(suppliers).values([
+    {
+      name: "شركة الرافدين للإلكترونيات",
+      contactPerson: "سعد العامري",
+      phone: "07801234567",
+      email: "rafidain@example.com",
+      address: "بغداد - الكرادة",
+      taxNumber: "12345",
+      paymentTerms: "30 يوم",
+      notes: "مورد إلكترونيات رئيسي",
+      status: "active",
+      categories: ["إلكترونيات", "أجهزة منزلية"],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      userId: 1
+    },
+    {
+      name: "شركة الأناقة للملابس",
+      contactPerson: "ليلى محمد",
+      phone: "07809876543",
+      email: "anaqa@example.com",
+      address: "بغداد - المنصور",
+      taxNumber: "54321",
+      paymentTerms: "15 يوم",
+      notes: "مورد ملابس",
+      status: "active",
+      categories: ["ملابس"],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      userId: 1
+    },
+    {
+      name: "مؤسسة الخليج للأثاث",
+      contactPerson: "عمر فاروق",
+      phone: "07712345678",
+      email: "khaleej@example.com",
+      address: "البصرة",
+      taxNumber: "67890",
+      paymentTerms: "cash",
+      notes: "",
+      status: "active",
+      categories: ["أثاث"],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      userId: 1
     }
-    
-    console.log("✅ تم إنشاء العملاء");
+  ]).returning();
 
-    // الحصول على معرفات العملاء
-    const customerRecords = await db.select().from(schema.customers);
-    
-    // 5. إضافة مبيعات
-    const sales = [
-      {
-        productId: 1, // تلفزيون
-        customerId: customerRecords[0].id, // محمد أحمد
-        quantity: 1,
-        priceIqd: "280000",
-        discount: "10000",
-        finalPriceIqd: "270000",
-        date: new Date(),
-        userId: adminUser.id,
-        isInstallment: false
-      },
-      {
-        productId: 2, // هاتف ذكي
-        customerId: customerRecords[1].id, // فاطمة علي
-        quantity: 1,
-        priceIqd: "170000",
-        discount: "5000",
-        finalPriceIqd: "165000",
-        date: new Date(),
-        userId: adminUser.id,
-        isInstallment: false
-      },
-      {
-        productId: 3, // قميص
-        customerId: customerRecords[2].id, // أحمد محمود
-        quantity: 3,
-        priceIqd: "60000", // 3 قمصان
-        discount: "5000",
-        finalPriceIqd: "55000",
-        date: new Date(),
-        userId: adminUser.id,
-        isInstallment: false
-      }
-    ];
+  console.log(`تم إضافة ${suppliersList.length} مورد`);
 
-    for (const sale of sales) {
-      await db.insert(schema.sales).values(sale);
+  // إضافة فئات مصروفات
+  const expenseCategoriesList = await db.insert(expenseCategories).values([
+    {
+      name: "إيجار",
+      description: "إيجار المحل والمخزن",
+      parentId: null,
+      budgetAmount: 1000000,
+      createdAt: new Date(),
+      userId: 1
+    },
+    {
+      name: "رواتب",
+      description: "رواتب الموظفين",
+      parentId: null,
+      budgetAmount: 3000000,
+      createdAt: new Date(),
+      userId: 1
+    },
+    {
+      name: "كهرباء",
+      description: "فواتير الكهرباء",
+      parentId: null,
+      budgetAmount: 500000,
+      createdAt: new Date(),
+      userId: 1
+    },
+    {
+      name: "ماء",
+      description: "فواتير الماء",
+      parentId: null,
+      budgetAmount: 200000,
+      createdAt: new Date(),
+      userId: 1
+    },
+    {
+      name: "صيانة",
+      description: "صيانة المحل والأجهزة",
+      parentId: null,
+      budgetAmount: 400000,
+      createdAt: new Date(),
+      userId: 1
     }
-    
-    console.log("✅ تم إنشاء المبيعات");
+  ]).returning();
 
-    // 6. إضافة فئات المصروفات
-    const expenseCategories = [
-      {
-        name: "رواتب",
-        description: "رواتب الموظفين",
-        budgetAmount: "1000000",
-        userId: adminUser.id,
-        createdAt: new Date()
-      },
-      {
-        name: "إيجار",
-        description: "إيجار المتجر",
-        budgetAmount: "500000",
-        userId: adminUser.id,
-        createdAt: new Date()
-      },
-      {
-        name: "خدمات",
-        description: "كهرباء، ماء، إنترنت",
-        budgetAmount: "200000",
-        userId: adminUser.id,
-        createdAt: new Date()
-      }
-    ];
+  console.log(`تم إضافة ${expenseCategoriesList.length} فئة مصروفات`);
 
-    for (const category of expenseCategories) {
-      await db.insert(schema.expenseCategories).values(category);
+  // إضافة مصروفات
+  const expensesList = await db.insert(expenses).values([
+    {
+      amount: 1000000,
+      description: "إيجار المحل لشهر نيسان",
+      date: new Date("2023-04-01"),
+      categoryId: expenseCategoriesList[0].id,
+      userId: 1,
+      isRecurring: true,
+      recurringPeriod: "monthly",
+      recurringDay: 1,
+      notes: "",
+      attachments: [],
+      status: "active",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      amount: 2500000,
+      description: "رواتب الموظفين لشهر نيسان",
+      date: new Date("2023-04-05"),
+      categoryId: expenseCategoriesList[1].id,
+      userId: 1,
+      isRecurring: true,
+      recurringPeriod: "monthly",
+      recurringDay: 5,
+      notes: "",
+      attachments: [],
+      status: "active",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      amount: 450000,
+      description: "فاتورة الكهرباء لشهر آذار",
+      date: new Date("2023-04-10"),
+      categoryId: expenseCategoriesList[2].id,
+      userId: 1,
+      isRecurring: true,
+      recurringPeriod: "monthly",
+      recurringDay: 10,
+      notes: "",
+      attachments: [],
+      status: "active",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      amount: 180000,
+      description: "فاتورة الماء لشهر آذار",
+      date: new Date("2023-04-10"),
+      categoryId: expenseCategoriesList[3].id,
+      userId: 1,
+      isRecurring: true,
+      recurringPeriod: "monthly",
+      recurringDay: 10,
+      notes: "",
+      attachments: [],
+      status: "active",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      amount: 350000,
+      description: "صيانة مكيف الهواء",
+      date: new Date("2023-04-15"),
+      categoryId: expenseCategoriesList[4].id,
+      userId: 1,
+      isRecurring: false,
+      recurringPeriod: null,
+      recurringDay: null,
+      notes: "صيانة طارئة",
+      attachments: [],
+      status: "active",
+      createdAt: new Date(),
+      updatedAt: new Date()
     }
-    
-    console.log("✅ تم إنشاء فئات المصروفات");
+  ]).returning();
 
-    // الحصول على معرفات فئات المصروفات
-    const expenseCategoryRecords = await db.select().from(schema.expenseCategories);
+  console.log(`تم إضافة ${expensesList.length} مصروف`);
 
-    // 7. إضافة مصروفات
-    const expenses = [
-      {
-        amount: "1000000",
-        description: "رواتب شهر فبراير 2025",
-        date: new Date(),
-        categoryId: expenseCategoryRecords[0].id,
-        userId: adminUser.id,
-        status: "active",
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        amount: "500000",
-        description: "إيجار شهر فبراير 2025",
-        date: new Date(),
-        categoryId: expenseCategoryRecords[1].id,
-        userId: adminUser.id,
-        status: "active",
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        amount: "150000",
-        description: "فاتورة الكهرباء",
-        date: new Date(),
-        categoryId: expenseCategoryRecords[2].id,
-        userId: adminUser.id,
-        status: "active",
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-    ];
-
-    for (const expense of expenses) {
-      await db.insert(schema.expenses).values(expense);
-    }
-    
-    console.log("✅ تم إنشاء المصروفات");
-
-    // 8. إضافة موردين
-    const suppliers = [
-      {
-        name: "شركة الإلكترونيات الحديثة",
-        contactPerson: "علي حسين",
-        phone: "07800001234",
-        email: "ali@electronics.com",
-        address: "بغداد - الكرادة",
-        paymentTerms: "30 يوم",
-        notes: "مورد أجهزة إلكترونية",
-        status: "active",
-        categories: ["إلكترونيات"],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        userId: adminUser.id
-      },
-      {
-        name: "مصنع الأقمشة الوطني",
-        contactPerson: "سمير جاسم",
-        phone: "07800005678",
-        email: "samir@fabrics.com",
-        address: "بغداد - الشعب",
-        paymentTerms: "15 يوم",
-        notes: "مورد أقمشة وملابس",
-        status: "active",
-        categories: ["ملابس"],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        userId: adminUser.id
-      }
-    ];
-
-    for (const supplier of suppliers) {
-      await db.insert(schema.suppliers).values(supplier);
-    }
-    
-    console.log("✅ تم إنشاء الموردين");
-
-    // 9. إضافة مواعيد
-    const appointments = [
-      {
-        customerId: customerRecords[0].id,
-        title: "عرض منتجات جديدة",
-        description: "عرض أحدث الأجهزة الإلكترونية للعميل",
-        date: new Date(Date.now() + 86400000), // غدًا
-        duration: 60, // 60 دقيقة
-        status: "scheduled",
-        notes: "تحضير كتالوج المنتجات الجديدة",
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        customerId: customerRecords[1].id,
-        title: "متابعة طلب سابق",
-        description: "متابعة طلب شراء هاتف ذكي",
-        date: new Date(Date.now() + 172800000), // بعد غد
-        duration: 30, // 30 دقيقة
-        status: "scheduled",
-        notes: "",
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-    ];
-
-    for (const appointment of appointments) {
-      await db.insert(schema.appointments).values(appointment);
-    }
-    
-    console.log("✅ تم إنشاء المواعيد");
-
-    // 10. إضافة معدل الصرف
-    await db.insert(schema.exchangeRates).values({
-      usdToIqd: "1460",
-      date: new Date()
-    });
-    
-    console.log("✅ تم إنشاء معدل الصرف");
-
-    console.log("✅✅✅ تم إضافة جميع البيانات الاختبارية بنجاح!");
-    console.log("يمكنك الآن تسجيل الدخول باستخدام:");
-    console.log("اسم المستخدم: admin");
-    console.log("كلمة المرور: 123456");
-
-  } catch (error) {
-    console.error("❌ حدث خطأ أثناء إضافة البيانات:", error);
-  }
+  console.log("تم الانتهاء من زراعة البيانات الاختبارية بنجاح!");
+  return {
+    categories,
+    products: productsList,
+    customers: customersList,
+    suppliers: suppliersList,
+    expenseCategories: expenseCategoriesList,
+    expenses: expensesList
+  };
 }
 
-// تنفيذ الدالة
-seedDatabase();
+// تشغيل الوظيفة إذا تم استدعاء الملف مباشرة
+if (require.main === module) {
+  seedDatabase()
+    .then(() => {
+      console.log("تمت زراعة البيانات بنجاح!");
+      process.exit(0);
+    })
+    .catch(error => {
+      console.error("حدث خطأ أثناء زراعة البيانات:", error);
+      process.exit(1);
+    });
+}
