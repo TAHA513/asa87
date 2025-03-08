@@ -7,6 +7,7 @@ import session from "express-session";
 import { db, sql } from "./db"; // Import sql from db.ts
 import { seedData } from "./seed-data";
 import MemoryStore from 'memorystore';
+import { startTelegramBot } from "./telegram-bot";
 
 const MemoryStoreSession = MemoryStore(session);
 
@@ -130,6 +131,9 @@ async function startServer() {
     await seedData().catch(err => {
       console.error("خطأ في تنفيذ البذور:", err);
     });
+
+    // بدء تشغيل بوت تلجرام
+    startTelegramBot();
 
   } catch (error) {
     console.error('فشل في بدء السيرفر:', error);
