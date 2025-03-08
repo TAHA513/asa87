@@ -1027,8 +1027,7 @@ export class DatabaseStorage implements IStorage {
 
     return {
       type: 'daily',
-      data: dailyActivities,
-    };
+      data: dailyActivities,    };
   }
 
   private processWeeklyReport(activities: SystemActivity[]) {
@@ -1830,6 +1829,118 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error fetching invoices:", error);
       throw new Error("فشل في جلب الفواتير");
+    }
+  }
+
+  async getHistoricalStats(): Promise<any> {
+    try {
+      // التحقق من وجود الجداول قبل الاستعلام
+      const hasAnalyticsTable = await db.execute(sql`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'campaign_analytics'
+        );
+      `);
+
+      if (!hasAnalyticsTable.rows[0].exists) {
+        return {
+          sales: await this.getSalesStats(),
+          expenses: await this.getExpensesStats(),
+          appointments: await this.getAppointmentsStats()
+        };
+      }
+
+      // إذا كان الجدول موجود، قم بجلب البيانات
+      return {
+        sales: await this.getSalesStats(),
+        expenses: await this.getExpensesStats(),
+        appointments: await this.getAppointmentsStats(),
+        analytics: await this.getCampaignAnalyticsStats()
+      };
+    } catch (error) {
+      console.error("خطأ في جلب الإحصائيات التاريخية:", error);
+      // إرجاع البيانات المتوفرة فقط في حالة حدوث خطأ
+      return {
+        sales: [],
+        expenses: [],
+        appointments: []
+      };
+    }
+  }
+
+  private async getSalesStats(): Promise<any[]> {
+    try {
+      const salesStats = await db
+        .select({
+          date: sql`date_trunc('day', date)::date`,
+          total: sql`sum(final_price_iqd::numeric)`,
+          count: sql`count(*)`
+        })
+        .from(sales)
+        .groupBy(sql`date_trunc('day', date)`)
+        .orderBy(sql`date_trunc('day', date)`);
+
+      return salesStats;
+    } catch (error) {
+      console.error("خطأ في جلب إحصائيات المبيعات:", error);
+      return [];
+    }
+  }
+
+  private async getExpensesStats(): Promise<any[]> {
+    try {
+      const expensesStats = await db
+        .select({
+          date: sql`date_trunc('day', date)::date`,
+          total: sql`sum(amount::numeric)`,
+          count: sql`count(*)`
+        })
+        .from(expenses)
+        .groupBy(sql`date_trunc('day', date)`)
+        .orderBy(sql`date_trunc('day', date)`);
+
+      return expensesStats;
+    } catch (error) {
+      console.error("خطأ في جلب إحصائيات المصروفات:", error);
+      return [];
+    }
+  }
+
+  private async getAppointmentsStats(): Promise<any[]> {
+    try {
+      const appointmentsStats = await db
+        .select({
+          date: sql`date_trunc('day', date)::date`,
+          count: sql`count(*)`
+        })
+        .from(appointments)
+        .groupBy(sql`date_trunc('day', date)`)
+        .orderBy(sql`date_trunc('day', date)`);
+
+      return appointmentsStats;
+    } catch (error) {
+      console.error("خطأ في جلب إحصائيات المواعيد:", error);
+      return [];
+    }
+  }
+
+  private async getCampaignAnalyticsStats(): Promise<any[]> {
+    try {
+      const analyticsStats = await db
+        .select({
+          date: sql`date_trunc('day', date)::date`,
+          impressions: sql`sum(impressions)`,
+          clicks: sql`sum(clicks)`,
+          spend: sql`sum(spend::numeric)`,
+        })
+        .from(campaignAnalytics)
+        .groupBy(sql`date_trunc('day', date)`)
+        .orderBy(sql`date_trunc('day', date)`);
+      return analyticsStats;
+    } catch (error) {
+      console.error("خطأ في جلب إحصائيات حملات التسويق:", error);
+      return [];
     }
   }
 
