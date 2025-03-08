@@ -408,8 +408,47 @@ export default function Sales() {
                       </Select>
                     )}
                     {selectedProduct && (
-                      <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
-                        <span className="font-medium">السعر:</span> {Number(selectedProduct.priceIqd).toLocaleString()} د.ع
+                      <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">السعر:</span>
+                          <span>{Number(selectedProduct.priceIqd).toLocaleString()} د.ع</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">المخزون الحالي:</span>
+                          <div className="flex items-center gap-2">
+                            <span className={selectedProduct.stock < 10 ? "text-red-500" : ""}>
+                              {selectedProduct.stock} قطعة
+                            </span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const newStock = window.prompt("أدخل الكمية الجديدة:", selectedProduct.stock.toString());
+                                if (newStock && !isNaN(Number(newStock))) {
+                                  apiRequest("PATCH", `/api/products/${selectedProduct.id}`, {
+                                    stock: Number(newStock)
+                                  }).then((response) => {
+                                    if (response.ok) {
+                                      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+                                      toast({
+                                        title: "تم التحديث",
+                                        description: "تم تحديث المخزون بنجاح",
+                                      });
+                                    } else {
+                                      toast({
+                                        title: "خطأ",
+                                        description: "فشل تحديث المخزون",
+                                        variant: "destructive",
+                                      });
+                                    }
+                                  });
+                                }
+                              }}
+                            >
+                              تعديل المخزون
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
