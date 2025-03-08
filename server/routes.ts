@@ -636,7 +636,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
   // Get historical analytics data
   app.get("/api/marketing/historical-stats", async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -1726,7 +1725,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const { startDate,endDate } = req.query;
+      const { startDate, endDate } = req.query;
 
       if (!startDate || !endDate) {
         console.log("Missing date parameters:", { startDate, endDate });
@@ -1846,6 +1845,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching invoice:", error);
       res.status(500).json({ message: "فشل في جلب تفاصيل الفاتورة" });
+    }
+  });
+
+  app.post("/api/invoices", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const invoice = await storage.createInvoice({
+        ...req.body,
+        userId: req.user!.id,
+        date: new Date()
+      });
+
+
+      res.status(201).json(invoice);
+    } catch (error) {
+      console.error("Error creating invoice:", error);
+      res.status(500).json({ message: "فشل في إنشاء الفاتورة" });
     }
   });
 
