@@ -64,6 +64,7 @@ export default function Sales() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const { data: sales = [] } = useQuery<Sale[]>({
     queryKey: ["/api/sales"],
@@ -95,6 +96,24 @@ export default function Sales() {
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
+    onBeforeGetContent: () => {
+      setIsPrinting(true);
+    },
+    onAfterPrint: () => {
+      setIsPrinting(false);
+      form.reset();
+      setSelectedProduct(null);
+      setSearchQuery("");
+    },
+    onPrintError: (error) => {
+      console.error('Print failed:', error);
+      toast({
+        title: "خطأ في الطباعة",
+        description: "حدث خطأ أثناء محاولة الطباعة. يرجى المحاولة مرة أخرى.",
+        variant: "destructive",
+      });
+      setIsPrinting(false);
+    },
   });
 
   const handleSubmit = async (data: NewSaleFormData) => {
@@ -144,7 +163,7 @@ export default function Sales() {
           numberOfPayments: data.numberOfPayments,
           remainingAmount: (finalPrice - data.downPayment).toString(),
           startDate: data.startDate,
-          nextPaymentDate: data.startDate, // First payment date
+          nextPaymentDate: data.startDate,
           guarantorName: data.guarantorName || undefined,
           guarantorPhone: data.guarantorPhone || undefined,
         };
@@ -176,12 +195,13 @@ export default function Sales() {
           customerName: data.customerName || "عميل نقدي",
         });
         setTimeout(handlePrint, 100);
+      } else {
+        form.reset();
+        setSelectedProduct(null);
+        setSearchQuery("");
       }
 
       queryClient.invalidateQueries({ queryKey: ["/api/sales"] });
-      form.reset();
-      setSelectedProduct(null);
-      setSearchQuery("");
 
       toast({
         title: "تم بنجاح",
@@ -603,7 +623,6 @@ export default function Sales() {
           </Card>
         </div>
 
-        {/* Print Area */}
         <div className="hidden">
           <div ref={printRef} className="p-8">
             {selectedSale && (
