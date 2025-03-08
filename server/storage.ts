@@ -869,19 +869,22 @@ export class DatabaseStorage implements IStorage {
         .delete(userSettings)
         .where(eq(userSettings.userId, userId));
 
+      // Prepare the data for insertion
+      const settingsData = {
+        userId,
+        themeName: settings.themeName,
+        fontName: settings.fontName,
+        fontSize: settings.fontSize,
+        appearance: settings.appearance,
+        colors: settings.colors, // This will be automatically handled as JSONB by Drizzle
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
       // Insert new settings
       const [newSettings] = await db
         .insert(userSettings)
-        .values({
-          userId,
-          themeName: settings.themeName,
-          fontName: settings.fontName,
-          fontSize: settings.fontSize,
-          appearance: settings.appearance,
-          colors: settings.colors,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        })
+        .values(settingsData)
         .returning();
 
       return newSettings;
