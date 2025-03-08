@@ -20,19 +20,33 @@ if (!isPostgresURL && connectionString) {
   console.error("تنبيه: يبدو أن عنوان قاعدة البيانات ليس بالتنسيق الصحيح");
 }
 
-// بعض الأحيان يحتاج المنفذ إلى إضافة صريحة
-// حاول تحليل العنوان للتأكد من أن المنفذ موجود
+// إضافة المنفذ الصريح وتصحيح العنوان
 try {
   const dbUrl = new URL(connectionString);
+  
+  // التأكد من وجود المنفذ
   if (!dbUrl.port) {
-    // استخدم المنفذ الافتراضي 5432 إذا لم يكن محددًا
-    const urlWithPort = connectionString.replace(dbUrl.host, `${dbUrl.host}:5432`);
-    console.log("تمت إضافة المنفذ الافتراضي للعنوان");
-    connectionString = urlWithPort;
+    dbUrl.port = "5432";
+    console.log("تمت إضافة المنفذ الافتراضي 5432 للعنوان");
   }
+  
+  // استبدال العنوان الأصلي بالعنوان المصحح
+  connectionString = dbUrl.toString();
+  console.log("عنوان الاتصال المصحح (بدون كلمة المرور):", connectionString.replace(/:[^:@]*@/, ":***@"));
+  
 } catch (e) {
-  // إذا فشل التحليل، استمر باستخدام العنوان الأصلي
-  console.error("تعذر تحليل عنوان قاعدة البيانات", e);
+  // إذا فشل التحليل، نحاول تصحيح العنوان يدويًا
+  console.error("تعذر تحليل عنوان قاعدة البيانات:", e.message);
+  
+  if (connectionString.includes('@') && !connectionString.includes(':5432')) {
+    // محاولة إضافة المنفذ يدويًا
+    const parts = connectionString.split('@');
+    if (parts.length >= 2) {
+      const hostPart = parts[1].split('/')[0];
+      connectionString = connectionString.replace('@' + hostPart, '@' + hostPart + ':5432');
+      console.log("تمت إضافة المنفذ يدويًا للعنوان");
+    }
+  }
 }
 
 // إنشاء مجمع الاتصالات واتصال قاعدة البيانات
