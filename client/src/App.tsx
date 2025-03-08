@@ -10,7 +10,8 @@ import AuthPage from "@/pages/auth-page";
 import Dashboard from "@/pages/dashboard";
 import Inventory from "@/pages/inventory";
 import Sales from "@/pages/sales";
-import Invoices from "@/pages/invoices";
+import InvoicesPage from "@/pages/InvoicesPage";
+import InvoiceDetailsPage from "@/pages/InvoiceDetailsPage";
 import Staff from "@/pages/staff";
 import Settings from "@/pages/settings";
 import Installments from "@/pages/installments";
@@ -21,7 +22,7 @@ import Suppliers from "@/pages/suppliers";
 import Barcodes from "@/pages/barcodes";
 import DiscountCodes from "@/pages/discount-codes";
 import Customers from "@/pages/customers";
-import Appointments from "@/pages/appointments"; // Added import
+import Appointments from "@/pages/appointments";
 
 function Router() {
   return (
@@ -30,7 +31,8 @@ function Router() {
       <ProtectedRoute path="/" component={Dashboard} />
       <ProtectedRoute path="/inventory" component={Inventory} />
       <ProtectedRoute path="/sales" component={Sales} />
-      <ProtectedRoute path="/invoices" component={Invoices} />
+      <ProtectedRoute path="/invoices" component={InvoicesPage} />
+      <ProtectedRoute path="/invoices/:id" component={InvoiceDetailsPage} />
       <ProtectedRoute path="/staff" component={Staff} />
       <ProtectedRoute path="/settings" component={Settings} />
       <ProtectedRoute path="/installments" component={Installments} />
@@ -41,7 +43,7 @@ function Router() {
       <ProtectedRoute path="/barcodes" component={Barcodes} />
       <ProtectedRoute path="/discount-codes" component={DiscountCodes} />
       <ProtectedRoute path="/customers" component={Customers} />
-      <ProtectedRoute path="/appointments" component={Appointments} /> {/* Added route */}
+      <ProtectedRoute path="/appointments" component={Appointments} />
       <Route component={NotFound} />
     </Switch>
   );
