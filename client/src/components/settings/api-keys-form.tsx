@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { LOCAL_STORAGE_KEY, platformConfig, formSchema } from './api-keys.config';
-import type { FormData } from './api-keys.config';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { LOCAL_STORAGE_KEY, platformConfig, formSchema } from "./api-keys.config";
+import type { FormData } from "./api-keys.config";
+import { useToast } from "@/hooks/use-toast";
 import {
   Form,
   FormControl,
@@ -11,16 +11,16 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@/components/ui/accordion';
-import { Card } from '@/components/ui/card';
+} from "@/components/ui/accordion";
+import { Card } from "@/components/ui/card";
 
 export default function ApiKeysForm() {
   const { toast } = useToast();
@@ -31,7 +31,9 @@ export default function ApiKeysForm() {
     defaultValues: Object.fromEntries(
       Object.entries(platformConfig).map(([platform, config]) => [
         platform,
-        Object.fromEntries(Object.entries(config.fields).map(([key]) => [key, ''])),
+        Object.fromEntries(
+          Object.entries(config.fields).map(([key]) => [key, ""])
+        ),
       ])
     ),
   });
@@ -44,7 +46,7 @@ export default function ApiKeysForm() {
         const parsedData = JSON.parse(savedData);
         form.reset(parsedData);
       } catch (error) {
-        console.error('Error loading saved API keys:', error);
+        console.error("Error loading saved API keys:", error);
       }
     }
   }, [form]);
@@ -56,15 +58,15 @@ export default function ApiKeysForm() {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
 
       toast({
-        title: 'تم الحفظ بنجاح',
-        description: 'تم حفظ مفاتيح API في المتصفح',
+        title: "تم الحفظ بنجاح",
+        description: "تم حفظ مفاتيح API في المتصفح",
       });
     } catch (error) {
-      console.error('Error saving API keys:', error);
+      console.error("Error saving API keys:", error);
       toast({
-        title: 'خطأ',
-        description: error instanceof Error ? error.message : 'فشل في حفظ مفاتيح API',
-        variant: 'destructive',
+        title: "خطأ",
+        description: error instanceof Error ? error.message : "فشل في حفظ مفاتيح API",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
@@ -80,7 +82,9 @@ export default function ApiKeysForm() {
               <AccordionTrigger>{platform.title}</AccordionTrigger>
               <AccordionContent>
                 <Card className="p-4">
-                  <p className="mb-4 text-sm text-muted-foreground">{platform.description}</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {platform.description}
+                  </p>
 
                   <div className="space-y-4">
                     {Object.entries(platform.fields).map(([fieldKey, field]) => (
@@ -105,9 +109,9 @@ export default function ApiKeysForm() {
                       />
                     ))}
 
-                    <div className="mt-4 rounded-lg bg-muted p-4">
-                      <h4 className="mb-2 font-medium">تعليمات الإعداد:</h4>
-                      <ul className="list-none space-y-1 text-sm">
+                    <div className="mt-4 p-4 bg-muted rounded-lg">
+                      <h4 className="font-medium mb-2">تعليمات الإعداد:</h4>
+                      <ul className="text-sm space-y-1 list-none">
                         {platform.instructions.map((instruction, i) => (
                           <li key={i}>{instruction}</li>
                         ))}
@@ -121,7 +125,7 @@ export default function ApiKeysForm() {
         </Accordion>
 
         <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting ? 'جاري الحفظ...' : 'حفظ مفاتيح API'}
+          {isSubmitting ? "جاري الحفظ..." : "حفظ مفاتيح API"}
         </Button>
       </form>
     </Form>

@@ -1,19 +1,19 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, Package, ShoppingCart, Users } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import type { Product, Sale, Customer } from '@shared/schema';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DollarSign, Package, ShoppingCart, Users } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import type { Product, Sale, Customer } from "@shared/schema";
 
 export default function StatsCards() {
   const { data: products = [] } = useQuery<Product[]>({
-    queryKey: ['/api/products'],
+    queryKey: ["/api/products"],
   });
 
   const { data: sales = [] } = useQuery<Sale[]>({
-    queryKey: ['/api/sales'],
+    queryKey: ["/api/sales"],
   });
 
   const { data: customers = [] } = useQuery<Customer[]>({
-    queryKey: ['/api/customers'],
+    queryKey: ["/api/customers"],
   });
 
   // حساب إجمالي المبيعات بالدينار العراقي
@@ -22,26 +22,24 @@ export default function StatsCards() {
   }, 0);
 
   // حساب النمو في المبيعات مقارنة بالشهر الماضي
-  const currentMonthSales = sales
-    .filter(sale => {
-      const saleDate = new Date(sale.date);
-      const now = new Date();
-      return saleDate.getMonth() === now.getMonth() && saleDate.getFullYear() === now.getFullYear();
-    })
-    .reduce((sum, sale) => sum + Number(sale.priceIqd) * sale.quantity, 0);
+  const currentMonthSales = sales.filter(sale => {
+    const saleDate = new Date(sale.date);
+    const now = new Date();
+    return saleDate.getMonth() === now.getMonth() && 
+           saleDate.getFullYear() === now.getFullYear();
+  }).reduce((sum, sale) => sum + Number(sale.priceIqd) * sale.quantity, 0);
 
-  const lastMonthSales = sales
-    .filter(sale => {
-      const saleDate = new Date(sale.date);
-      const now = new Date();
-      const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
-      const lastMonthYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-      return saleDate.getMonth() === lastMonth && saleDate.getFullYear() === lastMonthYear;
-    })
-    .reduce((sum, sale) => sum + Number(sale.priceIqd) * sale.quantity, 0);
+  const lastMonthSales = sales.filter(sale => {
+    const saleDate = new Date(sale.date);
+    const now = new Date();
+    const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+    const lastMonthYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+    return saleDate.getMonth() === lastMonth && 
+           saleDate.getFullYear() === lastMonthYear;
+  }).reduce((sum, sale) => sum + Number(sale.priceIqd) * sale.quantity, 0);
 
-  const salesGrowth =
-    lastMonthSales === 0 ? 100 : ((currentMonthSales - lastMonthSales) / lastMonthSales) * 100;
+  const salesGrowth = lastMonthSales === 0 ? 100 : 
+    ((currentMonthSales - lastMonthSales) / lastMonthSales) * 100;
 
   const totalProducts = products.length;
   const lowStock = products.filter(p => p.stock < 10).length;
@@ -51,24 +49,20 @@ export default function StatsCards() {
   const currentHourTransactions = sales.filter(sale => {
     const saleDate = new Date(sale.date);
     const now = new Date();
-    return (
-      saleDate.getHours() === now.getHours() &&
-      saleDate.getDate() === now.getDate() &&
-      saleDate.getMonth() === now.getMonth() &&
-      saleDate.getFullYear() === now.getFullYear()
-    );
+    return saleDate.getHours() === now.getHours() &&
+           saleDate.getDate() === now.getDate() &&
+           saleDate.getMonth() === now.getMonth() &&
+           saleDate.getFullYear() === now.getFullYear();
   }).length;
 
   const lastHourTransactions = sales.filter(sale => {
     const saleDate = new Date(sale.date);
     const now = new Date();
     const lastHour = now.getHours() === 0 ? 23 : now.getHours() - 1;
-    return (
-      saleDate.getHours() === lastHour &&
-      saleDate.getDate() === now.getDate() &&
-      saleDate.getMonth() === now.getMonth() &&
-      saleDate.getFullYear() === now.getFullYear()
-    );
+    return saleDate.getHours() === lastHour &&
+           saleDate.getDate() === now.getDate() &&
+           saleDate.getMonth() === now.getMonth() &&
+           saleDate.getFullYear() === now.getFullYear();
   }).length;
 
   const transactionGrowth = currentHourTransactions - lastHourTransactions;
@@ -79,9 +73,8 @@ export default function StatsCards() {
       .filter(sale => {
         const saleDate = new Date(sale.date);
         const now = new Date();
-        return (
-          saleDate.getMonth() === now.getMonth() && saleDate.getFullYear() === now.getFullYear()
-        );
+        return saleDate.getMonth() === now.getMonth() && 
+               saleDate.getFullYear() === now.getFullYear();
       })
       .map(sale => sale.customerId)
   ).size;
@@ -96,8 +89,7 @@ export default function StatsCards() {
         <CardContent>
           <div className="text-2xl font-bold">{totalSales.toLocaleString()} د.ع</div>
           <p className="text-xs text-muted-foreground">
-            {salesGrowth >= 0 ? '+' : ''}
-            {salesGrowth.toFixed(1)}% عن الشهر الماضي
+            {salesGrowth >= 0 ? "+" : ""}{salesGrowth.toFixed(1)}% عن الشهر الماضي
           </p>
         </CardContent>
       </Card>
@@ -109,7 +101,9 @@ export default function StatsCards() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{totalProducts}</div>
-          <p className="text-xs text-muted-foreground">{lowStock} منتجات منخفضة المخزون</p>
+          <p className="text-xs text-muted-foreground">
+            {lowStock} منتجات منخفضة المخزون
+          </p>
         </CardContent>
       </Card>
 
@@ -121,8 +115,7 @@ export default function StatsCards() {
         <CardContent>
           <div className="text-2xl font-bold">{totalTransactions}</div>
           <p className="text-xs text-muted-foreground">
-            {transactionGrowth >= 0 ? '+' : ''}
-            {transactionGrowth} منذ الساعة الماضية
+            {transactionGrowth >= 0 ? "+" : ""}{transactionGrowth} منذ الساعة الماضية
           </p>
         </CardContent>
       </Card>
@@ -134,7 +127,9 @@ export default function StatsCards() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{activeCustomers}</div>
-          <p className="text-xs text-muted-foreground">عملاء نشطون هذا الشهر</p>
+          <p className="text-xs text-muted-foreground">
+            عملاء نشطون هذا الشهر
+          </p>
         </CardContent>
       </Card>
     </div>

@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { insertInstallmentSchema } from '@shared/schema';
-import { Button } from '@/components/ui/button';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { insertInstallmentSchema } from "@shared/schema";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -10,11 +10,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { addMonths } from 'date-fns';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { addMonths } from "date-fns";
 
 interface InstallmentFormProps {
   saleId: number;
@@ -31,8 +31,8 @@ export default function InstallmentForm({ saleId, totalAmount, onSuccess }: Inst
     defaultValues: {
       saleId,
       totalAmount,
-      customerName: '',
-      customerPhone: '',
+      customerName: "",
+      customerPhone: "",
       numberOfPayments: 3,
       nextPaymentDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
       remainingAmount: totalAmount,
@@ -42,31 +42,31 @@ export default function InstallmentForm({ saleId, totalAmount, onSuccess }: Inst
   async function onSubmit(data: any) {
     setIsSubmitting(true);
     try {
-      await apiRequest('POST', '/api/installments', {
+      await apiRequest("POST", "/api/installments", {
         ...data,
         nextPaymentDate: new Date(data.nextPaymentDate),
       });
 
-      queryClient.invalidateQueries({ queryKey: ['/api/installments'] });
-
+      queryClient.invalidateQueries({ queryKey: ["/api/installments"] });
+      
       toast({
-        title: 'تم بنجاح',
-        description: 'تم إنشاء التقسيط بنجاح',
+        title: "تم بنجاح",
+        description: "تم إنشاء التقسيط بنجاح",
       });
 
       onSuccess();
     } catch (error) {
       toast({
-        title: 'خطأ',
-        description: 'حدث خطأ أثناء إنشاء التقسيط',
-        variant: 'destructive',
+        title: "خطأ",
+        description: "حدث خطأ أثناء إنشاء التقسيط",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  const monthlyPayment = totalAmount / form.watch('numberOfPayments');
+  const monthlyPayment = totalAmount / form.watch("numberOfPayments");
 
   return (
     <Form {...form}>
@@ -110,7 +110,7 @@ export default function InstallmentForm({ saleId, totalAmount, onSuccess }: Inst
                   type="number"
                   min="1"
                   {...field}
-                  onChange={e => field.onChange(Number(e.target.value))}
+                  onChange={(e) => field.onChange(Number(e.target.value))}
                 />
               </FormControl>
               <div className="text-sm text-muted-foreground">
@@ -131,11 +131,7 @@ export default function InstallmentForm({ saleId, totalAmount, onSuccess }: Inst
                 <Input
                   type="date"
                   {...field}
-                  value={
-                    field.value instanceof Date
-                      ? field.value.toISOString().split('T')[0]
-                      : field.value
-                  }
+                  value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : field.value}
                 />
               </FormControl>
               <FormMessage />
@@ -144,7 +140,7 @@ export default function InstallmentForm({ saleId, totalAmount, onSuccess }: Inst
         />
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? 'جاري الإنشاء...' : 'إنشاء التقسيط'}
+          {isSubmitting ? "جاري الإنشاء..." : "إنشاء التقسيط"}
         </Button>
       </form>
     </Form>

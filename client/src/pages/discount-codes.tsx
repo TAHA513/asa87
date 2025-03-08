@@ -1,9 +1,14 @@
-import { useState } from 'react';
-import { useAuth } from '@/hooks/use-auth';
-import Sidebar from '@/components/layout/sidebar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import Sidebar from "@/components/layout/sidebar";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Form,
   FormControl,
@@ -11,14 +16,14 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { useForm } from 'react-hook-form';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus, Tag, Calendar, Percent, QrCode } from 'lucide-react';
-import { DatePicker } from '@/components/ui/date-picker';
+} from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Plus, Tag, Calendar, Percent, QrCode } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 import JsBarcode from 'jsbarcode';
 import { useReactToPrint } from 'react-to-print';
-import { useRef } from 'react';
+import { useRef } from "react";
 
 interface DiscountCode {
   id: string;
@@ -42,26 +47,26 @@ export default function DiscountCodesPage() {
 
   const form = useForm({
     defaultValues: {
-      code: '',
+      code: "",
       discountPercentage: 10,
       validFrom: new Date(),
       validTo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
       maxUses: 100,
-      description: '',
+      description: "",
     },
   });
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
     onBeforeGetContent: () => {
-      return new Promise(resolve => {
+      return new Promise((resolve) => {
         if (barcodeRef.current && selectedCode) {
           JsBarcode(barcodeRef.current, selectedCode.code, {
-            format: 'CODE128',
+            format: "CODE128",
             width: 2,
             height: 80,
             displayValue: true,
-            font: 'monospace',
+            font: "monospace",
             fontSize: 14,
             margin: 10,
           });
@@ -100,18 +105,18 @@ export default function DiscountCodesPage() {
     setCodes([...codes, newCode]);
     form.reset();
     toast({
-      title: 'تم إنشاء كود الخصم',
+      title: "تم إنشاء كود الخصم",
       description: `تم إنشاء كود الخصم ${newCode.code} بنجاح`,
     });
   };
 
   return (
     <div className="flex h-screen">
-      <div className="h-full w-64">
+      <div className="w-64 h-full">
         <Sidebar />
       </div>
       <main className="flex-1 p-8">
-        <div className="mx-auto max-w-6xl space-y-6">
+        <div className="max-w-6xl mx-auto space-y-6">
           <div>
             <h2 className="text-3xl font-bold">أكواد الخصم</h2>
             <p className="text-muted-foreground">
@@ -119,7 +124,7 @@ export default function DiscountCodesPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
                 <CardTitle>إنشاء كود خصم جديد</CardTitle>
@@ -163,7 +168,10 @@ export default function DiscountCodesPage() {
                           <FormItem>
                             <FormLabel>تاريخ البداية</FormLabel>
                             <FormControl>
-                              <DatePicker date={field.value} onSelect={field.onChange} />
+                              <DatePicker
+                                date={field.value}
+                                onSelect={field.onChange}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -177,7 +185,10 @@ export default function DiscountCodesPage() {
                           <FormItem>
                             <FormLabel>تاريخ الانتهاء</FormLabel>
                             <FormControl>
-                              <DatePicker date={field.value} onSelect={field.onChange} />
+                              <DatePicker
+                                date={field.value}
+                                onSelect={field.onChange}
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -214,7 +225,7 @@ export default function DiscountCodesPage() {
                     />
 
                     <Button type="submit" className="w-full">
-                      <Plus className="ml-2 h-4 w-4" />
+                      <Plus className="h-4 w-4 ml-2" />
                       إنشاء كود خصم
                     </Button>
                   </form>
@@ -228,13 +239,13 @@ export default function DiscountCodesPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {codes.map(code => (
+                  {codes.map((code) => (
                     <div
                       key={code.id}
-                      className="cursor-pointer rounded-lg border p-4 hover:bg-accent"
+                      className="p-4 border rounded-lg hover:bg-accent cursor-pointer"
                       onClick={() => setSelectedCode(code)}
                     >
-                      <div className="mb-2 flex items-center justify-between">
+                      <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <Tag className="h-4 w-4" />
                           <span className="font-medium">{code.code}</span>
@@ -247,7 +258,9 @@ export default function DiscountCodesPage() {
                       <div className="flex items-center justify-between text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
-                          <span>{new Date(code.validTo).toLocaleDateString()}</span>
+                          <span>
+                            {new Date(code.validTo).toLocaleDateString()}
+                          </span>
                         </div>
                         <div>
                           {code.currentUses} / {code.maxUses} استخدام
@@ -257,20 +270,20 @@ export default function DiscountCodesPage() {
                         variant="outline"
                         size="sm"
                         className="mt-2"
-                        onClick={e => {
+                        onClick={(e) => {
                           e.stopPropagation();
                           setSelectedCode(code);
                           setTimeout(handlePrint, 100);
                         }}
                       >
-                        <QrCode className="ml-2 h-4 w-4" />
+                        <QrCode className="h-4 w-4 ml-2" />
                         طباعة الباركود
                       </Button>
                     </div>
                   ))}
 
                   {codes.length === 0 && (
-                    <div className="py-8 text-center text-muted-foreground">
+                    <div className="text-center text-muted-foreground py-8">
                       لا توجد أكواد خصم حالياً
                     </div>
                   )}
@@ -284,13 +297,15 @@ export default function DiscountCodesPage() {
             <div ref={printRef} className="discount-code-print p-4">
               {selectedCode && (
                 <>
-                  <div className="mb-2 text-center">
+                  <div className="text-center mb-2">
                     <div className="font-bold">{selectedCode.code}</div>
                     <div className="text-sm">{selectedCode.description}</div>
-                    <div className="text-sm">خصم {selectedCode.discountPercentage}%</div>
+                    <div className="text-sm">
+                      خصم {selectedCode.discountPercentage}%
+                    </div>
                   </div>
                   <svg ref={barcodeRef} className="w-full"></svg>
-                  <div className="mt-2 text-sm">
+                  <div className="text-sm mt-2">
                     صالح حتى: {new Date(selectedCode.validTo).toLocaleDateString()}
                   </div>
                 </>

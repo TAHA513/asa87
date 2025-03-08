@@ -1,41 +1,41 @@
-import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MdDelete } from 'react-icons/md';
-import { queryClient } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import type { Product } from '@shared/schema';
-import { ProductGallery } from '@/components/products/product-gallery';
-import { FileUpload } from '@/components/ui/file-upload';
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MdDelete } from "react-icons/md";
+import { queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { Product } from "@shared/schema";
+import { ProductGallery } from "@/components/products/product-gallery";
+import { FileUpload } from "@/components/ui/file-upload";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { DatePicker } from '@/components/ui/date-picker';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { insertProductSchema } from '@shared/schema';
-import type { z } from 'zod';
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { insertProductSchema } from "@shared/schema";
+import type { z } from "zod";
 
 type ProductFormData = z.infer<typeof insertProductSchema>;
 
 export default function Products() {
   const { data: products = [] } = useQuery<Product[]>({
-    queryKey: ['/api/products'],
+    queryKey: ["/api/products"],
   });
 
   const { toast } = useToast();
@@ -46,7 +46,7 @@ export default function Products() {
   const form = useForm<ProductFormData>({
     resolver: zodResolver(insertProductSchema),
     defaultValues: {
-      productType: 'piece',
+      productType: "piece",
       quantity: 0,
       minQuantity: 0,
       costPrice: 0,
@@ -59,21 +59,21 @@ export default function Products() {
   const deleteMutation = useMutation({
     mutationFn: async (productId: number) => {
       const response = await fetch(`/api/products/${productId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
-      if (!response.ok) throw new Error('فشل حذف المنتج');
+      if (!response.ok) throw new Error("فشل حذف المنتج");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       toast({
-        title: 'تم حذف المنتج بنجاح',
+        title: "تم حذف المنتج بنجاح",
       });
     },
-    onError: error => {
+    onError: (error) => {
       toast({
-        title: 'حدث خطأ',
-        description: error instanceof Error ? error.message : 'فشل حذف المنتج',
-        variant: 'destructive',
+        title: "حدث خطأ",
+        description: error instanceof Error ? error.message : "فشل حذف المنتج",
+        variant: "destructive",
       });
     },
   });
@@ -93,11 +93,11 @@ export default function Products() {
 
       // Append image if exists
       if (productImage) {
-        formData.append('image', productImage);
+        formData.append("image", productImage);
       }
 
-      const response = await fetch('/api/products', {
-        method: 'POST',
+      const response = await fetch("/api/products", {
+        method: "POST",
         body: formData,
       });
 
@@ -109,19 +109,19 @@ export default function Products() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/products'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       setIsDialogOpen(false);
       setProductImage(null);
       form.reset();
       toast({
-        title: 'تم إنشاء المنتج بنجاح',
+        title: "تم إنشاء المنتج بنجاح",
       });
     },
-    onError: error => {
+    onError: (error) => {
       toast({
-        title: 'حدث خطأ',
-        description: error instanceof Error ? error.message : 'فشل إنشاء المنتج',
-        variant: 'destructive',
+        title: "حدث خطأ",
+        description: error instanceof Error ? error.message : "فشل إنشاء المنتج",
+        variant: "destructive",
       });
     },
   });
@@ -132,13 +132,13 @@ export default function Products() {
 
   return (
     <div className="container mx-auto p-8">
-      <div className="mb-8 flex items-center justify-between">
+      <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">المنتجات</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>إضافة منتج جديد</Button>
           </DialogTrigger>
-          <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>إضافة منتج جديد</DialogTitle>
             </DialogHeader>
@@ -146,7 +146,7 @@ export default function Products() {
               {/* 1. اسم المنتج */}
               <div className="space-y-2">
                 <Label htmlFor="name">اسم المنتج</Label>
-                <Input {...form.register('name')} placeholder="ادخل اسم المنتج" />
+                <Input {...form.register("name")} placeholder="ادخل اسم المنتج" />
                 {form.formState.errors.name && (
                   <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
                 )}
@@ -155,11 +155,9 @@ export default function Products() {
               {/* 2. الباركود */}
               <div className="space-y-2">
                 <Label htmlFor="barcode">الباركود</Label>
-                <Input {...form.register('barcode')} placeholder="ادخل الباركود" />
+                <Input {...form.register("barcode")} placeholder="ادخل الباركود" />
                 {form.formState.errors.barcode && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.barcode.message}
-                  </p>
+                  <p className="text-sm text-destructive">{form.formState.errors.barcode.message}</p>
                 )}
               </div>
 
@@ -167,8 +165,8 @@ export default function Products() {
               <div className="space-y-2">
                 <Label htmlFor="productType">نوع المنتج</Label>
                 <Select
-                  value={form.watch('productType')}
-                  onValueChange={value => form.setValue('productType', value)}
+                  value={form.watch("productType")}
+                  onValueChange={(value) => form.setValue("productType", value)}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="قطعة" />
@@ -186,7 +184,7 @@ export default function Products() {
                 <Label htmlFor="quantity">الكمية</Label>
                 <Input
                   type="number"
-                  {...form.register('quantity', { valueAsNumber: true })}
+                  {...form.register("quantity", { valueAsNumber: true })}
                   defaultValue="0"
                 />
               </div>
@@ -196,7 +194,7 @@ export default function Products() {
                 <Label htmlFor="minQuantity">الحد الأدنى</Label>
                 <Input
                   type="number"
-                  {...form.register('minQuantity', { valueAsNumber: true })}
+                  {...form.register("minQuantity", { valueAsNumber: true })}
                   defaultValue="0"
                 />
               </div>
@@ -205,8 +203,8 @@ export default function Products() {
               <div className="space-y-2">
                 <Label htmlFor="productionDate">تاريخ الإنتاج</Label>
                 <DatePicker
-                  date={form.watch('productionDate')}
-                  onSelect={date => form.setValue('productionDate', date)}
+                  date={form.watch("productionDate")}
+                  onSelect={(date) => form.setValue("productionDate", date)}
                 />
               </div>
 
@@ -214,8 +212,8 @@ export default function Products() {
               <div className="space-y-2">
                 <Label htmlFor="expiryDate">تاريخ الانتهاء</Label>
                 <DatePicker
-                  date={form.watch('expiryDate')}
-                  onSelect={date => form.setValue('expiryDate', date)}
+                  date={form.watch("expiryDate")}
+                  onSelect={(date) => form.setValue("expiryDate", date)}
                 />
               </div>
 
@@ -225,7 +223,7 @@ export default function Products() {
                 <Input
                   type="number"
                   step="0.01"
-                  {...form.register('costPrice', { valueAsNumber: true })}
+                  {...form.register("costPrice", { valueAsNumber: true })}
                   defaultValue="0"
                 />
               </div>
@@ -236,7 +234,7 @@ export default function Products() {
                 <Input
                   type="number"
                   step="0.01"
-                  {...form.register('priceIqd', { valueAsNumber: true })}
+                  {...form.register("priceIqd", { valueAsNumber: true })}
                   defaultValue="0"
                 />
               </div>
@@ -245,13 +243,13 @@ export default function Products() {
               <div className="space-y-2">
                 <Label htmlFor="categoryId">المجموعة</Label>
                 <Select
-                  value={form.watch('categoryId')?.toString()}
-                  onValueChange={value => {
-                    if (value === 'new') {
+                  value={form.watch("categoryId")?.toString()}
+                  onValueChange={(value) => {
+                    if (value === "new") {
                       setShowNewCategoryInput(true);
                     } else {
                       setShowNewCategoryInput(false);
-                      form.setValue('categoryId', parseInt(value));
+                      form.setValue("categoryId", parseInt(value));
                     }
                   }}
                 >
@@ -268,10 +266,7 @@ export default function Products() {
               {showNewCategoryInput && (
                 <div className="space-y-2">
                   <Label htmlFor="newCategory">اسم المجموعة الجديدة</Label>
-                  <Input
-                    {...form.register('newCategory')}
-                    placeholder="ادخل اسم المجموعة الجديدة"
-                  />
+                  <Input {...form.register("newCategory")} placeholder="ادخل اسم المجموعة الجديدة" />
                 </div>
               )}
 
@@ -280,19 +275,17 @@ export default function Products() {
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="isWeightBased"
-                    checked={form.watch('isWeightBased')}
-                    onCheckedChange={checked => form.setValue('isWeightBased', checked)}
+                    checked={form.watch("isWeightBased")}
+                    onCheckedChange={(checked) => form.setValue("isWeightBased", checked)}
                   />
-                  <Label htmlFor="isWeightBased" className="mr-2">
-                    منتج وزني
-                  </Label>
+                  <Label htmlFor="isWeightBased" className="mr-2">منتج وزني</Label>
                 </div>
 
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="enableDirectWeighing"
-                    checked={form.watch('enableDirectWeighing')}
-                    onCheckedChange={checked => form.setValue('enableDirectWeighing', checked)}
+                    checked={form.watch("enableDirectWeighing")}
+                    onCheckedChange={(checked) => form.setValue("enableDirectWeighing", checked)}
                   />
                   <Label htmlFor="enableDirectWeighing" className="mr-2">
                     تفعيل القراءة المباشرة للوزن عند المسح
@@ -303,19 +296,23 @@ export default function Products() {
               {/* صورة المنتج */}
               <div className="space-y-2 border-t pt-4">
                 <Label>صورة المنتج (اختياري)</Label>
-                <div className="mb-2 text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground mb-2">
                   يمكنك رفع صورة للمنتج. الصورة اختيارية ويمكن إضافتها لاحقاً.
                 </div>
                 <FileUpload
-                  onFileSelect={file => setProductImage(file)}
+                  onFileSelect={(file) => setProductImage(file)}
                   maxSize={2}
                   accept="image/*"
                   label="اضغط لإضافة صورة"
                 />
               </div>
 
-              <Button type="submit" className="mt-6 w-full" disabled={createMutation.isPending}>
-                {createMutation.isPending ? 'جاري الإنشاء...' : 'إنشاء المنتج'}
+              <Button
+                type="submit"
+                className="w-full mt-6"
+                disabled={createMutation.isPending}
+              >
+                {createMutation.isPending ? "جاري الإنشاء..." : "إنشاء المنتج"}
               </Button>
             </form>
           </DialogContent>
@@ -329,8 +326,8 @@ export default function Products() {
           <CardTitle>المنتجات</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {products.map(product => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {products.map((product) => (
               <Card key={product.id}>
                 <CardContent className="p-6">
                   <div className="space-y-4">
@@ -338,14 +335,14 @@ export default function Products() {
                       <img
                         src={product.imageUrl}
                         alt={product.name}
-                        className="h-48 w-full rounded-lg object-cover"
+                        className="w-full h-48 object-cover rounded-lg"
                       />
                     )}
                     <div>
                       <h3 className="text-xl font-bold">{product.name}</h3>
-                      <p className="mt-1 text-gray-600">{product.description}</p>
+                      <p className="text-gray-600 mt-1">{product.description}</p>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex justify-between items-center">
                       <div>
                         <p className="font-semibold">{product.priceIqd} د.ع</p>
                         <p className="text-sm text-gray-500">المخزون: {product.stock}</p>
@@ -353,14 +350,14 @@ export default function Products() {
                       <Button
                         variant="destructive"
                         size="lg"
-                        className="rounded-lg bg-red-600 px-8 py-6 text-lg text-white shadow-lg hover:bg-red-700"
+                        className="bg-red-600 hover:bg-red-700 text-white px-8 py-6 text-lg rounded-lg shadow-lg"
                         onClick={() => {
                           if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
                             deleteMutation.mutate(product.id);
                           }
                         }}
                       >
-                        <MdDelete className="ml-2 h-8 w-8" />
+                        <MdDelete className="h-8 w-8 ml-2" />
                         حذف
                       </Button>
                     </div>

@@ -1,74 +1,75 @@
-import express from 'express';
-import fileUpload from 'express-fileupload';
-import { createServer } from 'vite';
-import cors from 'cors';
-import cookieParser from 'cookie-parser';
-import session from 'express-session';
-import { registerRoutes } from './routes';
-import path from 'node:path';
-import bodyParser from 'body-parser';
-import { runMigrations } from './migration';
+import express, { type Request, Response, NextFunction } from "express";
+import { registerRoutes } from "./routes";
+import { setupVite, serveStatic, log } from "./vite";
+import fileUpload from "express-fileupload";
+import path from "path";
 
-async function main() {
-  const app = express();
-  const port = process.env.PORT || 3000;
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(fileUpload());
 
-  // تشغيل التهجير قبل بدء تشغيل التطبيق
-  try {
-    await runMigrations();
-    console.log('تم تهجير قاعدة البيانات بنجاح');
-  } catch (error) {
-    console.error('خطأ في تهجير قاعدة البيانات:', error);
-    // استمر في تشغيل التطبيق حتى لو فشل التهجير
-  }
+// Serve uploaded files statically
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
-  app.use(fileUpload());
-  app.use(cors());
-  app.use(cookieParser());
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
-  app.use(bodyParser.json({ limit: '50mb' }));
-  app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+app.use((req, res, next) => {
+  const start = Date.now();
+  const path = req.path;
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
-  const sessionMiddleware = session({
-    secret: process.env.SESSION_SECRET || 'my-secret',
-    resave: false,
-    saveUninitialized: true,
-    cookie: {
-      secure: false,
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
-    },
+  const originalResJson = res.json;
+  res.json = function (bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
+
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (path.startsWith("/api")) {
+      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      }
+
+      if (logLine.length > 80) {
+        logLine = logLine.slice(0, 79) + "…";
+      }
+
+      log(logLine);
+    }
   });
 
-  app.use(sessionMiddleware);
-
-  // Register API routes
-  const httpServer = await registerRoutes(app);
-
-  // Serve static files from the uploads directory
-  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
-
-  // In development, use Vite's development server
-  if (process.env.NODE_ENV !== 'production') {
-    const viteDevMiddleware = await import('./vite').then(module =>
-      module.createViteDevMiddleware()
-    );
-    app.use(viteDevMiddleware);
-  } else {
-    // In production, serve the built client files
-    app.use(express.static(path.join(process.cwd(), 'dist', 'client')));
-    app.get('*', (_req, res) => {
-      res.sendFile(path.join(process.cwd(), 'dist', 'client', 'index.html'));
-    });
-  }
-
-  // Start the server
-  httpServer.listen(port, () => {
-    console.log(`تم تشغيل الخادم على المنفذ ${port}`);
-  });
-}
-
-main().catch(err => {
-  console.error(err);
-  process.exit(1);
+  next();
 });
+
+(async () => {
+  const server = await registerRoutes(app);
+
+  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+
+    res.status(status).json({ message });
+    throw err;
+  });
+
+  // importantly only setup vite in development and after
+  // setting up all the other routes so the catch-all route
+  // doesn't interfere with the other routes
+  if (app.get("env") === "development") {
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
+  }
+
+  // ALWAYS serve the app on port 5000
+  // this serves both the API and the client
+  const port = 5000;
+  server.listen({
+    port,
+    host: "0.0.0.0",
+    reusePort: true,
+  }, () => {
+    log(`serving on port ${port}`);
+  });
+})();

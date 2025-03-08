@@ -1,24 +1,28 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useQuery } from '@tanstack/react-query';
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import type { Sale } from '@shared/schema';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Area,
+  AreaChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import type { Sale } from "@shared/schema";
 
 export default function SalesChart() {
   const { data: sales = [] } = useQuery<Sale[]>({
-    queryKey: ['/api/sales'],
+    queryKey: ["/api/sales"],
   });
 
   // تجميع المبيعات حسب التاريخ بالدينار العراقي
-  const salesByDate = sales.reduce(
-    (acc, sale) => {
-      const date = new Date(sale.date).toLocaleDateString('ar-IQ');
-      const amount = Number(sale.priceIqd) * sale.quantity;
+  const salesByDate = sales.reduce((acc, sale) => {
+    const date = new Date(sale.date).toLocaleDateString('ar-IQ');
+    const amount = Number(sale.priceIqd) * sale.quantity;
 
-      acc[date] = (acc[date] || 0) + amount;
-      return acc;
-    },
-    {} as Record<string, number>
-  );
+    acc[date] = (acc[date] || 0) + amount;
+    return acc;
+  }, {} as Record<string, number>);
 
   const chartData = Object.entries(salesByDate)
     .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime())
@@ -47,9 +51,11 @@ export default function SalesChart() {
               fontSize={12}
               tickLine={false}
               axisLine={false}
-              tickFormatter={value => `${value.toLocaleString()} د.ع`}
+              tickFormatter={(value) => `${value.toLocaleString()} د.ع`}
             />
-            <Tooltip formatter={(value: number) => [`${value.toLocaleString()} د.ع`, 'المبيعات']} />
+            <Tooltip 
+              formatter={(value: number) => [`${value.toLocaleString()} د.ع`, "المبيعات"]}
+            />
             <Area
               type="monotone"
               dataKey="total"

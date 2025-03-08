@@ -1,10 +1,16 @@
-import { useQuery } from '@tanstack/react-query';
-import Sidebar from '@/components/layout/sidebar';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/use-auth';
-import { MdSupervisorAccount, MdAdd } from 'react-icons/md';
-import type { User } from '@shared/schema';
+import { useQuery } from "@tanstack/react-query";
+import Sidebar from "@/components/layout/sidebar";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import { MdSupervisorAccount, MdAdd } from "react-icons/md";
+import type { User } from "@shared/schema";
 import {
   Table,
   TableBody,
@@ -12,7 +18,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +27,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -29,21 +35,21 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,55 +60,55 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
-import { MoreVertical } from 'lucide-react';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { insertUserSchema, type InsertUser } from '@shared/schema';
-import { useToast } from '@/hooks/use-toast';
-import { queryClient } from '@/lib/queryClient';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { MoreVertical } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { insertUserSchema, type InsertUser } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
+import { cn } from "@/lib/utils";
 
 export default function Staff() {
   const { data: users = [], deleteUserMutation } = useQuery<User[]>({
-    queryKey: ['/api/users'],
+    queryKey: ["/api/users"],
   });
 
   const { toast } = useToast();
   const form = useForm<InsertUser>({
     resolver: zodResolver(insertUserSchema),
     defaultValues: {
-      username: '',
-      password: '',
-      fullName: '',
-      email: '',
-      phone: '',
-      role: 'staff',
+      username: "",
+      password: "",
+      fullName: "",
+      email: "",
+      phone: "",
+      role: "staff",
       permissions: [],
     },
   });
 
   const onSubmit = async (data: InsertUser) => {
     try {
-      const response = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, saveToDb: true }),
       });
 
-      if (!response.ok) throw new Error('فشل إنشاء الحساب');
+      if (!response.ok) throw new Error("فشل إنشاء الحساب");
 
-      await queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({
-        title: 'تم إنشاء الحساب بنجاح',
-        description: 'تم إضافة الموظف الجديد إلى النظام',
+        title: "تم إنشاء الحساب بنجاح",
+        description: "تم إضافة الموظف الجديد إلى النظام",
       });
     } catch (error) {
       toast({
-        title: 'حدث خطأ',
-        description: error instanceof Error ? error.message : 'فشل إنشاء الحساب',
-        variant: 'destructive',
+        title: "حدث خطأ",
+        description: error instanceof Error ? error.message : "فشل إنشاء الحساب",
+        variant: "destructive",
       });
     }
   };
@@ -111,34 +117,34 @@ export default function Staff() {
     try {
       await deleteUserMutation.mutateAsync(userId);
       toast({
-        title: 'تم حذف الحساب بنجاح',
-        description: 'تم حذف الموظف من النظام',
+        title: "تم حذف الحساب بنجاح",
+        description: "تم حذف الموظف من النظام",
       });
     } catch (error) {
       toast({
-        title: 'حدث خطأ',
-        description: 'فشل حذف الحساب',
-        variant: 'destructive',
+        title: "حدث خطأ",
+        description: "فشل حذف الحساب",
+        variant: "destructive",
       });
     }
   };
 
   return (
     <div className="flex h-screen">
-      <div className="h-full w-64">
+      <div className="w-64 h-full">
         <Sidebar />
       </div>
-      <main className="flex-1 overflow-auto p-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-8 flex items-center justify-between">
+      <main className="flex-1 p-8 overflow-auto">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
-              <MdSupervisorAccount className="h-8 w-8" style={{ color: '#4285F4' }} />
+              <MdSupervisorAccount className="h-8 w-8" style={{ color: "#4285F4" }} />
               <h1 className="text-3xl font-bold">إدارة الموظفين</h1>
             </div>
             <Dialog>
               <DialogTrigger asChild>
                 <Button>
-                  <MdAdd className="ml-2 h-4 w-4" />
+                  <MdAdd className="h-4 w-4 ml-2" />
                   إضافة موظف جديد
                 </Button>
               </DialogTrigger>
@@ -146,8 +152,7 @@ export default function Staff() {
                 <DialogHeader>
                   <DialogTitle>إضافة موظف جديد</DialogTitle>
                   <DialogDescription>
-                    أدخل معلومات الموظف الجديد. سيتم إرسال بيانات تسجيل الدخول إلى البريد الإلكتروني
-                    المدخل.
+                    أدخل معلومات الموظف الجديد. سيتم إرسال بيانات تسجيل الدخول إلى البريد الإلكتروني المدخل.
                   </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -198,7 +203,11 @@ export default function Staff() {
                         <FormItem>
                           <FormLabel>البريد الإلكتروني</FormLabel>
                           <FormControl>
-                            <Input type="email" {...field} value={field.value || ''} />
+                            <Input
+                              type="email"
+                              {...field}
+                              value={field.value || ""}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -211,7 +220,10 @@ export default function Staff() {
                         <FormItem>
                           <FormLabel>رقم الهاتف</FormLabel>
                           <FormControl>
-                            <Input {...field} value={field.value || ''} />
+                            <Input
+                              {...field}
+                              value={field.value || ""}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -251,7 +263,9 @@ export default function Staff() {
             <Card>
               <CardHeader>
                 <CardTitle>قائمة الموظفين</CardTitle>
-                <CardDescription>إدارة الموظفين وأدوارهم في النظام</CardDescription>
+                <CardDescription>
+                  إدارة الموظفين وأدوارهم في النظام
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -265,24 +279,25 @@ export default function Staff() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users.map(user => (
+                    {users.map((user) => (
                       <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.username}</TableCell>
-                        <TableCell>{user.fullName}</TableCell>
+                        <TableCell className="font-medium">
+                          {user.username}
+                        </TableCell>
                         <TableCell>
-                          <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                            {user.role === 'admin' ? 'مدير' : 'موظف'}
+                          {user.fullName}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={user.role === "admin" ? "default" : "secondary"}>
+                            {user.role === "admin" ? "مدير" : "موظف"}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              'bg-green-50',
-                              user.isActive ? 'text-green-700' : 'text-red-700'
-                            )}
-                          >
-                            {user.isActive ? 'نشط' : 'معطل'}
+                          <Badge variant="outline" className={cn(
+                            "bg-green-50",
+                            user.isActive ? "text-green-700" : "text-red-700"
+                          )}>
+                            {user.isActive ? "نشط" : "معطل"}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
@@ -305,12 +320,9 @@ export default function Staff() {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                      هل أنت متأكد من حذف هذا الحساب؟
-                                    </AlertDialogTitle>
+                                    <AlertDialogTitle>هل أنت متأكد من حذف هذا الحساب؟</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع بيانات الموظف
-                                      نهائياً.
+                                      هذا الإجراء لا يمكن التراجع عنه. سيتم حذف جميع بيانات الموظف نهائياً.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
@@ -337,17 +349,17 @@ export default function Staff() {
             <Card>
               <CardHeader>
                 <CardTitle>سجل النشاط</CardTitle>
-                <CardDescription>آخر نشاطات الموظفين في النظام</CardDescription>
+                <CardDescription>
+                  آخر نشاطات الموظفين في النظام
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {users.map(user => (
+                  {users.map((user) => (
                     <div key={user.id} className="flex items-center gap-4 text-sm">
                       <div className="font-medium">{user.fullName}</div>
                       <div className="text-muted-foreground">
-                        {user.lastLoginAt
-                          ? `آخر تسجيل دخول ${new Date(user.lastLoginAt).toLocaleString('ar-SA')}`
-                          : 'لم يسجل الدخول بعد'}
+                        {user.lastLoginAt ? `آخر تسجيل دخول ${new Date(user.lastLoginAt).toLocaleString('ar-SA')}` : 'لم يسجل الدخول بعد'}
                       </div>
                     </div>
                   ))}

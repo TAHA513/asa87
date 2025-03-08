@@ -1,43 +1,12 @@
-import {
-  User,
-  InsertUser,
-  Product,
-  Sale,
-  ExchangeRate,
-  Installment,
-  InstallmentPayment,
-  Campaign,
-  InsertCampaign,
-  CampaignAnalytics,
-  InsertCampaignAnalytics,
-  SocialMediaAccount,
-  ApiKey,
-  InsertApiKey,
-  InventoryTransaction,
-  InsertInventoryTransaction,
-  ExpenseCategory,
-  InsertExpenseCategory,
-  Expense,
-  InsertExpense,
-  Supplier,
-  InsertSupplier,
-  SupplierTransaction,
-  InsertSupplierTransaction,
-  Customer,
-  InsertCustomer,
-  Appointment,
-  InsertAppointment,
-  FileStorage,
-  InsertFileStorage,
-  Invoice,
-  InsertInvoice,
-} from '@shared/schema';
-import {
-  InsertSystemActivity,
-  SystemActivity,
-  InsertActivityReport,
-  ActivityReport,
-} from './activity-types'; // Assuming these types are defined elsewhere
+import { User, InsertUser, Product, Sale, ExchangeRate, Installment, InstallmentPayment,
+  Campaign, InsertCampaign, CampaignAnalytics, InsertCampaignAnalytics,
+  SocialMediaAccount, ApiKey, InsertApiKey,
+  InventoryTransaction, InsertInventoryTransaction,
+  ExpenseCategory, InsertExpenseCategory, Expense, InsertExpense,
+  Supplier, InsertSupplier, SupplierTransaction, InsertSupplierTransaction,
+  Customer, InsertCustomer, Appointment, InsertAppointment,
+  FileStorage, InsertFileStorage, Invoice, InsertInvoice } from "@shared/schema";
+import { InsertSystemActivity, SystemActivity, InsertActivityReport, ActivityReport } from "./activity-types"; // Assuming these types are defined elsewhere
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -79,9 +48,7 @@ export interface IStorage {
   getApiKeys(userId: number): Promise<Record<string, any> | null>;
   migrateLocalStorageToDb(userId: number, keys: Record<string, any>): Promise<void>;
   getInventoryTransactions(): Promise<InventoryTransaction[]>;
-  createInventoryTransaction(
-    transaction: InsertInventoryTransaction
-  ): Promise<InventoryTransaction>;
+  createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction>;
   getExpenseCategories(userId: number): Promise<ExpenseCategory[]>;
   getExpenseCategory(id: number): Promise<ExpenseCategory | undefined>;
   createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory>;
@@ -119,26 +86,20 @@ export interface IStorage {
   searchProducts(query: string): Promise<Product[]>;
 
   // Analytics Methods
-  getAnalyticsSales(): Promise<
-    {
-      date: string;
-      amount: number;
-    }[]
-  >;
+  getAnalyticsSales(): Promise<{
+    date: string;
+    amount: number;
+  }[]>;
 
-  getAnalyticsCustomers(): Promise<
-    {
-      name: string;
-      value: number;
-    }[]
-  >;
+  getAnalyticsCustomers(): Promise<{
+    name: string;
+    value: number;
+  }[]>;
 
-  getAnalyticsProducts(): Promise<
-    {
-      name: string;
-      sales: number;
-    }[]
-  >;
+  getAnalyticsProducts(): Promise<{
+    name: string;
+    sales: number;
+  }[]>;
 
   // Activity Logging Methods
   logSystemActivity(activity: InsertSystemActivity): Promise<SystemActivity>;

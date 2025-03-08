@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery } from "@tanstack/react-query";
 import {
   BarChart,
   Bar,
@@ -12,17 +12,23 @@ import {
   Line,
   AreaChart,
   Area,
-} from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+} from "recharts";
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { cn } from '@/lib/utils';
-import { useState } from 'react';
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 // تعريف أنماط البيانات
 interface PlatformStat {
@@ -46,18 +52,18 @@ const colorSchemes = {
   default: {
     primary: '#8884d8',
     secondary: '#82ca9d',
-    tertiary: '#ffc658',
+    tertiary: '#ffc658'
   },
   warm: {
     primary: '#ff7300',
     secondary: '#ff9800',
-    tertiary: '#ffc107',
+    tertiary: '#ffc107'
   },
   cool: {
     primary: '#00bcd4',
     secondary: '#03a9f4',
-    tertiary: '#2196f3',
-  },
+    tertiary: '#2196f3'
+  }
 } as const;
 
 interface ChartProps {
@@ -72,13 +78,13 @@ export function PlatformPerformanceGraphs() {
 
   // Fetch platform-specific analytics with configurable interval
   const { data: platformStats = [] } = useQuery<PlatformStat[]>({
-    queryKey: ['/api/marketing/platform-stats'],
+    queryKey: ["/api/marketing/platform-stats"],
     refetchInterval: updateInterval,
   });
 
   // Fetch historical analytics
   const { data: historicalData = [] } = useQuery<HistoricalData[]>({
-    queryKey: ['/api/marketing/historical-stats'],
+    queryKey: ["/api/marketing/historical-stats"],
     refetchInterval: updateInterval,
   });
 
@@ -87,7 +93,7 @@ export function PlatformPerformanceGraphs() {
   return (
     <div className="space-y-6">
       {/* Chart Controls */}
-      <div className="mb-6 flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-4 mb-6">
         <Select
           value={colorScheme}
           onValueChange={(value: keyof typeof colorSchemes) => setColorScheme(value)}
@@ -104,7 +110,7 @@ export function PlatformPerformanceGraphs() {
 
         <Select
           value={updateInterval.toString()}
-          onValueChange={value => setUpdateInterval(Number(value))}
+          onValueChange={(value) => setUpdateInterval(Number(value))}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="فترة التحديث" />
@@ -121,7 +127,9 @@ export function PlatformPerformanceGraphs() {
         <Card className="w-full">
           <CardHeader>
             <CardTitle>أداء المنصات</CardTitle>
-            <CardDescription>إحصائيات حسب كل منصة تواصل اجتماعي</CardDescription>
+            <CardDescription>
+              إحصائيات حسب كل منصة تواصل اجتماعي
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px] w-full">
@@ -131,10 +139,7 @@ export function PlatformPerformanceGraphs() {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={platformStats}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
+                  <BarChart data={platformStats} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="platform" />
                     <YAxis />
@@ -152,7 +157,9 @@ export function PlatformPerformanceGraphs() {
         <Card className="w-full">
           <CardHeader>
             <CardTitle>تحليل الأداء عبر الزمن</CardTitle>
-            <CardDescription>تطور الأداء على مدار الوقت</CardDescription>
+            <CardDescription>
+              تطور الأداء على مدار الوقت
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px] w-full">
@@ -162,37 +169,34 @@ export function PlatformPerformanceGraphs() {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={historicalData}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
+                  <AreaChart data={historicalData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Area
-                      type="monotone"
-                      dataKey="impressions"
+                    <Area 
+                      type="monotone" 
+                      dataKey="impressions" 
                       name="الانطباعات"
-                      stroke={colors.primary}
-                      fill={colors.primary}
+                      stroke={colors.primary} 
+                      fill={colors.primary} 
                       fillOpacity={0.3}
                     />
-                    <Area
-                      type="monotone"
-                      dataKey="engagements"
+                    <Area 
+                      type="monotone" 
+                      dataKey="engagements" 
                       name="التفاعلات"
-                      stroke={colors.secondary}
-                      fill={colors.secondary}
+                      stroke={colors.secondary} 
+                      fill={colors.secondary} 
                       fillOpacity={0.3}
                     />
-                    <Area
-                      type="monotone"
-                      dataKey="spend"
+                    <Area 
+                      type="monotone" 
+                      dataKey="spend" 
                       name="الإنفاق"
-                      stroke={colors.tertiary}
-                      fill={colors.tertiary}
+                      stroke={colors.tertiary} 
+                      fill={colors.tertiary} 
                       fillOpacity={0.3}
                     />
                   </AreaChart>
@@ -205,7 +209,9 @@ export function PlatformPerformanceGraphs() {
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>تحليل المنصات عبر الزمن</CardTitle>
-            <CardDescription>مقارنة أداء المنصات</CardDescription>
+            <CardDescription>
+              مقارنة أداء المنصات
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[400px] w-full">
@@ -215,28 +221,30 @@ export function PlatformPerformanceGraphs() {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={historicalData}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                  >
+                  <LineChart data={historicalData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line
-                      type="monotone"
+                    <Line 
+                      type="monotone" 
                       dataKey="impressions"
                       name="الانطباعات"
                       stroke={colors.primary}
                     />
-                    <Line
-                      type="monotone"
+                    <Line 
+                      type="monotone" 
                       dataKey="engagements"
                       name="التفاعلات"
                       stroke={colors.secondary}
                     />
-                    <Line type="monotone" dataKey="spend" name="الإنفاق" stroke={colors.tertiary} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="spend"
+                      name="الإنفاق"
+                      stroke={colors.tertiary}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               )}

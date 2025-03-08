@@ -1,11 +1,17 @@
-import { useAuth } from '@/hooks/use-auth';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { insertUserSchema } from '@shared/schema';
-import { useLocation } from 'wouter';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { useAuth } from "@/hooks/use-auth";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { insertUserSchema } from "@shared/schema";
+import { useLocation } from "wouter";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Form,
   FormControl,
@@ -13,12 +19,12 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useEffect, useState } from 'react';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/form";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useEffect, useState } from "react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 type PasswordStrength = {
   score: number;
@@ -28,8 +34,8 @@ type PasswordStrength = {
 
 function getPasswordStrength(password: string): PasswordStrength {
   let score = 0;
-  let message = 'ضعيف جداً';
-  let color = 'bg-red-500';
+  let message = "ضعيف جداً";
+  let color = "bg-red-500";
 
   if (password.length >= 8) score++;
   if (/[A-Z]/.test(password)) score++;
@@ -40,24 +46,24 @@ function getPasswordStrength(password: string): PasswordStrength {
   switch (score) {
     case 0:
     case 1:
-      message = 'ضعيف جداً';
-      color = 'bg-red-500';
+      message = "ضعيف جداً";
+      color = "bg-red-500";
       break;
     case 2:
-      message = 'ضعيف';
-      color = 'bg-orange-500';
+      message = "ضعيف";
+      color = "bg-orange-500";
       break;
     case 3:
-      message = 'متوسط';
-      color = 'bg-yellow-500';
+      message = "متوسط";
+      color = "bg-yellow-500";
       break;
     case 4:
-      message = 'قوي';
-      color = 'bg-lime-500';
+      message = "قوي";
+      color = "bg-lime-500";
       break;
     case 5:
-      message = 'قوي جداً';
-      color = 'bg-green-500';
+      message = "قوي جداً";
+      color = "bg-green-500";
       break;
   }
 
@@ -67,17 +73,17 @@ function getPasswordStrength(password: string): PasswordStrength {
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState('login');
+  const [activeTab, setActiveTab] = useState("login");
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>({
     score: 0,
-    message: 'ضعيف جداً',
-    color: 'bg-red-500',
+    message: "ضعيف جداً",
+    color: "bg-red-500",
   });
 
   useEffect(() => {
     if (user) {
-      navigate('/');
+      navigate("/");
     }
   }, [user, navigate]);
 
@@ -89,27 +95,27 @@ export default function AuthPage() {
       })
     ),
     defaultValues: {
-      username: '',
-      password: '',
+      username: "",
+      password: "",
     },
   });
 
   const registerForm = useForm({
     resolver: zodResolver(insertUserSchema),
     defaultValues: {
-      username: '',
-      password: '',
-      fullName: '',
-      email: '',
-      phone: '',
-      role: 'staff' as const,
+      username: "",
+      password: "",
+      fullName: "",
+      email: "",
+      phone: "",
+      role: "staff" as const,
       permissions: [],
     },
   });
 
   const onRegisterSuccess = () => {
     registerForm.reset();
-    setActiveTab('login');
+    setActiveTab("login");
   };
 
   const handlePasswordChange = (value: string) => {
@@ -121,55 +127,49 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="from-primary/5 via-secondary/5 to-accent/5 relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br p-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Decorative Elements */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="bg-primary/10 absolute left-0 top-0 h-72 w-72 -translate-x-1/2 -translate-y-1/2 transform rounded-full blur-3xl filter" />
-        <div className="bg-secondary/10 absolute bottom-0 right-0 h-96 w-96 translate-x-1/2 translate-y-1/2 transform rounded-full blur-3xl filter" />
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-0 w-72 h-72 bg-primary/10 rounded-full filter blur-3xl transform -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-secondary/10 rounded-full filter blur-3xl transform translate-x-1/2 translate-y-1/2" />
       </div>
 
-      <div className="relative z-10 grid w-full max-w-6xl items-center gap-8 md:grid-cols-2">
+      <div className="max-w-6xl w-full grid md:grid-cols-2 gap-8 items-center relative z-10">
         {/* Logo Side */}
-        <div className="hidden flex-col items-center justify-center p-8 md:flex">
-          <div
-            className="animate-gradient mb-8 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-9xl font-black text-transparent"
-            style={{ fontFamily: 'Cairo, sans-serif' }}
-          >
+        <div className="hidden md:flex flex-col items-center justify-center p-8">
+          <div className="text-9xl font-black mb-8 bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-accent animate-gradient" 
+               style={{ fontFamily: 'Cairo, sans-serif' }}>
             SAS
           </div>
-          <div
-            className="max-w-md text-center text-2xl font-semibold text-muted-foreground"
-            style={{ fontFamily: 'Cairo, sans-serif' }}
-          >
+          <div className="text-2xl text-center text-muted-foreground font-semibold max-w-md"
+               style={{ fontFamily: 'Cairo, sans-serif' }}>
             نظام إدارة الأعمال المتكامل
           </div>
         </div>
 
         {/* Form Side */}
-        <div className="mx-auto w-full max-w-md">
-          <div className="mb-8 text-center md:hidden">
-            <h1
-              className="mb-4 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-6xl font-black text-transparent"
-              style={{ fontFamily: 'Cairo, sans-serif' }}
-            >
+        <div className="w-full max-w-md mx-auto">
+          <div className="text-center md:hidden mb-8">
+            <h1 className="text-6xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-accent"
+                style={{ fontFamily: 'Cairo, sans-serif' }}>
               SAS
             </h1>
           </div>
 
-          <Card className="border-primary/10 bg-card/95 backdrop-blur-sm">
+          <Card className="backdrop-blur-sm bg-card/95 border-primary/10">
             <CardHeader>
-              <CardTitle className="text-center text-2xl font-bold">
-                {activeTab === 'login' ? 'تسجيل الدخول' : 'إنشاء حساب جديد'}
+              <CardTitle className="text-2xl font-bold text-center">
+                {activeTab === "login" ? "تسجيل الدخول" : "إنشاء حساب جديد"}
               </CardTitle>
               <CardDescription className="text-center">
-                {activeTab === 'login'
-                  ? 'مرحباً بعودتك! قم بتسجيل الدخول للمتابعة'
-                  : 'قم بإنشاء حساب جديد للبدء'}
+                {activeTab === "login" 
+                  ? "مرحباً بعودتك! قم بتسجيل الدخول للمتابعة" 
+                  : "قم بإنشاء حساب جديد للبدء"}
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="mb-6 grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
                   <TabsTrigger value="login">تسجيل الدخول</TabsTrigger>
                   <TabsTrigger value="register">حساب جديد</TabsTrigger>
                 </TabsList>
@@ -177,7 +177,9 @@ export default function AuthPage() {
                 <TabsContent value="login" className="mt-0">
                   <Form {...loginForm}>
                     <form
-                      onSubmit={loginForm.handleSubmit(data => loginMutation.mutate(data))}
+                      onSubmit={loginForm.handleSubmit((data) =>
+                        loginMutation.mutate(data)
+                      )}
                       className="space-y-4"
                     >
                       <FormField
@@ -202,10 +204,10 @@ export default function AuthPage() {
                             <div className="relative">
                               <FormControl>
                                 <Input
-                                  type={showPassword ? 'text' : 'password'}
+                                  type={showPassword ? "text" : "password"}
                                   className="bg-background/50"
                                   {...field}
-                                  onChange={e => {
+                                  onChange={(e) => {
                                     field.onChange(e);
                                     handlePasswordChange(e.target.value);
                                   }}
@@ -215,7 +217,7 @@ export default function AuthPage() {
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                className="absolute left-2 top-1/2 h-auto -translate-y-1/2 py-1"
+                                className="absolute left-2 top-1/2 -translate-y-1/2 h-auto py-1"
                                 onClick={() => setShowPassword(!showPassword)}
                               >
                                 {showPassword ? (
@@ -229,9 +231,13 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
-                      <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={loginMutation.isPending}
+                      >
                         {loginMutation.isPending && (
-                          <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin ml-2" />
                         )}
                         تسجيل الدخول
                       </Button>
@@ -242,7 +248,7 @@ export default function AuthPage() {
                 <TabsContent value="register" className="mt-0">
                   <Form {...registerForm}>
                     <form
-                      onSubmit={registerForm.handleSubmit(data =>
+                      onSubmit={registerForm.handleSubmit((data) =>
                         registerMutation.mutate(data, {
                           onSuccess: onRegisterSuccess,
                         })
@@ -285,10 +291,10 @@ export default function AuthPage() {
                               <div className="relative">
                                 <FormControl>
                                   <Input
-                                    type={showPassword ? 'text' : 'password'}
+                                    type={showPassword ? "text" : "password"}
                                     className="bg-background/50"
                                     {...field}
-                                    onChange={e => {
+                                    onChange={(e) => {
                                       field.onChange(e);
                                       handlePasswordChange(e.target.value);
                                     }}
@@ -298,7 +304,7 @@ export default function AuthPage() {
                                   type="button"
                                   variant="ghost"
                                   size="sm"
-                                  className="absolute left-2 top-1/2 h-auto -translate-y-1/2 py-1"
+                                  className="absolute left-2 top-1/2 -translate-y-1/2 h-auto py-1"
                                   onClick={() => setShowPassword(!showPassword)}
                                 >
                                   {showPassword ? (
@@ -314,7 +320,7 @@ export default function AuthPage() {
                                 </div>
                                 <Progress
                                   value={(passwordStrength.score / 5) * 100}
-                                  className={cn('h-1', passwordStrength.color)}
+                                  className={cn("h-1", passwordStrength.color)}
                                 />
                               </div>
                               <FormMessage />
@@ -363,7 +369,7 @@ export default function AuthPage() {
                         disabled={registerMutation.isPending}
                       >
                         {registerMutation.isPending && (
-                          <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin ml-2" />
                         )}
                         إنشاء حساب
                       </Button>

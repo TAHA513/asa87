@@ -1,57 +1,20 @@
-import { db } from './db';
-import { eq, desc, sql } from 'drizzle-orm';
+import { db } from "./db";
+import { eq, desc, sql } from "drizzle-orm";
 import {
-  users,
-  products,
-  sales,
-  exchangeRates,
-  expenseCategories,
-  fileStorage,
-  customers,
-  installments,
-  installmentPayments,
-  marketingCampaigns,
-  campaignAnalytics,
-  socialMediaAccounts,
-  apiKeys,
-  inventoryTransactions,
-  expenses,
-  suppliers,
-  supplierTransactions,
-  appointments,
-} from '@shared/schema';
+  users, products, sales, exchangeRates, expenseCategories, fileStorage,
+  customers, installments, installmentPayments, marketingCampaigns,
+  campaignAnalytics, socialMediaAccounts, apiKeys, inventoryTransactions,
+  expenses, suppliers, supplierTransactions, appointments
+} from "@shared/schema";
 import type {
-  User,
-  InsertUser,
-  Product,
-  Sale,
-  ExchangeRate,
-  ExpenseCategory,
-  FileStorage,
-  InsertFileStorage,
-  Customer,
-  InsertCustomer,
-  Installment,
-  InstallmentPayment,
-  Campaign,
-  InsertCampaign,
-  CampaignAnalytics,
-  InsertCampaignAnalytics,
-  SocialMediaAccount,
-  InsertSocialMediaAccount,
-  ApiKey,
-  InsertApiKey,
-  InventoryTransaction,
-  InsertInventoryTransaction,
-  Expense,
-  InsertExpense,
-  Supplier,
-  InsertSupplier,
-  SupplierTransaction,
-  InsertSupplierTransaction,
-  Appointment,
-  InsertAppointment,
-} from '@shared/schema';
+  User, InsertUser, Product, Sale, ExchangeRate, ExpenseCategory,
+  FileStorage, InsertFileStorage, Customer, InsertCustomer, Installment,
+  InstallmentPayment, Campaign, InsertCampaign, CampaignAnalytics,
+  InsertCampaignAnalytics, SocialMediaAccount, InsertSocialMediaAccount,
+  ApiKey, InsertApiKey, InventoryTransaction, InsertInventoryTransaction,
+  Expense, InsertExpense, Supplier, InsertSupplier, SupplierTransaction,
+  InsertSupplierTransaction, Appointment, InsertAppointment
+} from "@shared/schema";
 
 export class DatabaseStorage {
   // حفظ مستخدم جديد في قاعدة البيانات
@@ -69,7 +32,7 @@ export class DatabaseStorage {
         .returning();
       return savedUser;
     } catch (error) {
-      console.error('خطأ في حفظ المستخدم في قاعدة البيانات:', error);
+      console.error("خطأ في حفظ المستخدم في قاعدة البيانات:", error);
       return null;
     }
   }
@@ -77,10 +40,13 @@ export class DatabaseStorage {
   // البحث عن مستخدم باسم المستخدم
   async getUserByUsername(username: string): Promise<User | undefined> {
     try {
-      const [user] = await db.select().from(users).where(eq(users.username, username));
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username));
       return user;
     } catch (error) {
-      console.error('خطأ في البحث عن المستخدم في قاعدة البيانات:', error);
+      console.error("خطأ في البحث عن المستخدم في قاعدة البيانات:", error);
       return undefined;
     }
   }
@@ -88,10 +54,13 @@ export class DatabaseStorage {
   // الحصول على مستخدم بواسطة المعرف
   async getUser(id: number): Promise<User | undefined> {
     try {
-      const [user] = await db.select().from(users).where(eq(users.id, id));
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, id));
       return user;
     } catch (error) {
-      console.error('خطأ في البحث عن المستخدم في قاعدة البيانات:', error);
+      console.error("خطأ في البحث عن المستخدم في قاعدة البيانات:", error);
       return undefined;
     }
   }
@@ -99,10 +68,13 @@ export class DatabaseStorage {
   // إضافة منتج جديد
   async createProduct(product: Product): Promise<Product | null> {
     try {
-      const [savedProduct] = await db.insert(products).values(product).returning();
+      const [savedProduct] = await db
+        .insert(products)
+        .values(product)
+        .returning();
       return savedProduct;
     } catch (error) {
-      console.error('خطأ في حفظ المنتج في قاعدة البيانات:', error);
+      console.error("خطأ في حفظ المنتج في قاعدة البيانات:", error);
       return null;
     }
   }
@@ -112,7 +84,7 @@ export class DatabaseStorage {
     try {
       return await db.select().from(products);
     } catch (error) {
-      console.error('خطأ في جلب المنتجات من قاعدة البيانات:', error);
+      console.error("خطأ في جلب المنتجات من قاعدة البيانات:", error);
       return [];
     }
   }
@@ -122,7 +94,7 @@ export class DatabaseStorage {
     try {
       await db.delete(products).where(eq(products.id, id));
     } catch (error) {
-      console.error('خطأ في حذف المنتج من قاعدة البيانات:', error);
+      console.error("خطأ في حذف المنتج من قاعدة البيانات:", error);
       throw error;
     }
   }
@@ -135,7 +107,7 @@ export class DatabaseStorage {
     userId: number;
   }): Promise<ExpenseCategory> {
     try {
-      console.log('Creating expense category with data:', data);
+      console.log("Creating expense category with data:", data);
       const [category] = await db
         .insert(expenseCategories)
         .values({
@@ -147,10 +119,10 @@ export class DatabaseStorage {
         })
         .returning();
 
-      console.log('Created expense category:', category);
+      console.log("Created expense category:", category);
       return category;
     } catch (error) {
-      console.error('خطأ في إنشاء فئة المصروفات:', error);
+      console.error("خطأ في إنشاء فئة المصروفات:", error);
       throw error;
     }
   }
@@ -160,7 +132,7 @@ export class DatabaseStorage {
     try {
       return await db.select().from(expenseCategories);
     } catch (error) {
-      console.error('خطأ في جلب فئات المصروفات:', error);
+      console.error("خطأ في جلب فئات المصروفات:", error);
       return [];
     }
   }
@@ -168,10 +140,13 @@ export class DatabaseStorage {
   // إضافة عملية بيع
   async createSale(sale: Sale): Promise<Sale | null> {
     try {
-      const [savedSale] = await db.insert(sales).values(sale).returning();
+      const [savedSale] = await db
+        .insert(sales)
+        .values(sale)
+        .returning();
       return savedSale;
     } catch (error) {
-      console.error('خطأ في حفظ عملية البيع في قاعدة البيانات:', error);
+      console.error("خطأ في حفظ عملية البيع في قاعدة البيانات:", error);
       return null;
     }
   }
@@ -181,7 +156,7 @@ export class DatabaseStorage {
     try {
       return await db.select().from(sales);
     } catch (error) {
-      console.error('خطأ في جلب المبيعات من قاعدة البيانات:', error);
+      console.error("خطأ في جلب المبيعات من قاعدة البيانات:", error);
       return [];
     }
   }
@@ -189,9 +164,12 @@ export class DatabaseStorage {
   // الحصول على مبيعات عميل معين
   async getCustomerSales(customerId: number): Promise<Sale[]> {
     try {
-      return await db.select().from(sales).where(eq(sales.customerId, customerId));
+      return await db
+        .select()
+        .from(sales)
+        .where(eq(sales.customerId, customerId));
     } catch (error) {
-      console.error('خطأ في جلب مبيعات العميل من قاعدة البيانات:', error);
+      console.error("خطأ في جلب مبيعات العميل من قاعدة البيانات:", error);
       return [];
     }
   }
@@ -206,7 +184,7 @@ export class DatabaseStorage {
         .limit(1);
       return rate;
     } catch (error) {
-      console.error('خطأ في جلب سعر الصرف من قاعدة البيانات:', error);
+      console.error("خطأ في جلب سعر الصرف من قاعدة البيانات:", error);
       return null;
     }
   }
@@ -218,12 +196,12 @@ export class DatabaseStorage {
         .insert(exchangeRates)
         .values({
           usdToIqd: rate.toString(),
-          date: new Date(),
+          date: new Date()
         })
         .returning();
       return newRate;
     } catch (error) {
-      console.error('خطأ في حفظ سعر الصرف في قاعدة البيانات:', error);
+      console.error("خطأ في حفظ سعر الصرف في قاعدة البيانات:", error);
       return null;
     }
   }
@@ -231,7 +209,7 @@ export class DatabaseStorage {
   // حفظ ملف جديد
   async saveFile(file: InsertFileStorage): Promise<FileStorage> {
     try {
-      console.log('Saving file:', file.filename);
+      console.log("Saving file:", file.filename);
       const [savedFile] = await db
         .insert(fileStorage)
         .values({
@@ -245,10 +223,10 @@ export class DatabaseStorage {
         })
         .returning();
 
-      console.log('File saved successfully:', savedFile.id);
+      console.log("File saved successfully:", savedFile.id);
       return savedFile;
     } catch (error) {
-      console.error('خطأ في حفظ الملف:', error);
+      console.error("خطأ في حفظ الملف:", error);
       throw error;
     }
   }
@@ -256,10 +234,13 @@ export class DatabaseStorage {
   // الحصول على ملف بواسطة المعرف
   async getFileById(id: number): Promise<FileStorage | undefined> {
     try {
-      const [file] = await db.select().from(fileStorage).where(eq(fileStorage.id, id));
+      const [file] = await db
+        .select()
+        .from(fileStorage)
+        .where(eq(fileStorage.id, id));
       return file;
     } catch (error) {
-      console.error('خطأ في جلب الملف:', error);
+      console.error("خطأ في جلب الملف:", error);
       return undefined;
     }
   }
@@ -267,9 +248,12 @@ export class DatabaseStorage {
   // الحصول على جميع ملفات المستخدم
   async getUserFiles(userId: number): Promise<FileStorage[]> {
     try {
-      return await db.select().from(fileStorage).where(eq(fileStorage.userId, userId));
+      return await db
+        .select()
+        .from(fileStorage)
+        .where(eq(fileStorage.userId, userId));
     } catch (error) {
-      console.error('خطأ في جلب ملفات المستخدم:', error);
+      console.error("خطأ في جلب ملفات المستخدم:", error);
       return [];
     }
   }
@@ -277,9 +261,11 @@ export class DatabaseStorage {
   // حذف ملف
   async deleteFile(id: number): Promise<void> {
     try {
-      await db.delete(fileStorage).where(eq(fileStorage.id, id));
+      await db
+        .delete(fileStorage)
+        .where(eq(fileStorage.id, id));
     } catch (error) {
-      console.error('خطأ في حذف الملف:', error);
+      console.error("خطأ في حذف الملف:", error);
       throw error;
     }
   }
@@ -301,7 +287,7 @@ export class DatabaseStorage {
               LOWER(${customers.email}) LIKE ${searchLower}`
         );
     } catch (error) {
-      console.error('خطأ في البحث عن العملاء:', error);
+      console.error("خطأ في البحث عن العملاء:", error);
       return [];
     }
   }
@@ -309,10 +295,13 @@ export class DatabaseStorage {
   // الحصول على عميل بواسطة المعرف
   async getCustomer(id: number): Promise<Customer | undefined> {
     try {
-      const [customer] = await db.select().from(customers).where(eq(customers.id, id));
+      const [customer] = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.id, id));
       return customer;
     } catch (error) {
-      console.error('خطأ في البحث عن العميل:', error);
+      console.error("خطأ في البحث عن العميل:", error);
       return undefined;
     }
   }
@@ -329,7 +318,7 @@ export class DatabaseStorage {
         .returning();
       return newCustomer;
     } catch (error) {
-      console.error('خطأ في إنشاء العميل:', error);
+      console.error("خطأ في إنشاء العميل:", error);
       return null;
     }
   }
@@ -339,27 +328,33 @@ export class DatabaseStorage {
     try {
       return await db.select().from(installments);
     } catch (error) {
-      console.error('خطأ في جلب التقسيط:', error);
+      console.error("خطأ في جلب التقسيط:", error);
       return [];
     }
   }
 
   async getInstallment(id: number): Promise<Installment | undefined> {
     try {
-      const [installment] = await db.select().from(installments).where(eq(installments.id, id));
+      const [installment] = await db
+        .select()
+        .from(installments)
+        .where(eq(installments.id, id));
       return installment;
     } catch (error) {
-      console.error('خطأ في جلب التقسيط:', error);
+      console.error("خطأ في جلب التقسيط:", error);
       return undefined;
     }
   }
 
   async createInstallment(installment: Installment): Promise<Installment> {
     try {
-      const [newInstallment] = await db.insert(installments).values(installment).returning();
+      const [newInstallment] = await db
+        .insert(installments)
+        .values(installment)
+        .returning();
       return newInstallment;
     } catch (error) {
-      console.error('خطأ في إنشاء التقسيط:', error);
+      console.error("خطأ في إنشاء التقسيط:", error);
       throw error;
     }
   }
@@ -373,7 +368,7 @@ export class DatabaseStorage {
         .returning();
       return updatedInstallment;
     } catch (error) {
-      console.error('خطأ في تحديث التقسيط:', error);
+      console.error("خطأ في تحديث التقسيط:", error);
       throw error;
     }
   }
@@ -386,17 +381,20 @@ export class DatabaseStorage {
         .from(installmentPayments)
         .where(eq(installmentPayments.installmentId, installmentId));
     } catch (error) {
-      console.error('خطأ في جلب دفعات التقسيط:', error);
+      console.error("خطأ في جلب دفعات التقسيط:", error);
       return [];
     }
   }
 
   async createInstallmentPayment(payment: InstallmentPayment): Promise<InstallmentPayment> {
     try {
-      const [newPayment] = await db.insert(installmentPayments).values(payment).returning();
+      const [newPayment] = await db
+        .insert(installmentPayments)
+        .values(payment)
+        .returning();
       return newPayment;
     } catch (error) {
-      console.error('خطأ في إنشاء دفعة التقسيط:', error);
+      console.error("خطأ في إنشاء دفعة التقسيط:", error);
       throw error;
     }
   }
@@ -406,7 +404,7 @@ export class DatabaseStorage {
     try {
       return await db.select().from(marketingCampaigns);
     } catch (error) {
-      console.error('خطأ في جلب الحملات:', error);
+      console.error("خطأ في جلب الحملات:", error);
       return [];
     }
   }
@@ -419,17 +417,20 @@ export class DatabaseStorage {
         .where(eq(marketingCampaigns.id, id));
       return campaign;
     } catch (error) {
-      console.error('خطأ في جلب الحملة:', error);
+      console.error("خطأ في جلب الحملة:", error);
       return undefined;
     }
   }
 
   async createCampaign(campaign: InsertCampaign[]): Promise<Campaign> {
     try {
-      const [newCampaign] = await db.insert(marketingCampaigns).values(campaign).returning();
+      const [newCampaign] = await db
+        .insert(marketingCampaigns)
+        .values(campaign)
+        .returning();
       return newCampaign;
     } catch (error) {
-      console.error('خطأ في إنشاء الحملة:', error);
+      console.error("خطأ في إنشاء الحملة:", error);
       throw error;
     }
   }
@@ -443,7 +444,7 @@ export class DatabaseStorage {
         .returning();
       return updatedCampaign;
     } catch (error) {
-      console.error('خطأ في تحديث الحملة:', error);
+      console.error("خطأ في تحديث الحملة:", error);
       throw error;
     }
   }
@@ -456,17 +457,20 @@ export class DatabaseStorage {
         .from(campaignAnalytics)
         .where(eq(campaignAnalytics.campaignId, campaignId));
     } catch (error) {
-      console.error('خطأ في جلب تحليلات الحملة:', error);
+      console.error("خطأ في جلب تحليلات الحملة:", error);
       return [];
     }
   }
 
   async createCampaignAnalytics(analytics: InsertCampaignAnalytics[]): Promise<CampaignAnalytics> {
     try {
-      const [newAnalytics] = await db.insert(campaignAnalytics).values(analytics).returning();
+      const [newAnalytics] = await db
+        .insert(campaignAnalytics)
+        .values(analytics)
+        .returning();
       return newAnalytics;
     } catch (error) {
-      console.error('خطأ في إنشاء تحليلات الحملة:', error);
+      console.error("خطأ في إنشاء تحليلات الحملة:", error);
       throw error;
     }
   }
@@ -479,26 +483,31 @@ export class DatabaseStorage {
         .from(socialMediaAccounts)
         .where(eq(socialMediaAccounts.userId, userId));
     } catch (error) {
-      console.error('خطأ في جلب حسابات التواصل الاجتماعي:', error);
+      console.error("خطأ في جلب حسابات التواصل الاجتماعي:", error);
       return [];
     }
   }
 
   async createSocialMediaAccount(account: SocialMediaAccount): Promise<SocialMediaAccount> {
     try {
-      const [newAccount] = await db.insert(socialMediaAccounts).values(account).returning();
+      const [newAccount] = await db
+        .insert(socialMediaAccounts)
+        .values(account)
+        .returning();
       return newAccount;
     } catch (error) {
-      console.error('خطأ في إنشاء حساب التواصل الاجتماعي:', error);
+      console.error("خطأ في إنشاء حساب التواصل الاجتماعي:", error);
       throw error;
     }
   }
 
   async deleteSocialMediaAccount(id: number): Promise<void> {
     try {
-      await db.delete(socialMediaAccounts).where(eq(socialMediaAccounts.id, id));
+      await db
+        .delete(socialMediaAccounts)
+        .where(eq(socialMediaAccounts.id, id));
     } catch (error) {
-      console.error('خطأ في حذف حساب التواصل الاجتماعي:', error);
+      console.error("خطأ في حذف حساب التواصل الاجتماعي:", error);
       throw error;
     }
   }
@@ -506,9 +515,11 @@ export class DatabaseStorage {
   // API Keys
   async setApiKeys(userId: number, keys: Record<string, any>): Promise<void> {
     try {
-      await db.transaction(async tx => {
+      await db.transaction(async (tx) => {
         // Delete existing keys
-        await tx.delete(apiKeys).where(eq(apiKeys.userId, userId));
+        await tx
+          .delete(apiKeys)
+          .where(eq(apiKeys.userId, userId));
 
         // Insert new keys
         const keyEntries = Object.entries(keys).map(([platform, value]) => ({
@@ -525,26 +536,26 @@ export class DatabaseStorage {
         }
       });
     } catch (error) {
-      console.error('خطأ في حفظ مفاتيح API:', error);
+      console.error("خطأ في حفظ مفاتيح API:", error);
       throw error;
     }
   }
 
   async getApiKeys(userId: number): Promise<Record<string, any> | null> {
     try {
-      const userKeys = await db.select().from(apiKeys).where(eq(apiKeys.userId, userId));
+      const userKeys = await db
+        .select()
+        .from(apiKeys)
+        .where(eq(apiKeys.userId, userId));
 
       if (userKeys.length === 0) return null;
 
-      return userKeys.reduce(
-        (acc, key) => ({
-          ...acc,
-          [key.platform]: JSON.parse(key.keyValue),
-        }),
-        {}
-      );
+      return userKeys.reduce((acc, key) => ({
+        ...acc,
+        [key.platform]: JSON.parse(key.keyValue)
+      }), {});
     } catch (error) {
-      console.error('خطأ في جلب مفاتيح API:', error);
+      console.error("خطأ في جلب مفاتيح API:", error);
       return null;
     }
   }
@@ -554,14 +565,12 @@ export class DatabaseStorage {
     try {
       return await db.select().from(inventoryTransactions);
     } catch (error) {
-      console.error('خطأ في جلب حركات المخزون:', error);
+      console.error("خطأ في جلب حركات المخزون:", error);
       return [];
     }
   }
 
-  async createInventoryTransaction(
-    transaction: InsertInventoryTransaction
-  ): Promise<InventoryTransaction> {
+  async createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction> {
     try {
       const [newTransaction] = await db
         .insert(inventoryTransactions)
@@ -569,7 +578,7 @@ export class DatabaseStorage {
         .returning();
       return newTransaction;
     } catch (error) {
-      console.error('خطأ في إنشاء حركة المخزون:', error);
+      console.error("خطأ في إنشاء حركة المخزون:", error);
       throw error;
     }
   }
@@ -577,29 +586,38 @@ export class DatabaseStorage {
   // Expenses
   async getExpenses(userId: number): Promise<Expense[]> {
     try {
-      return await db.select().from(expenses).where(eq(expenses.userId, userId));
+      return await db
+        .select()
+        .from(expenses)
+        .where(eq(expenses.userId, userId));
     } catch (error) {
-      console.error('خطأ في جلب المصروفات:', error);
+      console.error("خطأ في جلب المصروفات:", error);
       return [];
     }
   }
 
   async getExpense(id: number): Promise<Expense | undefined> {
     try {
-      const [expense] = await db.select().from(expenses).where(eq(expenses.id, id));
+      const [expense] = await db
+        .select()
+        .from(expenses)
+        .where(eq(expenses.id, id));
       return expense;
     } catch (error) {
-      console.error('خطأ في جلب المصروف:', error);
+      console.error("خطأ في جلب المصروف:", error);
       return undefined;
     }
   }
 
   async createExpense(expense: InsertExpense[]): Promise<Expense> {
     try {
-      const [newExpense] = await db.insert(expenses).values(expense).returning();
+      const [newExpense] = await db
+        .insert(expenses)
+        .values(expense)
+        .returning();
       return newExpense;
     } catch (error) {
-      console.error('خطأ في إنشاء المصروف:', error);
+      console.error("خطأ في إنشاء المصروف:", error);
       throw error;
     }
   }
@@ -613,16 +631,18 @@ export class DatabaseStorage {
         .returning();
       return updatedExpense;
     } catch (error) {
-      console.error('خطأ في تحديث المصروف:', error);
+      console.error("خطأ في تحديث المصروف:", error);
       throw error;
     }
   }
 
   async deleteExpense(id: number): Promise<void> {
     try {
-      await db.delete(expenses).where(eq(expenses.id, id));
+      await db
+        .delete(expenses)
+        .where(eq(expenses.id, id));
     } catch (error) {
-      console.error('خطأ في حذف المصروف:', error);
+      console.error("خطأ في حذف المصروف:", error);
       throw error;
     }
   }
@@ -630,29 +650,38 @@ export class DatabaseStorage {
   // Suppliers
   async getSuppliers(userId: number): Promise<Supplier[]> {
     try {
-      return await db.select().from(suppliers).where(eq(suppliers.userId, userId));
+      return await db
+        .select()
+        .from(suppliers)
+        .where(eq(suppliers.userId, userId));
     } catch (error) {
-      console.error('خطأ في جلب الموردين:', error);
+      console.error("خطأ في جلب الموردين:", error);
       return [];
     }
   }
 
   async getSupplier(id: number): Promise<Supplier | undefined> {
     try {
-      const [supplier] = await db.select().from(suppliers).where(eq(suppliers.id, id));
+      const [supplier] = await db
+        .select()
+        .from(suppliers)
+        .where(eq(suppliers.id, id));
       return supplier;
     } catch (error) {
-      console.error('خطأ في جلب المورد:', error);
+      console.error("خطأ في جلب المورد:", error);
       return undefined;
     }
   }
 
   async createSupplier(supplier: InsertSupplier): Promise<Supplier> {
     try {
-      const [newSupplier] = await db.insert(suppliers).values(supplier).returning();
+      const [newSupplier] = await db
+        .insert(suppliers)
+        .values(supplier)
+        .returning();
       return newSupplier;
     } catch (error) {
-      console.error('خطأ في إنشاء المورد:', error);
+      console.error("خطأ في إنشاء المورد:", error);
       throw error;
     }
   }
@@ -666,16 +695,18 @@ export class DatabaseStorage {
         .returning();
       return updatedSupplier;
     } catch (error) {
-      console.error('خطأ في تحديث المورد:', error);
+      console.error("خطأ في تحديث المورد:", error);
       throw error;
     }
   }
 
   async deleteSupplier(id: number): Promise<void> {
     try {
-      await db.delete(suppliers).where(eq(suppliers.id, id));
+      await db
+        .delete(suppliers)
+        .where(eq(suppliers.id, id));
     } catch (error) {
-      console.error('خطأ في حذف المورد:', error);
+      console.error("خطأ في حذف المورد:", error);
       throw error;
     }
   }
@@ -688,14 +719,12 @@ export class DatabaseStorage {
         .from(supplierTransactions)
         .where(eq(supplierTransactions.supplierId, supplierId));
     } catch (error) {
-      console.error('خطأ في جلب معاملات المورد:', error);
+      console.error("خطأ في جلب معاملات المورد:", error);
       return [];
     }
   }
 
-  async createSupplierTransaction(
-    transaction: InsertSupplierTransaction[]
-  ): Promise<SupplierTransaction> {
+  async createSupplierTransaction(transaction: InsertSupplierTransaction[]): Promise<SupplierTransaction> {
     try {
       const [newTransaction] = await db
         .insert(supplierTransactions)
@@ -703,7 +732,7 @@ export class DatabaseStorage {
         .returning();
       return newTransaction;
     } catch (error) {
-      console.error('خطأ في إنشاء معاملة المورد:', error);
+      console.error("خطأ في إنشاء معاملة المورد:", error);
       throw error;
     }
   }
@@ -711,13 +740,16 @@ export class DatabaseStorage {
   // Appointments
   async getAppointments(): Promise<Appointment[]> {
     try {
-      console.log('Fetching all appointments');
-      const results = await db.select().from(appointments).orderBy(desc(appointments.date));
+      console.log("Fetching all appointments");
+      const results = await db
+        .select()
+        .from(appointments)
+        .orderBy(desc(appointments.date));
 
       console.log(`Retrieved ${results.length} appointments`);
       return results;
     } catch (error) {
-      console.error('Error in getAppointments:', error);
+      console.error("Error in getAppointments:", error);
       return [];
     }
   }
@@ -734,34 +766,34 @@ export class DatabaseStorage {
         .where(eq(appointments.customerId, customerId))
         .orderBy(desc(appointments.date));
     } catch (error) {
-      console.error('خطأ في جلب المواعيد:', error);
+      console.error("خطأ في جلب المواعيد:", error);
       return [];
     }
   }
 
   async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
     try {
-      console.log('Creating appointment with data:', appointment);
+      console.log("Creating appointment with data:", appointment);
 
       // Validate required fields
       if (!appointment.title || !appointment.date || !appointment.duration) {
-        throw new Error('Missing required fields');
+        throw new Error("Missing required fields");
       }
 
       const [newAppointment] = await db
         .insert(appointments)
         .values({
           ...appointment,
-          status: appointment.status || 'scheduled',
+          status: appointment.status || "scheduled",
           createdAt: new Date(),
-          updatedAt: new Date(),
+          updatedAt: new Date()
         })
         .returning();
 
-      console.log('Created appointment successfully:', newAppointment);
+      console.log("Created appointment successfully:", newAppointment);
       return newAppointment;
     } catch (error) {
-      console.error('Error in createAppointment:', error);
+      console.error("Error in createAppointment:", error);
       throw error;
     }
   }
@@ -773,15 +805,15 @@ export class DatabaseStorage {
         .update(appointments)
         .set({
           ...update,
-          updatedAt: new Date(),
+          updatedAt: new Date()
         })
         .where(eq(appointments.id, id))
         .returning();
 
-      console.log('Updated appointment:', updatedAppointment);
+      console.log("Updated appointment:", updatedAppointment);
       return updatedAppointment;
     } catch (error) {
-      console.error('خطأ في تحديث الموعد:', error);
+      console.error("خطأ في تحديث الموعد:", error);
       throw error;
     }
   }
@@ -789,16 +821,18 @@ export class DatabaseStorage {
   async deleteAppointment(id: number): Promise<void> {
     try {
       console.log(`Deleting appointment ${id}`);
-      await db.delete(appointments).where(eq(appointments.id, id));
+      await db
+        .delete(appointments)
+        .where(eq(appointments.id, id));
       console.log(`Successfully deleted appointment ${id}`);
     } catch (error) {
-      console.error('خطأ في حذف الموعد:', error);
+      console.error("خطأ في حذف الموعد:", error);
       throw error;
     }
   }
 
   // Analytics Methods
-  async getAnalyticsSales(): Promise<{ date: string; amount: number }[]> {
+  async getAnalyticsSales(): Promise<{ date: string; amount: number; }[]> {
     try {
       const results = await db.execute(sql`
         SELECT 
@@ -812,15 +846,15 @@ export class DatabaseStorage {
 
       return results.rows.map(row => ({
         date: String(row.date),
-        amount: Number(row.amount),
+        amount: Number(row.amount)
       }));
     } catch (error) {
-      console.error('Error fetching sales analytics:', error);
+      console.error("Error fetching sales analytics:", error);
       return [];
     }
   }
 
-  async getAnalyticsCustomers(): Promise<{ name: string; value: number }[]> {
+  async getAnalyticsCustomers(): Promise<{ name: string; value: number; }[]> {
     try {
       const results = await db.execute(sql`
         SELECT 
@@ -835,15 +869,15 @@ export class DatabaseStorage {
 
       return results.rows.map(row => ({
         name: String(row.name),
-        value: Number(row.value),
+        value: Number(row.value)
       }));
     } catch (error) {
-      console.error('Error fetching customer analytics:', error);
+      console.error("Error fetching customer analytics:", error);
       return [];
     }
   }
 
-  async getAnalyticsProducts(): Promise<{ name: string; sales: number }[]> {
+  async getAnalyticsProducts(): Promise<{ name: string; sales: number; }[]> {
     try {
       const results = await db.execute(sql`
         SELECT 
@@ -858,10 +892,10 @@ export class DatabaseStorage {
 
       return results.rows.map(row => ({
         name: String(row.name),
-        sales: Number(row.sales),
+        sales: Number(row.sales)
       }));
     } catch (error) {
-      console.error('Error fetching product analytics:', error);
+      console.error("Error fetching product analytics:", error);
       return [];
     }
   }

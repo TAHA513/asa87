@@ -1,8 +1,14 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { useState } from 'react';
-import Sidebar from '@/components/layout/sidebar';
-import { useAuth } from '@/hooks/use-auth';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState } from "react";
+import Sidebar from "@/components/layout/sidebar";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Sheet,
   SheetContent,
@@ -10,39 +16,26 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Loader2, Plus } from 'lucide-react';
-import { format } from 'date-fns';
-import { ar } from 'date-fns/locale';
-import type { Expense, ExpenseCategory } from '@shared/schema';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
-import { CalendarIcon } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { insertExpenseCategorySchema, insertExpenseSchema } from '@shared/schema';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useToast } from '@/hooks/use-toast';
-import { queryClient } from '@/lib/queryClient';
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Loader2, Plus } from "lucide-react";
+import { format } from "date-fns";
+import { ar } from "date-fns/locale";
+import type { Expense, ExpenseCategory } from "@shared/schema";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { CalendarIcon } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { insertExpenseCategorySchema, insertExpenseSchema } from "@shared/schema";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 
 type InsertExpenseCategoryForm = z.infer<typeof insertExpenseCategorySchema>;
 type InsertExpenseForm = z.infer<typeof insertExpenseSchema>;
@@ -54,18 +47,18 @@ export default function ExpensesPage() {
   const [expenseSheetOpen, setExpenseSheetOpen] = useState(false);
 
   const { data: categories = [], isLoading: isLoadingCategories } = useQuery<ExpenseCategory[]>({
-    queryKey: ['/api/expenses/categories'],
+    queryKey: ["/api/expenses/categories"],
   });
 
   const { data: expenses = [], isLoading: isLoadingExpenses } = useQuery<Expense[]>({
-    queryKey: ['/api/expenses'],
+    queryKey: ["/api/expenses"],
   });
 
   const categoryForm = useForm<InsertExpenseCategoryForm>({
     resolver: zodResolver(insertExpenseCategorySchema),
     defaultValues: {
-      name: '',
-      description: '',
+      name: "",
+      description: "",
       budgetAmount: undefined,
     },
   });
@@ -73,26 +66,26 @@ export default function ExpensesPage() {
   const expenseForm = useForm<InsertExpenseForm>({
     resolver: zodResolver(insertExpenseSchema),
     defaultValues: {
-      description: '',
+      description: "",
       amount: undefined,
       date: new Date(),
       categoryId: undefined,
       isRecurring: false,
       recurringPeriod: undefined,
       recurringDay: undefined,
-      notes: '',
+      notes: "",
     },
   });
 
   const createCategoryMutation = useMutation({
     mutationFn: async (data: InsertExpenseCategoryForm) => {
-      if (!user) throw new Error('يجب تسجيل الدخول أولاً');
+      if (!user) throw new Error("يجب تسجيل الدخول أولاً");
 
-      console.log('Submitting category data:', data);
+      console.log("Submitting category data:", data);
 
-      const response = await fetch('/api/expenses/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/expenses/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: data.name,
           description: data.description || null,
@@ -103,62 +96,62 @@ export default function ExpensesPage() {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'فشل في إنشاء فئة المصروفات');
+        throw new Error(error.message || "فشل في إنشاء فئة المصروفات");
       }
 
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/expenses/categories'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/expenses/categories"] });
       setCategorySheetOpen(false);
       categoryForm.reset();
       toast({
-        title: 'تم بنجاح',
-        description: 'تم إضافة فئة المصروفات الجديدة',
+        title: "تم بنجاح",
+        description: "تم إضافة فئة المصروفات الجديدة",
       });
     },
     onError: (error: Error) => {
-      console.error('Error creating category:', error);
+      console.error("Error creating category:", error);
       toast({
-        title: 'خطأ',
+        title: "خطأ",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     },
   });
 
   const createExpenseMutation = useMutation({
     mutationFn: async (data: InsertExpenseForm) => {
-      if (!user) throw new Error('يجب تسجيل الدخول أولاً');
-      if (!data.categoryId) throw new Error('يجب اختيار فئة المصروف');
+      if (!user) throw new Error("يجب تسجيل الدخول أولاً");
+      if (!data.categoryId) throw new Error("يجب اختيار فئة المصروف");
 
-      const response = await fetch('/api/expenses', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...data, userId: user.id }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to create expense');
+        throw new Error(error.message || "Failed to create expense");
       }
 
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/expenses'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/expenses"] });
       setExpenseSheetOpen(false);
       expenseForm.reset();
       toast({
-        title: 'تم بنجاح',
-        description: 'تم إضافة المصروف الجديد',
+        title: "تم بنجاح",
+        description: "تم إضافة المصروف الجديد",
       });
     },
     onError: (error: Error) => {
       toast({
-        title: 'خطأ',
+        title: "خطأ",
         description: error.message,
-        variant: 'destructive',
+        variant: "destructive",
       });
     },
   });
@@ -166,11 +159,11 @@ export default function ExpensesPage() {
   if (isLoadingCategories || isLoadingExpenses) {
     return (
       <div className="flex h-screen">
-        <div className="h-full w-64">
+        <div className="w-64 h-full">
           <Sidebar />
         </div>
         <main className="flex-1 p-8">
-          <div className="flex h-[400px] items-center justify-center">
+          <div className="h-[400px] flex items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         </main>
@@ -180,37 +173,36 @@ export default function ExpensesPage() {
 
   return (
     <div className="flex h-screen">
-      <div className="h-full w-64">
+      <div className="w-64 h-full">
         <Sidebar />
       </div>
       <main className="flex-1 p-8">
-        <div className="mx-auto max-w-7xl space-y-8">
-          <div className="flex items-center justify-between">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <div className="flex justify-between items-center">
             <div>
               <h2 className="text-3xl font-bold">المصروفات</h2>
-              <p className="text-muted-foreground">إدارة المصروفات وفئات المصروفات</p>
+              <p className="text-muted-foreground">
+                إدارة المصروفات وفئات المصروفات
+              </p>
             </div>
             <div className="space-x-4 rtl:space-x-reverse">
               <Sheet open={categorySheetOpen} onOpenChange={setCategorySheetOpen}>
                 <SheetTrigger asChild>
                   <Button>
-                    <Plus className="ml-2 h-4 w-4" />
+                    <Plus className="h-4 w-4 ml-2" />
                     إضافة فئة مصروفات
                   </Button>
                 </SheetTrigger>
                 <SheetContent>
                   <SheetHeader>
                     <SheetTitle>إضافة فئة مصروفات جديدة</SheetTitle>
-                    <SheetDescription>قم بإدخال معلومات فئة المصروفات الجديدة</SheetDescription>
+                    <SheetDescription>
+                      قم بإدخال معلومات فئة المصروفات الجديدة
+                    </SheetDescription>
                   </SheetHeader>
                   <div className="mt-6">
                     <Form {...categoryForm}>
-                      <form
-                        onSubmit={categoryForm.handleSubmit(data =>
-                          createCategoryMutation.mutate(data)
-                        )}
-                        className="space-y-4"
-                      >
+                      <form onSubmit={categoryForm.handleSubmit((data) => createCategoryMutation.mutate(data))} className="space-y-4">
                         <FormField
                           control={categoryForm.control}
                           name="name"
@@ -218,7 +210,7 @@ export default function ExpensesPage() {
                             <FormItem>
                               <FormLabel>اسم الفئة</FormLabel>
                               <FormControl>
-                                <Input {...field} value={field.value || ''} />
+                                <Input {...field} value={field.value || ""} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -231,7 +223,7 @@ export default function ExpensesPage() {
                             <FormItem>
                               <FormLabel>الوصف</FormLabel>
                               <FormControl>
-                                <Input {...field} value={field.value || ''} />
+                                <Input {...field} value={field.value || ""} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -247,21 +239,17 @@ export default function ExpensesPage() {
                                 <Input
                                   type="number"
                                   {...field}
-                                  value={field.value || ''}
-                                  onChange={e => field.onChange(e.target.valueAsNumber)}
+                                  value={field.value || ""}
+                                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
                                 />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                        <Button
-                          type="submit"
-                          className="w-full"
-                          disabled={createCategoryMutation.isPending}
-                        >
+                        <Button type="submit" className="w-full" disabled={createCategoryMutation.isPending}>
                           {createCategoryMutation.isPending && (
-                            <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                            <Loader2 className="h-4 w-4 animate-spin ml-2" />
                           )}
                           إضافة فئة جديدة
                         </Button>
@@ -274,23 +262,20 @@ export default function ExpensesPage() {
               <Sheet open={expenseSheetOpen} onOpenChange={setExpenseSheetOpen}>
                 <SheetTrigger asChild>
                   <Button>
-                    <Plus className="ml-2 h-4 w-4" />
+                    <Plus className="h-4 w-4 ml-2" />
                     إضافة مصروف
                   </Button>
                 </SheetTrigger>
                 <SheetContent>
                   <SheetHeader>
                     <SheetTitle>إضافة مصروف جديد</SheetTitle>
-                    <SheetDescription>قم بإدخال معلومات المصروف الجديد</SheetDescription>
+                    <SheetDescription>
+                      قم بإدخال معلومات المصروف الجديد
+                    </SheetDescription>
                   </SheetHeader>
                   <div className="mt-6">
                     <Form {...expenseForm}>
-                      <form
-                        onSubmit={expenseForm.handleSubmit(data =>
-                          createExpenseMutation.mutate(data)
-                        )}
-                        className="space-y-4"
-                      >
+                      <form onSubmit={expenseForm.handleSubmit((data) => createExpenseMutation.mutate(data))} className="space-y-4">
                         <FormField
                           control={expenseForm.control}
                           name="description"
@@ -298,7 +283,7 @@ export default function ExpensesPage() {
                             <FormItem>
                               <FormLabel>الوصف</FormLabel>
                               <FormControl>
-                                <Input {...field} value={field.value || ''} />
+                                <Input {...field} value={field.value || ""} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -314,8 +299,8 @@ export default function ExpensesPage() {
                                 <Input
                                   type="number"
                                   {...field}
-                                  value={field.value || ''}
-                                  onChange={e => field.onChange(e.target.valueAsNumber)}
+                                  value={field.value || ""}
+                                  onChange={(e) => field.onChange(e.target.valueAsNumber)}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -330,7 +315,7 @@ export default function ExpensesPage() {
                               <FormLabel>الفئة</FormLabel>
                               <Select
                                 value={field.value?.toString()}
-                                onValueChange={value => field.onChange(parseInt(value))}
+                                onValueChange={(value) => field.onChange(parseInt(value))}
                               >
                                 <FormControl>
                                   <SelectTrigger>
@@ -338,8 +323,11 @@ export default function ExpensesPage() {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {categories.map(category => (
-                                    <SelectItem key={category.id} value={category.id.toString()}>
+                                  {categories.map((category) => (
+                                    <SelectItem
+                                      key={category.id}
+                                      value={category.id.toString()}
+                                    >
                                       {category.name}
                                     </SelectItem>
                                   ))}
@@ -361,12 +349,12 @@ export default function ExpensesPage() {
                                     <Button
                                       variant="outline"
                                       className={cn(
-                                        'w-full pl-3 text-right font-normal',
-                                        !field.value && 'text-muted-foreground'
+                                        "w-full pl-3 text-right font-normal",
+                                        !field.value && "text-muted-foreground"
                                       )}
                                     >
                                       {field.value ? (
-                                        format(field.value, 'PPP', { locale: ar })
+                                        format(field.value, "PPP", { locale: ar })
                                       ) : (
                                         <span>اختر تاريخ</span>
                                       )}
@@ -394,19 +382,15 @@ export default function ExpensesPage() {
                             <FormItem>
                               <FormLabel>ملاحظات</FormLabel>
                               <FormControl>
-                                <Textarea {...field} value={field.value || ''} />
+                                <Textarea {...field} value={field.value || ""} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                        <Button
-                          type="submit"
-                          className="w-full"
-                          disabled={createExpenseMutation.isPending}
-                        >
+                        <Button type="submit" className="w-full" disabled={createExpenseMutation.isPending}>
                           {createExpenseMutation.isPending && (
-                            <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                            <Loader2 className="h-4 w-4 animate-spin ml-2" />
                           )}
                           إضافة مصروف جديد
                         </Button>
@@ -424,23 +408,28 @@ export default function ExpensesPage() {
                 <CardTitle>فئات المصروفات</CardTitle>
                 <CardDescription>
                   {categories.length === 0
-                    ? 'لم يتم إضافة أي فئات مصروفات بعد'
+                    ? "لم يتم إضافة أي فئات مصروفات بعد"
                     : `${categories.length} فئات مصروفات`}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {categories.length === 0 ? (
-                  <div className="py-8 text-center text-muted-foreground">
+                  <div className="text-center py-8 text-muted-foreground">
                     لا توجد فئات مصروفات. قم بإضافة فئة جديدة باستخدام الزر أعلاه.
                   </div>
                 ) : (
                   <div className="divide-y">
-                    {categories.map(category => (
-                      <div key={category.id} className="flex items-center justify-between py-4">
+                    {categories.map((category) => (
+                      <div
+                        key={category.id}
+                        className="py-4 flex justify-between items-center"
+                      >
                         <div>
                           <h3 className="font-medium">{category.name}</h3>
                           {category.description && (
-                            <p className="text-sm text-muted-foreground">{category.description}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {category.description}
+                            </p>
                           )}
                         </div>
                         {category.budgetAmount && (
@@ -460,23 +449,26 @@ export default function ExpensesPage() {
                 <CardTitle>المصروفات الحالية</CardTitle>
                 <CardDescription>
                   {expenses.length === 0
-                    ? 'لم يتم تسجيل أي مصروفات بعد'
+                    ? "لم يتم تسجيل أي مصروفات بعد"
                     : `${expenses.length} مصروفات مسجلة`}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {expenses.length === 0 ? (
-                  <div className="py-8 text-center text-muted-foreground">
+                  <div className="text-center py-8 text-muted-foreground">
                     لا توجد مصروفات. قم بإضافة مصروف جديد باستخدام الزر أعلاه.
                   </div>
                 ) : (
                   <div className="divide-y">
-                    {expenses.map(expense => (
-                      <div key={expense.id} className="flex items-center justify-between py-4">
+                    {expenses.map((expense) => (
+                      <div
+                        key={expense.id}
+                        className="py-4 flex justify-between items-center"
+                      >
                         <div>
                           <h3 className="font-medium">{expense.description}</h3>
                           <p className="text-sm text-muted-foreground">
-                            {format(new Date(expense.date), 'PPP', { locale: ar })}
+                            {format(new Date(expense.date), "PPP", { locale: ar })}
                           </p>
                         </div>
                         <div className="text-lg font-semibold">

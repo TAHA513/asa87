@@ -1,73 +1,32 @@
 import {
-  systemActivities,
-  activityReports,
-  type SystemActivity,
-  type ActivityReport,
-  type InsertSystemActivity,
-  type InsertActivityReport,
-} from '@shared/schema';
+  systemActivities, activityReports,
+  type SystemActivity, type ActivityReport,
+  type InsertSystemActivity, type InsertActivityReport
+} from "@shared/schema";
 import {
-  users,
-  products,
-  sales,
-  exchangeRates,
-  fileStorage,
-  installments,
-  installmentPayments,
-  marketingCampaigns,
-  campaignAnalytics,
-  socialMediaAccounts,
-  apiKeys,
-  inventoryTransactions,
-  expenseCategories,
-  expenses,
-  suppliers,
-  supplierTransactions,
-  customers,
-  appointments,
-  invoices,
-  userSettings,
-  reports,
-  type User,
-  type Product,
-  type Sale,
-  type ExchangeRate,
-  type FileStorage,
-  type Installment,
-  type InstallmentPayment,
-  type Campaign,
-  type InsertCampaign,
-  type CampaignAnalytics,
-  type InsertCampaignAnalytics,
-  type SocialMediaAccount,
-  type ApiKey,
-  type InsertApiKey,
-  type InventoryTransaction,
-  type InsertInventoryTransaction,
-  type ExpenseCategory,
-  type InsertExpenseCategory,
-  type Expense,
-  type InsertExpense,
-  type Supplier,
-  type InsertSupplier,
-  type SupplierTransaction,
-  type InsertSupplierTransaction,
-  type Customer,
-  type InsertCustomer,
-  type Appointment,
-  type InsertAppointment,
-  type Invoice,
-  type InsertInvoice,
-  type UserSettings,
-  type InsertUserSettings,
-  type InsertUser,
-  type InsertFileStorage,
-  type Report,
-  type InsertReport,
-} from '@shared/schema';
-import { db } from './db';
-import { eq, desc, or, like, SQL, gte, lte, and, sql, lt, gt } from 'drizzle-orm';
-import { caching } from './cache';
+  users, products, sales, exchangeRates, fileStorage,
+  installments, installmentPayments, marketingCampaigns,
+  campaignAnalytics, socialMediaAccounts, apiKeys,
+  inventoryTransactions, expenseCategories, expenses,
+  suppliers, supplierTransactions, customers, appointments,
+  invoices, userSettings, reports,
+  type User, type Product, type Sale, type ExchangeRate,
+  type FileStorage, type Installment, type InstallmentPayment,
+  type Campaign, type InsertCampaign, type CampaignAnalytics,
+  type InsertCampaignAnalytics, type SocialMediaAccount,
+  type ApiKey, type InsertApiKey, type InventoryTransaction,
+  type InsertInventoryTransaction, type ExpenseCategory,
+  type InsertExpenseCategory, type Expense, type InsertExpense,
+  type Supplier, type InsertSupplier, type SupplierTransaction,
+  type InsertSupplierTransaction, type Customer, type InsertCustomer,
+  type Appointment, type InsertAppointment, type Invoice,
+  type InsertInvoice, type UserSettings, type InsertUserSettings,
+  type InsertUser, type InsertFileStorage,
+  type Report, type InsertReport
+} from "@shared/schema";
+import { db } from "./db";
+import { eq, desc, or, like, SQL, gte, lte, and, sql, lt, gt } from "drizzle-orm";
+import { caching } from "./cache";
 
 const CACHE_TTL = 5 * 60; // 5 minutes cache
 
@@ -111,7 +70,7 @@ export class DatabaseStorage implements IStorage {
       .insert(users)
       .values({
         ...insertUser,
-        role: insertUser.role as 'admin' | 'staff',
+        role: insertUser.role as "admin" | "staff",
         permissions: insertUser.permissions || [],
       })
       .returning();
@@ -123,7 +82,7 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({
         ...update,
-        role: update.role as 'admin' | 'staff',
+        role: update.role as "admin" | "staff",
         permissions: update.permissions || [],
       })
       .where(eq(users.id, id))
@@ -161,22 +120,20 @@ export class DatabaseStorage implements IStorage {
           enableDirectWeighing: product.enableDirectWeighing,
           stock: product.stock,
           imageUrl: product.imageUrl,
-          thumbnailUrl: product.thumbnailUrl,
+          thumbnailUrl: product.thumbnailUrl
         })
         .returning();
       return newProduct;
     } catch (error) {
-      console.error('خطأ في إنشاء المنتج:', error);
-      throw new Error(
-        'فشل في إنشاء المنتج. تأكد من صحة البيانات المدخلة وعدم تكرار رمز المنتج أو الباركود'
-      );
+      console.error("خطأ في إنشاء المنتج:", error);
+      throw new Error("فشل في إنشاء المنتج. تأكد من صحة البيانات المدخلة وعدم تكرار رمز المنتج أو الباركود");
     }
   }
 
   async updateProduct(id: number, update: Partial<Product>): Promise<Product> {
     try {
       if (update.stock !== undefined && update.stock < 0) {
-        throw new Error('لا يمكن أن يكون المخزون أقل من صفر');
+        throw new Error("لا يمكن أن يكون المخزون أقل من صفر");
       }
 
       const [product] = await db
@@ -184,7 +141,7 @@ export class DatabaseStorage implements IStorage {
         .set({
           ...update,
           priceIqd: update.priceIqd?.toString(),
-          updatedAt: new Date(),
+          updatedAt: new Date()
         })
         .where(eq(products.id, id))
         .returning();
@@ -193,18 +150,18 @@ export class DatabaseStorage implements IStorage {
       if (update.stock !== undefined) {
         await db.insert(inventoryTransactions).values({
           productId: id,
-          type: 'adjustment',
+          type: "adjustment",
           quantity: update.stock,
-          reason: 'تحديث يدوي',
+          reason: "تحديث يدوي",
           userId: 1, // يجب تحديث هذا ليأخذ معرف المستخدم الحالي
-          date: new Date(),
+          date: new Date()
         });
       }
 
       return product;
     } catch (error) {
-      console.error('خطأ في تحديث المنتج:', error);
-      throw new Error('فشل في تحديث المنتج. تأكد من صحة البيانات وتوفر المخزون الكافي');
+      console.error("خطأ في تحديث المنتج:", error);
+      throw new Error("فشل في تحديث المنتج. تأكد من صحة البيانات وتوفر المخزون الكافي");
     }
   }
 
@@ -227,10 +184,13 @@ export class DatabaseStorage implements IStorage {
     customerName?: string;
   }): Promise<Sale> {
     try {
-      const [product] = await db.select().from(products).where(eq(products.id, sale.productId));
+      const [product] = await db
+        .select()
+        .from(products)
+        .where(eq(products.id, sale.productId));
 
       if (!product) {
-        throw new Error('المنتج غير موجود');
+        throw new Error("المنتج غير موجود");
       }
 
       if (product.stock < sale.quantity) {
@@ -243,7 +203,7 @@ export class DatabaseStorage implements IStorage {
           .insert(customers)
           .values({
             name: sale.customerName,
-            createdAt: new Date(),
+            createdAt: new Date()
           })
           .returning();
         customerId = customer.id;
@@ -251,7 +211,7 @@ export class DatabaseStorage implements IStorage {
         const [defaultCustomer] = await db
           .select()
           .from(customers)
-          .where(eq(customers.name, 'عميل نقدي'));
+          .where(eq(customers.name, "عميل نقدي"));
 
         if (defaultCustomer) {
           customerId = defaultCustomer.id;
@@ -259,8 +219,8 @@ export class DatabaseStorage implements IStorage {
           const [newDefaultCustomer] = await db
             .insert(customers)
             .values({
-              name: 'عميل نقدي',
-              createdAt: new Date(),
+              name: "عميل نقدي",
+              createdAt: new Date()
             })
             .returning();
           customerId = newDefaultCustomer.id;
@@ -284,29 +244,33 @@ export class DatabaseStorage implements IStorage {
           finalPriceIqd: (Number(sale.priceIqd) - Number(sale.discount)).toString(),
           userId: sale.userId,
           isInstallment: sale.isInstallment,
-          date: sale.date,
+          date: sale.date
         })
         .returning();
 
       await db.insert(inventoryTransactions).values({
         productId: sale.productId,
-        type: 'out',
+        type: "out",
         quantity: sale.quantity,
-        reason: 'sale',
+        reason: "sale",
         reference: `SALE-${newSale.id}`,
         userId: sale.userId,
-        date: new Date(),
+        date: new Date()
       });
 
       return newSale;
     } catch (error) {
-      console.error('خطأ في إنشاء عملية البيع:', error);
-      throw new Error('فشل في إنشاء عملية البيع. ' + (error as Error).message);
+      console.error("خطأ في إنشاء عملية البيع:", error);
+      throw new Error("فشل في إنشاء عملية البيع. " + (error as Error).message);
     }
   }
 
   async getCurrentExchangeRate(): Promise<ExchangeRate> {
-    const [rate] = await db.select().from(exchangeRates).orderBy(desc(exchangeRates.date)).limit(1);
+    const [rate] = await db
+      .select()
+      .from(exchangeRates)
+      .orderBy(desc(exchangeRates.date))
+      .limit(1);
 
     if (!rate) {
       return this.setExchangeRate(1300);
@@ -330,12 +294,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getInstallment(id: number): Promise<Installment | undefined> {
-    const [installment] = await db.select().from(installments).where(eq(installments.id, id));
+    const [installment] = await db
+      .select()
+      .from(installments)
+      .where(eq(installments.id, id));
     return installment;
   }
 
   async createInstallment(installment: Installment): Promise<Installment> {
-    const [newInstallment] = await db.insert(installments).values(installment).returning();
+    const [newInstallment] = await db
+      .insert(installments)
+      .values(installment)
+      .returning();
     return newInstallment;
   }
 
@@ -356,7 +326,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createInstallmentPayment(payment: InstallmentPayment): Promise<InstallmentPayment> {
-    const [newPayment] = await db.insert(installmentPayments).values(payment).returning();
+    const [newPayment] = await db
+      .insert(installmentPayments)
+      .values(payment)
+      .returning();
     return newPayment;
   }
 
@@ -383,7 +356,7 @@ export class DatabaseStorage implements IStorage {
         startDate: campaign.startDate,
         endDate: campaign.endDate,
         status: campaign.status,
-        userId: campaign.userId,
+        userId: campaign.userId
       })
       .returning();
     return newCampaign;
@@ -394,7 +367,7 @@ export class DatabaseStorage implements IStorage {
       .update(marketingCampaigns)
       .set({
         ...update,
-        budget: update.budget?.toString(),
+        budget: update.budget?.toString()
       })
       .where(eq(marketingCampaigns.id, id))
       .returning();
@@ -402,28 +375,35 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCampaignAnalytics(campaignId: number): Promise<CampaignAnalytics[]> {
-    return db.select().from(campaignAnalytics).where(eq(campaignAnalytics.campaignId, campaignId));
+    return db
+      .select()
+      .from(campaignAnalytics)
+      .where(eq(campaignAnalytics.campaignId, campaignId));
   }
 
   async createCampaignAnalytics(analytics: InsertCampaignAnalytics): Promise<CampaignAnalytics> {
     const [newAnalytics] = await db
       .insert(campaignAnalytics)
-      .values([
-        {
-          ...analytics,
-          spend: analytics.spend.toString(),
-        },
-      ])
+      .values([{
+        ...analytics,
+        spend: analytics.spend.toString()
+      }])
       .returning();
     return newAnalytics;
   }
 
   async getSocialMediaAccounts(userId: number): Promise<SocialMediaAccount[]> {
-    return db.select().from(socialMediaAccounts).where(eq(socialMediaAccounts.userId, userId));
+    return db
+      .select()
+      .from(socialMediaAccounts)
+      .where(eq(socialMediaAccounts.userId, userId));
   }
 
   async createSocialMediaAccount(account: SocialMediaAccount): Promise<SocialMediaAccount> {
-    const [newAccount] = await db.insert(socialMediaAccounts).values(account).returning();
+    const [newAccount] = await db
+      .insert(socialMediaAccounts)
+      .values(account)
+      .returning();
     return newAccount;
   }
 
@@ -432,15 +412,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setApiKeys(userId: number, keys: Record<string, any>): Promise<void> {
-    await db.insert(apiKeys).values([
-      {
+    await db
+      .insert(apiKeys)
+      .values([{
         userId,
-        platform: 'general',
-        keyType: 'json',
+        platform: "general",
+        keyType: "json",
         keyValue: JSON.stringify(keys),
-        createdAt: new Date(),
-      },
-    ]);
+        createdAt: new Date()
+      }]);
   }
 
   async getApiKeys(userId: number): Promise<Record<string, any> | null> {
@@ -465,15 +445,13 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(inventoryTransactions);
   }
 
-  async createInventoryTransaction(
-    transaction: InsertInventoryTransaction
-  ): Promise<InventoryTransaction> {
+  async createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction> {
     const [newTransaction] = await db
       .insert(inventoryTransactions)
       .values({
         ...transaction,
-        type: transaction.type as 'in' | 'out',
-        reason: transaction.reason as 'sale' | 'return' | 'adjustment' | 'purchase',
+        type: transaction.type as "in" | "out",
+        reason: transaction.reason as "sale" | "return" | "adjustment" | "purchase",
       })
       .returning();
     return newTransaction;
@@ -487,8 +465,8 @@ export class DatabaseStorage implements IStorage {
         .where(eq(expenseCategories.userId, userId));
       return results;
     } catch (error) {
-      console.error('Error fetching expense categories:', error);
-      throw new Error('فشل في جلب فئات المصروفات');
+      console.error("Error fetching expense categories:", error);
+      throw new Error("فشل في جلب فئات المصروفات");
     }
   }
 
@@ -509,20 +487,17 @@ export class DatabaseStorage implements IStorage {
           description: category.description || null,
           budgetAmount: category.budgetAmount?.toString() || null,
           userId: category.userId,
-          createdAt: new Date(),
+          createdAt: new Date()
         })
         .returning();
       return newCategory;
     } catch (error) {
-      console.error('Error creating expense category:', error);
-      throw new Error('فشل في إنشاء فئة المصروفات');
+      console.error("Error creating expense category:", error);
+      throw new Error("فشل في إنشاء فئة المصروفات");
     }
   }
 
-  async updateExpenseCategory(
-    id: number,
-    update: Partial<ExpenseCategory>
-  ): Promise<ExpenseCategory> {
+  async updateExpenseCategory(id: number, update: Partial<ExpenseCategory>): Promise<ExpenseCategory> {
     try {
       const [category] = await db
         .update(expenseCategories)
@@ -530,14 +505,14 @@ export class DatabaseStorage implements IStorage {
           name: update.name,
           description: update.description,
           budgetAmount: update.budgetAmount?.toString(),
-          parentId: update.parentId,
+          parentId: update.parentId
         })
         .where(eq(expenseCategories.id, id))
         .returning();
       return category;
     } catch (error) {
-      console.error('Error updating expense category:', error);
-      throw new Error('فشل في تحديث فئة المصروفات');
+      console.error("Error updating expense category:", error);
+      throw new Error("فشل في تحديث فئة المصروفات");
     }
   }
 
@@ -545,17 +520,23 @@ export class DatabaseStorage implements IStorage {
     try {
       await db.delete(expenseCategories).where(eq(expenseCategories.id, id));
     } catch (error) {
-      console.error('Error deleting expense category:', error);
-      throw new Error('فشل في حذف فئة المصروفات');
+      console.error("Error deleting expense category:", error);
+      throw new Error("فشل في حذف فئة المصروفات");
     }
   }
 
   async getExpenses(userId: number): Promise<Expense[]> {
-    return db.select().from(expenses).where(eq(expenses.userId, userId));
+    return db
+      .select()
+      .from(expenses)
+      .where(eq(expenses.userId, userId));
   }
 
   async getExpense(id: number): Promise<Expense | undefined> {
-    const [expense] = await db.select().from(expenses).where(eq(expenses.id, id));
+    const [expense] = await db
+      .select()
+      .from(expenses)
+      .where(eq(expenses.id, id));
     return expense;
   }
 
@@ -565,14 +546,18 @@ export class DatabaseStorage implements IStorage {
       .values({
         ...expense,
         amount: expense.amount.toString(),
-        recurringPeriod: expense.recurringPeriod as 'monthly' | 'weekly' | 'yearly' | undefined,
+        recurringPeriod: expense.recurringPeriod as "monthly" | "weekly" | "yearly" | undefined,
       })
       .returning();
     return newExpense;
   }
 
   async updateExpense(id: number, update: Partial<Expense>): Promise<Expense> {
-    const [expense] = await db.update(expenses).set(update).where(eq(expenses.id, id)).returning();
+    const [expense] = await db
+      .update(expenses)
+      .set(update)
+      .where(eq(expenses.id, id))
+      .returning();
     return expense;
   }
 
@@ -581,11 +566,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSuppliers(userId: number): Promise<Supplier[]> {
-    return db.select().from(suppliers).where(eq(suppliers.userId, userId));
+    return db
+      .select()
+      .from(suppliers)
+      .where(eq(suppliers.userId, userId));
   }
 
   async getSupplier(id: number): Promise<Supplier | undefined> {
-    const [supplier] = await db.select().from(suppliers).where(eq(suppliers.id, id));
+    const [supplier] = await db
+      .select()
+      .from(suppliers)
+      .where(eq(suppliers.id, id));
     return supplier;
   }
 
@@ -620,16 +611,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(supplierTransactions.supplierId, supplierId));
   }
 
-  async createSupplierTransaction(
-    transaction: InsertSupplierTransaction
-  ): Promise<SupplierTransaction> {
+  async createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction> {
     const [newTransaction] = await db
       .insert(supplierTransactions)
       .values({
         ...transaction,
         amount: transaction.amount.toString(),
-        type: transaction.type as 'payment' | 'refund' | 'advance' | 'other',
-        status: transaction.status as 'completed' | 'pending' | 'cancelled',
+        type: transaction.type as "payment" | "refund" | "advance" | "other",
+        status: transaction.status as "completed" | "pending" | "cancelled",
       })
       .returning();
     return newTransaction;
@@ -652,16 +641,25 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCustomer(id: number): Promise<Customer | undefined> {
-    const [customer] = await db.select().from(customers).where(eq(customers.id, id));
+    const [customer] = await db
+      .select()
+      .from(customers)
+      .where(eq(customers.id, id));
     return customer;
   }
 
   async getCustomerSales(customerId: number): Promise<Sale[]> {
-    return db.select().from(sales).where(eq(sales.customerId, customerId));
+    return db
+      .select()
+      .from(sales)
+      .where(eq(sales.customerId, customerId));
   }
 
   async createCustomer(customer: InsertCustomer): Promise<Customer> {
-    const [newCustomer] = await db.insert(customers).values(customer).returning();
+    const [newCustomer] = await db
+      .insert(customers)
+      .values(customer)
+      .returning();
     return newCustomer;
   }
 
@@ -677,29 +675,29 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(appointments.date));
       return results;
     } catch (error) {
-      console.error('Error in getCustomerAppointments:', error);
-      throw new Error('فشل في جلب مواعيد العميل');
+      console.error("Error in getCustomerAppointments:", error);
+      throw new Error("فشل في جلب مواعيد العميل");
     }
   }
 
   async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
     try {
-      console.log('Creating new appointment:', appointment);
+      console.log("Creating new appointment:", appointment);
       const [newAppointment] = await db
         .insert(appointments)
         .values({
           ...appointment,
-          status: appointment.status || 'scheduled',
+          status: appointment.status || "scheduled",
           createdAt: new Date(),
-          updatedAt: new Date(),
+          updatedAt: new Date()
         })
         .returning();
 
-      console.log('Successfully created appointment:', newAppointment);
+      console.log("Successfully created appointment:", newAppointment);
       return newAppointment;
     } catch (error) {
-      console.error('Error in createAppointment:', error);
-      throw new Error('فشل في إنشاء الموعد');
+      console.error("Error in createAppointment:", error);
+      throw new Error("فشل في إنشاء الموعد");
     }
   }
 
@@ -708,10 +706,13 @@ export class DatabaseStorage implements IStorage {
       console.log(`Updating appointment ${id} with:`, update);
 
       // Get the old appointment first
-      const [oldAppointment] = await db.select().from(appointments).where(eq(appointments.id, id));
+      const [oldAppointment] = await db
+        .select()
+        .from(appointments)
+        .where(eq(appointments.id, id));
 
       if (!oldAppointment) {
-        throw new Error('الموعد غير موجود');
+        throw new Error("الموعد غير موجود");
       }
 
       // Update the appointment
@@ -719,55 +720,57 @@ export class DatabaseStorage implements IStorage {
         .update(appointments)
         .set({
           ...update,
-          updatedAt: new Date(),
+          updatedAt: new Date()
         })
         .where(eq(appointments.id, id))
         .returning();
 
       // Log the activity if status changed
       if (update.status && oldAppointment.status !== update.status) {
-        console.log('Status change detected:', {
+        console.log("Status change detected:", {
           appointmentId: id,
           oldStatus: oldAppointment.status,
-          newStatus: update.status,
+          newStatus: update.status
         });
 
         try {
           await this.logSystemActivity({
             userId: 1, // Will be updated with actual user ID from context
-            activityType: 'appointment_status_change',
-            entityType: 'appointments',
+            activityType: "appointment_status_change",
+            entityType: "appointments",
             entityId: id,
-            action: 'update',
+            action: "update",
             details: {
               oldStatus: oldAppointment.status,
               newStatus: update.status,
               title: updatedAppointment.title,
-              date: updatedAppointment.date,
-            },
+              date: updatedAppointment.date
+            }
           });
-          console.log('Successfully logged status change activity');
+          console.log("Successfully logged status change activity");
         } catch (error) {
-          console.error('Failed to log status change activity:', error);
+          console.error("Failed to log status change activity:", error);
         }
       }
 
-      console.log('Successfully updated appointment:', updatedAppointment);
+      console.log("Successfully updated appointment:", updatedAppointment);
       return updatedAppointment;
     } catch (error) {
-      console.error('Error in updateAppointment:', error);
-      throw new Error('فشل في تحديث الموعد');
+      console.error("Error in updateAppointment:", error);
+      throw new Error("فشل في تحديث الموعد");
     }
   }
 
   async deleteAppointment(id: number): Promise<void> {
     try {
       console.log(`Deleting appointment ${id}`);
-      await db.delete(appointments).where(eq(appointments.id, id));
+      await db
+        .delete(appointments)
+        .where(eq(appointments.id, id));
       console.log(`Successfully deleted appointment ${id}`);
     } catch (error) {
-      console.error('Error in deleteAppointment:', error);
-      throw new Error('فشل في حذف الموعد');
+      console.error("Error in deleteAppointment:", error);
+      throw new Error("فشل في حذف الموعد");
     }
   }
 
@@ -776,17 +779,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async saveFile(file: InsertFileStorage): Promise<FileStorage> {
-    const [newFile] = await db.insert(fileStorage).values(file).returning();
+    const [newFile] = await db
+      .insert(fileStorage)
+      .values(file)
+      .returning();
     return newFile;
   }
 
   async getFileById(id: number): Promise<FileStorage | undefined> {
-    const [file] = await db.select().from(fileStorage).where(eq(fileStorage.id, id));
+    const [file] = await db
+      .select()
+      .from(fileStorage)
+      .where(eq(fileStorage.id, id));
     return file;
   }
 
   async getUserFiles(userId: number): Promise<FileStorage[]> {
-    return db.select().from(fileStorage).where(eq(fileStorage.userId, userId));
+    return db
+      .select()
+      .from(fileStorage)
+      .where(eq(fileStorage.userId, userId));
   }
 
   async deleteFile(id: number): Promise<void> {
@@ -805,7 +817,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getInvoice(id: number): Promise<Invoice | undefined> {
-    const [invoice] = await db.select().from(invoices).where(eq(invoices.id, id));
+    const [invoice] = await db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.id, id));
     return invoice;
   }
 
@@ -841,12 +856,11 @@ export class DatabaseStorage implements IStorage {
     return settings;
   }
 
-  async saveUserSettings(
-    userId: number,
-    settings: Omit<InsertUserSettings, 'userId'>
-  ): Promise<UserSettings> {
+  async saveUserSettings(userId: number, settings: Omit<InsertUserSettings, "userId">): Promise<UserSettings> {
     // Delete old settings
-    await db.delete(userSettings).where(eq(userSettings.userId, userId));
+    await db
+      .delete(userSettings)
+      .where(eq(userSettings.userId, userId));
 
     // Insert new settings
     const [newSettings] = await db
@@ -855,7 +869,7 @@ export class DatabaseStorage implements IStorage {
         userId,
         ...settings,
         createdAt: new Date(),
-        updatedAt: new Date(),
+        updatedAt: new Date()
       })
       .returning();
 
@@ -864,33 +878,38 @@ export class DatabaseStorage implements IStorage {
 
   async getAppointments(): Promise<Appointment[]> {
     try {
-      console.log('Fetching all appointments from database');
-      const results = await db.select().from(appointments).orderBy(desc(appointments.date));
+      console.log("Fetching all appointments from database");
+      const results = await db
+        .select()
+        .from(appointments)
+        .orderBy(desc(appointments.date));
 
       console.log(`Retrieved ${results.length} appointments from database`);
       return results;
     } catch (error) {
-      console.error('Error in getAppointments:', error);
-      throw new Error('فشل في جلب المواعيد');
+      console.error("Error in getAppointments:", error);
+      throw new Error("فشل في جلب المواعيد");
     }
   }
 
+
+
   async logSystemActivity(activity: InsertSystemActivity): Promise<SystemActivity> {
     try {
-      console.log('Attempting to log system activity:', activity);
+      console.log("Attempting to log system activity:", activity);
       const [newActivity] = await db
         .insert(systemActivities)
         .values({
           ...activity,
-          timestamp: new Date(),
+          timestamp: new Date()
         })
         .returning();
 
-      console.log('Successfully created activity record:', newActivity);
+      console.log("Successfully created activity record:", newActivity);
       return newActivity;
     } catch (error) {
-      console.error('Error in logSystemActivity:', error);
-      throw new Error('فشل في تسجيل النشاط');
+      console.error("Error in logSystemActivity:", error);
+      throw new Error("فشل في تسجيل النشاط");
     }
   }
 
@@ -901,7 +920,7 @@ export class DatabaseStorage implements IStorage {
     entityType?: string;
   }): Promise<SystemActivity[]> {
     try {
-      console.log('Getting system activities with filters:', filters);
+      console.log("Getting system activities with filters:", filters);
       let query = db.select().from(systemActivities);
 
       if (filters.startDate) {
@@ -921,8 +940,8 @@ export class DatabaseStorage implements IStorage {
       console.log(`Retrieved ${activities.length} activities`);
       return activities;
     } catch (error) {
-      console.error('Error fetching system activities:', error);
-      throw new Error('فشل في جلب سجل الحركات');
+      console.error("Error fetching system activities:", error);
+      throw new Error("فشل في جلب سجل الحركات");
     }
   }
 
@@ -933,7 +952,7 @@ export class DatabaseStorage implements IStorage {
         .from(systemActivities)
         .where(
           and(
-            eq(systemActivities.entityType, 'appointments'),
+            eq(systemActivities.entityType, "appointments"),
             eq(systemActivities.entityId, appointmentId)
           )
         )
@@ -941,8 +960,8 @@ export class DatabaseStorage implements IStorage {
 
       return activities;
     } catch (error) {
-      console.error('Error fetching appointment activities:', error);
-      throw new Error('فشل في جلب سجل حركات الموعد');
+      console.error("Error fetching appointment activities:", error);
+      throw new Error("فشل في جلب سجل حركات الموعد");
     }
   }
 
@@ -950,19 +969,19 @@ export class DatabaseStorage implements IStorage {
     const activities = await this.getSystemActivities({
       startDate: report.dateRange.startDate,
       endDate: report.dateRange.endDate,
-      ...(report.filters || {}),
+      ...(report.filters || {})
     });
 
     // Process activities based on report type
     let processedData: any = {};
     switch (report.reportType) {
-      case 'daily':
+      case "daily":
         processedData = this.processDailyReport(activities);
         break;
-      case 'weekly':
+      case "weekly":
         processedData = this.processWeeklyReport(activities);
         break;
-      case 'monthly':
+      case "monthly":
         processedData = this.processMonthlyReport(activities);
         break;
     }
@@ -1003,9 +1022,7 @@ export class DatabaseStorage implements IStorage {
   private processWeeklyReport(activities: SystemActivity[]) {
     const weeklyActivities = activities.reduce((acc: any, activity) => {
       const date = new Date(activity.timestamp);
-      const weekStart = new Date(date.setDate(date.getDate() - date.getDay()))
-        .toISOString()
-        .split('T')[0];
+      const weekStart = new Date(date.setDate(date.getDate() - date.getDay())).toISOString().split('T')[0];
       if (!acc[weekStart]) {
         acc[weekStart] = {
           total: 0,
@@ -1014,8 +1031,7 @@ export class DatabaseStorage implements IStorage {
         };
       }
       acc[weekStart].total++;
-      acc[weekStart].byType[activity.activityType] =
-        (acc[weekStart].byType[activity.activityType] || 0) + 1;
+      acc[weekStart].byType[activity.activityType] = (acc[weekStart].byType[activity.activityType] || 0) + 1;
       acc[weekStart].byUser[activity.userId] = (acc[weekStart].byUser[activity.userId] || 0) + 1;
       return acc;
     }, {});
@@ -1037,8 +1053,7 @@ export class DatabaseStorage implements IStorage {
         };
       }
       acc[monthStart].total++;
-      acc[monthStart].byType[activity.activityType] =
-        (acc[monthStart].byType[activity.activityType] || 0) + 1;
+      acc[monthStart].byType[activity.activityType] = (acc[monthStart].byType[activity.activityType] || 0) + 1;
       acc[monthStart].byUser[activity.userId] = (acc[monthStart].byUser[activity.userId] || 0) + 1;
       return acc;
     }, {});
@@ -1050,7 +1065,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getActivityReport(id: number): Promise<ActivityReport | undefined> {
-    const [report] = await db.select().from(activityReports).where(eq(activityReports.id, id));
+    const [report] = await db
+      .select()
+      .from(activityReports)
+      .where(eq(activityReports.id, id));
     return report;
   }
 
@@ -1062,18 +1080,13 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(activityReports.createdAt));
   }
 
-  async getDetailedSalesReport(
-    dateRange: { start: Date; end: Date },
-    userId: number,
-    page = 1,
-    pageSize = 50
-  ) {
-    console.log('Generating detailed sales report for:', dateRange);
+  async getDetailedSalesReport(dateRange: { start: Date; end: Date }, userId: number, page = 1, pageSize = 50) {
+    console.log("Generating detailed sales report for:", dateRange);
 
     const cacheKey = `sales_report:${dateRange.start.toISOString()}_${dateRange.end.toISOString()}_${page}`;
-    const cached = await this.cache.get(cacheKey);
+    const cached= await this.cache.get(cacheKey);
     if (cached) {
-      console.log('Returning cached sales report');
+      console.log("Returning cached sales report");
       return JSON.parse(cached);
     }
 
@@ -1086,7 +1099,12 @@ export class DatabaseStorage implements IStorage {
         count: sql<number>`count(*)::int`,
       })
       .from(sales)
-      .where(and(gte(sales.date, dateRange.start), lte(sales.date, dateRange.end)));
+      .where(
+        and(
+          gte(sales.date, dateRange.start),
+          lte(sales.date, dateRange.end)
+        )
+      );
 
     // Get paginated sales records with JOIN
     const saleRecords = await db
@@ -1100,7 +1118,12 @@ export class DatabaseStorage implements IStorage {
       })
       .from(sales)
       .leftJoin(products, eq(sales.productId, products.id))
-      .where(and(gte(sales.date, dateRange.start), lte(sales.date, dateRange.end)))
+      .where(
+        and(
+          gte(sales.date, dateRange.start),
+          lte(sales.date, dateRange.end)
+        )
+      )
       .limit(pageSize)
       .offset(offset)
       .orderBy(desc(sales.date));
@@ -1131,41 +1154,35 @@ export class DatabaseStorage implements IStorage {
 
     // Save report to database
     await this.saveReport({
-      type: 'sales',
+      type: "sales",
       title: `تقرير المبيعات ${new Date().toLocaleDateString('ar-IQ')}`,
       dateRange: {
         start: dateRange.start,
-        end: dateRange.end,
+        end: dateRange.end
       },
       filters: { page, pageSize },
       data: report,
-      userId: userId,
+      userId: userId
     });
 
     // Cache the report
     await this.cache.set(cacheKey, JSON.stringify(report), CACHE_TTL);
-    console.log('Successfully generated, saved and cached sales report');
+    console.log("Successfully generated, saved and cached sales report");
 
     return report;
   }
 
   private processSalesData(saleRecords: any[]) {
-    const productSales: Record<
-      number,
-      {
-        name: string;
-        quantity: number;
-        revenue: number;
-      }
-    > = {};
+    const productSales: Record<number, {
+      name: string;
+      quantity: number;
+      revenue: number;
+    }> = {};
 
-    const dailyStats: Record<
-      string,
-      {
-        sales: number;
-        revenue: number;
-      }
-    > = {};
+    const dailyStats: Record<string, {
+      sales: number;
+      revenue: number;
+    }> = {};
 
     for (const sale of saleRecords) {
       // Process product sales
@@ -1218,7 +1235,12 @@ export class DatabaseStorage implements IStorage {
         minQuantity: products.minQuantity,
       })
       .from(products)
-      .where(and(lt(products.stock, products.minQuantity), gt(products.minQuantity, 0)))
+      .where(
+        and(
+          lt(products.stock, products.minQuantity),
+          gt(products.minQuantity, 0)
+        )
+      )
       .limit(pageSize)
       .offset((page - 1) * pageSize);
 
@@ -1280,7 +1302,12 @@ export class DatabaseStorage implements IStorage {
         minQuantity: products.minQuantity,
       })
       .from(products)
-      .where(and(lt(products.stock, products.minQuantity), gt(products.minQuantity, 0)));
+      .where(
+        and(
+          lt(products.stock, products.minQuantity),
+          gt(products.minQuantity, 0)
+        )
+      );
 
     const movements = await db
       .select({
@@ -1325,7 +1352,12 @@ export class DatabaseStorage implements IStorage {
         amount: sql<string>`CAST(SUM(CAST(price_iqd AS DECIMAL)) AS TEXT)`,
       })
       .from(sales)
-      .where(and(gte(sales.date, dateRange.start), lte(sales.date, dateRange.end)))
+      .where(
+        and(
+          gte(sales.date, dateRange.start),
+          lte(sales.date, dateRange.end)
+        )
+      )
       .groupBy(sales.date);
 
     const expenses = await db
@@ -1335,7 +1367,12 @@ export class DatabaseStorage implements IStorage {
         amount: expenses.amount,
       })
       .from(expenses)
-      .where(and(gte(expenses.date, dateRange.start), lte(expenses.date, dateRange.end)));
+      .where(
+        and(
+          gte(expenses.date, dateRange.start),
+          lte(expenses.date, dateRange.end)
+        )
+      );
 
     const categories = await db
       .select({
@@ -1344,7 +1381,9 @@ export class DatabaseStorage implements IStorage {
       })
       .from(expenseCategories);
 
-    const categoryMap = Object.fromEntries(categories.map(c => [c.id, c.name]));
+    const categoryMap = Object.fromEntries(
+      categories.map(c => [c.id, c.name])
+    );
 
     const expensesByCategory = expenses.reduce((acc: any, expense) => {
       const categoryName = categoryMap[expense.categoryId] || 'أخرى';
@@ -1415,9 +1454,13 @@ export class DatabaseStorage implements IStorage {
         )
       );
 
-    const users = await db.select().from(users);
+    const users = await db
+      .select()
+      .from(users);
 
-    const userMap = Object.fromEntries(users.map(u => [u.id, u]));
+    const userMap = Object.fromEntries(
+      users.map(u => [u.id, u])
+    );
 
     const userActivities = activities.reduce((acc: any, activity) => {
       if (!acc[activity.userId]) {
@@ -1428,8 +1471,7 @@ export class DatabaseStorage implements IStorage {
         };
       }
       acc[activity.userId].count++;
-      acc[activity.userId].types[activity.activityType] =
-        (acc[activity.userId].types[activity.activityType] || 0) + 1;
+      acc[activity.userId].types[activity.activityType] = (acc[activity.userId].types[activity.activityType] || 0) + 1;
       if (new Date(activity.timestamp) > new Date(acc[activity.userId].lastActive)) {
         acc[activity.userId].lastActive = activity.timestamp;
       }
@@ -1470,13 +1512,6 @@ export class DatabaseStorage implements IStorage {
     format?: string;
   }) {
     try {
-      console.log('Saving report with data:', {
-        type: reportData.type,
-        title: reportData.title,
-        dateRange: reportData.dateRange,
-        userId: reportData.userId,
-      });
-
       const [report] = await db
         .insert(reports)
         .values({
@@ -1486,27 +1521,28 @@ export class DatabaseStorage implements IStorage {
           filters: reportData.filters || {},
           data: reportData.data,
           userId: reportData.userId,
-          format: reportData.format || 'json',
-          status: 'generated',
-          createdAt: new Date(),
+          format: reportData.format || "json",
+          status: "generated",
+          createdAt: new Date()
         })
         .returning();
-
-      console.log('Report saved successfully with ID:', report.id);
       return report;
     } catch (error) {
-      console.error('Error saving report:', error);
-      throw new Error('فشل في حفظ التقرير');
+      console.error("Error saving report:", error);
+      throw new Error("فشل في حفظ التقرير");
     }
   }
 
   async getReport(id: number) {
     try {
-      const [report] = await db.select().from(reports).where(eq(reports.id, id));
+      const [report] = await db
+        .select()
+        .from(reports)
+        .where(eq(reports.id, id));
       return report;
     } catch (error) {
-      console.error('Error fetching report:', error);
-      throw new Error('فشل في جلب التقرير');
+      console.error("Error fetching report:", error);
+      throw new Error("فشل في جلب التقرير");
     }
   }
 
@@ -1524,17 +1560,17 @@ export class DatabaseStorage implements IStorage {
 
       return query;
     } catch (error) {
-      console.error('Error fetching user reports:', error);
-      throw new Error('فشل في جلب تقارير المستخدم');
+      console.error("Error fetching user reports:", error);
+      throw new Error("فشل في جلب تقارير المستخدم");
     }
   }
   async getAppointmentsReport(dateRange: { start: Date; end: Date }, userId: number) {
-    console.log('جاري إنشاء تقرير المواعيد للفترة:', dateRange);
+    console.log("Generating appointments report for:", dateRange);
 
     const cacheKey = `appointments_report:${dateRange.start.toISOString()}_${dateRange.end.toISOString()}`;
     const cached = await this.cache.get(cacheKey);
     if (cached) {
-      console.log('استخدام التقرير المخزن مؤقتًا');
+      console.log("Returning cached appointments report");
       return JSON.parse(cached);
     }
 
@@ -1553,11 +1589,16 @@ export class DatabaseStorage implements IStorage {
           status: appointments.status,
           notes: appointments.notes,
           createdAt: appointments.createdAt,
-          updatedAt: appointments.updatedAt,
+          updatedAt: appointments.updatedAt
         })
         .from(appointments)
         .leftJoin(customers, eq(appointments.customerId, customers.id))
-        .where(and(gte(appointments.date, dateRange.start), lte(appointments.date, dateRange.end)))
+        .where(
+          and(
+            gte(appointments.date, dateRange.start),
+            lte(appointments.date, dateRange.end)
+          )
+        )
         .orderBy(desc(appointments.date));
 
       // Process appointments data
@@ -1569,24 +1610,18 @@ export class DatabaseStorage implements IStorage {
         byDay: {} as Record<string, number>,
         byTimeSlot: Array(24).fill(0),
         avgDuration: 0,
-        customerStats: {} as Record<
-          number,
-          {
-            name: string;
-            totalAppointments: number;
-            completedAppointments: number;
-            cancelledAppointments: number;
-          }
-        >,
-        dailyDistribution: {} as Record<
-          string,
-          {
-            total: number;
-            completed: number;
-            cancelled: number;
-            pending: number;
-          }
-        >,
+        customerStats: {} as Record<number, {
+          name: string;
+          totalAppointments: number;
+          completedAppointments: number;
+          cancelledAppointments: number;
+        }>,
+        dailyDistribution: {} as Record<string, {
+          total: number;
+          completed: number;
+          cancelled: number;
+          pending: number;
+        }>
       };
 
       let totalDuration = 0;
@@ -1624,7 +1659,7 @@ export class DatabaseStorage implements IStorage {
             name: apt.customerName,
             totalAppointments: 0,
             completedAppointments: 0,
-            cancelledAppointments: 0,
+            cancelledAppointments: 0
           };
         }
         stats.customerStats[apt.customerId].totalAppointments++;
@@ -1640,7 +1675,7 @@ export class DatabaseStorage implements IStorage {
             total: 0,
             completed: 0,
             cancelled: 0,
-            pending: 0,
+            pending: 0
           };
         }
         stats.dailyDistribution[dayKey].total++;
@@ -1668,28 +1703,26 @@ export class DatabaseStorage implements IStorage {
           cancelledAppointments: stats.cancelled,
           pendingAppointments: stats.pending,
           averageDuration: stats.avgDuration,
-          completionRate:
-            stats.total > 0 ? ((stats.completed / stats.total) * 100).toFixed(2) : '0',
-          cancellationRate:
-            stats.total > 0 ? ((stats.cancelled / stats.total) * 100).toFixed(2) : '0',
+          completionRate: stats.total > 0 ? (stats.completed / stats.total * 100).toFixed(2) : "0",
+          cancellationRate: stats.total > 0 ? (stats.cancelled / stats.total * 100).toFixed(2) : "0"
         },
         timeAnalysis: {
           dailyDistribution: Object.entries(stats.dailyDistribution).map(([date, data]) => ({
             date,
             ...data,
-            completionRate: data.total > 0 ? ((data.completed / data.total) * 100).toFixed(2) : '0',
+            completionRate: data.total > 0 ? (data.completed / data.total * 100).toFixed(2) : "0"
           })),
           hourlyDistribution: stats.byTimeSlot.map((count, hour) => ({
             hour,
             count,
-            percentage: stats.total > 0 ? ((count / stats.total) * 100).toFixed(2) : '0',
-          })),
+            percentage: stats.total > 0 ? ((count / stats.total) * 100).toFixed(2) : "0"
+          }))
         },
         customerAnalysis: Object.entries(stats.customerStats)
           .map(([customerId, data]) => ({
             customerId: Number(customerId),
             ...data,
-            loyaltyScore: ((data.completedAppointments / data.totalAppointments) * 100).toFixed(2),
+            loyaltyScore: ((data.completedAppointments / data.totalAppointments) * 100).toFixed(2)
           }))
           .sort((a, b) => b.totalAppointments - a.totalAppointments)
           .slice(0, 10), // Top 10 customers
@@ -1704,32 +1737,33 @@ export class DatabaseStorage implements IStorage {
           status: apt.status,
           notes: apt.notes,
           createdAt: apt.createdAt,
-          updatedAt: apt.updatedAt,
-        })),
+          updatedAt: apt.updatedAt
+        }))
       };
 
       // Save report to database
       await this.saveReport({
-        type: 'appointments',
+        type: "appointments",
         title: `تقرير المواعيد ${new Date().toLocaleDateString('ar-IQ')}`,
         dateRange: {
           start: dateRange.start,
-          end: dateRange.end,
+          end: dateRange.end
         },
         data: report,
-        userId: userId,
+        userId: userId
       });
 
       // Cache the report
       await this.cache.set(cacheKey, JSON.stringify(report), CACHE_TTL);
-      console.log('Successfully generated, saved and cached appointments report');
+      console.log("Successfully generated, saved and cached appointments report");
 
       return report;
     } catch (error) {
-      console.error('Error generating appointments report:', error);
-      throw new Error('فشل في إنشاء تقرير المواعيد');
+      console.error("Error generating appointments report:", error);
+      throw new Error("فشل في إنشاء تقرير المواعيد");
     }
   }
+
 }
 
 export const storage = new DatabaseStorage();

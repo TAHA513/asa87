@@ -1,7 +1,13 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import Sidebar from '@/components/layout/sidebar';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import Sidebar from "@/components/layout/sidebar";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -9,29 +15,29 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { DatePicker } from '@/components/ui/date-picker';
-import { Form, FormControl, FormField, FormItem, FormLabel } from '@/components/ui/form';
-import { useForm } from 'react-hook-form';
-import { useToast } from '@/hooks/use-toast';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Calendar, Package, Users, Clock } from 'lucide-react';
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { useToast } from "@/hooks/use-toast";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Calendar, Package, Users, Clock } from "lucide-react";
 import { useReactToPrint } from 'react-to-print';
-import { useRef } from 'react';
-import type { Sale, Product, InsertInvoice, InsertInstallment } from '@shared/schema';
-import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useRef } from "react";
+import type { Sale, Product, InsertInvoice, InsertInstallment } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { format } from 'date-fns';
-import { useAuth } from '@/hooks/use-auth';
+} from "@/components/ui/select";
+import { format } from "date-fns";
+import { useAuth } from "@/hooks/use-auth";
 
 interface NewSaleFormData {
   productId: number;
@@ -54,17 +60,17 @@ interface NewSaleFormData {
 export default function Sales() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
 
   const { data: sales = [] } = useQuery<Sale[]>({
-    queryKey: ['/api/sales'],
+    queryKey: ["/api/sales"],
   });
 
   const { data: searchResults = [] } = useQuery<Product[]>({
-    queryKey: ['/api/products', searchQuery],
+    queryKey: ["/api/products", searchQuery],
     enabled: searchQuery.length > 0,
   });
 
@@ -76,14 +82,14 @@ export default function Sales() {
       discount: 0,
       isInstallment: false,
       printInvoice: true,
-      customerName: '',
-      customerPhone: '',
-      identityNumber: '',
+      customerName: "",
+      customerPhone: "",
+      identityNumber: "",
       downPayment: 0,
       numberOfPayments: 1,
       startDate: new Date(),
-      guarantorName: '',
-      guarantorPhone: '',
+      guarantorName: "",
+      guarantorPhone: "",
     },
   });
 
@@ -95,9 +101,9 @@ export default function Sales() {
     try {
       if (!selectedProduct) {
         toast({
-          title: 'خطأ',
-          description: 'الرجاء اختيار منتج',
-          variant: 'destructive',
+          title: "خطأ",
+          description: "الرجاء اختيار منتج",
+          variant: "destructive",
         });
         return;
       }
@@ -109,7 +115,7 @@ export default function Sales() {
       const totalPrice = Number(selectedProduct.priceIqd) * data.quantity;
       const finalPrice = totalPrice - data.discount;
 
-      const sale = await apiRequest('POST', '/api/sales', {
+      const sale = await apiRequest("POST", "/api/sales", {
         productId: selectedProduct.id,
         quantity: data.quantity,
         date: saleDate,
@@ -122,7 +128,7 @@ export default function Sales() {
 
       if (!sale.ok) {
         const errorData = await sale.json();
-        throw new Error(errorData.message || 'فشل في إنشاء عملية البيع');
+        throw new Error(errorData.message || "فشل في إنشاء عملية البيع");
       }
 
       const saleData = await sale.json();
@@ -143,15 +149,15 @@ export default function Sales() {
           guarantorPhone: data.guarantorPhone || undefined,
         };
 
-        const savedInstallment = await apiRequest('POST', '/api/installments', installment);
+        const savedInstallment = await apiRequest("POST", "/api/installments", installment);
         if (!savedInstallment.ok) {
-          throw new Error('فشل في إنشاء التقسيط');
+          throw new Error("فشل في إنشاء التقسيط");
         }
       }
 
       const invoice: InsertInvoice = {
         saleId: saleData.id,
-        customerName: data.customerName || 'عميل نقدي',
+        customerName: data.customerName || "عميل نقدي",
         totalAmount: totalPrice,
         discountAmount: data.discount,
         finalAmount: finalPrice.toString(),
@@ -159,57 +165,55 @@ export default function Sales() {
         invoiceDate: saleDate,
       };
 
-      const savedInvoice = await apiRequest('POST', '/api/invoices', invoice);
+      const savedInvoice = await apiRequest("POST", "/api/invoices", invoice);
       if (!savedInvoice.ok) {
-        throw new Error('فشل في إنشاء الفاتورة');
+        throw new Error("فشل في إنشاء الفاتورة");
       }
 
       if (data.printInvoice) {
         setSelectedSale({
           ...saleData,
-          customerName: data.customerName || 'عميل نقدي',
+          customerName: data.customerName || "عميل نقدي",
         });
         setTimeout(handlePrint, 100);
       }
 
-      queryClient.invalidateQueries({ queryKey: ['/api/sales'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sales"] });
       form.reset();
       setSelectedProduct(null);
-      setSearchQuery('');
+      setSearchQuery("");
 
       toast({
-        title: 'تم بنجاح',
+        title: "تم بنجاح",
         description: `تم إنشاء ${data.isInstallment ? 'البيع بالتقسيط' : 'البيع'} والفاتورة بنجاح`,
       });
     } catch (error) {
       console.error('Error creating sale:', error);
       toast({
-        title: 'خطأ',
-        description: error instanceof Error ? error.message : 'حدث خطأ أثناء إنشاء البيع',
-        variant: 'destructive',
+        title: "خطأ",
+        description: error instanceof Error ? error.message : "حدث خطأ أثناء إنشاء البيع",
+        variant: "destructive",
       });
     }
   };
 
   return (
     <div className="flex h-screen bg-background">
-      <div className="h-full w-64">
+      <div className="w-64 h-full">
         <Sidebar />
       </div>
-      <main className="flex-1 overflow-auto p-8">
-        <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-3">
+      <main className="flex-1 p-8 overflow-auto">
+        <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-8">
           <div className="md:col-span-2">
-            <Card className="bg-card/50 shadow-lg backdrop-blur transition-all duration-300 hover:shadow-xl supports-[backdrop-filter]:bg-background/60">
-              <CardHeader className="mb-2 space-y-1 border-b pb-7">
-                <CardTitle className="text-2xl font-bold tracking-tight">
-                  المبيعات الأخيرة
-                </CardTitle>
+            <Card className="shadow-lg transition-all duration-300 hover:shadow-xl bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+              <CardHeader className="space-y-1 border-b pb-7 mb-2">
+                <CardTitle className="text-2xl font-bold tracking-tight">المبيعات الأخيرة</CardTitle>
                 <CardDescription className="text-sm text-muted-foreground">
                   قائمة بجميع عمليات البيع
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-hidden rounded-lg border bg-card">
+                <div className="rounded-lg overflow-hidden border bg-card">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
@@ -223,25 +227,23 @@ export default function Sales() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {sales.map(sale => {
-                        const product = searchResults.find(p => p.id === sale.productId);
-                        const finalPrice =
-                          Number(sale.priceIqd) * sale.quantity - Number(sale.discount);
+                      {sales.map((sale) => {
+                        const product = searchResults.find((p) => p.id === sale.productId);
+                        const finalPrice = Number(sale.priceIqd) * sale.quantity - Number(sale.discount);
                         return (
-                          <TableRow
-                            key={sale.id}
-                            className="transition-colors duration-200 hover:bg-muted/30"
-                          >
+                          <TableRow key={sale.id} className="hover:bg-muted/30 transition-colors duration-200">
                             <TableCell className="font-medium">{product?.name}</TableCell>
                             <TableCell>{sale.quantity}</TableCell>
-                            <TableCell>{Number(sale.priceIqd).toLocaleString()} د.ع</TableCell>
+                            <TableCell>
+                              {Number(sale.priceIqd).toLocaleString()} د.ع
+                            </TableCell>
                             <TableCell className="text-red-500">
                               {Number(sale.discount).toLocaleString()} د.ع
                             </TableCell>
                             <TableCell className="font-semibold">
                               {finalPrice.toLocaleString()} د.ع
                             </TableCell>
-                            <TableCell>{sale.customerName || 'عميل نقدي'}</TableCell>
+                            <TableCell>{sale.customerName || "عميل نقدي"}</TableCell>
                             <TableCell className="text-muted-foreground">
                               {new Date(sale.date).toLocaleDateString('ar-IQ')}
                             </TableCell>
@@ -255,8 +257,8 @@ export default function Sales() {
             </Card>
           </div>
 
-          <Card className="bg-card/50 shadow-lg backdrop-blur transition-all duration-300 hover:shadow-xl supports-[backdrop-filter]:bg-background/60">
-            <CardHeader className="mb-2 space-y-1 border-b pb-7">
+          <Card className="shadow-lg transition-all duration-300 hover:shadow-xl bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <CardHeader className="space-y-1 border-b pb-7 mb-2">
               <CardTitle className="text-2xl font-bold tracking-tight">بيع جديد</CardTitle>
               <CardDescription className="text-sm text-muted-foreground">
                 إنشاء عملية بيع جديدة
@@ -273,7 +275,10 @@ export default function Sales() {
                         <FormItem>
                           <FormLabel className="text-sm font-medium">التاريخ</FormLabel>
                           <FormControl>
-                            <DatePicker date={field.value} onSelect={field.onChange} />
+                            <DatePicker
+                              date={field.value}
+                              onSelect={field.onChange}
+                            />
                           </FormControl>
                         </FormItem>
                       )}
@@ -290,7 +295,7 @@ export default function Sales() {
                               <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                               <Input
                                 type="time"
-                                className="focus:ring-primary/20 w-full pl-8 transition-all duration-200 focus:ring-2"
+                                className="pl-8 w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                                 {...field}
                               />
                             </div>
@@ -310,7 +315,7 @@ export default function Sales() {
                           <div className="relative">
                             <Users className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
-                              className="focus:ring-primary/20 w-full pl-8 transition-all duration-200 focus:ring-2"
+                              className="pl-8 w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                               placeholder="ادخل اسم العميل"
                               {...field}
                             />
@@ -328,7 +333,7 @@ export default function Sales() {
                         <FormLabel className="text-sm font-medium">رقم الهاتف</FormLabel>
                         <FormControl>
                           <Input
-                            className="focus:ring-primary/20 w-full transition-all duration-200 focus:ring-2"
+                            className="w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                             placeholder="ادخل رقم الهاتف"
                             {...field}
                           />
@@ -342,16 +347,16 @@ export default function Sales() {
                     <div className="relative">
                       <Package className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
-                        className="focus:ring-primary/20 w-full pl-8 transition-all duration-200 focus:ring-2"
+                        className="pl-8 w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                         placeholder="ابحث بالاسم أو الرمز أو الباركود"
                         value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                       />
                     </div>
                     {searchResults.length > 0 && (
                       <Select
                         value={selectedProduct?.id.toString()}
-                        onValueChange={value => {
+                        onValueChange={(value) => {
                           const product = searchResults.find(p => p.id === parseInt(value));
                           setSelectedProduct(product || null);
                         }}
@@ -360,7 +365,7 @@ export default function Sales() {
                           <SelectValue placeholder="اختر المنتج" />
                         </SelectTrigger>
                         <SelectContent>
-                          {searchResults.map(product => (
+                          {searchResults.map((product) => (
                             <SelectItem
                               key={product.id}
                               value={product.id.toString()}
@@ -373,9 +378,8 @@ export default function Sales() {
                       </Select>
                     )}
                     {selectedProduct && (
-                      <div className="rounded-lg bg-muted/30 p-3 text-sm text-muted-foreground">
-                        <span className="font-medium">السعر:</span>{' '}
-                        {Number(selectedProduct.priceIqd).toLocaleString()} د.ع
+                      <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg">
+                        <span className="font-medium">السعر:</span> {Number(selectedProduct.priceIqd).toLocaleString()} د.ع
                       </div>
                     )}
                   </div>
@@ -390,9 +394,9 @@ export default function Sales() {
                           <Input
                             type="number"
                             min="1"
-                            className="focus:ring-primary/20 w-full transition-all duration-200 focus:ring-2"
+                            className="w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                             {...field}
-                            onChange={e => field.onChange(parseInt(e.target.value))}
+                            onChange={(e) => field.onChange(parseInt(e.target.value))}
                           />
                         </FormControl>
                       </FormItem>
@@ -409,9 +413,9 @@ export default function Sales() {
                           <Input
                             type="number"
                             min="0"
-                            className="focus:ring-primary/20 w-full transition-all duration-200 focus:ring-2"
+                            className="w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                             {...field}
-                            onChange={e => field.onChange(parseInt(e.target.value))}
+                            onChange={(e) => field.onChange(parseInt(e.target.value))}
                           />
                         </FormControl>
                       </FormItem>
@@ -427,17 +431,17 @@ export default function Sales() {
                           <input
                             type="checkbox"
                             checked={field.value}
-                            onChange={e => field.onChange(e.target.checked)}
+                            onChange={(e) => field.onChange(e.target.checked)}
                             className="rounded border-input"
                           />
                         </FormControl>
-                        <FormLabel className="mr-2 text-sm font-medium">بيع بالتقسيط</FormLabel>
+                        <FormLabel className="text-sm font-medium mr-2">بيع بالتقسيط</FormLabel>
                       </FormItem>
                     )}
                   />
 
-                  {form.watch('isInstallment') && (
-                    <div className="space-y-4 rounded-lg bg-muted/30 p-4">
+                  {form.watch("isInstallment") && (
+                    <div className="space-y-4 bg-muted/30 p-4 rounded-lg">
                       <FormField
                         control={form.control}
                         name="identityNumber"
@@ -445,7 +449,11 @@ export default function Sales() {
                           <FormItem>
                             <FormLabel className="text-sm font-medium">رقم الهوية</FormLabel>
                             <FormControl>
-                              <Input className="w-full" placeholder="ادخل رقم الهوية" {...field} />
+                              <Input
+                                className="w-full"
+                                placeholder="ادخل رقم الهوية"
+                                {...field}
+                              />
                             </FormControl>
                           </FormItem>
                         )}
@@ -464,7 +472,7 @@ export default function Sales() {
                                 step="0.01"
                                 className="w-full"
                                 {...field}
-                                onChange={e => field.onChange(parseFloat(e.target.value))}
+                                onChange={(e) => field.onChange(parseFloat(e.target.value))}
                               />
                             </FormControl>
                           </FormItem>
@@ -483,7 +491,7 @@ export default function Sales() {
                                 min="1"
                                 className="w-full"
                                 {...field}
-                                onChange={e => field.onChange(parseInt(e.target.value))}
+                                onChange={(e) => field.onChange(parseInt(e.target.value))}
                               />
                             </FormControl>
                           </FormItem>
@@ -495,20 +503,19 @@ export default function Sales() {
                         name="startDate"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-sm font-medium">
-                              تاريخ بداية التقسيط
-                            </FormLabel>
+                            <FormLabel className="text-sm font-medium">تاريخ بداية التقسيط</FormLabel>
                             <FormControl>
-                              <DatePicker date={field.value} onSelect={field.onChange} />
+                              <DatePicker
+                                date={field.value}
+                                onSelect={field.onChange}
+                              />
                             </FormControl>
                           </FormItem>
                         )}
                       />
 
-                      <div className="mt-4 space-y-4 border-t pt-4">
-                        <h4 className="text-sm font-medium text-muted-foreground">
-                          معلومات الكفيل (اختياري)
-                        </h4>
+                      <div className="space-y-4 border-t pt-4 mt-4">
+                        <h4 className="text-sm font-medium text-muted-foreground">معلومات الكفيل (اختياري)</h4>
 
                         <FormField
                           control={form.control}
@@ -547,29 +554,20 @@ export default function Sales() {
                     </div>
                   )}
 
-                  {selectedProduct && form.watch('quantity') > 0 && (
-                    <div className="space-y-2 rounded-lg bg-muted/30 p-4">
+                  {selectedProduct && form.watch("quantity") > 0 && (
+                    <div className="space-y-2 bg-muted/30 p-4 rounded-lg">
                       <div className="flex justify-between text-sm">
                         <span>السعر الإجمالي:</span>
-                        <span>
-                          {(
-                            Number(selectedProduct.priceIqd) * form.watch('quantity')
-                          ).toLocaleString()}{' '}
-                          د.ع
-                        </span>
+                        <span>{(Number(selectedProduct.priceIqd) * form.watch("quantity")).toLocaleString()} د.ع</span>
                       </div>
                       <div className="flex justify-between text-sm text-red-500">
                         <span>الخصم:</span>
-                        <span>- {Number(form.watch('discount')).toLocaleString()} د.ع</span>
+                        <span>- {Number(form.watch("discount")).toLocaleString()} د.ع</span>
                       </div>
-                      <div className="flex justify-between border-t pt-2 font-bold">
+                      <div className="flex justify-between font-bold border-t pt-2">
                         <span>السعر النهائي:</span>
                         <span>
-                          {(
-                            Number(selectedProduct.priceIqd) * form.watch('quantity') -
-                            Number(form.watch('discount'))
-                          ).toLocaleString()}{' '}
-                          د.ع
+                          {(Number(selectedProduct.priceIqd) * form.watch("quantity") - Number(form.watch("discount"))).toLocaleString()} د.ع
                         </span>
                       </div>
                     </div>
@@ -579,25 +577,23 @@ export default function Sales() {
                     control={form.control}
                     name="printInvoice"
                     render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2 rounded-lg bg-muted/30 p-3">
+                      <FormItem className="flex items-center space-x-2 bg-muted/30 p-3 rounded-lg">
                         <FormControl>
                           <input
                             type="checkbox"
                             checked={field.value}
-                            onChange={e => field.onChange(e.target.checked)}
-                            className="h-4 w-4 rounded border-input transition-all duration-200 checked:bg-primary"
+                            onChange={(e) => field.onChange(e.target.checked)}
+                            className="rounded border-input w-4 h-4 transition-all duration-200 checked:bg-primary"
                           />
                         </FormControl>
-                        <FormLabel className="mr-2 cursor-pointer text-sm font-medium">
-                          طباعة الفاتورة
-                        </FormLabel>
+                        <FormLabel className="text-sm font-medium mr-2 cursor-pointer">طباعة الفاتورة</FormLabel>
                       </FormItem>
                     )}
                   />
 
                   <Button
                     type="submit"
-                    className="hover:bg-primary/90 w-full bg-primary text-white shadow-lg transition-all duration-200 hover:shadow-xl"
+                    className="w-full bg-primary hover:bg-primary/90 text-white transition-all duration-200 shadow-lg hover:shadow-xl"
                   >
                     إتمام البيع
                   </Button>
@@ -613,7 +609,7 @@ export default function Sales() {
             {selectedSale && (
               <div className="space-y-6">
                 <div className="text-center">
-                  <h1 className="mb-2 text-3xl font-bold">فاتورة بيع</h1>
+                  <h1 className="text-3xl font-bold mb-2">فاتورة بيع</h1>
                   <p className="text-muted-foreground">رقم الفاتورة: {selectedSale.id}</p>
                   <p className="text-muted-foreground">
                     التاريخ: {new Date(selectedSale.date).toLocaleDateString('ar-IQ')}
@@ -622,7 +618,7 @@ export default function Sales() {
                     الوقت: {format(new Date(selectedSale.date), 'HH:mm')}
                   </p>
                 </div>
-                <div className="border-b border-t py-4">
+                <div className="border-t border-b py-4">
                   <p>العميل: {selectedSale.customerName}</p>
                   <p className="font-semibold">
                     المبلغ الإجمالي: {Number(selectedSale.priceIqd).toLocaleString()} د.ع
@@ -632,13 +628,8 @@ export default function Sales() {
                       الخصم: {Number(selectedSale.discount).toLocaleString()} د.ع
                     </p>
                   )}
-                  <p className="mt-2 font-bold">
-                    المبلغ النهائي:{' '}
-                    {(
-                      Number(selectedSale.priceIqd) * selectedSale.quantity -
-                      Number(selectedSale.discount)
-                    ).toLocaleString()}{' '}
-                    د.ع
+                  <p className="font-bold mt-2">
+                    المبلغ النهائي: {(Number(selectedSale.priceIqd) * selectedSale.quantity - Number(selectedSale.discount)).toLocaleString()} د.ع
                   </p>
                 </div>
                 <table className="w-full border-collapse">
@@ -656,10 +647,11 @@ export default function Sales() {
                         {searchResults.find(p => p.id === selectedSale.productId)?.name}
                       </td>
                       <td className="py-2">{selectedSale.quantity}</td>
-                      <td className="py-2">{Number(selectedSale.priceIqd).toLocaleString()} د.ع</td>
+                      <td className="py-2">
+                        {Number(selectedSale.priceIqd).toLocaleString()} د.ع
+                      </td>
                       <td className="py-2 font-semibold">
-                        {(Number(selectedSale.priceIqd) * selectedSale.quantity).toLocaleString()}{' '}
-                        د.ع
+                        {(Number(selectedSale.priceIqd) * selectedSale.quantity).toLocaleString()} د.ع
                       </td>
                     </tr>
                   </tbody>
