@@ -17,12 +17,7 @@ const pool = new Pool({
   max: 20, // Maximum 20 clients in pool
   idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
   keepAlive: true, // Keep connections alive
-  retry_strategy: (times: number) => {
-    if (times < 5) {
-      return Math.min(times * 100, 3000); // Exponential backoff
-    }
-    return false; // Stop retrying after 5 attempts
-  }
+  allowExitOnIdle: false // Prevent pool from ending when idle
 });
 
 // Configure drizzle with proper typing
@@ -38,8 +33,17 @@ pool.connect()
     // Don't exit process, let it retry
   });
 
-// Handle pool errors
+// Handle pool errors without crashing
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  process.exit(-1);
+  console.error('Unexpected error on idle client:', err);
+  // Don't exit, let the pool handle reconnection
+});
+
+// Handle cleanup on application shutdown
+process.on('SIGTERM', () => {
+  console.log('Closing database pool...');
+  pool.end().then(() => {
+    console.log('Database pool closed.');
+    process.exit(0);
+  });
 });
