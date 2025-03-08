@@ -864,32 +864,28 @@ export class DatabaseStorage implements IStorage {
 
   async saveUserSettings(userId: number, settings: InsertUserSettings): Promise<UserSettings> {
     try {
-      // Delete old settings
-      await db
-        .delete(userSettings)
-        .where(eq(userSettings.userId, userId));
+      // Delete old settings first
+      await db.delete(userSettings).where(eq(userSettings.userId, userId));
 
-      // Prepare the data for insertion
-      const settingsData = {
-        userId,
-        themeName: settings.themeName,
-        fontName: settings.fontName,
-        fontSize: settings.fontSize,
-        appearance: settings.appearance,
-        colors: settings.colors, // This will be automatically handled as JSONB by Drizzle
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-
-      // Insert new settings
+      // Now insert new settings with proper type handling
       const [newSettings] = await db
         .insert(userSettings)
-        .values(settingsData)
+        .values({
+          userId: userId,
+          themeName: settings.themeName,
+          fontName: settings.fontName,
+          fontSize: settings.fontSize,
+          appearance: settings.appearance,
+          colors: settings.colors,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
         .returning();
 
+      console.log("Successfully saved settings:", newSettings);
       return newSettings;
     } catch (error) {
-      console.error("Error saving user settings:", error);
+      console.error("Error details:", error);
       throw new Error("فشل في حفظ إعدادات المظهر");
     }
   }
