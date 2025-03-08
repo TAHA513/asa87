@@ -141,33 +141,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.patch("/api/products/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const productId = Number(req.params.id);
-      const updates = req.body;
-
-      // التحقق من صحة قيمة المخزون
-      if (updates.stock !== undefined) {
-        const stock = Number(updates.stock);
-        if (isNaN(stock) || stock < 0) {
-          return res.status(400).json({
-            message: "قيمة المخزون يجب أن تكون رقماً موجباً"
-          });
-        }
-        updates.stock = stock;
-      }
-
-      const product = await storage.updateProduct(productId, updates);
-      res.json(product);
-    } catch (error) {
-      console.error("Error updating product:", error);
-      res.status(500).json({
-        message: error instanceof Error ? error.message : "فشل في تحديث المنتج"
-      });
-    }
+    const product = await storage.updateProduct(Number(req.params.id), req.body);
+    res.json(product);
   });
 
   app.delete("/api/products/:id", async (req, res) => {
@@ -894,6 +869,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Expenses Routes
   app.get("/api/expenses", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
@@ -905,6 +881,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching expenses:", error);
       res.status(500).json({ message: "فشل في جلب المصروفات" });
+    }
+  });
+
+  app.post("/api/expenses", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const validatedData = insertExpenseSchema.parse(req.body);
+      const expense= await storage.createExpense({
+        ...validatedData,
+        userId: req.user!.id,
+      });
+      res.json(expense);
+    } catch (error) {
+      console.error("Error creating expense:", error);
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "فشل في إنشاء المصروف" });
+      }
     }
   });
 
@@ -964,10 +962,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/api/suppliers/:id", async (req, res) => {
+  app.delete("/api/api/suppliers/:id", async (req, res)=> {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجبتسجيل الدخول أولاً" });
-    }
+      return res.status(401).json({ message: "يجبتسجيل الدخول أولاً"});    }
     try {
       const supplier = await storage.getSupplier(Number(req.params.id));
       if (!supplier || supplier.userId !== req.user!.id) {
@@ -1036,8 +1033,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!customer) {
         return res.status(404).json({ message: "العميل غير موجود" });
       }
-      res.json(customer);
-    } catch (error) {
+      res.json(customer);    } catch (error) {
       console.error("Error fetching customer:", error);
       res.status(500).json({ message: "فشل في جلب بيانات العميل" });
     }
@@ -1133,7 +1129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const updatedAppointment = await storage.updateAppointment(
-        Number(req.params.id),
+        Number(req.params.id), 
         {
           ...req.body,
           updatedAt: new Date()
@@ -1224,8 +1220,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const file = await storage.saveFile({
-        ...req.body,
+      const file = await storage.saveFile({        ...req.body,
         userId: req.user!.id,
       });
       res.status(201).json(file);
@@ -1525,7 +1520,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const updatedAppointment = await storage.updateAppointment(
-        Number(req.params.id),
+        Number(req.params.id), 
         {
           ...req.body,
           updatedAt: new Date()
@@ -1720,6 +1715,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!report) {
         return res.status(404).json({ message: "التقرير غير موجود" });
       }
+      if (report.userId !== req.user!.id) {
+        return res.status(403).json({ message: "غير مصرح بالوصول لهذا التقرير" });
+      }
       res.json(report);
     } catch (error) {
       console.error("Error fetching report:", error);
@@ -1727,211 +1725,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add appointment reports endpoint
   app.get("/api/reports/appointments", async (req, res) => {
+    console.log("Received appointments report request");
+
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(4011).json({ message: "يجب تسجيل الدخول أولاً" });
     }
 
     try {
-      const fromDate = req.query.from ? new Date(req.query.from as string) : new Date();
-      const toDate = req.query.to ? new Date(req.query.to as string) : new Date();
+      const { startDate, endDate } = req.query;
 
-      if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-        return res.status(400).json({
-          message: "التواريخ المدخلة غير صالحة"
+      if (!startDate || !endDate) {
+        console.log("Missing date parameters:", { startDate, endDate });
+        return res.status(400).json({ 
+          message: "يجب تحديد تاريخ البداية والنهاية" 
         });
       }
+
+      console.log("Generating report for date range:", { startDate, endDate });
 
       const report = await storage.getAppointmentsReport({
-        start: fromDate,
-        end: toDate
+        start: new Date(startDate as string),
+        end: new Date(endDate as string)
       }, req.user!.id);
 
-      res.json(report);
+      console.log("Report generated successfully, size:", JSON.stringify(report).length);      res.json(report);
+
     } catch (error) {
-      console.error("Error fetching appointments report:", error);
-      res.status(500).json({ message: "فشل في جلب تقرير المواعيد" });
-    }
-  });
-
-  // Add after existing report routes
-  app.post("/api/reports/activities", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const { startDate, endDate, type, filters } = req.body;
-
-      const report = await storage.generateActivityReport({
-        name: `تقرير النشاطات - ${new Date().toLocaleDateString('ar-IQ')}`,
-        description: `تقرير تفصيلي للنشاطات من ${new Date(startDate).toLocaleDateString('ar-IQ')} إلى ${new Date(endDate).toLocaleDateString('ar-IQ')}`,
-        dateRange: {
-          startDate: new Date(startDate),
-          endDate: new Date(endDate)
-        },
-        reportType: type,
-        filters,
-        generatedBy: req.user!.id,
-        data: {}
+      console.error("Error in appointments report endpoint:", error);
+      res.status(500).json({ 
+        message: "فشل في إنشاء تقرير المواعيد",
+        error: error instanceof Error ? error.message : "خطأ غير معروف"
       });
-
-      res.json(report);
-    } catch (error) {
-      console.error("Error generating activity report:", error);
-      res.status(500).json({ message: "فشل في إنشاء التقرير" });
-    }
-  });
-
-  app.get("/api/reports/activities/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const report = await storage.getActivityReport(Number(req.params.id));
-      if (!report) {
-        return res.status(404).json({ message: "التقرير غير موجود" });
-      }
-      res.json(report);
-    } catch (error) {
-      console.error("Error fetching activity report:", error);
-      res.status(500).json({ message: "فشل في جلب التقرير" });
-    }
-  });
-
-  // Add detailed reports endpoints
-  app.get("/api/reports/sales", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const { startDate, endDate, page = "1", pageSize = "50" } = req.query;
-      const report = await storage.getDetailedSalesReport({
-        start: new Date(startDate as string),
-        end: new Date(endDate as string)
-      },
-        req.user!.id,
-        Number(page),
-        Number(pageSize)
-      );
-      res.json(report);
-    } catch (error) {
-      console.error("Error generating sales report:", error);
-      res.status(500).json({ message: "فشل في إنشاء تقرير المبيعات" });
-    }
-  });
-
-  app.get("/api/reports/inventory", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const { startDate, endDate } = req.query;
-      const report = await storage.getInventoryReport({
-        start: new Date(startDate as string),
-        end: new Date(endDate as string)
-      });
-      res.json(report);
-    } catch (error) {
-      console.error("Error generating inventory report:", error);
-      res.status(500).json({ message: "فشل في إنشاء تقرير المخزون" });
-    }
-  });
-
-  app.get("/api/reports/financial", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const { startDate, endDate } = req.query;
-      const report = await storage.getFinancialReport({
-        start: new Date(startDate as string),
-        end: new Date(endDate as string)
-      });
-      res.json(report);
-    } catch (error) {
-      console.error("Error generating financial report:", error);
-      res.status(500).json({ message: "فشل في إنشاء التقرير المالي" });
-    }
-  });
-
-  app.get("/api/reports/user-activity", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const { startDate, endDate } = req.query;
-      const report = await storage.getUserActivityReport({
-        start: new Date(startDate as string),
-        end: new Date(endDate as string)
-      });
-      res.json(report);
-    } catch (error) {
-      console.error("Error generating user activity report:", error);
-      res.status(500).json({ message: "فشل في إنشاء تقرير نشاط المستخدمين" });
-    }
-  });
-  // Add after existing report routes
-  app.get("/api/reports", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const reports = await storage.getUserReports(req.user!.id, req.query.type as string);
-      res.json(reports);
-    } catch (error) {
-      console.error("Error fetching reports:", error);
-      res.status(500).json({ message: "فشل في جلب التقارير" });
-    }
-  });
-
-  app.get("/api/reports/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const report = await storage.getReport(Number(req.params.id));
-      if (!report) {
-        return res.status(404).json({ message: "التقرير غير موجود" });
-      }
-      res.json(report);
-    } catch (error) {
-      console.error("Error fetching report:", error);
-      res.status(500).json({ message: "فشل في جلب التقرير" });
-    }
-  });
-
-  app.get("/api/reports/appointments", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const fromDate = req.query.from ? new Date(req.query.from as string) : new Date();
-      const toDate = req.query.to ? new Date(req.query.to as string) : new Date();
-
-      if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-        return res.status(400).json({
-          message: "التواريخ المدخلة غير صالحة"
-        });
-      }
-
-      const report = await storage.getAppointmentsReport({ 
-        start: fromDate,
-        end: toDate
-      }, req.user!.id);
-
-      res.json(report);
-    } catch (error) {
-      console.error("Error fetching appointments report:", error);
-      res.status(500).json({ message: "فشل في جلب تقرير المواعيد" });
     }
   });
 

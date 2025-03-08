@@ -44,7 +44,7 @@ export interface IStorage {
   }): Promise<Report>;
 
   getReport(id: number): Promise<Report | undefined>;
-  getUserReports(userId: number, type?: string): Promise<Report[]>;
+  getUserReports(userId: number, type?: string): Promise<any>;
   getAppointmentsReport(dateRange: { start: Date; end: Date }, userId: number): Promise<any>;
   getInvoices(filters?: {
     search?: string;
@@ -138,23 +138,8 @@ export class DatabaseStorage implements IStorage {
 
   async updateProduct(id: number, update: Partial<Product>): Promise<Product> {
     try {
-      // التحقق من وجود المنتج
-      const [existingProduct] = await db
-        .select()
-        .from(products)
-        .where(eq(products.id, id));
-
-      if (!existingProduct) {
-        throw new Error("المنتج غير موجود");
-      }
-
-      // التحقق من صحة قيمة المخزون
-      if (update.stock !== undefined) {
-        const stock = Number(update.stock);
-        if (isNaN(stock) || stock < 0) {
-          throw new Error("قيمة المخزون يجب أن تكون رقماً موجباً");
-        }
-        update.stock = stock;
+      if (update.stock !== undefined && update.stock < 0) {
+        throw new Error("لا يمكن أن يكون المخزون أقل من صفر");
       }
 
       const [product] = await db
@@ -167,10 +152,22 @@ export class DatabaseStorage implements IStorage {
         .where(eq(products.id, id))
         .returning();
 
+      // تسجيل تغيير المخزون إذا تم تحديثه
+      if (update.stock !== undefined) {
+        await db.insert(inventoryTransactions).values({
+          productId: id,
+          type: "adjustment",
+          quantity: update.stock,
+          reason: "تحديث يدوي",
+          userId: 1, // يجب تحديث هذا ليأخذ معرف المستخدم الحالي
+          date: new Date()
+        });
+      }
+
       return product;
     } catch (error) {
       console.error("خطأ في تحديث المنتج:", error);
-      throw error instanceof Error ? error : new Error("فشل في تحديث المنتج");
+      throw new Error("فشل في تحديث المنتج. تأكد من صحة البيانات وتوفر المخزون الكافي");
     }
   }
 
@@ -1035,7 +1032,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   private processWeeklyReport(activities: SystemActivity[]) {
-    const weeklyActivities = activities.reduce((acc: any, activity) =>{
+    const weeklyActivities = activities.reduce((acc: any, activity) => {
       const date = new Date(activity.timestamp);
       const weekStart = new Date(date.setDate(date.getDate() - date.getDay())).toISOString().split('T')[0];
       if (!acc[weekStart]) {
@@ -1554,7 +1551,6 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(reports)
         .where(eq(reports.id, id));
-
       return report;
     } catch (error) {
       console.error("Error fetching report:", error);
@@ -1567,23 +1563,48 @@ export class DatabaseStorage implements IStorage {
       let query = db
         .select()
         .from(reports)
-        .where(eq(reports.userId, userId));
+        .where(eq(reports.userId, userId))
+        .orderBy(desc(reports.createdAt));
 
       if (type) {
         query = query.where(eq(reports.type, type));
       }
 
-      return await query.orderBy(desc(reports.createdAt));
+      return query;
     } catch (error) {
       console.error("Error fetching user reports:", error);
       throw new Error("فشل في جلب تقارير المستخدم");
     }
   }
-  async getAppointmentsReport(dateRange: { start: Date; end: Date }, userId: number): Promise<any> {
+  async getAppointmentsReport(dateRange: { start: Date; end: Date }, userId: number) {
+    console.log("Generating appointments report for:", dateRange);
+
+    const cacheKey = `appointments_report:${dateRange.start.toISOString()}_${dateRange.end.toISOString()}`;
+    const cached = await this.cache.get(cacheKey);
+    if (cached) {
+      console.log("Returning cached appointments report");
+      return JSON.parse(cached);
+    }
+
     try {
-      const appointmentsResult = await db
-        .select()
+      // Get all appointments in date range with customer info
+      const appointments = await db
+        .select({
+          id: appointments.id,
+          customerId: appointments.customerId,
+          customerName: customers.name,
+          customerPhone: customers.phone,
+          title: appointments.title,
+          description: appointments.description,
+          date: appointments.date,
+          duration: appointments.duration,
+          status: appointments.status,
+          notes: appointments.notes,
+          createdAt: appointments.createdAt,
+          updatedAt: appointments.updatedAt
+        })
         .from(appointments)
+        .leftJoin(customers, eq(appointments.customerId, customers.id))
         .where(
           and(
             gte(appointments.date, dateRange.start),
@@ -1592,18 +1613,163 @@ export class DatabaseStorage implements IStorage {
         )
         .orderBy(desc(appointments.date));
 
+      // Process appointments data
       const stats = {
-        total: appointmentsResult.length,
-        completed: appointmentsResult.filter(a => a.status === 'completed').length,
-        cancelled: appointmentsResult.filter(a => a.status === 'cancelled').length,
-        pending: appointmentsResult.filter(a => a.status === 'scheduled').length
+        total: appointments.length,
+        completed: 0,
+        cancelled: 0,
+        pending: 0,
+        byDay: {} as Record<string, number>,
+        byTimeSlot: Array(24).fill(0),
+        avgDuration: 0,
+        customerStats: {} as Record<number, {
+          name: string;
+          totalAppointments: number;
+          completedAppointments: number;
+          cancelledAppointments: number;
+        }>,
+        dailyDistribution: {} as Record<string, {
+          total: number;
+          completed: number;
+          cancelled: number;
+          pending: number;
+        }>
       };
 
-      return {
-        summary: stats,
-        appointments: appointmentsResult,
-        dateRange
+      let totalDuration = 0;
+
+      appointments.forEach(apt => {
+        // Count by status
+        switch (apt.status) {
+          case 'completed':
+            stats.completed++;
+            break;
+          case 'cancelled':
+            stats.cancelled++;
+            break;
+          case 'scheduled':
+            stats.pending++;
+            break;
+        }
+
+        // Count by day
+        const dayKey = new Date(apt.date).toISOString().split('T')[0];
+        stats.byDay[dayKey] = (stats.byDay[dayKey] || 0) + 1;
+
+        // Count by time slot
+        const hour = new Date(apt.date).getHours();
+        stats.byTimeSlot[hour]++;
+
+        // Calculate duration
+        if (apt.duration) {
+          totalDuration += apt.duration;
+        }
+
+        // Track customer stats
+        if (!stats.customerStats[apt.customerId]) {
+          stats.customerStats[apt.customerId] = {
+            name: apt.customerName,
+            totalAppointments: 0,
+            completedAppointments: 0,
+            cancelledAppointments: 0
+          };
+        }
+        stats.customerStats[apt.customerId].totalAppointments++;
+        if (apt.status === 'completed') {
+          stats.customerStats[apt.customerId].completedAppointments++;
+        } else if (apt.status === 'cancelled') {
+          stats.customerStats[apt.customerId].cancelledAppointments++;
+        }
+
+        // Daily distribution
+        if (!stats.dailyDistribution[dayKey]) {
+          stats.dailyDistribution[dayKey] = {
+            total: 0,
+            completed: 0,
+            cancelled: 0,
+            pending: 0
+          };
+        }
+        stats.dailyDistribution[dayKey].total++;
+        switch (apt.status) {
+          case 'completed':
+            stats.dailyDistribution[dayKey].completed++;
+            break;
+          case 'cancelled':
+            stats.dailyDistribution[dayKey].cancelled++;
+            break;
+          case 'scheduled':
+            stats.dailyDistribution[dayKey].pending++;
+            break;
+        }
+      });
+
+      // Calculate average duration
+      stats.avgDuration = appointments.length > 0 ? totalDuration / appointments.length : 0;
+
+      // Prepare detailed report
+      const report = {
+        summary: {
+          totalAppointments: stats.total,
+          completedAppointments: stats.completed,
+          cancelledAppointments: stats.cancelled,
+          pendingAppointments: stats.pending,
+          averageDuration: stats.avgDuration,
+          completionRate: stats.total > 0 ? (stats.completed / stats.total * 100).toFixed(2) : "0",
+          cancellationRate: stats.total > 0 ? (stats.cancelled / stats.total * 100).toFixed(2) : "0"
+        },
+        timeAnalysis: {
+          dailyDistribution: Object.entries(stats.dailyDistribution).map(([date, data]) => ({
+            date,
+            ...data,
+            completionRate: data.total > 0 ? (data.completed / data.total * 100).toFixed(2) : "0"
+          })),
+          hourlyDistribution: stats.byTimeSlot.map((count, hour) => ({
+            hour,
+            count,
+            percentage: stats.total > 0 ? ((count / stats.total) * 100).toFixed(2) : "0"
+          }))
+        },
+        customerAnalysis: Object.entries(stats.customerStats)
+          .map(([customerId, data]) => ({
+            customerId: Number(customerId),
+            ...data,
+            loyaltyScore: ((data.completedAppointments / data.totalAppointments) * 100).toFixed(2)
+          }))
+          .sort((a, b) => b.totalAppointments - a.totalAppointments)
+          .slice(0, 10), // Top 10 customers
+        details: appointments.map(apt => ({
+          id: apt.id,
+          customerName: apt.customerName,
+          customerPhone: apt.customerPhone,
+          title: apt.title,
+          description: apt.description,
+          date: apt.date,
+          duration: apt.duration,
+          status: apt.status,
+          notes: apt.notes,
+          createdAt: apt.createdAt,
+          updatedAt: apt.updatedAt
+        }))
       };
+
+      // Save report to database
+      await this.saveReport({
+        type: "appointments",
+        title: `تقرير المواعيد ${new Date().toLocaleDateString('ar-IQ')}`,
+        dateRange: {
+          start: dateRange.start,
+          end: dateRange.end
+        },
+        data: report,
+        userId: userId
+      });
+
+      // Cache the report
+      await this.cache.set(cacheKey, JSON.stringify(report), CACHE_TTL);
+      console.log("Successfully generated, saved and cached appointments report");
+
+      return report;
     } catch (error) {
       console.error("Error generating appointments report:", error);
       throw new Error("فشل في إنشاء تقرير المواعيد");
@@ -1664,47 +1830,6 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error fetching invoices:", error);
       throw new Error("فشل في جلب الفواتير");
-    }
-  }
-
-  async getReport(filters: {
-    type: string;
-    fromDate: string;
-    toDate: string;
-  }): Promise<any> {
-    try {
-      const fromDate = new Date(filters.fromDate);
-      const toDate = new Date(filters.toDate);
-
-      if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-        throw new Error("التواريخ المدخلة غير صالحة");
-      }
-
-      switch (filters.type) {
-        case "appointments":
-          const appointments = await db
-            .select()
-            .from(appointments)
-            .where(
-              and(
-                gte(appointments.date, fromDate),
-                lte(appointments.date, toDate)
-              )
-            )
-            .orderBy(desc(appointments.date));
-
-          return {
-            type: "appointments",
-            data: appointments,
-            dateRange: { fromDate, toDate }
-          };
-
-        default:
-          throw new Error("نوع التقرير غير مدعوم");
-      }
-    } catch (error) {
-      console.error("Error generating report:", error);
-      throw error instanceof Error ? error : new Error("فشل في إنشاء التقرير");
     }
   }
 
