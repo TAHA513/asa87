@@ -97,16 +97,6 @@ export default function NewSale() {
     }
   }
 
-  function handleInstallmentSuccess() {
-    setShowInstallmentForm(false);
-    setCurrentSaleId(null);
-    form.reset();
-    toast({
-      title: "تم بنجاح",
-      description: "تم حفظ الفاتورة والتقسيط بنجاح",
-    });
-  }
-
   return (
     <>
       <Form {...form}>
