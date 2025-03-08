@@ -871,21 +871,20 @@ export class DatabaseStorage implements IStorage {
       const [newSettings] = await db
         .insert(userSettings)
         .values({
-          userId: userId,
+          userId,
           themeName: settings.themeName,
           fontName: settings.fontName,
           fontSize: settings.fontSize,
           appearance: settings.appearance,
-          colors: settings.colors,
+          colors: settings.colors as any, // Cast to any to avoid type issues with JSONB
           createdAt: new Date(),
           updatedAt: new Date()
         })
         .returning();
 
-      console.log("Successfully saved settings:", newSettings);
       return newSettings;
     } catch (error) {
-      console.error("Error details:", error);
+      console.error("Error in saveUserSettings:", error);
       throw new Error("فشل في حفظ إعدادات المظهر");
     }
   }
