@@ -4,6 +4,7 @@ import ws from "ws";
 import * as schema from "@shared/schema";
 
 neonConfig.webSocketConstructor = ws;
+neonConfig.patchWebsocketDanglingTimeout = 5000; // Add timeout for dangling connections
 
 // Validate database URL
 if (!process.env.DATABASE_URL) {
@@ -38,6 +39,14 @@ pool.on('error', (err) => {
   console.error('Unexpected error on idle client:', err);
   // Don't exit, let the pool handle reconnection
 });
+
+// Keep connection alive with periodic ping
+setInterval(() => {
+  pool.query('SELECT 1')
+    .catch(err => {
+      console.warn('Keep-alive ping failed:', err);
+    });
+}, 60000); // Ping every minute
 
 // Handle cleanup on application shutdown
 process.on('SIGTERM', () => {
