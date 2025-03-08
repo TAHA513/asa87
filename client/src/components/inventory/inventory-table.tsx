@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Package, Plus, Trash2 } from "lucide-react";
+import { Package, Plus, Trash2, Edit } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -36,6 +36,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 export default function InventoryTable() {
   const [search, setSearch] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const { toast } = useToast();
 
   const { data: products = [] } = useQuery<Product[]>({
@@ -80,6 +81,38 @@ export default function InventoryTable() {
       });
     },
   });
+
+  // إضافة mutation للتعديل
+  const updateMutation = useMutation({
+    mutationFn: async (data: { id: number; updates: Partial<Product> }) => {
+      await apiRequest("PATCH", `/api/products/${data.id}`, data.updates);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({
+        title: "تم التحديث",
+        description: "تم تحديث المنتج بنجاح",
+      });
+      setEditingProduct(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "خطأ",
+        description: "فشل في تحديث المنتج",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleUpdateStock = (product: Product) => {
+    const newStock = window.prompt("أدخل الكمية الجديدة للمخزون:", product.stock.toString());
+    if (newStock && !isNaN(Number(newStock))) {
+      updateMutation.mutate({
+        id: product.id,
+        updates: { stock: Number(newStock) }
+      });
+    }
+  };
 
   const watchPriceIqd = form.watch("priceIqd");
   const priceUsd = exchangeRate && watchPriceIqd ? Number(watchPriceIqd) / Number(exchangeRate.usdToIqd) : 0;
@@ -286,7 +319,21 @@ export default function InventoryTable() {
                       ${priceUsd.toFixed(2)}
                     </span>
                   </TableCell>
-                  <TableCell>{product.stock}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <span className={product.stock < 10 ? "text-red-500" : ""}>
+                        {product.stock}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleUpdateStock(product)}
+                      >
+                        <Edit className="h-4 w-4 ml-2" />
+                        تعديل المخزون
+                      </Button>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <Button
                       variant="destructive"
