@@ -1,8 +1,7 @@
 import { defineConfig } from "drizzle-kit";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL, ensure the database is provisioned");
-}
+// تم نقل متغير DATABASE_URL إلى أداة Secrets
+// يرجى التأكد من إضافة المتغير هناك
 
 export default defineConfig({
   out: "./migrations",
