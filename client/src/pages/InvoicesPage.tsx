@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { addDays } from "date-fns";
+import { useDebounce } from "@/hooks/use-debounce";
 
 export default function InvoicesPage() {
   const { toast } = useToast();
@@ -32,14 +33,19 @@ export default function InvoicesPage() {
     to: new Date(),
   });
 
+  // استخدام debounce للبحث
+  const debouncedSearch = useDebounce(searchTerm, 500);
+  const debouncedDateRange = useDebounce(dateRange, 500);
+
   const { data: invoices, isLoading } = useQuery<Invoice[]>({
     queryKey: ["/api/invoices", { 
-      search: searchTerm,
-      startDate: dateRange.from,
-      endDate: dateRange.to,
+      search: debouncedSearch,
+      startDate: debouncedDateRange.from,
+      endDate: debouncedDateRange.to,
     }],
     staleTime: 30000, // 30 seconds
-    cacheTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   const handlePrint = async (invoice: Invoice) => {
@@ -78,10 +84,6 @@ export default function InvoicesPage() {
     }
   };
 
-  if (isLoading) {
-    return <div>جاري التحميل...</div>;
-  }
-
   return (
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
@@ -112,7 +114,17 @@ export default function InvoicesPage() {
         </div>
       </div>
 
-      <DataTable columns={columns} data={invoices || []} />
+      {isLoading ? (
+        <div className="flex justify-center items-center h-32">
+          <div className="text-lg">جاري تحميل الفواتير...</div>
+        </div>
+      ) : !invoices?.length ? (
+        <div className="flex justify-center items-center h-32">
+          <div className="text-lg">لا توجد فواتير متطابقة مع معايير البحث</div>
+        </div>
+      ) : (
+        <DataTable columns={columns} data={invoices} />
+      )}
 
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <AlertDialogContent>
