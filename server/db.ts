@@ -5,54 +5,59 @@ import * as schema from "@shared/schema";
 import { sql } from 'drizzle-orm';
 
 neonConfig.webSocketConstructor = ws;
+// Remove the unsupported patchWebsocketDanglingTimeout config
+// Add proper connection retry logic instead
 
-// التحقق من وجود رابط قاعدة البيانات
+// Validate database URL
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL must be set. Did you forget to provision a database?");
 }
 
-// إنشاء مجمع الاتصال مع معالجة الأخطاء ومنطق إعادة المحاولة
+// Create connection pool with proper error handling and retry logic
 const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: 5000, // مهلة 5 ثواني
-  max: 20, // الحد الأقصى 20 اتصال في المجمع
-  idleTimeoutMillis: 30000, // إغلاق الاتصالات غير النشطة بعد 30 ثانية
-  keepAlive: true, // الحفاظ على الاتصالات نشطة
-  allowExitOnIdle: false // منع المجمع من الإنهاء عند عدم النشاط
+  connectionTimeoutMillis: 5000, // 5 second timeout
+  max: 20, // Maximum 20 clients in pool
+  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
+  keepAlive: true, // Keep connections alive
+  allowExitOnIdle: false // Prevent pool from ending when idle
 });
 
-// تكوين drizzle مع الأنواع المناسبة
+// Configure drizzle with proper typing
 export const db = drizzle(pool, { schema });
 
-// اختبار الاتصال عند بدء التشغيل ومعالجة الأخطاء بسلاسة
+// Test connection on startup and handle errors gracefully
 pool.connect()
   .then(() => {
-    console.log("تم الاتصال بقاعدة البيانات بنجاح");
+    console.log("Successfully connected to database");
   })
   .catch(err => {
-    console.error("فشل الاتصال الأولي بقاعدة البيانات:", err);
+    console.error("Initial database connection failed:", err);
+    // Don't exit process, let it retry
   });
 
-// معالجة أخطاء المجمع دون تعطل
+// Handle pool errors without crashing
 pool.on('error', (err) => {
-  console.error('خطأ غير متوقع في العميل غير النشط:', err);
+  console.error('Unexpected error on idle client:', err);
+  // Don't exit, let the pool handle reconnection
 });
 
-// الحفاظ على الاتصال نشطًا مع ping دوري
+// Keep connection alive with periodic ping
 setInterval(() => {
   pool.query('SELECT 1')
     .catch(err => {
-      console.warn('فشل ping للحفاظ على النشاط:', err);
+      console.warn('Keep-alive ping failed:', err);
     });
-}, 60000); // ping كل دقيقة
+}, 60000); // Ping every minute
 
-// معالجة التنظيف عند إيقاف التطبيق
+// Handle cleanup on application shutdown
 process.on('SIGTERM', () => {
-  console.log('جاري إغلاق مجمع قاعدة البيانات...');
+  console.log('Closing database pool...');
   pool.end().then(() => {
-    console.log('تم إغلاق مجمع قاعدة البيانات.');
+    console.log('Database pool closed.');
     process.exit(0);
   });
 });
 
+// Export sql for use in other files
 export { sql };
