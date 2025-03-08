@@ -36,7 +36,6 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 export default function InventoryTable() {
   const [search, setSearch] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const { toast } = useToast();
 
   const { data: products = [] } = useQuery<Product[]>({
@@ -64,7 +63,11 @@ export default function InventoryTable() {
   // إضافة mutation للحذف
   const deleteMutation = useMutation({
     mutationFn: async (productId: number) => {
-      await apiRequest("DELETE", `/api/products/${productId}`);
+      const response = await apiRequest("DELETE", `/api/products/${productId}`);
+      if (!response.ok) {
+        throw new Error("فشل في حذف المنتج");
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
@@ -74,23 +77,23 @@ export default function InventoryTable() {
       });
     },
     onError: (error) => {
+      console.error("خطأ في حذف المنتج:", error);
       toast({
         title: "خطأ",
-        description: "فشل في حذف المنتج",
+        description: "فشل في حذف المنتج. الرجاء المحاولة مرة أخرى",
         variant: "destructive",
       });
     },
   });
 
-  // إضافة mutation للتعديل
+  // تحديث mutation للتعديل
   const updateMutation = useMutation({
     mutationFn: async (data: { id: number; updates: Partial<Product> }) => {
       const response = await apiRequest("PATCH", `/api/products/${data.id}`, data.updates);
-
       if (!response.ok) {
-        throw new Error("فشل في تحديث المنتج");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "فشل في تحديث المنتج");
       }
-
       return response.json();
     },
     onSuccess: () => {
@@ -101,24 +104,51 @@ export default function InventoryTable() {
       });
     },
     onError: (error) => {
+      console.error("خطأ في تحديث المخزون:", error);
       toast({
         title: "خطأ",
-        description: error instanceof Error ? error.message : "فشل في تحديث المخزون",
+        description: error instanceof Error ? error.message : "فشل في تحديث المخزون. الرجاء المحاولة مرة أخرى",
         variant: "destructive",
       });
     },
   });
 
   const handleUpdateStock = async (product: Product) => {
-    const newStock = window.prompt("أدخل الكمية الجديدة للمخزون:", product.stock.toString());
-    if (newStock && !isNaN(Number(newStock))) {
+    const newStock = window.prompt(`أدخل الكمية الجديدة للمخزون (الكمية الحالية: ${product.stock}):`, product.stock.toString());
+
+    if (newStock === null) return; // إلغاء العملية
+
+    const stockNumber = Number(newStock);
+    if (isNaN(stockNumber)) {
+      toast({
+        title: "خطأ",
+        description: "الرجاء إدخال رقم صحيح",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (stockNumber < 0) {
+      toast({
+        title: "خطأ",
+        description: "لا يمكن أن تكون الكمية سالبة",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const confirmUpdate = window.confirm(
+      `هل أنت متأكد من تحديث المخزون من ${product.stock} إلى ${stockNumber}؟`
+    );
+
+    if (confirmUpdate) {
       try {
         await updateMutation.mutateAsync({
           id: product.id,
-          updates: { stock: Number(newStock) }
+          updates: { stock: stockNumber }
         });
       } catch (error) {
-        console.error("خطأ في تحديث المخزون:", error);
+        // تم معالجة الخطأ في onError
       }
     }
   };
