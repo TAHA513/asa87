@@ -15,31 +15,14 @@ import { apiRequest } from "@/lib/queryClient";
 
 // تعريف السمات المتاحة
 const themes = [
-  {
-    id: "default",
-    name: "الافتراضي",
-    color: "hsl(142.1 76.2% 36.3%)"
-  },
-  {
-    id: "blue",
-    name: "أزرق",
-    color: "hsl(215.3 98.9% 27.8%)"
-  },
-  {
-    id: "purple",
-    name: "أرجواني",
-    color: "hsl(273.1 70.1% 40.2%)"
-  },
-  {
-    id: "red",
-    name: "أحمر",
-    color: "hsl(349 90.9% 45.1%)"
-  },
-  {
-    id: "green",
-    name: "أخضر",
-    color: "hsl(120.1 40.1% 39.2%)"
-  }
+  { id: "professional", name: "العصري", color: "hsl(215.3 98.9% 27.8%)" },
+  { id: "vibrant", name: "النابض", color: "hsl(349 90.9% 45.1%)" },
+  { id: "tint", name: "الرمادي", color: "hsl(220 14% 42%)" },
+  { id: "modern", name: "الأزرق", color: "hsl(204 100% 40%)" },
+  { id: "classic", name: "الكلاسيكي", color: "hsl(142.1 76.2% 36.3%)" },
+  { id: "futuristic", name: "المستقبلي", color: "hsl(261 73.7% 50.7%)" },
+  { id: "elegant", name: "الأنيق", color: "hsl(300 70% 45%)" },
+  { id: "natural", name: "الطبيعي", color: "hsl(22 90% 50.5%)" }
 ];
 
 // تعريف الخطوط المتاحة

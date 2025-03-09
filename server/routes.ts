@@ -230,26 +230,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
+        variant: z.enum([
+          "professional", "vibrant", "tint", "modern", 
+          "classic", "futuristic", "elegant", "natural"
+        ]),
         appearance: z.enum(["light", "dark", "system"]),
         fontStyle: z.enum([
-          "traditional",
-          "modern",
-          "minimal",
-          "digital",
-          "elegant",
-          "kufi",
-          "naskh",
-          "ruqaa",
-          "thuluth",
-          "contemporary",
           "noto-kufi", // نوتو كوفي
           "cairo", // القاهرة
           "tajawal", // طجوال
           "amiri", // أميري
         ]),
         radius: z.number(),
-        fontSize: z.enum(["small", "medium", "large", "xlarge"]), //Added fontSize
+        fontSize: z.enum(["small", "medium", "large", "xlarge"]),
       });
 
       const theme = themeSchema.parse(req.body);
@@ -263,7 +256,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       console.error("Error updating theme:", error);
-      res.status(500).json({ message: "فشل في تحديث المظهر" });
+      res.status(400).json({ 
+        message: "فشل في تحديث المظهر", 
+        error: error instanceof Error ? error.message : "خطأ غير معروف"
+      });
     }
   });
 
@@ -1339,7 +1335,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum(["default", "blue", "purple", "red", "green"]),
+        variant: z.enum([
+          "professional", "vibrant", "tint", "modern", 
+          "classic", "futuristic", "elegant", "natural"
+        ]),
         appearance: z.enum(["light", "dark", "system"]),
         fontStyle: z.enum([
           "noto-kufi",
@@ -1371,26 +1370,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       };
 
-      // حفظ الإعدادات في قاعدة البيانات
-      try {
-        const savedSettings = await storage.saveUserSettings(req.user!.id, userSettings);
-        console.log("تم حفظ الإعدادات في قاعدة البيانات:", savedSettings);
-      } catch (error) {
-        console.error("خطأ في حفظ الإعدادات في قاعدة البيانات:", error);
-        throw error;
-      }
+      // الحفظ بالتسلسل الصحيح - أولا في قاعدة البيانات
+      const savedSettings = await storage.saveUserSettings(req.user!.id, userSettings);
+      console.log("تم حفظ الإعدادات في قاعدة البيانات:", savedSettings);
 
-      // حفظ الثيم في ملف theme.json
-      try {
-        await fs.writeFile(
-          path.join(process.cwd(), "theme.json"),
-          JSON.stringify(theme, null, 2)
-        );
-        console.log("تم حفظ الثيم في ملف theme.json");
-      } catch (error) {
-        console.error("خطأ في حفظ الثيم في ملف theme.json:", error);
-        throw error;
-      }
+      // ثم الحفظ في ملف theme.json
+      await fs.writeFile(
+        path.join(process.cwd(), "theme.json"),
+        JSON.stringify(theme, null, 2)
+      );
+      console.log("تم حفظ الثيم في ملف theme.json");
 
       // إرسال الاستجابة بنجاح
       res.json({ 
@@ -1399,7 +1388,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error updating theme:", error);
-      res.status(500).json({ 
+      // تخطي محاولة الحفظ في ملف السمات إذا فشل التحقق من صحة البيانات
+      res.status(400).json({ 
         message: "فشل في حفظ إعدادات المظهر", 
         error: error instanceof Error ? error.message : "خطأ غير معروف" 
       });
