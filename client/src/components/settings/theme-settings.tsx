@@ -129,9 +129,6 @@ const themes = [
       accent: "hsl(48.1 74.1% 45.2%)",
     },
     preview: "gold",
-  },",
-    },
-    preview: "natural",
   },
 ];
 
