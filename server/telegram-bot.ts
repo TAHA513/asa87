@@ -1,4 +1,3 @@
-
 import { Telegraf, Context } from 'telegraf';
 import dotenv from 'dotenv';
 import { generateCodeWithOpenAI } from './code-generator';
@@ -7,7 +6,16 @@ import { executeCode } from './command-executor';
 // تحميل متغيرات البيئة
 dotenv.config();
 
-const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || '');
+//const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || '');
+
+// إضافة خيارات لتجنب التعارض
+const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN, {
+    telegram: {
+      // تعطيل webhooks لتجنب التعارض
+      webhookReply: false
+    }
+  });
+
 
 // تخزين الأكواد المقترحة بانتظار الموافقة
 interface PendingCodeType {
@@ -32,7 +40,10 @@ bot.command('generate', async (ctx) => {
     const chatId = ctx.chat.id.toString();
     pendingCode[chatId] = generatedCode;
 
-    await ctx.reply(`🔹 **الكود المقترح:**\n\`\`\`\n${generatedCode}\n\`\`\`\n\n✔️ **للموافقة، أرسل**: /approve\n❌ **للرفض، أرسل**: /reject`, { parse_mode: 'Markdown' });
+    //تقصير الرسالة لتجنب تجاوز الحد المسموح به
+    const shortenedCode = generatedCode.length > 4096 ? generatedCode.substring(0, 4096) + "..." : generatedCode;
+
+    await ctx.reply(`🔹 **الكود المقترح:**\n\`\`\`\n${shortenedCode}\n\`\`\`\n\n✔️ **للموافقة، أرسل**: /approve\n❌ **للرفض، أرسل**: /reject`, { parse_mode: 'Markdown' });
   } catch (error) {
     console.error('Error generating code:', error);
     ctx.reply('❌ حدث خطأ أثناء إنشاء الكود. يرجى المحاولة مرة أخرى.');
@@ -67,8 +78,8 @@ bot.command('reject', (ctx) => {
 
 export const startTelegramBot = () => {
   if (!process.env.TELEGRAM_BOT_TOKEN) {
-    console.error('❌ TELEGRAM_BOT_TOKEN غير معرف في ملف .env');
-    return;
+    console.log('⚠️ لم يتم العثور على رمز بوت تلجرام');
+    return null;
   }
 
   bot.launch()
