@@ -1330,93 +1330,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ***** مسار السمات والإعدادات *****
-  // استخراج منطق التعامل مع السمات إلى دالة منفصلة لسهولة الصيانة
-  const themeSchema = z.object({
-    primary: z.string(),
-    variant: z.enum(["classic", "modern", "elegant", "vibrant"]),
-    appearance: z.enum(["light", "dark", "system"]),
-    fontStyle: z.enum(["noto-kufi", "cairo", "tajawal"]),
-    fontSize: z.enum(["small", "medium", "large", "xlarge"]),
-    radius: z.number().optional().default(0.5),
-  });
-
-  // الحصول على السمات
-  app.get("/api/theme", async (req, res) => {
-    try {
-      // قراءة ملف السمات الحالي
-      const themeFile = await fs.readFile(
-        path.join(process.cwd(), "theme.json"),
-        "utf-8"
-      );
-      const theme = JSON.parse(themeFile);
-      res.json(theme);
-    } catch (error) {
-      console.error("Error reading theme:", error);
-      res.status(500).json({ 
-        message: "فشل في قراءة ملف السمات",
-        error: error instanceof Error ? error.message : "خطأ غير معروف"
-      });
-    }
-  });
-
-  // تحديث السمات
-  app.post("/api/theme", async (req, res) => {
-    try {
-      // التحقق من صحة البيانات
-      const theme = themeSchema.parse(req.body);
-      console.log("تم استلام سمات جديدة:", theme);
-
-      // حفظ الثيم في ملف theme.json
-      await fs.writeFile(
-        path.join(process.cwd(), "theme.json"),
-        JSON.stringify(theme, null, 2)
-      );
-      console.log("تم حفظ السمات في ملف theme.json");
-
-      res.json({ success: true, theme });
-    } catch (error) {
-      console.error("Error updating theme:", error);
-      res.status(400).json({ 
-        message: "فشل في تحديث السمات", 
-        error: error instanceof Error ? error.message : "خطأ غير معروف"
-      });
-    }
-  });
-
-  // الحصول على إعدادات المستخدم
-  app.get("/api/settings", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const settings = await storage.getUserSettings(req.user!.id);
-      res.json(settings || {
-        themeName: "classic",
-        fontName: "noto-kufi",
-        fontSize: "medium",
-        appearance: "system",
-        colors: {
-          primary: "#2563eb",
-          secondary: "#16a34a",
-          accent: "#db2777"
-        }
-      });
-    } catch (error) {
-      console.error("Error fetching user settings:", error);
-      res.status(500).json({ message: "فشل في جلب إعدادات المظهر" });
-    }
-  });
-
-  // حفظ إعدادات المستخدم
   app.post("/api/settings", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
     try {
       // التحقق من صحة البيانات
+      const themeSchema = z.object({
+        primary: z.string(),
+        variant: z.enum([
+          "professional", "vibrant", "tint", "modern", 
+          "classic", "futuristic", "elegant", "natural"
+        ]),
+        appearance: z.enum(["light", "dark", "system"]),
+        fontStyle: z.enum([
+          "noto-kufi",
+          "cairo",
+          "tajawal",
+        ]),
+        fontSize: z.enum(["small", "medium", "large", "xlarge"]),
+        radius: z.number(),
+      });
+
       const theme = themeSchema.parse(req.body);
       console.log("تم استلام إعدادات جديدة:", theme);
 
@@ -1438,25 +1370,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       };
 
-      // حفظ الإعدادات في قاعدة البيانات
+      // الحفظ بالتسلسل الصحيح - أولا في قاعدة البيانات
       const savedSettings = await storage.saveUserSettings(req.user!.id, userSettings);
       console.log("تم حفظ الإعدادات في قاعدة البيانات:", savedSettings);
 
-      // حفظ السمات في ملف theme.json
+      // ثم الحفظ في ملف theme.json
       await fs.writeFile(
         path.join(process.cwd(), "theme.json"),
         JSON.stringify(theme, null, 2)
       );
       console.log("تم حفظ الثيم في ملف theme.json");
 
+      // إرسال الاستجابة بنجاح
       res.json({ 
         success: true,
-        settings: savedSettings
+        settings: userSettings
       });
     } catch (error) {
-      console.error("Error updating settings:", error);
+      console.error("Error updating theme:", error);
+      // تخطي محاولة الحفظ في ملف السمات إذا فشل التحقق من صحة البيانات
       res.status(400).json({ 
-        message: "فشل في حفظ الإعدادات", 
+        message: "فشل في حفظ إعدادات المظهر", 
         error: error instanceof Error ? error.message : "خطأ غير معروف" 
       });
     }
