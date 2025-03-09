@@ -6,16 +6,36 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 export const startTelegramBot = async () => {
+  const BOT_ID = '7929618679';
+
   if (!process.env.TELEGRAM_BOT_TOKEN) {
     console.log('⚠️ لم يتم العثور على رمز بوت تلجرام');
     return null;
   }
 
   try {
-    const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
+    // إنشاء نسخة من البوت مع الإعدادات الصحيحة
+    const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN, {
+      telegram: {
+        apiRoot: 'https://api.telegram.org',
+        webhookReply: false
+      }
+    });
 
     // تخزين الأكواد المقترحة بانتظار الموافقة
     const pendingCode: { [key: string]: string } = {};
+
+    // التحقق من اتصال البوت
+    try {
+      const botInfo = await bot.telegram.getMe();
+      console.log('✅ تم الاتصال بالبوت:', botInfo.username);
+      if (botInfo.id.toString() !== BOT_ID) {
+        console.warn('⚠️ معرف البوت مختلف عن المتوقع');
+      }
+    } catch (error) {
+      console.error('❌ فشل الاتصال بالبوت:', error);
+      throw error;
+    }
 
     bot.start((ctx) => {
       return ctx.reply(`👋 مرحباً ${ctx.from?.first_name || ""}! أنا مساعدك البرمجي.
@@ -102,12 +122,23 @@ export const startTelegramBot = async () => {
       delete pendingCode[chatId];
     });
 
-    // معالجة الأخطاء العامة
+    // معالجة الرسائل العادية
+    bot.on('text', (ctx) => {
+      if (!ctx.message.text.startsWith('/')) {
+        return ctx.reply('🤖 مرحباً! يرجى استخدام الأمر /generate متبوعاً بوصف ما تريد إنشاءه.');
+      }
+    });
+
+    // معالجة الأخطاء
     bot.catch((err) => {
       console.error('Telegram bot error:', err);
     });
 
-    await bot.launch();
+    // بدء البوت مع تجاهل الرسائل القديمة
+    console.log('🔄 جاري بدء بوت التلجرام...');
+    await bot.launch({
+      dropPendingUpdates: true
+    });
     console.log('✅ تم تشغيل بوت التلجرام بنجاح!');
 
     // إيقاف البوت بشكل آمن عند إغلاق التطبيق
