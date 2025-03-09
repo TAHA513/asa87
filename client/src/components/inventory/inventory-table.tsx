@@ -324,7 +324,11 @@ export default function InventoryTable() {
                       <FormItem>
                         <FormLabel>تاريخ الانتهاء</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <Input 
+                            type="date" 
+                            value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''} 
+                            onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : '')}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -351,7 +355,7 @@ export default function InventoryTable() {
               <TableHead>الوصف</TableHead>
               <TableHead>السعر</TableHead>
               <TableHead>المخزون</TableHead>
-              <TableHead>تاريخ انتهاء الصلاحية</TableHead> {/* Added expiry date column */}
+              <TableHead>تاريخ انتهاء الصلاحية</TableHead>
               <TableHead>الإجراءات</TableHead>
             </TableRow>
           </TableHeader>
