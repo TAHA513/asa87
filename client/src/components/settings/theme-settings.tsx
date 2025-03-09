@@ -1,177 +1,111 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { HexColorPicker } from "react-colorful";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
-import axios from "axios";
-
-export type ThemeSettings = {
-  primary: string;
-  variant: 
-    | "professional"
-    | "vibrant"
-    | "tint"
-    | "modern"
-    | "classic"
-    | "futuristic"
-    | "elegant"
-    | "natural";
-  appearance: "light" | "dark" | "system";
-  fontStyle: "noto-kufi" | "cairo" | "tajawal";
-  fontSize: "small" | "medium" | "large" | "xlarge";
-  radius: number;
-};
-
-const DEFAULT_SETTINGS: ThemeSettings = {
-  primary: "hsl(215.3 98.9% 27.8%)",
-  variant: "professional",
-  appearance: "light",
-  fontStyle: "noto-kufi",
-  fontSize: "medium",
-  radius: 0.5
-};
-
-// تعريف تغييرات السمات المتاحة
-const THEME_VARIANTS = [
-  { id: "professional", label: "مهني", color: "hsl(215.3 98.9% 27.8%)" },
-  { id: "vibrant", label: "نابض بالحياة", color: "hsl(349 90.9% 45.1%)" },
-  { id: "tint", label: "رمادي", color: "hsl(190 50% 65%)" },
-  { id: "modern", label: "عصري", color: "hsl(271.5 91.7% 65.1%)" },
-  { id: "classic", label: "كلاسيكي", color: "hsl(142.1 76.2% 36.3%)" },
-  { id: "futuristic", label: "مستقبلي", color: "hsl(261 73.7% 50.7%)" },
-  { id: "elegant", label: "أنيق", color: "hsl(0 0% 10%)" },
-  { id: "natural", label: "طبيعي", color: "hsl(22 90% 50.5%)" },
-];
+import {
+  ThemeSettings,
+  DEFAULT_THEME,
+  THEME_VARIANTS,
+  storeTheme,
+  applyTheme,
+  saveThemeToServer,
+  fetchThemeFromServer
+} from "@/lib/theme-service";
 
 export default function ThemeSettings() {
   const { toast } = useToast();
-  const [settings, setSettings] = useState<ThemeSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<ThemeSettings>(DEFAULT_THEME);
   const [isLoading, setIsLoading] = useState(false);
-  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
-
-  // جلب الإعدادات الحالية
+  
+  // جلب الإعدادات عند تحميل المكون
   useEffect(() => {
-    async function fetchSettings() {
+    async function loadSettings() {
+      setIsLoading(true);
       try {
-        // أولا نحاول قراءة الإعدادات من ملف theme.json
+        // محاولة قراءة الإعدادات من ملف theme.json
         try {
-          const res = await fetch('/theme.json');
-          if (res.ok) {
-            const data = await res.json();
+          const response = await fetch('/theme.json');
+          if (response.ok) {
+            const data = await response.json();
             setSettings(data);
+            console.log("تم قراءة الإعدادات من ملف theme.json:", data);
+            setIsLoading(false);
             return;
           }
         } catch (error) {
           console.error("خطأ في قراءة ملف theme.json:", error);
         }
-
-        // إذا فشلت القراءة من الملف، نحاول جلب الإعدادات من API
-        const res = await axios.get("/api/settings");
-        if (res.data) {
-          console.log("تم جلب الإعدادات من API:", res.data);
-          const apiSettings: any = res.data;
-
-          // تحويل إعدادات API إلى هيكل ThemeSettings
-          setSettings({
-            primary: apiSettings.colors?.primary || DEFAULT_SETTINGS.primary,
-            variant: apiSettings.themeName || DEFAULT_SETTINGS.variant,
-            appearance: apiSettings.appearance || DEFAULT_SETTINGS.appearance,
-            fontStyle: apiSettings.fontName || DEFAULT_SETTINGS.fontStyle,
-            fontSize: apiSettings.fontSize || DEFAULT_SETTINGS.fontSize,
-            radius: DEFAULT_SETTINGS.radius
-          });
+        
+        // إذا فشلت قراءة ملف theme.json، نحاول الحصول عليها من API
+        const serverTheme = await fetchThemeFromServer();
+        if (serverTheme) {
+          setSettings(serverTheme);
         }
       } catch (error) {
-        console.error("خطأ في جلب الإعدادات:", error);
+        console.error("خطأ في تحميل الإعدادات:", error);
+      } finally {
+        setIsLoading(false);
       }
     }
-
-    fetchSettings();
+    
+    loadSettings();
   }, []);
-
-  // حفظ الإعدادات
-  async function saveSettings() {
+  
+  // حفظ الإعدادات - يتم استدعاؤها عند التغيير
+  const saveSettings = useCallback(async () => {
+    console.log("جاري حفظ الإعدادات:", settings);
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      console.log("جاري حفظ الإعدادات:", settings);
-
-      const response = await axios.post("/api/theme", settings);
-
-      if (response.data.success) {
+      // حفظ في التخزين المحلي أولاً
+      storeTheme(settings);
+      
+      // تطبيق التغييرات على واجهة المستخدم
+      applyTheme(settings);
+      
+      // حفظ على الخادم
+      const success = await saveThemeToServer(settings);
+      
+      if (success) {
         toast({
-          title: "تم حفظ الإعدادات",
-          description: "تم تطبيق المظهر الجديد بنجاح",
+          title: "تم الحفظ",
+          description: "تم حفظ إعدادات المظهر بنجاح",
         });
-
-        // تحديث السمات CSS المتغيرة
-        if (settings.appearance === "dark") {
-          document.documentElement.classList.add("dark");
-        } else {
-          document.documentElement.classList.remove("dark");
-        }
-
       } else {
         toast({
-          title: "خطأ في الحفظ",
-          description: "حدث خطأ أثناء محاولة حفظ الإعدادات",
+          title: "خطأ",
+          description: "حدث خطأ أثناء حفظ الإعدادات",
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error("خطأ في حفظ الإعدادات:", error);
       toast({
-        title: "خطأ في الحفظ",
-        description: "حدث خطأ أثناء محاولة حفظ الإعدادات",
+        title: "خطأ",
+        description: "حدث خطأ أثناء حفظ الإعدادات",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  }
-
-  // وضع علامة على متغير CSS للمظهر
-  useEffect(() => {
-    if (settings.appearance === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [settings.appearance]);
-
-  // حفظ الإعدادات فوريًا عند التغيير مع تأخير صغير
-  const handleChange = (key: keyof ThemeSettings, value: any) => {
-    setSettings(prev => {
+  }, [settings, toast]);
+  
+  // معالج تغيير الإعدادات
+  const handleChange = useCallback((key: keyof ThemeSettings, value: any) => {
+    setSettings((prev) => {
       const newSettings = { ...prev, [key]: value };
       
-      // إلغاء المؤقت السابق إذا وجد
-      if (saveTimeout) {
-        clearTimeout(saveTimeout);
-      }
-      
-      // إنشاء مؤقت جديد للحفظ بعد 500 مللي ثانية
-      const timeout = setTimeout(() => {
-        saveSettings();
-      }, 500);
-      
-      setSaveTimeout(timeout);
+      // حفظ التغييرات تلقائيًا بعد التعديل مباشرة
+      saveSettings();
       
       return newSettings;
     });
-  };
-
-  // تنظيف المؤقت عند إلغاء تحميل المكون
-  useEffect(() => {
-    return () => {
-      if (saveTimeout) {
-        clearTimeout(saveTimeout);
-      }
-    };
-  }, [saveTimeout]);
+  }, [saveSettings]);
 
   return (
     <div className="space-y-6">
@@ -212,109 +146,228 @@ export default function ThemeSettings() {
                   <div
                     key={variant.id}
                     className={cn(
-                      "relative h-16 rounded-md cursor-pointer flex items-center justify-center p-2 text-center text-sm transition-all",
-                      "border hover:border-primary",
-                      settings.variant === variant.id && "border-primary"
+                      "relative h-16 rounded-md cursor-pointer flex items-center justify-center border-2",
+                      settings.variant === variant.id
+                        ? "border-primary"
+                        : "border-transparent hover:border-muted-foreground/30"
                     )}
+                    style={{ backgroundColor: variant.color }}
                     onClick={() => handleChange("variant", variant.id)}
                   >
-                    {variant.label}
+                    <span className="font-medium text-white text-shadow-sm">
+                      {variant.label}
+                    </span>
                     {settings.variant === variant.id && (
-                      <div className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
+                      <div className="absolute top-1 right-1 w-4 h-4 bg-primary rounded-full border-2 border-white" />
                     )}
                   </div>
                 ))}
               </div>
             </div>
+
+            <div>
+              <Label>نصف قطر الزوايا</Label>
+              <div className="mt-3">
+                <Slider
+                  value={[settings.radius]}
+                  min={0}
+                  max={2}
+                  step={0.1}
+                  onValueChange={(value) => handleChange("radius", value[0])}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                  <span>بدون زوايا</span>
+                  <span>زوايا متوسطة</span>
+                  <span>زوايا كبيرة</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-center mt-4">
+                <div
+                  className="w-16 h-16 border-2 border-primary"
+                  style={{
+                    borderRadius: `${settings.radius * 0.5}rem`,
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </TabsContent>
 
-        <TabsContent value="appearance" className="space-y-4 mt-4">
-          <Card>
-            <CardContent className="pt-6">
-              <Label>المظهر العام</Label>
-              <RadioGroup
-                value={settings.appearance}
-                onValueChange={(value) => 
-                  handleChange("appearance", value as "light" | "dark" | "system")
-                }
-                className="mt-3 flex flex-col space-y-3"
-              >
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <RadioGroupItem value="light" id="light" />
-                  <Label htmlFor="light">فاتح</Label>
-                </div>
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <RadioGroupItem value="dark" id="dark" />
-                  <Label htmlFor="dark">داكن</Label>
-                </div>
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <RadioGroupItem value="system" id="system" />
-                  <Label htmlFor="system">نظام التشغيل</Label>
-                </div>
-              </RadioGroup>
-            </CardContent>
-          </Card>
+        <TabsContent value="appearance" className="space-y-4">
+          <div>
+            <Label>المظهر</Label>
+            <RadioGroup
+              value={settings.appearance}
+              onValueChange={(value) => 
+                handleChange("appearance", value as ThemeSettings["appearance"])
+              }
+              className="mt-3 grid grid-cols-3 gap-3"
+            >
+              <div>
+                <RadioGroupItem
+                  value="light"
+                  id="light"
+                  className="peer sr-only"
+                />
+                <Label
+                  htmlFor="light"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="mb-3 h-6 w-6"
+                  >
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M12 2v2" />
+                    <path d="M12 20v2" />
+                    <path d="m4.93 4.93 1.41 1.41" />
+                    <path d="m17.66 17.66 1.41 1.41" />
+                    <path d="M2 12h2" />
+                    <path d="M20 12h2" />
+                    <path d="m6.34 17.66-1.41 1.41" />
+                    <path d="m19.07 4.93-1.41 1.41" />
+                  </svg>
+                  <span>فاتح</span>
+                </Label>
+              </div>
+
+              <div>
+                <RadioGroupItem
+                  value="dark"
+                  id="dark"
+                  className="peer sr-only"
+                />
+                <Label
+                  htmlFor="dark"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="mb-3 h-6 w-6"
+                  >
+                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                  </svg>
+                  <span>داكن</span>
+                </Label>
+              </div>
+
+              <div>
+                <RadioGroupItem
+                  value="system"
+                  id="system"
+                  className="peer sr-only"
+                />
+                <Label
+                  htmlFor="system"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="mb-3 h-6 w-6"
+                  >
+                    <rect
+                      x="2"
+                      y="3"
+                      width="20"
+                      height="14"
+                      rx="2"
+                      ry="2"
+                    />
+                    <line x1="8" y1="21" x2="16" y2="21" />
+                    <line x1="12" y1="17" x2="12" y2="21" />
+                  </svg>
+                  <span>النظام</span>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
         </TabsContent>
 
-        <TabsContent value="typography" className="space-y-4 mt-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div>
-                  <Label>نوع الخط</Label>
-                  <RadioGroup
-                    value={settings.fontStyle}
-                    onValueChange={(value) => 
-                      handleChange("fontStyle", value as "noto-kufi" | "cairo" | "tajawal")
-                    }
-                    className="mt-3 flex flex-col space-y-3"
-                  >
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      <RadioGroupItem value="noto-kufi" id="noto-kufi" />
-                      <Label htmlFor="noto-kufi" className="font-noto-kufi">نوتو كوفي</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      <RadioGroupItem value="cairo" id="cairo" />
-                      <Label htmlFor="cairo" className="font-cairo">القاهرة</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      <RadioGroupItem value="tajawal" id="tajawal" />
-                      <Label htmlFor="tajawal" className="font-tajawal">طجوال</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                <div>
-                  <Label>حجم الخط</Label>
-                  <RadioGroup
-                    value={settings.fontSize}
-                    onValueChange={(value) => 
-                      handleChange("fontSize", value as "small" | "medium" | "large" | "xlarge")
-                    }
-                    className="mt-3 flex flex-col space-y-3"
-                  >
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      <RadioGroupItem value="small" id="small" />
-                      <Label htmlFor="small" className="text-sm">صغير</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      <RadioGroupItem value="medium" id="medium" />
-                      <Label htmlFor="medium" className="text-base">متوسط</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      <RadioGroupItem value="large" id="large" />
-                      <Label htmlFor="large" className="text-lg">كبير</Label>
-                    </div>
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      <RadioGroupItem value="xlarge" id="xlarge" />
-                      <Label htmlFor="xlarge" className="text-xl">كبير جدًا</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
+        <TabsContent value="typography" className="space-y-4">
+          <div>
+            <Label>نوع الخط</Label>
+            <RadioGroup
+              value={settings.fontStyle}
+              onValueChange={(value) => 
+                handleChange("fontStyle", value as ThemeSettings["fontStyle"])
+              }
+              className="mt-3 space-y-3"
+            >
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <RadioGroupItem value="noto-kufi" id="noto-kufi" />
+                <Label htmlFor="noto-kufi" className="font-noto-kufi text-lg">
+                  نوتو كوفي - Noto Kufi Arabic
+                </Label>
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <RadioGroupItem value="cairo" id="cairo" />
+                <Label htmlFor="cairo" className="font-cairo text-lg">
+                  القاهرة - Cairo
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <RadioGroupItem value="tajawal" id="tajawal" />
+                <Label htmlFor="tajawal" className="font-tajawal text-lg">
+                  طجوال - Tajawal
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          <div>
+            <Label>حجم الخط</Label>
+            <RadioGroup
+              value={settings.fontSize}
+              onValueChange={(value) => 
+                handleChange("fontSize", value as ThemeSettings["fontSize"])
+              }
+              className="mt-3 space-y-3"
+            >
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <RadioGroupItem value="small" id="small" />
+                <Label htmlFor="small" className="text-sm">
+                  صغير
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <RadioGroupItem value="medium" id="medium" />
+                <Label htmlFor="medium" className="text-base">
+                  متوسط
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <RadioGroupItem value="large" id="large" />
+                <Label htmlFor="large" className="text-lg">
+                  كبير
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <RadioGroupItem value="xlarge" id="xlarge" />
+                <Label htmlFor="xlarge" className="text-xl">
+                  كبير جدًا
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

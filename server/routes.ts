@@ -233,8 +233,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const ALLOWED_FONT_STYLES = ["noto-kufi", "cairo", "tajawal"];
       const ALLOWED_FONT_SIZES = ["small", "medium", "large", "xlarge"];
 
-      // استخراج البيانات مع التحقق البسيط
-      const theme = {
+      // استخراج البيانات مع التحقق المتكامل
+      const themeData = {
         primary: req.body.primary || "hsl(215.3 98.9% 27.8%)",
         variant: ALLOWED_VARIANTS.includes(req.body.variant) ? req.body.variant : "professional",
         appearance: ALLOWED_APPEARANCES.includes(req.body.appearance) ? req.body.appearance : "light",
@@ -243,16 +243,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         radius: typeof req.body.radius === 'number' ? req.body.radius : 0.5
       };
 
-      console.log("تم التحقق من بيانات الثيم بنجاح:", theme);
+      console.log("تم التحقق من بيانات الثيم بنجاح:", themeData);
 
-      // حفظ الثيم في ملف theme.json
-      await fs.writeFile(
-        path.join(process.cwd(), "theme.json"),
-        JSON.stringify(theme, null, 2)
-      );
-      console.log("تم حفظ الثيم في ملف theme.json بنجاح");
+      // حفظ في قاعدة البيانات أولاً
+      if (req.isAuthenticated() && req.user) {
+        try {
+          // تحويل البيانات إلى الشكل المطلوب لقاعدة البيانات
+          const userSettings = {
+            userId: req.user.id,
+            themeName: themeData.variant,
+            fontName: themeData.fontStyle,
+            fontSize: themeData.fontSize,
+            appearance: themeData.appearance,
+            colors: {
+              primary: themeData.primary,
+              secondary: themeData.appearance === 'dark' 
+                ? `color-mix(in srgb, ${themeData.primary} 80%, white)` 
+                : `color-mix(in srgb, ${themeData.primary} 80%, black)`,
+              accent: themeData.appearance === 'dark'
+                ? `color-mix(in srgb, ${themeData.primary} 60%, black)`
+                : `color-mix(in srgb, ${themeData.primary} 60%, white)`
+            }
+          };
 
-      res.json({ success: true, theme });
+          // الحفظ في قاعدة البيانات
+          const savedSettings = await storage.saveUserSettings(req.user.id, userSettings);
+          console.log("تم حفظ الإعدادات في قاعدة البيانات:", savedSettings);
+        } catch (dbError) {
+          console.error("خطأ في حفظ الإعدادات في قاعدة البيانات:", dbError);
+          // نستمر في المحاولة لحفظ الملف حتى لو فشل الحفظ في قاعدة البيانات
+        }
+      }
+
+      // ثم الحفظ في ملف theme.json
+      try {
+        await fs.writeFile(
+          path.join(process.cwd(), "theme.json"),
+          JSON.stringify(themeData, null, 2)
+        );
+        console.log("تم حفظ الثيم في ملف theme.json بنجاح");
+      } catch (fileError) {
+        console.error("خطأ في حفظ ملف theme.json:", fileError);
+        return res.status(500).json({ 
+          message: "فشل في حفظ ملف theme.json", 
+          error: fileError instanceof Error ? fileError.message : "خطأ غير معروف"
+        });
+      }
+
+      // إرسال الاستجابة بنجاح
+      res.json({ 
+        success: true,
+        theme: themeData
+      });
     } catch (error) {
       console.error("Error updating theme:", error);
       res.status(500).json({ 
