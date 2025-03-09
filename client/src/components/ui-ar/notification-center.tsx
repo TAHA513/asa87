@@ -22,7 +22,6 @@ type NotificationType =
   | "installment_due"
   | "system_update";
 
-import { io, Socket } from "socket.io-client";
 import { useAuth } from "@/hooks/use-auth";
 import { useState, useEffect } from "react";
 import { AlertTriangle, Info } from "lucide-react";
