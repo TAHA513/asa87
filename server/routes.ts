@@ -2,7 +2,7 @@ import express from "express";
 import http from "http";
 import passport from "passport";
 import { z } from "zod";
-import { registerAuth } from "./auth";
+import { setupAuth } from "./auth";
 import fs from "fs/promises";
 import path from "path";
 import { storage } from "./storage";
@@ -12,7 +12,7 @@ export async function registerRoutes(app: express.Express) {
   const server = http.createServer(app);
 
   // تسجيل مسارات المصادقة
-  registerAuth(app);
+  setupAuth(app);
   
   // مسار الجلسة الحالية
   app.get("/api/me", (req, res) => {
