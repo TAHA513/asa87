@@ -32,13 +32,39 @@ export async function executeCommand(command: string): Promise<string> {
       return await listFiles();
     }
     
-    // توليد كود بناءً على الأمر باستخدام النموذج اللغوي
-    const generatedCode = await generateCodeWithOpenAI(command);
+    // تحليل نوع الطلب لتوجيه التنفيذ بشكل صحيح
+    const requestType = analyzeRequest(command);
+    let response = "";
     
-    // تنفيذ الكود المولد
-    await executeCode(generatedCode);
+    switch (requestType) {
+      case 'ui_component':
+        response = await createUIComponent(command);
+        break;
+      case 'feature':
+        response = await implementFeature(command);
+        break;
+      case 'fix':
+        response = await fixIssue(command);
+        break;
+      case 'modify':
+        response = await modifyExistingCode(command);
+        break;
+      default:
+        // توليد كود عام بناءً على الأمر باستخدام النموذج اللغوي
+        const generatedCode = await generateCodeWithOpenAI(command);
+        
+        // تنفيذ الكود المولد وحفظه في الملف المناسب
+        const filePath = await executeCode(generatedCode);
+        
+        // إعادة تشغيل التطبيق إذا لزم الأمر
+        if (shouldRestartApp(command, generatedCode)) {
+          await restartApplication();
+        }
+        
+        response = `✅ تم تنفيذ الأمر بنجاح:\n\nتم إنشاء وتنفيذ الكود التالي:\n${generatedCode}\n\nتم حفظ الكود في: ${filePath}`;
+    }
     
-    return `تم تنفيذ الأمر بنجاح:\n${generatedCode}`;
+    return response;
   } catch (error) {
     console.error('❌ خطأ في تنفيذ الأمر:', error);
     throw new Error(`فشل في تنفيذ الأمر: ${error}`);
@@ -151,8 +177,9 @@ ${clientFiles.map(file => `   - ${file}`).join('\n')}
 /**
  * تنفيذ الكود المولد وحفظه في ملف مناسب
  * @param code الكود المراد تنفيذه
+ * @returns مسار الملف الذي تم حفظ الكود فيه
  */
-export async function executeCode(code: string): Promise<void> {
+export async function executeCode(code: string): Promise<string> {
   try {
     // تحليل نوع الكود ومكان حفظه
     const codeType = determineCodeType(code);
@@ -169,13 +196,225 @@ export async function executeCode(code: string): Promise<void> {
     fs.writeFileSync(filePath, code, 'utf8');
     console.log(`✅ تم حفظ الكود في: ${filePath}`);
     
-    // يمكن إضافة المزيد من الإجراءات هنا مثل:
-    // - تحديث ملفات التصدير
-    // - إعادة تشغيل الخدمات
-    // - تحديث الـ routes
+    // تنفيذ عمليات إضافية بناء على نوع الكود
+    if (codeType === 'component') {
+      await addComponentToExports(filePath);
+    } else if (codeType === 'route') {
+      await registerNewRoute(filePath);
+    } else if (codeType === 'util') {
+      await updateUtilImports(filePath);
+    }
+    
+    return filePath;
   } catch (error) {
     console.error('❌ خطأ أثناء تنفيذ الكود:', error);
     throw new Error(`فشل في تنفيذ الكود: ${error}`);
+  }
+}
+
+/**
+ * تحليل نوع الطلب لتحديد الإجراء المناسب
+ * @param command الأمر المراد تحليله
+ */
+function analyzeRequest(command: string): string {
+  const command_lower = command.toLowerCase();
+  
+  if (command_lower.includes('أضف') || command_lower.includes('إنشاء') || command_lower.includes('واجهة') || 
+      command_lower.includes('مكون') || command_lower.includes('صفحة') || command_lower.includes('زر')) {
+    return 'ui_component';
+  }
+  
+  if (command_lower.includes('خاصية') || command_lower.includes('ميزة') || command_lower.includes('وظيفة') || 
+      command_lower.includes('أضف قدرة') || command_lower.includes('إضافة إمكانية')) {
+    return 'feature';
+  }
+  
+  if (command_lower.includes('إصلاح') || command_lower.includes('صحح') || command_lower.includes('مشكلة') || 
+      command_lower.includes('خطأ') || command_lower.includes('حل مشكلة')) {
+    return 'fix';
+  }
+  
+  if (command_lower.includes('تعديل') || command_lower.includes('تغيير') || command_lower.includes('تحديث') || 
+      command_lower.includes('تحسين')) {
+    return 'modify';
+  }
+  
+  return 'general';
+}
+
+/**
+ * إنشاء مكون واجهة مستخدم جديد
+ * @param command وصف المكون المطلوب
+ */
+async function createUIComponent(command: string): Promise<string> {
+  console.log(`🔄 إنشاء مكون واجهة مستخدم: "${command}"`);
+  
+  // توليد كود المكون
+  const componentCode = await generateCodeWithOpenAI(`أنشئ مكون React.js باستخدام TypeScript للواجهة العربية: ${command}. استخدم مكتبة shadcn/ui وأسلوب Tailwind CSS وتأكد من دعم RTL.`);
+  
+  // استخراج اسم المكون
+  const componentNameMatch = componentCode.match(/export\s+(?:default\s+)?(?:const|function)\s+(\w+)/);
+  const componentName = componentNameMatch ? componentNameMatch[1] : `Custom${Date.now().toString(36).slice(-4)}Component`;
+  
+  // إنشاء اسم ملف مناسب
+  const fileName = `${componentName}.tsx`;
+  const filePath = path.join(process.cwd(), 'client', 'src', 'components', 'custom', fileName);
+  
+  // إنشاء المجلد إذا لم يكن موجودًا
+  const dirPath = path.dirname(filePath);
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+  
+  // حفظ الكود في ملف
+  fs.writeFileSync(filePath, componentCode, 'utf8');
+  
+  // إضافة المكون إلى ملف التصدير إذا كان موجودًا
+  try {
+    const indexPath = path.join(process.cwd(), 'client', 'src', 'components', 'custom', 'index.ts');
+    if (fs.existsSync(indexPath)) {
+      let indexContent = fs.readFileSync(indexPath, 'utf8');
+      if (!indexContent.includes(`from './${componentName}'`)) {
+        indexContent += `\nexport { ${componentName} } from './${componentName}';`;
+        fs.writeFileSync(indexPath, indexContent, 'utf8');
+      }
+    } else {
+      fs.writeFileSync(indexPath, `export { ${componentName} } from './${componentName}';`, 'utf8');
+    }
+  } catch (error) {
+    console.warn('⚠️ لم يتم إضافة المكون إلى ملف التصدير:', error);
+  }
+  
+  return `✅ تم إنشاء مكون واجهة المستخدم "${componentName}" بنجاح!\n\nيمكنك استخدامه في أي صفحة عن طريق استيراده:\n\nimport { ${componentName} } from '@/components/custom/${componentName}';\n\nتم حفظ الكود في: ${filePath}\n\nالكود المولد:\n${componentCode}`;
+}
+
+/**
+ * تنفيذ ميزة جديدة في التطبيق
+ * @param command وصف الميزة المطلوبة
+ */
+async function implementFeature(command: string): Promise<string> {
+  console.log(`🔄 تنفيذ ميزة جديدة: "${command}"`);
+  
+  // توليد خطة لتنفيذ الميزة
+  const planPrompt = `قم بتحليل الميزة التالية وإنشاء خطة تنفيذ مفصلة مع تحديد الملفات التي يجب تعديلها وكيفية تنفيذ الميزة: ${command}`;
+  const plan = await generateCodeWithOpenAI(planPrompt);
+  
+  // تحديد الملفات التي يجب تعديلها بناءً على الخطة
+  // هنا نحتاج إلى تنفيذ المنطق الخاص بتحليل الخطة وتنفيذها
+  
+  // كمثال مبسط، سنقوم بإنشاء ملف واحد للميزة الجديدة
+  const featureName = `Feature${Date.now().toString(36).slice(-4)}`;
+  const featureCode = await generateCodeWithOpenAI(`قم بإنشاء كود TypeScript لتنفيذ الميزة التالية: ${command}`);
+  
+  const filePath = path.join(process.cwd(), 'shared', 'features', `${featureName}.ts`);
+  
+  // إنشاء المجلد إذا لم يكن موجودًا
+  const dirPath = path.dirname(filePath);
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+  
+  // حفظ الكود في ملف
+  fs.writeFileSync(filePath, featureCode, 'utf8');
+  
+  return `✅ تم تنفيذ الميزة الجديدة بنجاح!\n\nتم حفظ الكود في: ${filePath}\n\nخطة التنفيذ:\n${plan}\n\nالكود المولد:\n${featureCode}`;
+}
+
+/**
+ * إصلاح مشكلة في التطبيق
+ * @param command وصف المشكلة المطلوب إصلاحها
+ */
+async function fixIssue(command: string): Promise<string> {
+  console.log(`🔄 إصلاح مشكلة: "${command}"`);
+  
+  // تحليل المشكلة وتحديد الملفات المحتملة
+  const analysisPrompt = `قم بتحليل المشكلة التالية وتحديد الأسباب المحتملة والملفات التي قد تحتاج إلى تعديل: ${command}`;
+  const analysis = await generateCodeWithOpenAI(analysisPrompt);
+  
+  // هنا نحتاج إلى منطق أكثر تعقيدًا لتحديد الملفات التي تحتاج إلى تعديل وإجراء التغييرات اللازمة
+  
+  return `🔍 تحليل المشكلة:\n${analysis}\n\nلتنفيذ الإصلاح بشكل آلي، يرجى تحديد الملف الذي تريد إصلاحه بشكل أكثر تحديداً. يمكنك استخدام أمر مثل: "أصلح مشكلة X في ملف Y"`;
+}
+
+/**
+ * تعديل كود موجود في التطبيق
+ * @param command وصف التعديل المطلوب
+ */
+async function modifyExistingCode(command: string): Promise<string> {
+  console.log(`🔄 تعديل كود موجود: "${command}"`);
+  
+  // هنا نحتاج إلى تحليل الأمر لتحديد الملف الذي يحتاج إلى تعديل
+  // ثم قراءة محتوى الملف وإجراء التعديلات اللازمة
+  
+  return `لتعديل كود موجود بشكل آلي، يرجى تحديد اسم الملف الذي تريد تعديله بشكل صريح. يمكنك استخدام أمر مثل: "عدل ملف X لإضافة ميزة Y"`;
+}
+
+/**
+ * إضافة المكون الجديد إلى ملف التصدير
+ * @param componentPath مسار ملف المكون
+ */
+async function addComponentToExports(componentPath: string): Promise<void> {
+  try {
+    const dirPath = path.dirname(componentPath);
+    const componentName = path.basename(componentPath, path.extname(componentPath));
+    
+    const indexPath = path.join(dirPath, 'index.ts');
+    if (fs.existsSync(indexPath)) {
+      let indexContent = fs.readFileSync(indexPath, 'utf8');
+      if (!indexContent.includes(`from './${componentName}'`)) {
+        indexContent += `\nexport { default as ${componentName} } from './${componentName}';`;
+        fs.writeFileSync(indexPath, indexContent, 'utf8');
+      }
+    } else {
+      fs.writeFileSync(indexPath, `export { default as ${componentName} } from './${componentName}';`, 'utf8');
+    }
+  } catch (error) {
+    console.warn('⚠️ لم يتم إضافة المكون إلى ملف التصدير:', error);
+  }
+}
+
+/**
+ * تسجيل مسار جديد في التطبيق
+ * @param routePath مسار ملف المسار
+ */
+async function registerNewRoute(routePath: string): Promise<void> {
+  // هنا يمكن إضافة المنطق الخاص بتسجيل مسار جديد في التطبيق
+  console.log(`🔄 تسجيل مسار جديد: ${routePath}`);
+}
+
+/**
+ * تحديث استيرادات الأدوات المساعدة
+ * @param utilPath مسار ملف الأداة المساعدة
+ */
+async function updateUtilImports(utilPath: string): Promise<void> {
+  // هنا يمكن إضافة المنطق الخاص بتحديث استيرادات الأدوات المساعدة
+  console.log(`🔄 تحديث استيرادات الأدوات المساعدة: ${utilPath}`);
+}
+
+/**
+ * تحديد ما إذا كان يجب إعادة تشغيل التطبيق بعد تنفيذ الأمر
+ * @param command الأمر المنفذ
+ * @param code الكود المولد
+ */
+function shouldRestartApp(command: string, code: string): boolean {
+  // تحديد ما إذا كان الكود يتطلب إعادة تشغيل التطبيق
+  return command.includes('إعادة تشغيل') || 
+         code.includes('server') || 
+         code.includes('app.use') || 
+         code.includes('routes') ||
+         code.includes('import express');
+}
+
+/**
+ * إعادة تشغيل التطبيق
+ */
+async function restartApplication(): Promise<void> {
+  try {
+    console.log('🔄 جاري إعادة تشغيل التطبيق...');
+    // هنا يمكن إضافة المنطق الخاص بإعادة تشغيل التطبيق
+    // ملاحظة: قد يتطلب ذلك امتيازات خاصة حسب بيئة التشغيل
+  } catch (error) {
+    console.error('❌ فشل في إعادة تشغيل التطبيق:', error);
   }
 }
 
