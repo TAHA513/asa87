@@ -1,63 +1,86 @@
+
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
 import { sql } from 'drizzle-orm';
 
+// تكوين Neon لاستخدام WebSockets
 neonConfig.webSocketConstructor = ws;
-// Remove the unsupported patchWebsocketDanglingTimeout config
-// Add proper connection retry logic instead
 
-// Validate database URL
+// التحقق من وجود رابط قاعدة البيانات
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL must be set. Did you forget to provision a database?");
+  throw new Error("يجب تعيين DATABASE_URL. هل نسيت توفير قاعدة بيانات؟");
 }
 
-// Create connection pool with proper error handling and retry logic
+// إنشاء مجموعة اتصالات واحدة للتطبيق بأكمله
 const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: 5000, // 5 second timeout
-  max: 20, // Maximum 20 clients in pool
-  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
-  keepAlive: true, // Keep connections alive
-  allowExitOnIdle: false // Prevent pool from ending when idle
+  connectionTimeoutMillis: 10000, // زيادة مهلة الاتصال إلى 10 ثوانٍ
+  max: 10, // تقليل عدد الاتصالات المتزامنة لتجنب تجاوز الحد
+  idleTimeoutMillis: 30000, // إغلاق الاتصالات الخاملة بعد 30 ثانية
+  keepAlive: true, // الحفاظ على الاتصالات نشطة
+  allowExitOnIdle: false // منع إنهاء المجموعة عند الخمول
 });
 
-// Configure drizzle with proper typing
+// تكوين Drizzle مع التكتيب المناسب
 export const db = drizzle(pool, { schema });
 
-// Test connection on startup and handle errors gracefully
-pool.connect()
-  .then(() => {
-    console.log("Successfully connected to database");
-  })
-  .catch(err => {
-    console.error("Initial database connection failed:", err);
-    // Don't exit process, let it retry
-  });
+// متغير للتحقق من حالة الاتصال
+let isConnected = false;
 
-// Handle pool errors without crashing
+// اختبار الاتصال عند بدء التشغيل
+const testConnection = async () => {
+  try {
+    console.log("جاري اختبار الاتصال بقاعدة البيانات...");
+    await pool.query('SELECT 1');
+    console.log("تم الاتصال بقاعدة البيانات بنجاح");
+    isConnected = true;
+    return true;
+  } catch (err) {
+    console.error("فشل اتصال قاعدة البيانات الأولي:", err);
+    isConnected = false;
+    return false;
+  }
+};
+
+// تصدير دالة لاختبار الاتصال
+export const ensureConnection = async () => {
+  if (!isConnected) {
+    return await testConnection();
+  }
+  return true;
+};
+
+// معالجة أخطاء المجموعة دون تعطيل
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle client:', err);
-  // Don't exit, let the pool handle reconnection
+  console.error('خطأ غير متوقع في اتصال العميل:', err);
+  isConnected = false;
+  // لا تنهي العملية، دع المجموعة تعالج إعادة الاتصال
 });
 
-// Keep connection alive with periodic ping
-setInterval(() => {
-  pool.query('SELECT 1')
-    .catch(err => {
-      console.warn('Keep-alive ping failed:', err);
-    });
-}, 60000); // Ping every minute
+// الحفاظ على الاتصال نشطًا باستخدام نبض دوري
+const keepAliveInterval = setInterval(() => {
+  if (isConnected) {
+    pool.query('SELECT 1')
+      .catch(err => {
+        console.warn('فشل اختبار الاتصال الدوري:', err);
+        isConnected = false;
+      });
+  } else {
+    testConnection().catch(() => {}); // محاولة إعادة الاتصال إذا كان منقطعًا
+  }
+}, 60000); // إرسال نبض كل دقيقة
 
-// Handle cleanup on application shutdown
+// معالجة التنظيف عند إيقاف التطبيق
 process.on('SIGTERM', () => {
-  console.log('Closing database pool...');
+  console.log('إغلاق مجموعة قاعدة البيانات...');
+  clearInterval(keepAliveInterval);
   pool.end().then(() => {
-    console.log('Database pool closed.');
+    console.log('تم إغلاق مجموعة قاعدة البيانات.');
     process.exit(0);
   });
 });
 
-// Export sql for use in other files
-export { sql };
+// تصدير الدوال والمتغيرات اللازمة
+export { sql, pool, testConnection };
