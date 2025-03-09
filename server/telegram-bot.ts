@@ -3,11 +3,9 @@ import { generateCodeWithOpenAI } from './code-generator';
 import { executeCode } from './command-executor';
 import dotenv from 'dotenv';
 
-// تحميل متغيرات البيئة
 dotenv.config();
 
-// إنشاء بوت تلجرام مع خيارات لتجنب التعارض
-export const startTelegramBot = () => {
+export const startTelegramBot = async () => {
   if (!process.env.TELEGRAM_BOT_TOKEN) {
     console.log('⚠️ لم يتم العثور على رمز بوت تلجرام');
     return null;
@@ -20,15 +18,15 @@ export const startTelegramBot = () => {
     const pendingCode: { [key: string]: string } = {};
 
     bot.start((ctx) => {
-      ctx.reply(`👋 مرحباً ${ctx.from?.first_name || ""}! أنا مساعدك البرمجي.
+      return ctx.reply(`👋 مرحباً ${ctx.from?.first_name || ""}! أنا مساعدك البرمجي.
 
 🚀 *كيفية استخدام البوت:*
 1️⃣ أرسل \`/generate\` متبوعًا بوصف ما تريد إنشاءه باللغة العربية
 2️⃣ سأقوم بإنشاء الكود المناسب وعرضه عليك
 3️⃣ يمكنك الموافقة على الكود باستخدام الزر المرفق
 
-*مثال:* \`/generate إنشاء صفحة تسجيل دخول بسيطة مع حقل البريد الإلكتروني وكلمة المرور وزر تسجيل الدخول\``, 
-        { parse_mode: 'Markdown' });
+*مثال:* \`/generate إنشاء صفحة تسجيل دخول بسيطة\``, 
+      { parse_mode: 'Markdown' });
     });
 
     bot.command('generate', async (ctx) => {
@@ -43,13 +41,31 @@ export const startTelegramBot = () => {
         const chatId = ctx.chat.id.toString();
         pendingCode[chatId] = generatedCode;
 
-        await ctx.reply('🔹 *الكود المقترح:*\n```\n' + generatedCode + '\n```', { 
-          parse_mode: 'Markdown',
+        // تقسيم الكود إلى أجزاء إذا كان طويلاً
+        const MAX_LENGTH = 4000;
+        if (generatedCode.length > MAX_LENGTH) {
+          const parts = [];
+          for (let i = 0; i < generatedCode.length; i += MAX_LENGTH) {
+            parts.push(generatedCode.slice(i, i + MAX_LENGTH));
+          }
+
+          for (let i = 0; i < parts.length; i++) {
+            await ctx.reply(`جزء ${i + 1}/${parts.length}:\n\`\`\`\n${parts[i]}\n\`\`\``, {
+              parse_mode: 'Markdown'
+            });
+          }
+        } else {
+          await ctx.reply(`\`\`\`\n${generatedCode}\n\`\`\``, {
+            parse_mode: 'Markdown'
+          });
+        }
+
+        await ctx.reply('هل تريد تنفيذ هذا الكود؟', {
           reply_markup: {
             inline_keyboard: [
               [
-                { text: "✅ موافق", callback_data: "approve:" + chatId },
-                { text: "❌ رفض", callback_data: "reject:" + chatId }
+                { text: '✅ نعم', callback_data: `approve_${chatId}` },
+                { text: '❌ لا', callback_data: `reject_${chatId}` }
               ]
             ]
           }
@@ -60,47 +76,47 @@ export const startTelegramBot = () => {
       }
     });
 
-    bot.action(/approve:(.+)/, async (ctx) => {
-      const chatId = ctx.match![1];
+    bot.action(/approve_(.+)/, async (ctx) => {
+      const chatId = ctx.match[1];
       if (!pendingCode[chatId]) {
         return ctx.reply('❌ لا يوجد كود بانتظار الموافقة.');
       }
 
       try {
-        await ctx.reply('🔄 جاري تنفيذ التعديلات...');
+        await ctx.reply('🔄 جاري تنفيذ الكود...');
         const filePath = await executeCode(pendingCode[chatId]);
-
-        await ctx.reply(`✅ تم تنفيذ التعديلات بنجاح!\n\n📝 تم إنشاء/تعديل الملف: ${filePath}`);
+        await ctx.reply(`✅ تم تنفيذ الكود بنجاح!\nالملف: ${filePath}`);
         delete pendingCode[chatId];
       } catch (error) {
         console.error('Error executing code:', error);
-        ctx.reply(`❌ حدث خطأ أثناء تنفيذ الكود: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
+        ctx.reply(`❌ حدث خطأ أثناء التنفيذ: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
       }
     });
 
-    bot.action(/reject:(.+)/, (ctx) => {
-      const chatId = ctx.match![1];
+    bot.action(/reject_(.+)/, async (ctx) => {
+      const chatId = ctx.match[1];
       if (!pendingCode[chatId]) {
         return ctx.reply('❌ لا يوجد كود بانتظار الرفض.');
       }
-
-      ctx.reply('❌ تم إلغاء التعديلات.');
+      await ctx.reply('تم إلغاء تنفيذ الكود.');
       delete pendingCode[chatId];
     });
 
+    // معالجة الأخطاء العامة
+    bot.catch((err) => {
+      console.error('Telegram bot error:', err);
+    });
 
-    return bot.launch()
-      .then(() => {
-        console.log('✅ بوت تلجرام يعمل الآن!');
-        return bot;
-      })
-      .catch((error) => {
-        console.error('❌ حدث خطأ أثناء تشغيل بوت تلجرام:', error);
-        throw error;
-      });
+    await bot.launch();
+    console.log('✅ تم تشغيل بوت التلجرام بنجاح!');
 
+    // إيقاف البوت بشكل آمن عند إغلاق التطبيق
+    process.once('SIGINT', () => bot.stop('SIGINT'));
+    process.once('SIGTERM', () => bot.stop('SIGTERM'));
+
+    return bot;
   } catch (error) {
-    console.error('❌ حدث خطأ أثناء إنشاء بوت تلجرام:', error);
+    console.error('❌ حدث خطأ أثناء بدء بوت التلجرام:', error);
     throw error;
   }
 };
