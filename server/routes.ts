@@ -19,8 +19,6 @@ import {
   insertAppointmentSchema,
   type Customer,
 } from "@shared/schema";
-import express from "express";
-import * as settingsRoutes from './routes/settings-routes';
 
 // Helper functions for platform stats
 function mockPlatformStats() {
@@ -229,80 +227,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Theme Settings
   app.post("/api/theme", async (req, res) => {
     try {
-      // قائمة القيم الصالحة المقبولة
-      const ALLOWED_VARIANTS = ["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"];
-      const ALLOWED_APPEARANCES = ["light", "dark", "system"];
-      const ALLOWED_FONT_STYLES = ["noto-kufi", "cairo", "tajawal"];
-      const ALLOWED_FONT_SIZES = ["small", "medium", "large", "xlarge"];
-
-      // استخراج البيانات مع التحقق المتكامل
-      const themeData = {
-        primary: req.body.primary || "hsl(215.3 98.9% 27.8%)",
-        variant: ALLOWED_VARIANTS.includes(req.body.variant) ? req.body.variant : "professional",
-        appearance: ALLOWED_APPEARANCES.includes(req.body.appearance) ? req.body.appearance : "light",
-        fontStyle: ALLOWED_FONT_STYLES.includes(req.body.fontStyle) ? req.body.fontStyle : "noto-kufi",
-        fontSize: ALLOWED_FONT_SIZES.includes(req.body.fontSize) ? req.body.fontSize : "medium",
-        radius: typeof req.body.radius === 'number' ? req.body.radius : 0.5
-      };
-
-      console.log("تم التحقق من بيانات الثيم بنجاح:", themeData);
-
-      // حفظ في قاعدة البيانات أولاً
-      if (req.isAuthenticated() && req.user) {
-        try {
-          // تحويل البيانات إلى الشكل المطلوب لقاعدة البيانات
-          const userSettings = {
-            userId: req.user.id,
-            themeName: themeData.variant,
-            fontName: themeData.fontStyle,
-            fontSize: themeData.fontSize,
-            appearance: themeData.appearance,
-            colors: {
-              primary: themeData.primary,
-              secondary: themeData.appearance === 'dark'
-                ? `color-mix(in srgb, ${themeData.primary} 80%, white)`
-                : `color-mix(in srgb, ${themeData.primary} 80%, black)`,
-              accent: themeData.appearance === 'dark'
-                ? `color-mix(in srgb, ${themeData.primary} 60%, black)`
-                : `color-mix(in srgb, ${themeData.primary} 60%, white)`
-            }
-          };
-
-          // الحفظ في قاعدة البيانات
-          const savedSettings = await storage.saveUserSettings(req.user.id, userSettings);
-          console.log("تم حفظ الإعدادات في قاعدة البيانات:", savedSettings);
-        } catch (dbError) {
-          console.error("خطأ في حفظ الإعدادات في قاعدة البيانات:", dbError);
-          // نستمر في المحاولة لحفظ الملف حتى لو فشل الحفظ في قاعدة البيانات
-        }
-      }
-
-      // ثم الحفظ في ملف theme.json
-      try {
-        await fs.writeFile(
-          path.join(process.cwd(), "theme.json"),
-          JSON.stringify(themeData, null, 2)
-        );
-        console.log("تم حفظ الثيم في ملف theme.json بنجاح");
-      } catch (fileError) {
-        console.error("خطأ في حفظ ملف theme.json:", fileError);
-        return res.status(500).json({
-          message: "فشل في حفظ ملف theme.json",
-          error: fileError instanceof Error ? fileError.message : "خطأ غير معروف"
-        });
-      }
-
-      // إرسال الاستجابة بنجاح
-      res.json({
-        success: true,
-        theme: themeData
+      // التحقق من صحة البيانات
+      const themeSchema = z.object({
+        primary: z.string(),
+        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
+        appearance: z.enum(["light", "dark", "system"]),
+        fontStyle: z.enum([
+          "traditional",
+          "modern",
+          "minimal",
+          "digital",
+          "elegant",
+          "kufi",
+          "naskh",
+          "ruqaa",
+          "thuluth",
+          "contemporary",
+          "noto-kufi", // نوتو كوفي
+          "cairo", // القاهرة
+          "tajawal", // طجوال
+          "amiri", // أميري
+        ]),
+        radius: z.number(),
+        fontSize: z.enum(["small", "medium", "large", "xlarge"]), //Added fontSize
       });
+
+      const theme = themeSchema.parse(req.body);
+
+      // حفظ الثيم في ملف theme.json
+      await fs.writeFile(
+        path.join(process.cwd(), "theme.json"),
+        JSON.stringify(theme, null, 2)
+      );
+
+      res.json({ success: true });
     } catch (error) {
       console.error("Error updating theme:", error);
-      res.status(500).json({
-        message: "فشل في تحديث المظهر",
-        error: error instanceof Error ? error.message : "خطأ غير معروف"
-      });
+      res.status(500).json({ message: "فشل في تحديث المظهر" });
     }
   });
 
@@ -1233,9 +1194,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // إضافة مسارات إعدادات المظهر والألوان
-  app.use('/api/settings', settingsRoutes.default);
-
   // Add after existing appointment routes
   app.get("/api/appointments/:id/activities", async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -1335,13 +1293,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const themeSchema = z.object({
     primary: z.string(),
     variant: z.enum([
-      "professional", // المهني
-      "vibrant", // النابض بالحياة
-      "tint", // الرمادي
       "modern", // العصري
       "classic", // الكلاسيكي
-      "futuristic", // المستقبلي
       "elegant", // الأنيق
+      "vibrant", // النابض بالحياة
       "natural", // الطبيعي
     ]),
     appearance: z.enum(["light", "dark", "system"]),
@@ -1349,6 +1304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       "noto-kufi", // نوتو كوفي
       "cairo", // القاهرة
       "tajawal", // طجوال
+      "amiri", // أميري
     ]),
     fontSize: z.enum(["small", "medium", "large", "xlarge"]),
     radius: z.number(),
@@ -1383,22 +1339,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum([
-          "professional", "vibrant", "tint", "modern",
-          "classic", "futuristic", "elegant", "natural"
-        ]),
+        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
         appearance: z.enum(["light", "dark", "system"]),
         fontStyle: z.enum([
+          "traditional",
+          "modern",
+          "minimal",
+          "digital",
+          "elegant",
+          "kufi",
+          "naskh",
+          "ruqaa",
+          "thuluth",
+          "contemporary",
           "noto-kufi",
           "cairo",
           "tajawal",
+          "amiri",
         ]),
         fontSize: z.enum(["small", "medium", "large", "xlarge"]),
         radius: z.number(),
       });
 
       const theme = themeSchema.parse(req.body);
-      console.log("تم استلام إعدادات جديدة:", theme);
 
       // تحويل البيانات إلى الشكل المطلوب لقاعدة البيانات
       const userSettings = {
@@ -1409,38 +1372,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         appearance: theme.appearance,
         colors: {
           primary: theme.primary,
-          secondary: theme.appearance === 'dark'
-            ? `color-mix(in srgb, ${theme.primary} 80%, white)`
-            : `color-mix(in srgb, ${theme.primary} 80%, black)`,
-          accent: theme.appearance === 'dark'
-            ? `color-mix(in srgb, ${theme.primary} 60%, black)`
-            : `color-mix(in srgb, ${theme.primary} 60%, white)`
+          secondary: `color-mix(in srgb, ${theme.primary} 80%, ${theme.appearance === 'dark' ? 'white' : 'black'})`,
+          accent: `color-mix(in srgb, ${theme.primary} 60%, ${theme.appearance === 'dark' ? 'black' : 'white'})`,
         }
       };
 
-      // الحفظ بالتسلسل الصحيح - أولا في قاعدة البيانات
-      const savedSettings = await storage.saveUserSettings(req.user!.id, userSettings);
-      console.log("تم حفظ الإعدادات في قاعدة البيانات:", savedSettings);
+      // حفظ الإعدادات في قاعدة البيانات
+      await storage.saveUserSettings({
+        userId: req.user!.id,
+        themeName: theme.variant,
+        fontName: theme.fontStyle,
+        fontSize: theme.fontSize,
+        appearance: theme.appearance,
+        colors: {
+          primary: theme.primary,
+          secondary: `color-mix(in srgb, ${theme.primary} 80%, ${theme.appearance === 'dark' ? 'white' : 'black'})`,
+          accent: `color-mix(in srgb, ${theme.primary} 60%, ${theme.appearance === 'dark' ? 'black' : 'white'})`,
+        }
+      });
 
-      // ثم الحفظ في ملف theme.json
+      // حفظ الثيم في ملف theme.json
       await fs.writeFile(
         path.join(process.cwd(), "theme.json"),
         JSON.stringify(theme, null, 2)
       );
-      console.log("تم حفظ الثيم في ملف theme.json");
 
-      // إرسال الاستجابة بنجاح
-      res.json({
-        success: true,
-        settings: userSettings
-      });
+      res.json({ success: true });
     } catch (error) {
       console.error("Error updating theme:", error);
-      // تخطي محاولة الحفظ في ملف السمات إذا فشل التحقق من صحة البيانات
-      res.status(400).json({
-        message: "فشل في حفظ إعدادات المظهر",
-        error: error instanceof Error ? error.message : "خطأ غير معروف"
-      });
+      res.status(500).json({ message: "فشل في حفظ إعدادات المظهر" });
     }
   });
 
@@ -1781,12 +1741,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const reportId = parseInt(req.params.id);
-
+      
       // التحقق من صحة معرف التقرير
       if (isNaN(reportId)) {
         return res.status(400).json({ message: "معرف التقرير غير صالح" });
       }
-
+      
       const report = await storage.getReport(reportId);
       if (!report) {
         return res.status(404).json({ message: "التقرير غير موجود" });
@@ -1824,7 +1784,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة التواريخ
       const start = new Date(startDate as string);
       const end = new Date(endDate as string);
-
+      
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
         return res.status(400).json({
           message: "صيغة التاريخ غير صحيحة"

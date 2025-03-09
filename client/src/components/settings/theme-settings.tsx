@@ -1,375 +1,514 @@
-
-import { useEffect, useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useEffect, useState } from "react";
+import { Check, Palette, Type, Moon, Sun, Monitor, Minus, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { HexColorPicker } from "react-colorful";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { cn } from "@/lib/utils";
-import {
-  ThemeSettings,
-  DEFAULT_THEME,
-  THEME_VARIANTS,
-  storeTheme,
-  applyTheme,
-  saveThemeToServer,
-  fetchThemeFromServer
-} from "@/lib/theme-service";
+import { apiRequest } from "@/lib/queryClient";
+import { motion } from "framer-motion";
 
-export default function ThemeSettings() {
+const themes = [
+  {
+    name: "العصري",
+    id: "modern",
+    colors: {
+      primary: "hsl(142.1 76.2% 36.3%)",
+      secondary: "hsl(217.2 91.2% 59.8%)",
+      accent: "hsl(316.8 81.2% 43.8%)",
+    },
+    preview: "modern",
+  },
+  {
+    name: "الكلاسيكي",
+    id: "classic",
+    colors: {
+      primary: "hsl(215.3 98.9% 27.8%)",
+      secondary: "hsl(221.2 83.2% 53.3%)",
+      accent: "hsl(262.1 83.3% 57.8%)",
+    },
+    preview: "classic",
+  },
+  {
+    name: "الأنيق",
+    id: "elegant",
+    colors: {
+      primary: "hsl(200.4 15.3% 46.9%)",
+      secondary: "hsl(171.2 76.5% 36.6%)",
+      accent: "hsl(280.1 81.3% 40.8%)",
+    },
+    preview: "elegant",
+  },
+  {
+    name: "النابض بالحياة",
+    id: "vibrant",
+    colors: {
+      primary: "hsl(20.5 90.2% 48.2%)",
+      secondary: "hsl(280.1 65.3% 70.8%)",
+      accent: "hsl(346.8 77.2% 49.8%)",
+    },
+    preview: "vibrant",
+  },
+  {
+    name: "الطبيعي",
+    id: "natural",
+    colors: {
+      primary: "hsl(120.1 40.1% 39.2%)",
+      secondary: "hsl(25.3 95.3% 52.8%)",
+      accent: "hsl(160.1 84.1% 39.2%)",
+    },
+    preview: "natural",
+  },
+];
+
+const fonts = [
+  {
+    name: "نوتو كوفي",
+    id: "noto-kufi",
+    family: "'Noto Kufi Arabic'",
+    weight: "400,700",
+    style: "modern",
+    preview: "خط عربي حديث وأنيق",
+  },
+  {
+    name: "القاهرة",
+    id: "cairo",
+    family: "'Cairo'",
+    weight: "400,600,700",
+    style: "elegant",
+    preview: "خط عصري متناسق",
+  },
+  {
+    name: "الأميري",
+    id: "amiri",
+    family: "'Amiri'",
+    weight: "400,700",
+    style: "traditional",
+    preview: "خط كلاسيكي جميل",
+  },
+  {
+    name: "تجوال",
+    id: "tajawal",
+    family: "'Tajawal'",
+    weight: "400,500,700",
+    style: "contemporary",
+    preview: "خط عربي معاصر",
+  },
+  {
+    name: "آي بي إم بلكس",
+    id: "ibm-plex",
+    family: "'IBM Plex Sans Arabic'",
+    weight: "400,500,700",
+    style: "modern",
+    preview: "خط عصري للواجهات",
+  },
+  {
+    name: "عارف رقعة",
+    id: "aref-ruqaa",
+    family: "'Aref Ruqaa'",
+    weight: "400,700",
+    style: "calligraphic",
+    preview: "خط رقعة أصيل",
+  },
+  {
+    name: "لطيف",
+    id: "lateef",
+    family: "'Lateef'",
+    weight: "400,700",
+    style: "readable",
+    preview: "خط سهل القراءة",
+  },
+  {
+    name: "ريم الكوفي",
+    id: "reem-kufi",
+    family: "'Reem Kufi'",
+    weight: "400,500,700",
+    style: "geometric",
+    preview: "خط كوفي هندسي",
+  },
+];
+
+const fontSizes = {
+  small: {
+    base: 14,
+    scale: 1.2,
+  },
+  medium: {
+    base: 16,
+    scale: 1.25,
+  },
+  large: {
+    base: 18,
+    scale: 1.333,
+  },
+  xlarge: {
+    base: 20,
+    scale: 1.4,
+  },
+};
+
+const ThemeSettings = () => {
   const { toast } = useToast();
-  const [settings, setSettings] = useState<ThemeSettings>(DEFAULT_THEME);
+  const [activeTab, setActiveTab] = useState("theme");
+  const [selectedTheme, setSelectedTheme] = useState(themes[0]);
+  const [selectedFont, setSelectedFont] = useState(fonts[0]);
+  const [fontSize, setFontSize] = useState("medium");
+  const [appearance, setAppearance] = useState<"light" | "dark" | "system">("system");
   const [isLoading, setIsLoading] = useState(false);
-  
-  // جلب الإعدادات عند تحميل المكون
+
+  const applyAppearance = (mode: "light" | "dark" | "system") => {
+    const root = window.document.documentElement;
+    root.classList.remove("light", "dark");
+
+    if (mode === "system") {
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      root.classList.add(systemTheme);
+    } else {
+      root.classList.add(mode);
+    }
+
+    root.style.setProperty("--current-appearance", mode);
+  };
+
   useEffect(() => {
-    async function loadSettings() {
-      setIsLoading(true);
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const handleChange = () => {
+      if (appearance === "system") {
+        applyAppearance("system");
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [appearance]);
+
+  useEffect(() => {
+    const loadSettings = async () => {
       try {
-        // محاولة قراءة الإعدادات من ملف theme.json
-        try {
-          const response = await fetch('/theme.json');
-          if (response.ok) {
-            const data = await response.json();
-            setSettings(data);
-            console.log("تم قراءة الإعدادات من ملف theme.json:", data);
-            setIsLoading(false);
-            return;
-          }
-        } catch (error) {
-          console.error("خطأ في قراءة ملف theme.json:", error);
-        }
-        
-        // إذا فشلت قراءة ملف theme.json، نحاول الحصول عليها من API
-        const serverTheme = await fetchThemeFromServer();
-        if (serverTheme) {
-          setSettings(serverTheme);
+        const response = await apiRequest("GET", "/api/settings");
+        if (response) {
+          const theme = themes.find(t => t.id === response.variant) || themes[0];
+          const font = fonts.find(f => f.id === response.fontStyle) || fonts[0];
+          setSelectedTheme(theme);
+          setSelectedFont(font);
+          setFontSize(response.fontSize || "medium");
+          setAppearance(response.appearance || "system");
+          applyAppearance(response.appearance || "system");
         }
       } catch (error) {
-        console.error("خطأ في تحميل الإعدادات:", error);
-      } finally {
-        setIsLoading(false);
+        console.error("Error loading settings:", error);
       }
-    }
-    
+    };
+
     loadSettings();
   }, []);
-  
-  // حفظ الإعدادات - يتم استدعاؤها عند التغيير
-  const saveSettings = useCallback(async () => {
-    console.log("جاري حفظ الإعدادات:", settings);
+
+  const saveSettings = async () => {
     setIsLoading(true);
     try {
-      // حفظ في التخزين المحلي أولاً
-      storeTheme(settings);
-      
-      // تطبيق التغييرات على واجهة المستخدم
-      applyTheme(settings);
-      
-      // حفظ على الخادم
-      const success = await saveThemeToServer(settings);
-      
-      if (success) {
+      const settings = {
+        primary: selectedTheme.colors.primary,
+        variant: selectedTheme.id,
+        fontStyle: selectedFont.id,
+        fontSize,
+        appearance,
+        radius: 0.5,
+      };
+
+      const response = await apiRequest("POST", "/api/settings", settings);
+
+      if (response) {
+        document.documentElement.style.setProperty("--primary-color", selectedTheme.colors.primary);
+        document.documentElement.style.setProperty("--secondary-color", selectedTheme.colors.secondary);
+        document.documentElement.style.setProperty("--accent-color", selectedTheme.colors.accent);
+        document.documentElement.style.setProperty("--font-family", selectedFont.family);
+        document.documentElement.style.setProperty("--font-size-base", `${fontSizes[fontSize].base}px`);
+        applyAppearance(appearance);
+
         toast({
           title: "تم الحفظ",
           description: "تم حفظ إعدادات المظهر بنجاح",
         });
-      } else {
-        toast({
-          title: "خطأ",
-          description: "حدث خطأ أثناء حفظ الإعدادات",
-          variant: "destructive",
-        });
       }
     } catch (error) {
-      console.error("خطأ في حفظ الإعدادات:", error);
+      console.error("Error saving settings:", error);
       toast({
         title: "خطأ",
-        description: "حدث خطأ أثناء حفظ الإعدادات",
+        description: "فشل في حفظ التغييرات",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  }, [settings, toast]);
-  
-  // معالج تغيير الإعدادات
-  const handleChange = useCallback((key: keyof ThemeSettings, value: any) => {
-    setSettings((prev) => {
-      const newSettings = { ...prev, [key]: value };
-      
-      // حفظ التغييرات تلقائيًا بعد التعديل مباشرة
-      saveSettings();
-      
-      return newSettings;
-    });
-  }, [saveSettings]);
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-1">
-        <h3 className="text-2xl font-medium">تخصيص المظهر</h3>
-        <p className="text-sm text-muted-foreground">
-          قم بتخصيص مظهر التطبيق ليناسب ذوقك واحتياجاتك
-        </p>
-      </div>
+    <Card className="w-full max-w-4xl mx-auto overflow-hidden">
+      <CardHeader className="space-y-2 pb-6">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <CardTitle className="text-2xl font-bold">تخصيص المظهر</CardTitle>
+          <CardDescription className="text-base">
+            قم بتخصيص مظهر التطبيق حسب تفضيلاتك
+          </CardDescription>
+        </motion.div>
+      </CardHeader>
+      <CardContent className="pb-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2 mb-8">
+            {[
+              { value: "theme", icon: <Palette className="w-4 h-4" />, label: "الألوان" },
+              { value: "font", icon: <Type className="w-4 h-4" />, label: "الخطوط" },
+              { value: "size", icon: <Plus className="w-4 h-4" />, label: "الحجم" },
+              { value: "appearance", icon: <Sun className="w-4 h-4" />, label: "السطوع" }
+            ].map(tab => (
+              <TabsTrigger
+                key={tab.value}
+                value={tab.value}
+                className="flex items-center gap-2 py-2 px-4"
+              >
+                {tab.icon}
+                <span className="hidden md:inline">{tab.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-      <Tabs defaultValue="colors" className="space-y-4">
-        <TabsList className="grid grid-cols-3">
-          <TabsTrigger value="colors">الألوان</TabsTrigger>
-          <TabsTrigger value="appearance">المظهر</TabsTrigger>
-          <TabsTrigger value="typography">الخطوط</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="colors" className="space-y-4">
-          <div className="space-y-4">
-            <div>
-              <Label>اللون الرئيسي</Label>
-              <div className="mt-3 flex items-center gap-4">
-                <div 
-                  className="w-20 h-20 border rounded-md cursor-pointer"
-                  style={{ backgroundColor: settings.primary }}
-                />
-                <HexColorPicker
-                  color={settings.primary}
-                  onChange={(color) => handleChange("primary", color)}
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label>نمط الألوان</Label>
-              <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {THEME_VARIANTS.map((variant) => (
-                  <div
-                    key={variant.id}
-                    className={cn(
-                      "relative h-16 rounded-md cursor-pointer flex items-center justify-center border-2",
-                      settings.variant === variant.id
-                        ? "border-primary"
-                        : "border-transparent hover:border-muted-foreground/30"
-                    )}
-                    style={{ backgroundColor: variant.color }}
-                    onClick={() => handleChange("variant", variant.id)}
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <TabsContent value="theme">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {themes.map((theme) => (
+                  <motion.div
+                    key={theme.id}
+                    variants={itemVariants}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
-                    <span className="font-medium text-white text-shadow-sm">
-                      {variant.label}
-                    </span>
-                    {settings.variant === variant.id && (
-                      <div className="absolute top-1 right-1 w-4 h-4 bg-primary rounded-full border-2 border-white" />
-                    )}
-                  </div>
+                    <Card
+                      className={`cursor-pointer transition-all hover:shadow-lg ${
+                        selectedTheme.id === theme.id ? 'ring-2 ring-primary' : ''
+                      }`}
+                      onClick={() => {
+                        setSelectedTheme(theme);
+                        document.documentElement.style.setProperty("--primary-color", theme.colors.primary);
+                        document.documentElement.style.setProperty("--secondary-color", theme.colors.secondary);
+                        document.documentElement.style.setProperty("--accent-color", theme.colors.accent);
+                      }}
+                    >
+                      <CardHeader className="p-4">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg font-medium">{theme.name}</CardTitle>
+                          {selectedTheme.id === theme.id && (
+                            <Check className="w-5 h-5 text-primary" />
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-0">
+                        <div className="flex gap-2">
+                          {Object.entries(theme.colors).map(([key, color]) => (
+                            <div
+                              key={key}
+                              className="w-8 h-8 rounded-full shadow-inner"
+                              style={{ backgroundColor: color }}
+                            />
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 ))}
               </div>
-            </div>
+            </TabsContent>
 
-            <div>
-              <Label>نصف قطر الزوايا</Label>
-              <div className="mt-3">
-                <Slider
-                  value={[settings.radius]}
-                  min={0}
-                  max={2}
-                  step={0.1}
-                  onValueChange={(value) => handleChange("radius", value[0])}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                  <span>بدون زوايا</span>
-                  <span>زوايا متوسطة</span>
-                  <span>زوايا كبيرة</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-center mt-4">
-                <div
-                  className="w-16 h-16 border-2 border-primary"
-                  style={{
-                    borderRadius: `${settings.radius * 0.5}rem`,
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="appearance" className="space-y-4">
-          <div>
-            <Label>المظهر</Label>
-            <RadioGroup
-              value={settings.appearance}
-              onValueChange={(value) => 
-                handleChange("appearance", value as ThemeSettings["appearance"])
-              }
-              className="mt-3 grid grid-cols-3 gap-3"
-            >
-              <div>
-                <RadioGroupItem
-                  value="light"
-                  id="light"
-                  className="peer sr-only"
-                />
-                <Label
-                  htmlFor="light"
-                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="mb-3 h-6 w-6"
+            <TabsContent value="font">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {fonts.map((font) => (
+                  <motion.div
+                    key={font.id}
+                    variants={itemVariants}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
-                    <circle cx="12" cy="12" r="4" />
-                    <path d="M12 2v2" />
-                    <path d="M12 20v2" />
-                    <path d="m4.93 4.93 1.41 1.41" />
-                    <path d="m17.66 17.66 1.41 1.41" />
-                    <path d="M2 12h2" />
-                    <path d="M20 12h2" />
-                    <path d="m6.34 17.66-1.41 1.41" />
-                    <path d="m19.07 4.93-1.41 1.41" />
-                  </svg>
-                  <span>فاتح</span>
-                </Label>
+                    <Card
+                      className={`cursor-pointer transition-all hover:shadow-lg ${
+                        selectedFont.id === font.id ? 'ring-2 ring-primary' : ''
+                      }`}
+                      onClick={() => {
+                        setSelectedFont(font);
+                        document.documentElement.style.setProperty("--font-family", font.family);
+                      }}
+                    >
+                      <CardHeader className="p-4">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg font-medium">{font.name}</CardTitle>
+                          {selectedFont.id === font.id && (
+                            <Check className="w-5 h-5 text-primary" />
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-0">
+                        <p
+                          className="text-xl leading-relaxed"
+                          style={{ fontFamily: font.family }}
+                        >
+                          {font.preview}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
               </div>
+            </TabsContent>
 
-              <div>
-                <RadioGroupItem
-                  value="dark"
-                  id="dark"
-                  className="peer sr-only"
-                />
-                <Label
-                  htmlFor="dark"
-                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="mb-3 h-6 w-6"
+            <TabsContent value="size">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl font-medium">حجم الخط</CardTitle>
+                  <CardDescription>اختر حجم الخط المناسب للعرض</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-8">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {Object.entries(fontSizes).map(([size, config]) => (
+                        <motion.div
+                          key={size}
+                          variants={itemVariants}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <Card
+                            className={`cursor-pointer p-4 hover:shadow-lg ${
+                              fontSize === size ? 'ring-2 ring-primary' : ''
+                            }`}
+                            onClick={() => {
+                              setFontSize(size);
+                              document.documentElement.style.setProperty("--font-size-base", `${config.base}px`);
+                            }}
+                          >
+                            <div className="text-center">
+                              <div 
+                                className="mb-2 font-medium"
+                                style={{ fontSize: `${config.base}px` }}
+                              >
+                                نص تجريبي
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {size === "small" && "صغير"}
+                                {size === "medium" && "متوسط"}
+                                {size === "large" && "كبير"}
+                                {size === "xlarge" && "كبير جداً"}
+                              </div>
+                            </div>
+                          </Card>
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    <div className="space-y-4">
+                      <Label className="text-lg font-medium">معاينة الحجم</Label>
+                      <div 
+                        className="space-y-4 p-6 bg-card rounded-lg"
+                        style={{
+                          fontSize: `${fontSizes[fontSize as keyof typeof fontSizes].base}px`,
+                          fontFamily: selectedFont.family
+                        }}
+                      >
+                        <h1 className="text-2xl font-bold">عنوان رئيسي</h1>
+                        <h2 className="text-xl font-semibold">عنوان فرعي</h2>
+                        <p className="leading-relaxed">
+                          هذا نص تجريبي لمعاينة حجم الخط المختار. يمكنك رؤية كيف سيظهر النص في مختلف العناصر.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="appearance">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  { id: "light", name: "فاتح", icon: Sun },
+                  { id: "dark", name: "داكن", icon: Moon },
+                  { id: "system", name: "تلقائي", icon: Monitor }
+                ].map((mode) => (
+                  <motion.div
+                    key={mode.id}
+                    variants={itemVariants}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
-                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-                  </svg>
-                  <span>داكن</span>
-                </Label>
+                    <Card
+                      className={`cursor-pointer transition-all hover:shadow-lg ${
+                        appearance === mode.id ? 'ring-2 ring-primary' : ''
+                      }`}
+                      onClick={() => {
+                        setAppearance(mode.id as "light" | "dark" | "system");
+                        applyAppearance(mode.id as "light" | "dark" | "system");
+                      }}
+                    >
+                      <CardHeader className="p-4">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg font-medium">{mode.name}</CardTitle>
+                          {appearance === mode.id && (
+                            <Check className="w-5 h-5 text-primary" />
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-0">
+                        <mode.icon className="w-8 h-8" />
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
               </div>
+            </TabsContent>
+          </motion.div>
+        </Tabs>
 
-              <div>
-                <RadioGroupItem
-                  value="system"
-                  id="system"
-                  className="peer sr-only"
-                />
-                <Label
-                  htmlFor="system"
-                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="mb-3 h-6 w-6"
-                  >
-                    <rect
-                      x="2"
-                      y="3"
-                      width="20"
-                      height="14"
-                      rx="2"
-                      ry="2"
-                    />
-                    <line x1="8" y1="21" x2="16" y2="21" />
-                    <line x1="12" y1="17" x2="12" y2="21" />
-                  </svg>
-                  <span>النظام</span>
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="typography" className="space-y-4">
-          <div>
-            <Label>نوع الخط</Label>
-            <RadioGroup
-              value={settings.fontStyle}
-              onValueChange={(value) => 
-                handleChange("fontStyle", value as ThemeSettings["fontStyle"])
-              }
-              className="mt-3 space-y-3"
-            >
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <RadioGroupItem value="noto-kufi" id="noto-kufi" />
-                <Label htmlFor="noto-kufi" className="font-noto-kufi text-lg">
-                  نوتو كوفي - Noto Kufi Arabic
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <RadioGroupItem value="cairo" id="cairo" />
-                <Label htmlFor="cairo" className="font-cairo text-lg">
-                  القاهرة - Cairo
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <RadioGroupItem value="tajawal" id="tajawal" />
-                <Label htmlFor="tajawal" className="font-tajawal text-lg">
-                  طجوال - Tajawal
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-
-          <div>
-            <Label>حجم الخط</Label>
-            <RadioGroup
-              value={settings.fontSize}
-              onValueChange={(value) => 
-                handleChange("fontSize", value as ThemeSettings["fontSize"])
-              }
-              className="mt-3 space-y-3"
-            >
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <RadioGroupItem value="small" id="small" />
-                <Label htmlFor="small" className="text-sm">
-                  صغير
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <RadioGroupItem value="medium" id="medium" />
-                <Label htmlFor="medium" className="text-base">
-                  متوسط
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <RadioGroupItem value="large" id="large" />
-                <Label htmlFor="large" className="text-lg">
-                  كبير
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <RadioGroupItem value="xlarge" id="xlarge" />
-                <Label htmlFor="xlarge" className="text-xl">
-                  كبير جدًا
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-        </TabsContent>
-      </Tabs>
-    </div>
+        <motion.div
+          className="mt-8 flex justify-end"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Button
+            onClick={saveSettings}
+            disabled={isLoading}
+            className="w-full md:w-auto"
+          >
+            {isLoading ? "جارِ الحفظ..." : "حفظ التغييرات"}
+          </Button>
+        </motion.div>
+      </CardContent>
+    </Card>
   );
-}
+};
+
+export default ThemeSettings;
