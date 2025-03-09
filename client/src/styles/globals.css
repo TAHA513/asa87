@@ -1,0 +1,13 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: 'Tajawal', sans-serif;
+  direction: rtl;
+}
+
+body {
+  font-family: var(--font-sans);
+}

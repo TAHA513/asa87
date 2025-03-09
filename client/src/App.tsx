@@ -1,8 +1,9 @@
+
 import { QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Route, Router, Switch } from "wouter";
 import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
-import { ThemeProvider } from "@/lib/theme-provider"; // Added import
+import { ThemeProvider } from "@/lib/theme-provider";
 
 import DashboardLayout from "@/components/layouts/dashboard-layout";
 import Dashboard from "@/components/dashboard";
@@ -21,39 +22,36 @@ import CampaignManager from "@/components/marketing/campaign-manager";
 import SocialManager from "@/components/marketing/social-manager";
 import SocialAnalytics from "@/components/marketing/social-analytics";
 import AppSettings from "@/components/settings/app-settings";
-import "./styles/theme-variables.css"; // Added import
+import "./styles/theme-variables.css";
 
-
-function App() {
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider> {/* Added ThemeProvider */}
+      <ThemeProvider>
         <Router>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={<DashboardLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="products" element={<ProductManager />} />
-              <Route path="sales" element={<SalesManager />} />
-              <Route path="inventory" element={<Inventory />} />
-              <Route path="customers" element={<CustomerManager />} />
-              <Route path="appointments" element={<AppointmentManager />} />
-              <Route path="expenses" element={<ExpenseManager />} />
-              <Route path="suppliers" element={<SupplierManager />} />
-              <Route path="invoices" element={<InvoiceManager />} />
-              <Route path="reports" element={<ReportManager />} />
-              <Route path="marketing" element={<MarketingManager />} />
-              <Route path="marketing/campaigns" element={<CampaignManager />} />
-              <Route path="marketing/social" element={<SocialManager />} />
-              <Route path="marketing/analytics" element={<SocialAnalytics />} />
-              <Route path="settings" element={<AppSettings />} />
-            </Route>
-          </Routes>
+          <DashboardLayout>
+            <Switch>
+              <Route path="/" component={Dashboard} />
+              <Route path="/login" component={Login} />
+              <Route path="/products" component={ProductManager} />
+              <Route path="/sales" component={SalesManager} />
+              <Route path="/inventory" component={Inventory} />
+              <Route path="/customers" component={CustomerManager} />
+              <Route path="/appointments" component={AppointmentManager} />
+              <Route path="/expenses" component={ExpenseManager} />
+              <Route path="/suppliers" component={SupplierManager} />
+              <Route path="/invoices" component={InvoiceManager} />
+              <Route path="/reports" component={ReportManager} />
+              <Route path="/marketing" component={MarketingManager} />
+              <Route path="/campaigns" component={CampaignManager} />
+              <Route path="/social" component={SocialManager} />
+              <Route path="/analytics" component={SocialAnalytics} />
+              <Route path="/settings" component={AppSettings} />
+            </Switch>
+          </DashboardLayout>
         </Router>
         <Toaster />
-      </ThemeProvider> {/* Added closing ThemeProvider tag */}
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
-
-export default App;
