@@ -11,14 +11,14 @@ import { motion } from "framer-motion";
 
 const themes = [
   {
-    id: "default",
-    name: "الافتراضي",
+    id: "tint",
+    name: "الدرجات اللونية",
     colors: {
       primary: "hsl(142.1 76.2% 36.3%)",
       secondary: "hsl(217.2 91.2% 59.8%)",
       accent: "hsl(316.0 73.3% 52.5%)",
     },
-    preview: "default",
+    preview: "tint",
   },
   {
     id: "modern",
