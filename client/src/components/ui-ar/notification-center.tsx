@@ -22,10 +22,6 @@ type NotificationType =
   | "installment_due"
   | "system_update";
 
-import { useAuth } from "@/hooks/use-auth";
-import { useState, useEffect } from "react";
-import { AlertTriangle, Info } from "lucide-react";
-
 interface Notification {
   id: string;
   type: NotificationType;
@@ -115,39 +111,35 @@ export default function NotificationCenter() {
         return <Info className="h-5 w-5 text-info" />;
       case "installment_due":
         return <AlertTriangle className="h-5 w-5 text-warning" />;
+      case "inventory_check_complete":
+        return <Check className="h-5 w-5 text-success" />;
       case "system_update":
-        return <Info className="h-5 w-5 text-primary" />;
+        return <Info className="h-5 w-5 text-info" />;
       default:
-        return <Info className="h-5 w-5" />;
+        return <Info className="h-5 w-5 text-info" />;
     }
   };
 
-  const getNotificationContent = (notification: Notification) => {
-    const { type, data } = notification;
-    
+  const getNotificationContent = (type: NotificationType, data: any) => {
     switch (type) {
       case "inventory_alert":
         return (
           <div>
             <h4 className="font-semibold">تنبيه المخزون</h4>
-            <p className="text-sm">
-              المنتج "{data.productName}" منخفض في المخزون ({data.currentStock})
-            </p>
+            <p className="text-sm">{data.message}</p>
           </div>
         );
       case "upcoming_appointments":
         return (
           <div>
-            <h4 className="font-semibold">مواعيد قادمة</h4>
-            <p className="text-sm">
-              لديك {data.count} مواعيد قادمة في الـ 24 ساعة القادمة
-            </p>
+            <h4 className="font-semibold">تذكير بموعد</h4>
+            <p className="text-sm">{data.message}</p>
           </div>
         );
       case "inventory_check_complete":
         return (
           <div>
-            <h4 className="font-semibold">فحص المخزون</h4>
+            <h4 className="font-semibold">اكتمال فحص المخزون</h4>
             <p className="text-sm">{data.message}</p>
           </div>
         );
@@ -167,99 +159,100 @@ export default function NotificationCenter() {
       setTimeout(() => {
         const testNotification = {
           id: `test-${Date.now()}`,
-          type: "system_update" as NotificationType,
-          data: { message: "مرحباً بك في نظام الإشعارات الجديد" },
+          type: "inventory_alert" as NotificationType,
+          data: { message: "مستوى المخزون منخفض للمنتج X (5 قطع متبقية)" },
           timestamp: new Date(),
           read: false,
         };
         setNotifications([testNotification]);
-      }, 3000);
+      }, 2000);
     }
   }, []);
 
-  if (!user) return null;
-
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
-            <Badge
-              variant="destructive"
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0"
-            >
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </Badge>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
-        <div className="flex items-center justify-between border-b p-3">
-          <h3 className="font-medium">الإشعارات</h3>
-          <div className="flex gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={markAllAsRead}
-              title="تعليم الكل كمقروء"
-            >
-              <Check className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={clearAll}
-              title="حذف الكل"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-        <div className="max-h-80 overflow-y-auto">
-          {notifications.length === 0 ? (
-            <div className="p-4 text-center text-muted-foreground">
-              لا توجد إشعارات
-            </div>
-          ) : (
-            notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={cn(
-                  "border-b p-3 hover:bg-muted/50 transition-colors flex items-start gap-3",
-                  !notification.read && "bg-muted/20"
-                )}
+    <div className="relative">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="icon" className="relative">
+            <Bell className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <Badge
+                variant="destructive"
+                className="absolute -top-1 -right-1 px-1 min-w-[18px] h-[18px]"
               >
-                <div className="mt-1">
-                  {getNotificationIcon(notification.type)}
-                </div>
-                <div className="flex-1">
-                  {getNotificationContent(notification)}
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {formatDistanceToNow(notification.timestamp, {
-                      addSuffix: true,
-                      locale: arEG,
-                    })}
-                  </div>
-                </div>
-                {!notification.read && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => markAsRead(notification.id)}
-                    title="تعليم كمقروء"
-                  >
-                    <Check className="h-3 w-3" />
-                  </Button>
-                )}
+                {unreadCount}
+              </Badge>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80 p-0" align="end">
+          <div className="flex items-center justify-between p-4 border-b">
+            <h3 className="font-bold">الإشعارات</h3>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={markAllAsRead}
+                disabled={unreadCount === 0}
+              >
+                <Check className="h-4 w-4 mr-1" />
+                تعيين الكل كمقروء
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAll}
+                disabled={notifications.length === 0}
+              >
+                <X className="h-4 w-4 mr-1" />
+                مسح الكل
+              </Button>
+            </div>
+          </div>
+          <div
+            className="max-h-80 overflow-y-auto"
+            style={{ direction: "rtl" }}
+          >
+            {notifications.length === 0 ? (
+              <div className="p-4 text-center text-muted-foreground">
+                لا توجد إشعارات
               </div>
-            ))
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
+            ) : (
+              <div>
+                {notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className={cn(
+                      "flex items-start gap-3 p-3 hover:bg-accent cursor-pointer border-b last:border-0",
+                      notification.read ? "opacity-70" : "bg-accent/20"
+                    )}
+                    onClick={() => markAsRead(notification.id)}
+                  >
+                    <div className="mt-1">
+                      {getNotificationIcon(notification.type)}
+                    </div>
+                    <div className="flex-1">
+                      {getNotificationContent(
+                        notification.type,
+                        notification.data
+                      )}
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {formatDistanceToNow(notification.timestamp, {
+                          addSuffix: true,
+                          locale: arEG,
+                        })}
+                      </div>
+                    </div>
+                    {!notification.read && (
+                      <div className="w-2 h-2 mt-1 rounded-full bg-primary" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 }
