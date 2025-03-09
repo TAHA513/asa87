@@ -1,12 +1,8 @@
 {
-  "primary": "hsl(142.1 76.2% 36.3%)",
-  "variant": "professional",
+  "primary": "hsl(120.1 40.1% 39.2%)",
+  "variant": "natural",
   "appearance": "system",
-  "fontStyle": "noto",
-  "radius": 0.75,
-  "colors": {
-    "primary": "hsl(142.1 76.2% 36.3%)",
-    "secondary": "hsl(217.2 91.2% 59.8%)",
-    "accent": "hsl(316.8 81.2% 43.8%)"
-  }
+  "fontStyle": "noto-kufi",
+  "fontSize": "medium",
+  "radius": 0.5
 }
