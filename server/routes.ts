@@ -891,7 +891,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error fetching expenses:", error);
       res.status(500).json({ message: "فشل في جلب المصروفات" });
     }
-  });```javascript
+  });
+
   app.post("/api/expenses", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
