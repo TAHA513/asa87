@@ -19,6 +19,7 @@ import {
   MdSupervisorAccount,
   MdSettings,
 } from "react-icons/md";
+import NotificationCenter from "@/components/ui-ar/notification-center"; // Added import
 
 const navigation = [
   { name: "لوحة التحكم", href: "/", icon: MdDashboard, color: "#4285F4" },

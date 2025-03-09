@@ -143,6 +143,16 @@ export interface IStorage {
   getHistoricalStats(): Promise<any>;
   getFrontendComponents():Promise<string[]>;
   getApiEndpoints():Promise<string[]>;
+  
+  // واجهات برمجة جديدة لدعم نظام الإشعارات
+  sendNotification(userId: number, notificationType: string, data: any): boolean;
+  getUsersByRole(role: string): Promise<any[]>;
+  getActiveUsers(): Promise<any[]>;
+  getAppointmentsByDateRange(startDate: Date, endDate: Date): Promise<any[]>;
+  saveUserNotification(userId: number, type: string, data: any): Promise<any>;
+  getUserNotifications(userId: number, options?: { unreadOnly?: boolean, limit?: number }): Promise<any[]>;
+  markNotificationAsRead(notificationId: number): Promise<any>;
+  deleteNotification(notificationId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
