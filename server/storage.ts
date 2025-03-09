@@ -1415,6 +1415,12 @@ export class DatabaseStorage implements IStorage {
 
   async getReport(id: number): Promise<Report | undefined> {
     try {
+      // التحقق من صحة المعرف
+      if (isNaN(id) || id <= 0) {
+        console.error("Invalid report ID:", id);
+        throw new Error("معرف التقرير غير صالح");
+      }
+      
       const [report] = await db
         .select()
         .from(reports)

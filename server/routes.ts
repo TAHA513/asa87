@@ -1702,7 +1702,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const report = await storage.getReport(Number(req.params.id));
+      const reportId = parseInt(req.params.id);
+      
+      // التحقق من صحة معرف التقرير
+      if (isNaN(reportId)) {
+        return res.status(400).json({ message: "معرف التقرير غير صالح" });
+      }
+      
+      const report = await storage.getReport(reportId);
       if (!report) {
         return res.status(404).json({ message: "التقرير غير موجود" });
       }
@@ -1721,7 +1728,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log("Received appointments report request");
 
     if (!req.isAuthenticated()) {
-      return res.status(4011).json({ message: "يجب تسجيل الدخول أولاً" });
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
 
     try {
@@ -1736,8 +1743,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Generating report for date range:", { startDate, endDate });
 
+      // التحقق من صحة التواريخ
+      const start = new Date(startDate as string);
+      const end = new Date(endDate as string);
+      
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return res.status(400).json({
+          message: "صيغة التاريخ غير صحيحة"
+        });
+      }
+
       const report = await storage.getAppointmentsReport({
-        start: new Date(startDate as string),        end: new Date(endDate as string)
+        start,
+        end
       }, req.user!.id);
 
       console.log("Report generated successfully, size:", JSON.stringify(report).length);
