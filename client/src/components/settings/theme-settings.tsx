@@ -60,6 +60,79 @@ const themes = [
     },
     preview: "natural",
   },
+  {
+    name: "الصحراوي",
+    id: "desert",
+    colors: {
+      primary: "hsl(35.1 80.1% 44.2%)",
+      secondary: "hsl(18.3 85.3% 55.8%)",
+      accent: "hsl(45.1 74.1% 49.2%)",
+    },
+    preview: "desert",
+  },
+  {
+    name: "السماوي",
+    id: "sky",
+    colors: {
+      primary: "hsl(210.1 70.1% 55.2%)",
+      secondary: "hsl(195.3 65.3% 60.8%)",
+      accent: "hsl(225.1 54.1% 50.2%)",
+    },
+    preview: "sky",
+  },
+  {
+    name: "الليلي",
+    id: "night",
+    colors: {
+      primary: "hsl(250.1 40.1% 25.2%)",
+      secondary: "hsl(260.3 35.3% 35.8%)",
+      accent: "hsl(280.1 44.1% 40.2%)",
+    },
+    preview: "night",
+  },
+  {
+    name: "الوردي",
+    id: "pink",
+    colors: {
+      primary: "hsl(330.1 70.1% 60.2%)",
+      secondary: "hsl(350.3 65.3% 70.8%)",
+      accent: "hsl(315.1 64.1% 55.2%)",
+    },
+    preview: "pink",
+  },
+  {
+    name: "البحري",
+    id: "aqua",
+    colors: {
+      primary: "hsl(180.1 70.1% 40.2%)",
+      secondary: "hsl(190.3 65.3% 50.8%)",
+      accent: "hsl(170.1 64.1% 45.2%)",
+    },
+    preview: "aqua",
+  },
+  {
+    name: "الرمادي",
+    id: "gray",
+    colors: {
+      primary: "hsl(210.1 10.1% 40.2%)",
+      secondary: "hsl(200.3 15.3% 50.8%)",
+      accent: "hsl(220.1 14.1% 45.2%)",
+    },
+    preview: "gray",
+  },
+  {
+    name: "الذهبي",
+    id: "gold",
+    colors: {
+      primary: "hsl(42.1 80.1% 50.2%)",
+      secondary: "hsl(35.3 75.3% 60.8%)",
+      accent: "hsl(48.1 74.1% 45.2%)",
+    },
+    preview: "gold",
+  },",
+    },
+    preview: "natural",
+  },
 ];
 
 const fonts = [
