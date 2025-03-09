@@ -1,19 +1,12 @@
-
-// إضافة استيراد دوال التحليل والتشخيص
-import { analyzeProjectCode, analyzeProblemAndSuggestFix } from './code-generator';
-
-// باقي الكود الأصلي...
-
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import fileUpload from "express-fileupload";
 import path from "path";
 import session from "express-session";
-import { db, sql } from "./db"; // Import sql from db.ts
+import { db, sql } from "./db";
 import { seedData } from "./seed-data";
 import MemoryStore from 'memorystore';
-import { startTelegramBot } from "./telegram-bot";
 
 const MemoryStoreSession = MemoryStore(session);
 
@@ -137,9 +130,6 @@ async function startServer() {
     await seedData().catch(err => {
       console.error("خطأ في تنفيذ البذور:", err);
     });
-
-    // بدء تشغيل بوت تلجرام
-    startTelegramBot();
 
   } catch (error) {
     console.error('فشل في بدء السيرفر:', error);

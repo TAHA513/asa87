@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import { nanoid } from 'nanoid';
-import { generateCodeWithOpenAI, analyzeProjectCode, analyzeProblemAndSuggestFix } from './code-generator';
 import { exec } from 'child_process';
 import util from 'util';
 import os from 'os';
@@ -24,7 +23,7 @@ export async function executeCommand(command: string): Promise<string> {
       const { stdout: memoryInfo } = await execPromise('free -h');
 
       return `📊 تقرير حالة النظام:
-        
+
 🔄 معلومات المعالج والعمليات:
 ${systemInfo}
 
@@ -46,80 +45,11 @@ ${diskUsage}
       return `🔍 حالة الخدمات الحالية:\n\n${serviceInfo}`;
     }
 
-    if (command.includes('تحليل النظام')) {
-      const analysis = await analyzeProjectCode();
-      return `📊 تحليل شامل للنظام:\n\n${analysis}`;
-    }
+    return `❌ الأمر غير معروف: "${command}"\nيرجى استخدام أحد الأوامر المعروفة مثل "فحص النظام" أو "قائمة الملفات"`;
 
-    if (command.includes('تحليل قاعدة البيانات')) {
-      // جلب معلومات من قاعدة البيانات
-      const products = await storage.getProducts();
-      const customers = await storage.searchCustomers('');
-      const sales = await storage.getSales();
-
-      return `📊 تحليل قاعدة البيانات:
-
-📦 المنتجات: ${products.length} منتج
-👥 العملاء: ${customers.length} عميل
-💰 المبيعات: ${sales.length} عملية بيع
-
-تفاصيل المنتجات الأكثر مبيعاً:
-${products.slice(0, 5).map(p => `- ${p.name}: ${p.stock} قطعة متاحة، السعر: ${p.priceUsd}$`).join('\n')}
-      `;
-    }
-
-    if (command.includes('اقتراح تحسينات')) {
-      const suggestions = await analyzeProblemAndSuggestFix('اقتراحات لتحسين النظام');
-      return `🚀 اقتراحات لتحسين النظام:\n\n${suggestions}`;
-    }
-
-    if (command.startsWith('أصلح تلقائيًا:') || command.startsWith('fix:')) {
-      const problem = command.split(':')[1].trim();
-      const solution = await analyzeProblemAndSuggestFix(problem);
-      return `🛠️ حل المشكلة "${problem}":\n\n${solution}`;
-    }
-
-    if (command.startsWith('نفذ تلقائيًا:') || command.startsWith('implement:')) {
-      const feature = command.split(':')[1].trim();
-      const implementation = await analyzeProblemAndSuggestFix(`تنفيذ ميزة: ${feature}`);
-      return `✅ تنفيذ الميزة "${feature}":\n\n${implementation}`;
-    }
-
-    // للأوامر غير المعروفة، نستخدم تحليل النص الذكي
-    const analysis = await analyzeProblemAndSuggestFix(command);
-    return analysis;
   } catch (error) {
     console.error('خطأ في تنفيذ الأمر:', error);
     return `❌ فشل في تنفيذ الأمر "${command}": ${error.message}\n\nيرجى المحاولة مرة أخرى بصياغة مختلفة أو الاتصال بمسؤول النظام.`;
-  }
-}
-
-/**
- * حفظ الكود المولد في ملف
- * @param code الكود المراد حفظه
- * @returns مسار الملف الذي تم حفظ الكود فيه
- */
-async function saveGeneratedCode(code: string): Promise<string> {
-  try {
-    // تحليل نوع الكود ومكان حفظه
-    const codeType = determineCodeType(code);
-    const fileName = generateFileName(codeType);
-    const filePath = getFilePath(fileName, codeType);
-
-    // إنشاء المجلد إذا لم يكن موجودًا
-    const dirPath = path.dirname(filePath);
-    if (!fs.existsSync(dirPath)) {
-      fs.mkdirSync(dirPath, { recursive: true });
-    }
-
-    // حفظ الكود في ملف
-    fs.writeFileSync(filePath, code, 'utf8');
-    console.log(`✅ تم حفظ الكود في: ${filePath}`);
-
-    return filePath;
-  } catch (error) {
-    console.error('❌ خطأ أثناء حفظ الكود:', error);
-    throw new Error(`فشل في حفظ الكود: ${error}`);
   }
 }
 
@@ -162,7 +92,6 @@ ${diskSpace}
 
 🔄 حالة الخدمات:
    - خدمة الويب: نشطة ✅
-   - بوت التلجرام: نشط ✅
    - قاعدة البيانات: نشطة ✅
     `;
 
@@ -170,6 +99,38 @@ ${diskSpace}
   } catch (error) {
     console.error('❌ خطأ في الحصول على حالة النظام:', error);
     return `❌ حدث خطأ أثناء الحصول على حالة النظام: ${error.message}`;
+  }
+}
+
+export const storage = new DatabaseStorage();
+
+
+/**
+ * حفظ الكود المولد في ملف
+ * @param code الكود المراد حفظه
+ * @returns مسار الملف الذي تم حفظ الكود فيه
+ */
+async function saveGeneratedCode(code: string): Promise<string> {
+  try {
+    // تحليل نوع الكود ومكان حفظه
+    const codeType = determineCodeType(code);
+    const fileName = generateFileName(codeType);
+    const filePath = getFilePath(fileName, codeType);
+
+    // إنشاء المجلد إذا لم يكن موجودًا
+    const dirPath = path.dirname(filePath);
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
+
+    // حفظ الكود في ملف
+    fs.writeFileSync(filePath, code, 'utf8');
+    console.log(`✅ تم حفظ الكود في: ${filePath}`);
+
+    return filePath;
+  } catch (error) {
+    console.error('❌ خطأ أثناء حفظ الكود:', error);
+    throw new Error(`فشل في حفظ الكود: ${error}`);
   }
 }
 
@@ -226,7 +187,6 @@ async function analyzeProjectStructure(): Promise<string> {
 async function getServicesStatus(): Promise<string> {
   try {
     const { stdout: serverStatus } = await execPromise('ps aux | grep "tsx server" | grep -v grep || echo "غير نشطة"');
-    const { stdout: botStatus } = await execPromise('ps aux | grep "telegram-bot" | grep -v grep || echo "غير نشطة"');
     const { stdout: dbStatus } = await execPromise('ps aux | grep "postgres" | grep -v grep || echo "غير نشطة"');
 
     // تحقق من الاتصال بقاعدة البيانات
@@ -236,7 +196,6 @@ async function getServicesStatus(): Promise<string> {
 🔄 حالة الخدمات:
 
 🌐 خدمة الويب: ${!serverStatus.includes("غير نشطة") ? "نشطة ✅" : "غير نشطة ❌"}
-🤖 بوت التلجرام: ${!botStatus.includes("غير نشطة") ? "نشط ✅" : "غير نشط ❌"}
 🗃️ قاعدة البيانات: ${dbConnection}
 
 آخر تحديث: ${new Date().toLocaleString('ar-SA')}
@@ -875,7 +834,7 @@ async function suggestSystemImprovements(): Promise<string> {
 
     // تحليل النظام واقتراح تحسينات
     const improvementsPrompt = `
-بناء على تحليل النظام، اقترح تحسينات محددة في المجالات التالية:
+بناء على تحليل النظام، اقترحتحسينات محددة في المجالات التالية:
 
 1. الأداء والكفاءة
 2. واجهة المستخدم وتجربة المستخدم

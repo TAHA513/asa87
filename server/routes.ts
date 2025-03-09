@@ -1737,8 +1737,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Generating report for date range:", { startDate, endDate });
 
       const report = await storage.getAppointmentsReport({
-        start: new Date(startDate as string),
-        end: new Date(endDate as string)
+        start: new Date(startDate as string),        end: new Date(endDate as string)
       }, req.user!.id);
 
       console.log("Report generated successfully, size:", JSON.stringify(report).length);
