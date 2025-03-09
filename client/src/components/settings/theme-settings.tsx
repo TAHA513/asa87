@@ -60,6 +60,39 @@ const themes = [
     },
     preview: "natural",
   },
+  {
+    name: "الأبيض والأسود",
+    id: "monochrome",
+    colors: {
+      primary: "hsl(0 0% 0%)",
+      secondary: "hsl(0 0% 30%)",
+      accent: "hsl(0 0% 60%)",
+    },
+    preview: "monochrome",
+  },
+  {
+    name: "باستيل",
+    id: "pastel",
+    colors: {
+      primary: "hsl(340 80% 80%)",
+      secondary: "hsl(180 70% 80%)",
+      accent: "hsl(60 80% 80%)",
+    },
+    preview: "pastel",
+  },
+  {
+    name: "الأزرق الداكن",
+    id: "navy",
+    colors: {
+      primary: "hsl(210 100% 20%)",
+      secondary: "hsl(210 70% 40%)",
+      accent: "hsl(210 90% 60%)",
+    },
+    preview: "navy",
+  }",
+    },
+    preview: "natural",
+  },
 ];
 
 const fonts = [
@@ -198,8 +231,10 @@ const ThemeSettings = () => {
         variant: selectedTheme.id,
         fontStyle: selectedFont.id,
         fontSize,
-        appearance: "light", // Always light mode
+        appearance: "light", // دائمًا في الوضع الفاتح
         radius: 0.5,
+        secondary: selectedTheme.colors.secondary,
+        accent: selectedTheme.colors.accent,
       };
 
       const response = await apiRequest("POST", "/api/settings", settings);

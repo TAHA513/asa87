@@ -22,6 +22,13 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      // تعريفات ألوان إضافية
+      backgroundColor: {
+        'monochrome-light': 'hsl(0 0% 95%)',
+        'monochrome-dark': 'hsl(0 0% 15%)',
+        'pastel-bg': 'hsl(340 30% 95%)',
+        'navy-bg': 'hsl(210 50% 10%)',
+      },
       colors: {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
