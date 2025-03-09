@@ -1,8 +1,7 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  // استخدام ميزة الوضع المظلم حسب إعدادات المتصفح
-  darkMode: "media",
+  darkMode: ["class"],
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {

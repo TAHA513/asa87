@@ -944,51 +944,35 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserSettings(userId: number): Promise<UserSettings | undefined> {
-    try {
-      const [settings] = await db
-        .select()
-        .from(userSettings)
-        .where(eq(userSettings.userId, userId))
-        .orderBy(desc(userSettings.createdAt))
-        .limit(1);
-      return settings;
-    } catch (error) {
-      console.error("Error in getUserSettings:", error);
-      return undefined;
-    }
+    const [settings] = await db
+      .select()
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId))
+      .orderBy(desc(userSettings.createdAt))
+      .limit(1);
+    return settings;
   }
 
-  async saveUserSettings(settings: InsertUserSettings): Promise<UserSettings> {
+  async saveUserSettings(userId: number, settings: InsertUserSettings): Promise<UserSettings> {
     try {
-      // تحقق من المعرف
-      if (!settings.userId || typeof settings.userId !== 'number') {
-        throw new Error("معرف المستخدم غير صالح");
-      }
+      // Delete old settings first
+      await db.delete(userSettings).where(eq(userSettings.userId, userId));
 
-      // حذف الإعدادات القديمة أولاً
-      await db.delete(userSettings).where(eq(userSettings.userId, settings.userId));
-
-      // تخزين قيم الألوان بطريقة صحيحة
-      const colorsValue = typeof settings.colors === 'string' 
-        ? settings.colors 
-        : JSON.stringify(settings.colors);
-
-      // إدخال الإعدادات الجديدة
+      // Now insert new settings with proper type handling
       const [newSettings] = await db
         .insert(userSettings)
         .values({
-          userId: settings.userId,
+          userId,
           themeName: settings.themeName,
           fontName: settings.fontName,
           fontSize: settings.fontSize,
           appearance: settings.appearance,
-          colors: colorsValue,
+          colors: settings.colors as any, // Cast to any to avoid type issues with JSONB
           createdAt: new Date(),
           updatedAt: new Date()
         })
         .returning();
 
-      console.log("User settings saved successfully:", settings.userId);
       return newSettings;
     } catch (error) {
       console.error("Error in saveUserSettings:", error);

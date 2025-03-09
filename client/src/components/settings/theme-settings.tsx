@@ -60,76 +60,6 @@ const themes = [
     },
     preview: "natural",
   },
-  {
-    name: "الصحراوي",
-    id: "desert",
-    colors: {
-      primary: "hsl(35.1 80.1% 44.2%)",
-      secondary: "hsl(18.3 85.3% 55.8%)",
-      accent: "hsl(45.1 74.1% 49.2%)",
-    },
-    preview: "desert",
-  },
-  {
-    name: "السماوي",
-    id: "sky",
-    colors: {
-      primary: "hsl(210.1 70.1% 55.2%)",
-      secondary: "hsl(195.3 65.3% 60.8%)",
-      accent: "hsl(225.1 54.1% 50.2%)",
-    },
-    preview: "sky",
-  },
-  {
-    name: "الليلي",
-    id: "night",
-    colors: {
-      primary: "hsl(250.1 40.1% 25.2%)",
-      secondary: "hsl(260.3 35.3% 35.8%)",
-      accent: "hsl(280.1 44.1% 40.2%)",
-    },
-    preview: "night",
-  },
-  {
-    name: "الوردي",
-    id: "pink",
-    colors: {
-      primary: "hsl(330.1 70.1% 60.2%)",
-      secondary: "hsl(350.3 65.3% 70.8%)",
-      accent: "hsl(315.1 64.1% 55.2%)",
-    },
-    preview: "pink",
-  },
-  {
-    name: "البحري",
-    id: "aqua",
-    colors: {
-      primary: "hsl(180.1 70.1% 40.2%)",
-      secondary: "hsl(190.3 65.3% 50.8%)",
-      accent: "hsl(170.1 64.1% 45.2%)",
-    },
-    preview: "aqua",
-  },
-  {
-    name: "الرمادي",
-    id: "gray",
-    colors: {
-      primary: "hsl(210.1 10.1% 40.2%)",
-      secondary: "hsl(200.3 15.3% 50.8%)",
-      accent: "hsl(220.1 14.1% 45.2%)",
-    },
-    preview: "gray",
-  },
-  {
-    name: "الذهبي",
-    id: "gold",
-    colors: {
-      primary: "hsl(42.1 80.1% 50.2%)",
-      secondary: "hsl(35.3 75.3% 60.8%)",
-      accent: "hsl(48.1 74.1% 45.2%)",
-    },
-    preview: "gold",
-  },
 ];
 
 const fonts = [
@@ -224,19 +154,34 @@ const ThemeSettings = () => {
   const [selectedTheme, setSelectedTheme] = useState(themes[0]);
   const [selectedFont, setSelectedFont] = useState(fonts[0]);
   const [fontSize, setFontSize] = useState("medium");
-  const [appearance, setAppearance] = useState<"light" | "dark">("light");
+  const [appearance, setAppearance] = useState<"light" | "dark" | "system">("system");
   const [isLoading, setIsLoading] = useState(false);
 
-  const applyAppearance = (mode: "light" | "dark") => {
+  const applyAppearance = (mode: "light" | "dark" | "system") => {
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
-    root.classList.add(mode);
+
+    if (mode === "system") {
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      root.classList.add(systemTheme);
+    } else {
+      root.classList.add(mode);
+    }
+
     root.style.setProperty("--current-appearance", mode);
   };
 
   useEffect(() => {
-    // تطبيق المظهر المحدد عند تحميل المكون
-    applyAppearance(appearance);
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const handleChange = () => {
+      if (appearance === "system") {
+        applyAppearance("system");
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
   }, [appearance]);
 
   useEffect(() => {
@@ -249,8 +194,8 @@ const ThemeSettings = () => {
           setSelectedTheme(theme);
           setSelectedFont(font);
           setFontSize(response.fontSize || "medium");
-          setAppearance(response.appearance || "light"); // Default to light
-          applyAppearance(response.appearance || "light"); // Default to light
+          setAppearance(response.appearance || "system");
+          applyAppearance(response.appearance || "system");
         }
       } catch (error) {
         console.error("Error loading settings:", error);
@@ -268,7 +213,7 @@ const ThemeSettings = () => {
         variant: selectedTheme.id,
         fontStyle: selectedFont.id,
         fontSize,
-        appearance: "light", // Always light mode
+        appearance,
         radius: 0.5,
       };
 
@@ -280,7 +225,7 @@ const ThemeSettings = () => {
         document.documentElement.style.setProperty("--accent-color", selectedTheme.colors.accent);
         document.documentElement.style.setProperty("--font-family", selectedFont.family);
         document.documentElement.style.setProperty("--font-size-base", `${fontSizes[fontSize].base}px`);
-        applyAppearance("light"); // Always apply light mode
+        applyAppearance(appearance);
 
         toast({
           title: "تم الحفظ",
@@ -333,12 +278,12 @@ const ThemeSettings = () => {
       </CardHeader>
       <CardContent className="pb-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 gap-2 mb-8">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2 mb-8">
             {[
               { value: "theme", icon: <Palette className="w-4 h-4" />, label: "الألوان" },
               { value: "font", icon: <Type className="w-4 h-4" />, label: "الخطوط" },
               { value: "size", icon: <Plus className="w-4 h-4" />, label: "الحجم" },
-              // Appearance tab removed
+              { value: "appearance", icon: <Sun className="w-4 h-4" />, label: "السطوع" }
             ].map(tab => (
               <TabsTrigger
                 key={tab.value}
@@ -506,7 +451,44 @@ const ThemeSettings = () => {
               </Card>
             </TabsContent>
 
-            {/* Removed Appearance Tab Content */}
+            <TabsContent value="appearance">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  { id: "light", name: "فاتح", icon: Sun },
+                  { id: "dark", name: "داكن", icon: Moon },
+                  { id: "system", name: "تلقائي", icon: Monitor }
+                ].map((mode) => (
+                  <motion.div
+                    key={mode.id}
+                    variants={itemVariants}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Card
+                      className={`cursor-pointer transition-all hover:shadow-lg ${
+                        appearance === mode.id ? 'ring-2 ring-primary' : ''
+                      }`}
+                      onClick={() => {
+                        setAppearance(mode.id as "light" | "dark" | "system");
+                        applyAppearance(mode.id as "light" | "dark" | "system");
+                      }}
+                    >
+                      <CardHeader className="p-4">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg font-medium">{mode.name}</CardTitle>
+                          {appearance === mode.id && (
+                            <Check className="w-5 h-5 text-primary" />
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-0">
+                        <mode.icon className="w-8 h-8" />
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </TabsContent>
           </motion.div>
         </Tabs>
 

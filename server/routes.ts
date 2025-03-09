@@ -1363,7 +1363,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const theme = themeSchema.parse(req.body);
 
-      // إنشاء كائن إعدادات المستخدم
+      // تحويل البيانات إلى الشكل المطلوب لقاعدة البيانات
       const userSettings = {
         userId: req.user!.id,
         themeName: theme.variant,
