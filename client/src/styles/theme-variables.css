@@ -1,122 +1,110 @@
 
 :root {
-  /* الألوان الأساسية - يتم تحديثها من خلال JavaScript */
-  --primary: hsl(215.3 98.9% 27.8%);
-  --secondary: color-mix(in srgb, var(--primary) 80%, black);
-  --accent: color-mix(in srgb, var(--primary) 60%, white);
+  /* ألوان أساسية */
+  --primary-color: hsl(215.3 98.9% 27.8%);
+  --secondary-color: hsl(233 44% 55%);
+  --accent-color: hsl(180 100% 50%);
   
-  /* القيم الافتراضية للوضع الفاتح */
-  --background: hsl(0 0% 100%);
-  --foreground: hsl(224 71.4% 4.1%);
-  --card: hsl(0 0% 100%);
-  --card-foreground: hsl(224 71.4% 4.1%);
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(224 71.4% 4.1%);
-  --primary-foreground: hsl(210 20% 98%);
-  --secondary-foreground: hsl(220 14.3% 95.9%);
-  --muted: hsl(220 14.3% 95.9%);
-  --muted-foreground: hsl(220 8.9% 46.1%);
-  --accent-foreground: hsl(220 14.3% 95.9%);
-  --destructive: hsl(0 84.2% 60.2%);
-  --destructive-foreground: hsl(210 20% 98%);
-  --border: hsl(220 13% 91%);
-  --input: hsl(220 13% 91%);
-  --ring: var(--primary);
+  /* ألوان النص */
+  --text-primary: hsl(222.2 47.4% 11.2%);
+  --text-secondary: hsl(215.4 16.3% 46.9%);
+  --text-muted: hsl(215.4 16.3% 56.9%);
+  
+  /* ألوان الخلفية */
+  --background-primary: hsl(0 0% 100%);
+  --background-secondary: hsl(210 20% 98%);
+  --background-accent: hsl(210 40% 96.1%);
+  
+  /* ألوان الحدود */
+  --border-color: hsl(214.3 31.8% 91.4%);
+  --border-hover: hsl(215.4 16.3% 56.9%);
+  
+  /* نصف قطر الزوايا */
   --radius: 0.5rem;
-  --font-family: "Noto Kufi Arabic", sans-serif;
+  
+  /* خط النص */
+  --font-family: 'Noto Kufi Arabic', sans-serif;
+  --font-size-small: 0.875rem;
+  --font-size-medium: 1rem;
+  --font-size-large: 1.125rem;
+  --font-size-xlarge: 1.25rem;
 }
 
+/* النمط الداكن */
 .dark {
-  --background: hsl(224 71.4% 4.1%);
-  --foreground: hsl(210 20% 98%);
-  --card: hsl(224 71.4% 4.1%);
-  --card-foreground: hsl(210 20% 98%);
-  --popover: hsl(224 71.4% 4.1%);
-  --popover-foreground: hsl(210 20% 98%);
-  --primary-foreground: hsl(210 20% 98%);
-  --secondary-foreground: hsl(210 20% 98%);
-  --muted: hsl(215 27.9% 16.9%);
-  --muted-foreground: hsl(217.9 10.6% 64.9%);
-  --accent-foreground: hsl(210 20% 98%);
-  --destructive: hsl(0 62.8% 30.6%);
-  --destructive-foreground: hsl(210 20% 98%);
-  --border: hsl(215 27.9% 16.9%);
-  --input: hsl(215 27.9% 16.9%);
-  --ring: var(--primary);
+  --primary-color: hsl(215.3 98.9% 67.8%);
+  --secondary-color: hsl(233 44% 75%);
+  --accent-color: hsl(180 100% 70%);
+  
+  --text-primary: hsl(210 40% 98%);
+  --text-secondary: hsl(215 20.2% 75.1%);
+  --text-muted: hsl(215 16% 65%);
+  
+  --background-primary: hsl(222.2 84% 4.9%);
+  --background-secondary: hsl(222.2 47.4% 11.2%);
+  --background-accent: hsl(217.2 32.6% 17.5%);
+  
+  --border-color: hsl(217.2 32.6% 17.5%);
+  --border-hover: hsl(215 20.2% 65.1%);
 }
 
+/* حجم الخط */
+[data-font-size="small"] {
+  font-size: var(--font-size-small);
+}
+
+[data-font-size="medium"] {
+  font-size: var(--font-size-medium);
+}
+
+[data-font-size="large"] {
+  font-size: var(--font-size-large);
+}
+
+[data-font-size="xlarge"] {
+  font-size: var(--font-size-xlarge);
+}
+
+/* تطبيق المتغيرات على العناصر الأساسية */
 body {
+  background-color: var(--background-primary);
+  color: var(--text-primary);
   font-family: var(--font-family);
-  background-color: var(--background);
-  color: var(--foreground);
 }
 
-/* أحجام الخط */
-.text-sm {
-  font-size: 0.875rem;
-  line-height: 1.5;
+/* أنماط الأزرار */
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: var(--radius);
 }
 
-.text-base {
-  font-size: 1rem;
-  line-height: 1.5;
+.btn-secondary {
+  background-color: var(--secondary-color);
+  color: white;
+  border-radius: var(--radius);
 }
 
-.text-lg {
-  font-size: 1.125rem;
-  line-height: 1.5;
+/* أنماط البطاقات */
+.card {
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
 }
 
-.text-xl {
-  font-size: 1.25rem;
-  line-height: 1.5;
+/* أنماط النص */
+.text-muted {
+  color: var(--text-muted);
 }
 
-/* تصاميم متنوعة للسمات */
-.theme-professional {
-  --primary-hue: 215;
-  --primary-saturation: 98.9%;
-  --primary-lightness: 27.8%;
+/* أنماط الإدخال */
+.input {
+  background-color: var(--background-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  color: var(--text-primary);
 }
 
-.theme-vibrant {
-  --primary-hue: 349;
-  --primary-saturation: 90.9%;
-  --primary-lightness: 45.1%;
-}
-
-.theme-tint {
-  --primary-hue: 0;
-  --primary-saturation: 0%;
-  --primary-lightness: 40%;
-}
-
-.theme-modern {
-  --primary-hue: 262;
-  --primary-saturation: 83.3%;
-  --primary-lightness: 57.8%;
-}
-
-.theme-classic {
-  --primary-hue: 142.1;
-  --primary-saturation: 76.2%;
-  --primary-lightness: 36.3%;
-}
-
-.theme-futuristic {
-  --primary-hue: 261;
-  --primary-saturation: 73.7%;
-  --primary-lightness: 50.7%;
-}
-
-.theme-elegant {
-  --primary-hue: 32;
-  --primary-saturation: 94.6%;
-  --primary-lightness: 43.7%;
-}
-
-.theme-natural {
-  --primary-hue: 120;
-  --primary-saturation: 100%;
-  --primary-lightness: 25.1%;
+.input:focus {
+  border-color: var(--primary-color);
 }

@@ -1,307 +1,375 @@
-import { useEffect, useState } from "react";
-import { HexColorPicker } from "react-colorful";
-import { toast } from "sonner";
-import { useTheme } from "@/lib/theme-provider";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { 
-  RadioGroup, 
-  RadioGroupItem 
-} from "@/components/ui/radio-group";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
+
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useToast } from "@/hooks/use-toast";
+import { HexColorPicker } from "react-colorful";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
-import { Label } from "@/components/ui/label";
-import { ThemeSettings } from "@/lib/theme-service";
-import { Moon, Sun, Palette, Monitor, Type, Circle } from "lucide-react";
-
-// مكون دوائر الألوان المختارة مسبقًا
-const ColorCircle = ({ color, onClick, isSelected }: 
-  { color: string; onClick: () => void; isSelected: boolean }
-) => (
-  <button
-    className={`w-8 h-8 rounded-full transition-all hover:scale-110 ${
-      isSelected ? "ring-2 ring-primary ring-offset-2" : ""
-    }`}
-    style={{ backgroundColor: color }}
-    onClick={onClick}
-  />
-);
+import { cn } from "@/lib/utils";
+import {
+  ThemeSettings,
+  DEFAULT_THEME,
+  THEME_VARIANTS,
+  storeTheme,
+  applyTheme,
+  saveThemeToServer,
+  fetchThemeFromServer
+} from "@/lib/theme-service";
 
 export default function ThemeSettings() {
-  const { theme, updateTheme, setTheme } = useTheme();
-  const [activeTab, setActiveTab] = useState("appearance");
-  const [colorPickerOpen, setColorPickerOpen] = useState(false);
-
-  // الألوان المختارة مسبقًا
-  const presetColors = [
-    "hsl(215.3 98.9% 27.8%)", // أزرق
-    "hsl(349 90.9% 45.1%)",   // أحمر
-    "hsl(142.1 76.2% 36.3%)", // أخضر
-    "hsl(261 73.7% 50.7%)",   // بنفسجي
-    "hsl(24.6 95% 53.1%)",    // برتقالي
-    "hsl(47.9 95.8% 53.1%)",  // أصفر
-    "hsl(198 93.2% 59.6%)",   // أزرق فاتح
-    "hsl(0 0% 9%)"            // أسود
-  ];
-
-  // التصاميم المتوفرة
-  const variants = [
-    { id: "professional", name: "مهني" },
-    { id: "vibrant", name: "نابض بالحياة" },
-    { id: "tint", name: "الرمادي" },
-    { id: "modern", name: "عصري" },
-    { id: "classic", name: "كلاسيكي" },
-    { id: "futuristic", name: "مستقبلي" },
-    { id: "elegant", name: "أنيق" },
-    { id: "natural", name: "طبيعي" }
-  ];
-
-  // حفظ الإعدادات
-  const saveSettings = async () => {
+  const { toast } = useToast();
+  const [settings, setSettings] = useState<ThemeSettings>(DEFAULT_THEME);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // جلب الإعدادات عند تحميل المكون
+  useEffect(() => {
+    async function loadSettings() {
+      setIsLoading(true);
+      try {
+        // محاولة قراءة الإعدادات من ملف theme.json
+        try {
+          const response = await fetch('/theme.json');
+          if (response.ok) {
+            const data = await response.json();
+            setSettings(data);
+            console.log("تم قراءة الإعدادات من ملف theme.json:", data);
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.error("خطأ في قراءة ملف theme.json:", error);
+        }
+        
+        // إذا فشلت قراءة ملف theme.json، نحاول الحصول عليها من API
+        const serverTheme = await fetchThemeFromServer();
+        if (serverTheme) {
+          setSettings(serverTheme);
+        }
+      } catch (error) {
+        console.error("خطأ في تحميل الإعدادات:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    loadSettings();
+  }, []);
+  
+  // حفظ الإعدادات - يتم استدعاؤها عند التغيير
+  const saveSettings = useCallback(async () => {
+    console.log("جاري حفظ الإعدادات:", settings);
+    setIsLoading(true);
     try {
-      // سيتم التعامل مع الحفظ داخليًا من خلال useTheme hook
-      toast.success("تم حفظ الإعدادات بنجاح");
+      // حفظ في التخزين المحلي أولاً
+      storeTheme(settings);
+      
+      // تطبيق التغييرات على واجهة المستخدم
+      applyTheme(settings);
+      
+      // حفظ على الخادم
+      const success = await saveThemeToServer(settings);
+      
+      if (success) {
+        toast({
+          title: "تم الحفظ",
+          description: "تم حفظ إعدادات المظهر بنجاح",
+        });
+      } else {
+        toast({
+          title: "خطأ",
+          description: "حدث خطأ أثناء حفظ الإعدادات",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error("خطأ في حفظ الإعدادات:", error);
-      toast.error("حدث خطأ أثناء حفظ الإعدادات");
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء حفظ الإعدادات",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  // تغيير اللون الأساسي
-  const changePrimaryColor = (color: string) => {
-    updateTheme({ primary: color });
-    setColorPickerOpen(false);
-  };
-
-  // تغيير الظهور (فاتح/داكن)
-  const changeAppearance = (value: "light" | "dark" | "system") => {
-    updateTheme({ appearance: value });
-  };
-
-  // تغيير أسلوب التصميم
-  const changeVariant = (value: string) => {
-    updateTheme({ variant: value as ThemeSettings["variant"] });
-  };
-
-  // تغيير نوع الخط
-  const changeFontStyle = (value: string) => {
-    updateTheme({ fontStyle: value as ThemeSettings["fontStyle"] });
-  };
-
-  // تغيير حجم الخط
-  const changeFontSize = (value: string) => {
-    updateTheme({ fontSize: value as ThemeSettings["fontSize"] });
-  };
-
-  // تغيير دائرية الزوايا
-  const changeRadius = (value: number[]) => {
-    updateTheme({ radius: value[0] });
-  };
+  }, [settings, toast]);
+  
+  // معالج تغيير الإعدادات
+  const handleChange = useCallback((key: keyof ThemeSettings, value: any) => {
+    setSettings((prev) => {
+      const newSettings = { ...prev, [key]: value };
+      
+      // حفظ التغييرات تلقائيًا بعد التعديل مباشرة
+      saveSettings();
+      
+      return newSettings;
+    });
+  }, [saveSettings]);
 
   return (
-    <Card className="border shadow-sm">
-      <CardHeader>
-        <CardTitle>تخصيص الواجهة</CardTitle>
-        <CardDescription>
-          قم بتخصيص مظهر التطبيق ليناسب تفضيلاتك
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid grid-cols-3 w-full">
-            <TabsTrigger value="appearance" className="flex items-center gap-2">
-              <Palette className="h-4 w-4" />
-              <span>الألوان والمظهر</span>
-            </TabsTrigger>
-            <TabsTrigger value="typography" className="flex items-center gap-2">
-              <Type className="h-4 w-4" />
-              <span>الخطوط</span>
-            </TabsTrigger>
-            <TabsTrigger value="interface" className="flex items-center gap-2">
-              <Circle className="h-4 w-4" />
-              <span>الواجهة</span>
-            </TabsTrigger>
-          </TabsList>
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <h3 className="text-2xl font-medium">تخصيص المظهر</h3>
+        <p className="text-sm text-muted-foreground">
+          قم بتخصيص مظهر التطبيق ليناسب ذوقك واحتياجاتك
+        </p>
+      </div>
 
-          {/* قسم الألوان والمظهر */}
-          <TabsContent value="appearance" className="space-y-4">
-            <div className="space-y-3">
-              <Label>اللون الأساسي</Label>
-              <div className="flex items-center gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-16 h-10 border-2"
-                  style={{ backgroundColor: theme.primary }}
-                  onClick={() => setColorPickerOpen(!colorPickerOpen)}
+      <Tabs defaultValue="colors" className="space-y-4">
+        <TabsList className="grid grid-cols-3">
+          <TabsTrigger value="colors">الألوان</TabsTrigger>
+          <TabsTrigger value="appearance">المظهر</TabsTrigger>
+          <TabsTrigger value="typography">الخطوط</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="colors" className="space-y-4">
+          <div className="space-y-4">
+            <div>
+              <Label>اللون الرئيسي</Label>
+              <div className="mt-3 flex items-center gap-4">
+                <div 
+                  className="w-20 h-20 border rounded-md cursor-pointer"
+                  style={{ backgroundColor: settings.primary }}
                 />
-                <div className="flex flex-wrap gap-2">
-                  {presetColors.map((color) => (
-                    <ColorCircle
-                      key={color}
-                      color={color}
-                      isSelected={theme.primary === color}
-                      onClick={() => changePrimaryColor(color)}
-                    />
-                  ))}
-                </div>
+                <HexColorPicker
+                  color={settings.primary}
+                  onChange={(color) => handleChange("primary", color)}
+                />
               </div>
-
-              {colorPickerOpen && (
-                <div className="py-2">
-                  <HexColorPicker 
-                    color={theme.primary} 
-                    onChange={changePrimaryColor}
-                    className="w-full mx-auto"
-                  />
-                </div>
-              )}
             </div>
 
-            <div className="space-y-3">
-              <Label>أسلوب الألوان</Label>
-              <RadioGroup 
-                className="grid grid-cols-2 sm:grid-cols-4 gap-2" 
-                value={theme.variant}
-                onValueChange={changeVariant}
-              >
-                {variants.map((variant) => (
+            <div>
+              <Label>نمط الألوان</Label>
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {THEME_VARIANTS.map((variant) => (
                   <div
                     key={variant.id}
-                    className={`relative rounded-md border p-2 flex items-center gap-2 cursor-pointer hover:bg-muted transition-colors ${
-                      theme.variant === variant.id ? "border-primary" : "border-border"
-                    }`}
-                    onClick={() => changeVariant(variant.id)}
+                    className={cn(
+                      "relative h-16 rounded-md cursor-pointer flex items-center justify-center border-2",
+                      settings.variant === variant.id
+                        ? "border-primary"
+                        : "border-transparent hover:border-muted-foreground/30"
+                    )}
+                    style={{ backgroundColor: variant.color }}
+                    onClick={() => handleChange("variant", variant.id)}
                   >
-                    <RadioGroupItem value={variant.id} id={variant.id} className="sr-only" />
-                    <div
-                      className={`w-5 h-5 rounded-full theme-${variant.id}`}
-                      style={{ 
-                        backgroundColor: variant.id === "tint" 
-                          ? "hsl(0 0% 40%)" 
-                          : `var(--${variant.id === theme.variant ? "primary" : variant.id})` 
-                      }}
-                    />
-                    <label htmlFor={variant.id} className="text-sm cursor-pointer flex-1">
-                      {variant.name}
-                    </label>
+                    <span className="font-medium text-white text-shadow-sm">
+                      {variant.label}
+                    </span>
+                    {settings.variant === variant.id && (
+                      <div className="absolute top-1 right-1 w-4 h-4 bg-primary rounded-full border-2 border-white" />
+                    )}
                   </div>
                 ))}
-              </RadioGroup>
-            </div>
-
-            <div className="space-y-3">
-              <Label>مظهر التطبيق</Label>
-              <RadioGroup 
-                className="grid grid-cols-3 gap-2" 
-                value={theme.appearance}
-                onValueChange={(value) => changeAppearance(value as "light" | "dark" | "system")}
-              >
-                <div
-                  className={`relative rounded-md border p-2 flex items-center gap-2 cursor-pointer hover:bg-muted transition-colors ${
-                    theme.appearance === "light" ? "border-primary" : "border-border"
-                  }`}
-                  onClick={() => changeAppearance("light")}
-                >
-                  <RadioGroupItem value="light" id="light" className="sr-only" />
-                  <Sun className="h-4 w-4" />
-                  <label htmlFor="light" className="text-sm cursor-pointer">
-                    فاتح
-                  </label>
-                </div>
-                <div
-                  className={`relative rounded-md border p-2 flex items-center gap-2 cursor-pointer hover:bg-muted transition-colors ${
-                    theme.appearance === "dark" ? "border-primary" : "border-border"
-                  }`}
-                  onClick={() => changeAppearance("dark")}
-                >
-                  <RadioGroupItem value="dark" id="dark" className="sr-only" />
-                  <Moon className="h-4 w-4" />
-                  <label htmlFor="dark" className="text-sm cursor-pointer">
-                    داكن
-                  </label>
-                </div>
-                <div
-                  className={`relative rounded-md border p-2 flex items-center gap-2 cursor-pointer hover:bg-muted transition-colors ${
-                    theme.appearance === "system" ? "border-primary" : "border-border"
-                  }`}
-                  onClick={() => changeAppearance("system")}
-                >
-                  <RadioGroupItem value="system" id="system" className="sr-only" />
-                  <Monitor className="h-4 w-4" />
-                  <label htmlFor="system" className="text-sm cursor-pointer">
-                    تلقائي
-                  </label>
-                </div>
-              </RadioGroup>
-            </div>
-          </TabsContent>
-
-          {/* قسم الخطوط */}
-          <TabsContent value="typography" className="space-y-4">
-            <div className="space-y-3">
-              <Label>نوع الخط</Label>
-              <Select value={theme.fontStyle} onValueChange={changeFontStyle}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر نوع الخط" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="noto-kufi">نوتو كوفي</SelectItem>
-                  <SelectItem value="cairo">القاهرة</SelectItem>
-                  <SelectItem value="tajawal">طجوال</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3">
-              <Label>حجم الخط</Label>
-              <Select value={theme.fontSize} onValueChange={changeFontSize}>
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر حجم الخط" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="small">صغير</SelectItem>
-                  <SelectItem value="medium">متوسط</SelectItem>
-                  <SelectItem value="large">كبير</SelectItem>
-                  <SelectItem value="xlarge">كبير جدًا</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </TabsContent>
-
-          {/* قسم الواجهة */}
-          <TabsContent value="interface" className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <Label>دائرية الزوايا</Label>
-                <span className="text-sm text-muted-foreground">
-                  {theme.radius} ريم
-                </span>
               </div>
-              <Slider 
-                value={[theme.radius]} 
-                min={0} 
-                max={2} 
-                step={0.1} 
-                onValueChange={changeRadius} 
-              />
             </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+
+            <div>
+              <Label>نصف قطر الزوايا</Label>
+              <div className="mt-3">
+                <Slider
+                  value={[settings.radius]}
+                  min={0}
+                  max={2}
+                  step={0.1}
+                  onValueChange={(value) => handleChange("radius", value[0])}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                  <span>بدون زوايا</span>
+                  <span>زوايا متوسطة</span>
+                  <span>زوايا كبيرة</span>
+                </div>
+              </div>
+              <div className="flex items-center justify-center mt-4">
+                <div
+                  className="w-16 h-16 border-2 border-primary"
+                  style={{
+                    borderRadius: `${settings.radius * 0.5}rem`,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="appearance" className="space-y-4">
+          <div>
+            <Label>المظهر</Label>
+            <RadioGroup
+              value={settings.appearance}
+              onValueChange={(value) => 
+                handleChange("appearance", value as ThemeSettings["appearance"])
+              }
+              className="mt-3 grid grid-cols-3 gap-3"
+            >
+              <div>
+                <RadioGroupItem
+                  value="light"
+                  id="light"
+                  className="peer sr-only"
+                />
+                <Label
+                  htmlFor="light"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="mb-3 h-6 w-6"
+                  >
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M12 2v2" />
+                    <path d="M12 20v2" />
+                    <path d="m4.93 4.93 1.41 1.41" />
+                    <path d="m17.66 17.66 1.41 1.41" />
+                    <path d="M2 12h2" />
+                    <path d="M20 12h2" />
+                    <path d="m6.34 17.66-1.41 1.41" />
+                    <path d="m19.07 4.93-1.41 1.41" />
+                  </svg>
+                  <span>فاتح</span>
+                </Label>
+              </div>
+
+              <div>
+                <RadioGroupItem
+                  value="dark"
+                  id="dark"
+                  className="peer sr-only"
+                />
+                <Label
+                  htmlFor="dark"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="mb-3 h-6 w-6"
+                  >
+                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                  </svg>
+                  <span>داكن</span>
+                </Label>
+              </div>
+
+              <div>
+                <RadioGroupItem
+                  value="system"
+                  id="system"
+                  className="peer sr-only"
+                />
+                <Label
+                  htmlFor="system"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="mb-3 h-6 w-6"
+                  >
+                    <rect
+                      x="2"
+                      y="3"
+                      width="20"
+                      height="14"
+                      rx="2"
+                      ry="2"
+                    />
+                    <line x1="8" y1="21" x2="16" y2="21" />
+                    <line x1="12" y1="17" x2="12" y2="21" />
+                  </svg>
+                  <span>النظام</span>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="typography" className="space-y-4">
+          <div>
+            <Label>نوع الخط</Label>
+            <RadioGroup
+              value={settings.fontStyle}
+              onValueChange={(value) => 
+                handleChange("fontStyle", value as ThemeSettings["fontStyle"])
+              }
+              className="mt-3 space-y-3"
+            >
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <RadioGroupItem value="noto-kufi" id="noto-kufi" />
+                <Label htmlFor="noto-kufi" className="font-noto-kufi text-lg">
+                  نوتو كوفي - Noto Kufi Arabic
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <RadioGroupItem value="cairo" id="cairo" />
+                <Label htmlFor="cairo" className="font-cairo text-lg">
+                  القاهرة - Cairo
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <RadioGroupItem value="tajawal" id="tajawal" />
+                <Label htmlFor="tajawal" className="font-tajawal text-lg">
+                  طجوال - Tajawal
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          <div>
+            <Label>حجم الخط</Label>
+            <RadioGroup
+              value={settings.fontSize}
+              onValueChange={(value) => 
+                handleChange("fontSize", value as ThemeSettings["fontSize"])
+              }
+              className="mt-3 space-y-3"
+            >
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <RadioGroupItem value="small" id="small" />
+                <Label htmlFor="small" className="text-sm">
+                  صغير
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <RadioGroupItem value="medium" id="medium" />
+                <Label htmlFor="medium" className="text-base">
+                  متوسط
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <RadioGroupItem value="large" id="large" />
+                <Label htmlFor="large" className="text-lg">
+                  كبير
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2 space-x-reverse">
+                <RadioGroupItem value="xlarge" id="xlarge" />
+                <Label htmlFor="xlarge" className="text-xl">
+                  كبير جدًا
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
