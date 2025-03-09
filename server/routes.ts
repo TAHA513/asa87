@@ -1232,7 +1232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // إضافة مسارات إعدادات المظهر والألوان
-  import settingsRoutes from './routes/settings-routes';
+  const settingsRoutes = require('./routes/settings-routes').default;
   app.use('/api/settings', settingsRoutes);
 
   // Add after existing appointment routes
