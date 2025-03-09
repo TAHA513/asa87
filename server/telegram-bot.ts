@@ -6,15 +6,12 @@ import { executeCode } from './command-executor';
 // تحميل متغيرات البيئة
 dotenv.config();
 
-//const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || '');
-
-// إضافة خيارات لتجنب التعارض
-const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN, {
-    telegram: {
-      // تعطيل webhooks لتجنب التعارض
-      webhookReply: false
-    }
-  });
+// إنشاء بوت تلجرام مع خيارات لتجنب التعارض
+const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || '', {
+  telegram: {
+    webhookReply: false  // تعطيل webhooks لتجنب تعارض التحديثات
+  }
+});
 
 
 // تخزين الأكواد المقترحة بانتظار الموافقة
@@ -40,10 +37,14 @@ bot.command('generate', async (ctx) => {
     const chatId = ctx.chat.id.toString();
     pendingCode[chatId] = generatedCode;
 
-    //تقصير الرسالة لتجنب تجاوز الحد المسموح به
-    const shortenedCode = generatedCode.length > 4096 ? generatedCode.substring(0, 4096) + "..." : generatedCode;
+    // تقصير الكود إذا كان طويلاً جداً
+    const maxLength = 3000;
+    let codeToSend = generatedCode;
+    if (generatedCode.length > maxLength) {
+      codeToSend = generatedCode.substring(0, maxLength) + "...\n[تم تقصير الكود لتجنب تجاوز الحد المسموح به من تلجرام]";
+    }
 
-    await ctx.reply(`🔹 **الكود المقترح:**\n\`\`\`\n${shortenedCode}\n\`\`\`\n\n✔️ **للموافقة، أرسل**: /approve\n❌ **للرفض، أرسل**: /reject`, { parse_mode: 'Markdown' });
+    await ctx.reply(`🔹 الكود المقترح (جزء منه):\n\`\`\`\n${codeToSend}\n\`\`\`\n\n✔️ للموافقة، أرسل: /approve\n❌ للرفض، أرسل: /reject`, { parse_mode: 'Markdown' });
   } catch (error) {
     console.error('Error generating code:', error);
     ctx.reply('❌ حدث خطأ أثناء إنشاء الكود. يرجى المحاولة مرة أخرى.');
