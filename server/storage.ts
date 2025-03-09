@@ -968,16 +968,24 @@ export class DatabaseStorage implements IStorage {
       // Delete old settings first
       await db.delete(userSettings).where(eq(userSettings.userId, userId));
 
+      // Ensure userId is a number
+      const userIdNum = Number(userId);
+      
+      // Process colors to ensure they are stored as a valid JSONB object
+      const processedColors = typeof settings.colors === 'string' 
+        ? JSON.parse(settings.colors)
+        : settings.colors;
+
       // Now insert new settings with proper type handling
       const [newSettings] = await db
         .insert(userSettings)
         .values({
-          userId,
+          userId: userIdNum,
           themeName: settings.themeName,
           fontName: settings.fontName,
           fontSize: settings.fontSize,
           appearance: settings.appearance,
-          colors: settings.colors as any, // Cast to any to avoid type issues with JSONB
+          colors: processedColors, // Ensure proper JSON structure
           createdAt: new Date(),
           updatedAt: new Date()
         })

@@ -1365,7 +1365,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // تحويل البيانات إلى الشكل المطلوب لقاعدة البيانات
       const userSettings = {
-        userId: req.user!.id,
+        userId: Number(req.user!.id), // التأكد من أن المعرف رقم
         themeName: theme.variant,
         fontName: theme.fontStyle,
         fontSize: theme.fontSize,
@@ -1378,7 +1378,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // حفظ الإعدادات في قاعدة البيانات
-      await storage.saveUserSettings(userSettings);
+      await storage.saveUserSettings(Number(req.user!.id), userSettings);
 
       // حفظ الثيم في ملف theme.json
       await fs.writeFile(
