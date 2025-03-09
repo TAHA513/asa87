@@ -11,12 +11,22 @@ import { motion } from "framer-motion";
 
 const themes = [
   {
-    name: "العصري",
-    id: "modern",
+    id: "default",
+    name: "الافتراضي",
     colors: {
       primary: "hsl(142.1 76.2% 36.3%)",
       secondary: "hsl(217.2 91.2% 59.8%)",
-      accent: "hsl(316.8 81.2% 43.8%)",
+      accent: "hsl(316.0 73.3% 52.5%)",
+    },
+    preview: "default",
+  },
+  {
+    id: "modern",
+    name: "العصري",
+    colors: {
+      primary: "hsl(142.1 76.2% 36.3%)",
+      secondary: "hsl(217.2 91.2% 59.8%)",
+      accent: "hsl(316.0 73.3% 52.5%)",
     },
     preview: "modern",
   },

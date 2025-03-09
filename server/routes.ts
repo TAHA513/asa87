@@ -1339,7 +1339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum(["modern", "classic", "elegant", "vibrant", "natural"]),
+        variant: z.enum(["default", "modern", "classic", "elegant", "vibrant", "natural"]),
         appearance: z.enum(["light", "dark", "system"]),
         fontStyle: z.enum([
           "noto-kufi",
