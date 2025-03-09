@@ -1,170 +1,216 @@
 
-import axios from "axios";
+import axios from 'axios';
 
-export type ThemeSettings = {
+export interface ThemeSettings {
   primary: string;
-  variant: 
-    | "professional"
-    | "vibrant"
-    | "tint"
-    | "modern"
-    | "classic"
-    | "futuristic"
-    | "elegant"
-    | "natural";
-  appearance: "light" | "dark" | "system";
-  fontStyle: "noto-kufi" | "cairo" | "tajawal";
-  fontSize: "small" | "medium" | "large" | "xlarge";
+  variant: 'professional' | 'vibrant' | 'tint' | 'modern' | 'classic' | 'futuristic' | 'elegant' | 'natural';
+  appearance: 'light' | 'dark' | 'system';
+  fontStyle: 'noto-kufi' | 'cairo' | 'tajawal';
+  fontSize: 'small' | 'medium' | 'large' | 'xlarge';
   radius: number;
-};
+}
 
-export const DEFAULT_THEME: ThemeSettings = {
-  primary: "hsl(215.3 98.9% 27.8%)",
-  variant: "professional",
-  appearance: "light",
-  fontStyle: "noto-kufi",
-  fontSize: "medium",
+// القيم الافتراضية للسمات
+export const defaultTheme: ThemeSettings = {
+  primary: 'hsl(215.3 98.9% 27.8%)',
+  variant: 'professional',
+  appearance: 'light',
+  fontStyle: 'noto-kufi',
+  fontSize: 'medium',
   radius: 0.5
 };
 
-// تعريف كل السمات المتاحة
-export const THEME_VARIANTS = [
-  { id: "professional", label: "مهني", color: "hsl(215.3 98.9% 27.8%)" },
-  { id: "vibrant", label: "نابض بالحياة", color: "hsl(349 90.9% 45.1%)" },
-  { id: "tint", label: "رمادي", color: "hsl(190 50% 65%)" },
-  { id: "modern", label: "عصري", color: "hsl(271.5 91.7% 65.1%)" },
-  { id: "classic", label: "كلاسيكي", color: "hsl(142.1 76.2% 36.3%)" },
-  { id: "futuristic", label: "مستقبلي", color: "hsl(261 73.7% 50.7%)" },
-  { id: "elegant", label: "أنيق", color: "hsl(0 0% 10%)" },
-  { id: "natural", label: "طبيعي", color: "hsl(22 90% 50.5%)" },
-];
-
-// محاولة قراءة الإعدادات من localStorage
-export function getStoredTheme(): ThemeSettings | null {
+// حفظ الإعدادات في التخزين المحلي
+export const saveThemeToLocalStorage = (theme: ThemeSettings): void => {
   try {
-    const storedTheme = localStorage.getItem('theme-settings');
-    if (storedTheme) {
-      return JSON.parse(storedTheme) as ThemeSettings;
+    localStorage.setItem('app-theme', JSON.stringify(theme));
+    console.log('تم حفظ الإعدادات في التخزين المحلي:', theme);
+  } catch (error) {
+    console.error('خطأ في حفظ الإعدادات في التخزين المحلي:', error);
+  }
+};
+
+// قراءة الإعدادات من التخزين المحلي
+export const loadThemeFromLocalStorage = (): ThemeSettings | null => {
+  try {
+    const savedTheme = localStorage.getItem('app-theme');
+    if (savedTheme) {
+      console.log('تم جلب الإعدادات من التخزين المحلي');
+      return JSON.parse(savedTheme);
     }
+    return null;
   } catch (error) {
-    console.error("خطأ في قراءة الإعدادات من التخزين المحلي:", error);
+    console.error('خطأ في قراءة الإعدادات من التخزين المحلي:', error);
+    return null;
   }
-  return null;
-}
+};
 
-// حفظ الإعدادات في localStorage
-export function storeTheme(settings: ThemeSettings): void {
+// حفظ الإعدادات في قاعدة البيانات
+export const saveThemeToServer = async (theme: ThemeSettings): Promise<void> => {
   try {
-    localStorage.setItem('theme-settings', JSON.stringify(settings));
+    console.log('جاري حفظ الإعدادات:', theme);
+    const response = await axios.post('/api/theme', theme);
+    console.log('تم حفظ الإعدادات في السيرفر:', response.data);
   } catch (error) {
-    console.error("خطأ في حفظ الإعدادات في التخزين المحلي:", error);
+    console.error('خطأ في حفظ الإعدادات:', error);
+    // حتى في حالة فشل الاتصال بالسيرفر، نحفظ محليًا
+    saveThemeToLocalStorage(theme);
+    throw error;
   }
-}
+};
 
-// تطبيق الإعدادات على CSS variables
-export function applyTheme(settings: ThemeSettings): void {
+// جلب الإعدادات من قاعدة البيانات
+export const loadThemeFromServer = async (): Promise<ThemeSettings | null> => {
+  try {
+    const response = await axios.get('/api/settings');
+    if (response.data) {
+      // تحويل البيانات من تنسيق قاعدة البيانات إلى تنسيق السمات المستخدم
+      console.log('تم جلب الإعدادات من API:', response.data);
+      
+      // إذا كانت الاستجابة تحتوي على تنسيق مختلف، نقوم بتحويلها
+      if (response.data.themeName) {
+        return {
+          primary: response.data.colors?.primary || defaultTheme.primary,
+          variant: response.data.themeName,
+          appearance: response.data.appearance || defaultTheme.appearance,
+          fontStyle: response.data.fontName || defaultTheme.fontStyle,
+          fontSize: response.data.fontSize || defaultTheme.fontSize,
+          radius: defaultTheme.radius
+        };
+      }
+      return response.data;
+    }
+    return null;
+  } catch (error) {
+    console.error('خطأ في جلب الإعدادات من السيرفر:', error);
+    return null;
+  }
+};
+
+// تطبيق السمة على المستند
+export const applyTheme = (theme: ThemeSettings): void => {
+  // تطبيق المتغيرات على العنصر الجذر
   const root = document.documentElement;
   
-  // تطبيق اللون الرئيسي
-  root.style.setProperty('--primary-color', settings.primary);
+  // تعيين اللون الأساسي
+  root.style.setProperty('--primary', theme.primary);
   
-  // تطبيق الظهور (داكن/فاتح)
-  document.body.classList.remove('dark', 'light');
-  if (settings.appearance === 'dark') {
-    document.body.classList.add('dark');
-  } else if (settings.appearance === 'light') {
-    document.body.classList.add('light');
+  // تعيين حالة السطوع
+  if (theme.appearance === 'dark') {
+    root.classList.add('dark');
+    root.classList.remove('light');
   } else {
-    // system - اعتمادًا على إعدادات النظام
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.body.classList.add(prefersDark ? 'dark' : 'light');
+    root.classList.add('light');
+    root.classList.remove('dark');
   }
   
-  // تطبيق نوع الخط
-  root.style.setProperty('--font-family', getFontFamily(settings.fontStyle));
+  // تعيين نوع الخط
+  root.style.setProperty('--font-family', getFontFamily(theme.fontStyle));
   
-  // تطبيق حجم الخط
-  root.setAttribute('data-font-size', settings.fontSize);
+  // تعيين حجم الخط
+  document.body.className = getFontSizeClass(theme.fontSize);
   
-  // تطبيق تدوير الزوايا
-  root.style.setProperty('--radius', `${settings.radius}rem`);
-}
+  // تعيين دائرية الحواف
+  root.style.setProperty('--radius', `${theme.radius}rem`);
+  
+  // احسب وعيّن الألوان الثانوية
+  const secondaryColor = theme.appearance === 'dark' 
+    ? `color-mix(in srgb, ${theme.primary} 80%, white)` 
+    : `color-mix(in srgb, ${theme.primary} 80%, black)`;
+  
+  const accentColor = theme.appearance === 'dark'
+    ? `color-mix(in srgb, ${theme.primary} 60%, black)`
+    : `color-mix(in srgb, ${theme.primary} 60%, white)`;
+    
+  root.style.setProperty('--secondary', secondaryColor);
+  root.style.setProperty('--accent', accentColor);
+};
 
-// الحصول على اسم الخط بناءً على النوع
+// دالة مساعدة للحصول على اسم الخط
 function getFontFamily(fontStyle: string): string {
   switch (fontStyle) {
     case 'noto-kufi':
-      return "'Noto Kufi Arabic', sans-serif";
+      return '"Noto Kufi Arabic", sans-serif';
     case 'cairo':
-      return "'Cairo', sans-serif";
+      return '"Cairo", sans-serif';
     case 'tajawal':
-      return "'Tajawal', sans-serif";
+      return '"Tajawal", sans-serif';
     default:
-      return "'Noto Kufi Arabic', sans-serif";
+      return '"Noto Kufi Arabic", sans-serif';
   }
 }
 
-// حفظ الإعدادات في قاعدة البيانات عبر API
-export async function saveThemeToServer(settings: ThemeSettings): Promise<boolean> {
-  try {
-    const response = await axios.post('/api/theme', settings);
-    console.log("تم حفظ الإعدادات بنجاح:", response.data);
-    return true;
-  } catch (error) {
-    console.error("خطأ في حفظ الإعدادات على الخادم:", error);
-    return false;
+// دالة مساعدة للحصول على حجم الخط
+function getFontSizeClass(fontSize: string): string {
+  switch (fontSize) {
+    case 'small':
+      return 'text-sm';
+    case 'medium':
+      return 'text-base';
+    case 'large':
+      return 'text-lg';
+    case 'xlarge':
+      return 'text-xl';
+    default:
+      return 'text-base';
   }
 }
 
-// جلب الإعدادات من قاعدة البيانات
-export async function fetchThemeFromServer(): Promise<ThemeSettings | null> {
+// قراءة ملف theme.json مباشرة
+export const loadThemeFromJsonFile = async (): Promise<ThemeSettings | null> => {
   try {
-    const response = await axios.get('/api/settings');
-    if (response.data && response.data.themeName) {
-      console.log("تم جلب الإعدادات من API:", response.data);
-      
-      // تحويل البيانات من تنسيق قاعدة البيانات إلى تنسيق السمات
-      const settings: ThemeSettings = {
-        primary: response.data.colors.primary,
-        variant: response.data.themeName,
-        appearance: response.data.appearance,
-        fontStyle: response.data.fontName,
-        fontSize: response.data.fontSize,
-        radius: 0.5 // افتراضي إذا لم يكن موجودًا
-      };
-      
-      return settings;
-    }
+    const response = await axios.get('/theme.json');
+    console.log('تم قراءة ملف theme.json:', response.data);
+    return response.data;
   } catch (error) {
-    console.error("خطأ في جلب الإعدادات من الخادم:", error);
+    console.error('خطأ في قراءة ملف theme.json:', error);
+    return null;
+  }
+};
+
+// دالة موحدة لجلب الإعدادات من جميع المصادر
+export const loadTheme = async (): Promise<ThemeSettings> => {
+  // محاولة جلب الإعدادات بالترتيب: ملف JSON، السيرفر، تخزين محلي، إعدادات افتراضية
+  let theme: ThemeSettings | null = null;
+  
+  // محاولة جلب الإعدادات من ملف JSON
+  theme = await loadThemeFromJsonFile();
+  
+  // محاولة جلب الإعدادات من السيرفر
+  if (!theme) {
+    theme = await loadThemeFromServer();
   }
   
-  // في حالة الفشل، نعود إلى الإعدادات الافتراضية
-  return DEFAULT_THEME;
-}
+  // محاولة جلب الإعدادات من التخزين المحلي
+  if (!theme) {
+    theme = loadThemeFromLocalStorage();
+  }
+  
+  // استخدام الإعدادات الافتراضية إذا لم تتوفر أي إعدادات أخرى
+  if (!theme) {
+    theme = { ...defaultTheme };
+  }
+  
+  // حفظ الإعدادات المسترجعة في التخزين المحلي للاستخدام المستقبلي
+  saveThemeToLocalStorage(theme);
+  
+  return theme;
+};
 
-// وظيفة لتهيئة السمات عند بدء التطبيق
-export async function initializeTheme(): Promise<ThemeSettings> {
+// دالة لحفظ الإعدادات في جميع المصادر
+export const saveSettings = async (theme: ThemeSettings): Promise<void> => {
   try {
-    // أولاً، نحاول الحصول على الإعدادات من التخزين المحلي
-    const storedTheme = getStoredTheme();
-    if (storedTheme) {
-      applyTheme(storedTheme);
-      return storedTheme;
-    }
+    // حفظ في التخزين المحلي
+    saveThemeToLocalStorage(theme);
     
-    // إذا لم تكن موجودة، نحاول جلبها من الخادم
-    const serverTheme = await fetchThemeFromServer();
-    if (serverTheme) {
-      applyTheme(serverTheme);
-      storeTheme(serverTheme);
-      return serverTheme;
-    }
+    // حفظ في السيرفر
+    await saveThemeToServer(theme);
+    
+    // تطبيق السمات مباشرة
+    applyTheme(theme);
   } catch (error) {
-    console.error("خطأ في تهيئة السمات:", error);
+    console.error('خطأ في حفظ الإعدادات:', error);
+    // إذا فشل الحفظ في السيرفر، نضمن على الأقل التخزين المحلي والتطبيق المباشر
+    applyTheme(theme);
   }
-  
-  // في حالة فشل كل شيء، نعود إلى الإعدادات الافتراضية
-  applyTheme(DEFAULT_THEME);
-  return DEFAULT_THEME;
-}
+};

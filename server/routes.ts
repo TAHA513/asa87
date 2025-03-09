@@ -245,6 +245,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("تم التحقق من بيانات الثيم بنجاح:", themeData);
 
+      // سلسلة من المحاولات المتعددة لضمان حفظ البيانات بطرق مختلفة
+      const savePromises = [];
+
       // حفظ في قاعدة البيانات أولاً
       if (req.isAuthenticated() && req.user) {
         try {
@@ -267,33 +270,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
 
           // الحفظ في قاعدة البيانات
-          const savedSettings = await storage.saveUserSettings(req.user.id, userSettings);
-          console.log("تم حفظ الإعدادات في قاعدة البيانات:", savedSettings);
+          const dbSavePromise = storage.saveUserSettings(req.user.id, userSettings)
+            .then(savedSettings => {
+              console.log("تم حفظ الإعدادات في قاعدة البيانات:", savedSettings);
+              return true;
+            })
+            .catch(error => {
+              console.error("خطأ في حفظ الإعدادات في قاعدة البيانات:", error);
+              return false;
+            });
+          
+          savePromises.push(dbSavePromise);
         } catch (dbError) {
-          console.error("خطأ في حفظ الإعدادات في قاعدة البيانات:", dbError);
-          // نستمر في المحاولة لحفظ الملف حتى لو فشل الحفظ في قاعدة البيانات
+          console.error("خطأ في إعداد حفظ الإعدادات في قاعدة البيانات:", dbError);
         }
       }
 
-      // ثم الحفظ في ملف theme.json
+      // الحفظ في ملف theme.json
       try {
-        await fs.writeFile(
+        const fileSavePromise = fs.writeFile(
           path.join(process.cwd(), "theme.json"),
           JSON.stringify(themeData, null, 2)
-        );
-        console.log("تم حفظ الثيم في ملف theme.json بنجاح");
+        )
+        .then(() => {
+          console.log("تم حفظ الثيم في ملف theme.json بنجاح");
+          return true;
+        })
+        .catch(error => {
+          console.error("خطأ في حفظ ملف theme.json:", error);
+          return false;
+        });
+        
+        savePromises.push(fileSavePromise);
       } catch (fileError) {
-        console.error("خطأ في حفظ ملف theme.json:", fileError);
+        console.error("خطأ في إعداد حفظ ملف theme.json:", fileError);
+      }
+
+      // انتظار نتائج عمليات الحفظ
+      const results = await Promise.allSettled(savePromises);
+      const anySuccess = results.some(result => result.status === 'fulfilled' && result.value === true);
+      
+      if (!anySuccess && savePromises.length > 0) {
         return res.status(500).json({ 
-          message: "فشل في حفظ ملف theme.json", 
-          error: fileError instanceof Error ? fileError.message : "خطأ غير معروف"
+          message: "فشل في حفظ الإعدادات بأي طريقة",
+          details: results
         });
       }
 
       // إرسال الاستجابة بنجاح
       res.json({ 
         success: true,
-        theme: themeData
+        theme: themeData,
+        savedTo: {
+          database: results[0]?.status === 'fulfilled' && results[0]?.value === true,
+          file: results[1]?.status === 'fulfilled' && results[1]?.value === true
+        }
       });
     } catch (error) {
       console.error("Error updating theme:", error);

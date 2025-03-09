@@ -1,71 +1,8 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider } from "@/hooks/use-auth";
-import { ProtectedRoute } from "./lib/protected-route";
-
-import NotFound from "@/pages/not-found";
-import AuthPage from "@/pages/auth-page";
-import Dashboard from "@/pages/dashboard";
-import Inventory from "@/pages/inventory";
-import Sales from "@/pages/sales";
-import InvoicesPage from "@/pages/InvoicesPage";
-import InvoiceDetailsPage from "@/pages/InvoiceDetailsPage";
-import Staff from "@/pages/staff";
-import Settings from "@/pages/settings";
-import Installments from "@/pages/installments";
-import Marketing from "@/pages/marketing";
-import Reports from "@/pages/reports";
-import Expenses from "@/pages/expenses";
-import Suppliers from "@/pages/suppliers";
-import Barcodes from "@/pages/barcodes";
-import DiscountCodes from "@/pages/discount-codes";
-import Customers from "@/pages/customers";
-import Appointments from "@/pages/appointments";
-
-function Router() {
-  return (
-    <Switch>
-      <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute path="/" component={Dashboard} />
-      <ProtectedRoute path="/inventory" component={Inventory} />
-      <ProtectedRoute path="/sales" component={Sales} />
-      <ProtectedRoute path="/invoices" component={InvoicesPage} />
-      <ProtectedRoute path="/invoices/:id" component={InvoiceDetailsPage} />
-      <ProtectedRoute path="/staff" component={Staff} />
-      <ProtectedRoute path="/settings" component={Settings} />
-      <ProtectedRoute path="/installments" component={Installments} />
-      <ProtectedRoute path="/marketing" component={Marketing} />
-      <ProtectedRoute path="/reports" component={Reports} />
-      <ProtectedRoute path="/expenses" component={Expenses} />
-      <ProtectedRoute path="/suppliers" component={Suppliers} />
-      <ProtectedRoute path="/barcodes" component={Barcodes} />
-      <ProtectedRoute path="/discount-codes" component={DiscountCodes} />
-      <ProtectedRoute path="/customers" component={Customers} />
-      <ProtectedRoute path="/appointments" component={Appointments} />
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
-
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router />
-        <Toaster />
-      </AuthProvider>
-    </QueryClientProvider>
-  );
-}
-
-export default App;
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
-import { ThemeProvider } from "@/lib/theme-provider";
+import { ThemeProvider } from "@/lib/theme-provider"; // Added import
 
 import DashboardLayout from "@/components/layouts/dashboard-layout";
 import Dashboard from "@/components/dashboard";
@@ -84,12 +21,13 @@ import CampaignManager from "@/components/marketing/campaign-manager";
 import SocialManager from "@/components/marketing/social-manager";
 import SocialAnalytics from "@/components/marketing/social-analytics";
 import AppSettings from "@/components/settings/app-settings";
-import "./styles/theme-variables.css";
+import "./styles/theme-variables.css"; // Added import
+
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
+      <ThemeProvider> {/* Added ThemeProvider */}
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -113,7 +51,7 @@ function App() {
           </Routes>
         </Router>
         <Toaster />
-      </ThemeProvider>
+      </ThemeProvider> {/* Added closing ThemeProvider tag */}
     </QueryClientProvider>
   );
 }

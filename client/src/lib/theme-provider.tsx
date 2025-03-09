@@ -1,78 +1,82 @@
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { initializeTheme, ThemeSettings, DEFAULT_THEME, applyTheme, storeTheme, saveThemeToServer } from "./theme-service";
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { 
+  ThemeSettings, 
+  defaultTheme, 
+  loadTheme, 
+  saveSettings, 
+  applyTheme 
+} from './theme-service';
 
 // إنشاء سياق السمات
 interface ThemeContextType {
   theme: ThemeSettings;
-  setTheme: (theme: ThemeSettings) => void;
+  updateTheme: (newTheme: Partial<ThemeSettings>) => Promise<void>;
+  setTheme: (newTheme: ThemeSettings) => Promise<void>;
   isLoading: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-  theme: DEFAULT_THEME,
-  setTheme: () => {},
-  isLoading: true,
+  theme: defaultTheme,
+  updateTheme: async () => {},
+  setTheme: async () => {},
+  isLoading: true
 });
 
-// مكون مزود السمات
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeSettings>(DEFAULT_THEME);
+// مزود السمات
+export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [theme, setThemeState] = useState<ThemeSettings>(defaultTheme);
   const [isLoading, setIsLoading] = useState(true);
 
-  // تهيئة السمات عند بدء التطبيق
+  // تحميل السمات عند بدء التشغيل
   useEffect(() => {
-    async function setup() {
+    const initTheme = async () => {
       try {
-        const initialTheme = await initializeTheme();
-        setThemeState(initialTheme);
+        setIsLoading(true);
+        const loadedTheme = await loadTheme();
+        setThemeState(loadedTheme);
+        applyTheme(loadedTheme);
       } catch (error) {
-        console.error("خطأ في تهيئة السمات:", error);
+        console.error('فشل في تحميل السمات:', error);
+        // في حالة الفشل، استخدم الإعدادات الافتراضية
+        applyTheme(defaultTheme);
       } finally {
         setIsLoading(false);
       }
-    }
+    };
 
-    setup();
+    initTheme();
   }, []);
 
-  // تحديث السمات
-  const setTheme = async (newTheme: ThemeSettings) => {
-    setThemeState(newTheme);
-    
-    // تطبيق السمات على واجهة المستخدم
-    applyTheme(newTheme);
-    
-    // حفظ في التخزين المحلي
-    storeTheme(newTheme);
-    
-    // حفظ على الخادم
+  // تحديث جزء من السمات
+  const updateTheme = async (newThemeProps: Partial<ThemeSettings>) => {
     try {
-      await saveThemeToServer(newTheme);
+      const updatedTheme = { ...theme, ...newThemeProps };
+      await saveSettings(updatedTheme);
+      setThemeState(updatedTheme);
     } catch (error) {
-      console.error("خطأ في حفظ السمات على الخادم:", error);
+      console.error('فشل في تحديث السمات:', error);
     }
   };
 
-  // القيمة المزودة للسياق
-  const contextValue = {
-    theme,
-    setTheme,
-    isLoading,
+  // تعيين السمات بالكامل
+  const setTheme = async (newTheme: ThemeSettings) => {
+    try {
+      await saveSettings(newTheme);
+      setThemeState(newTheme);
+    } catch (error) {
+      console.error('فشل في تعيين السمات:', error);
+    }
   };
 
   return (
-    <ThemeContext.Provider value={contextValue}>
+    <ThemeContext.Provider value={{ theme, updateTheme, setTheme, isLoading }}>
       {children}
     </ThemeContext.Provider>
   );
-}
+};
 
-// خطاف (hook) لاستخدام السمات
-export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (context === undefined) {
-    throw new Error("يجب استخدام useTheme داخل ThemeProvider");
-  }
-  return context;
-}
+// خطاف (Hook) لاستخدام السمات
+export const useTheme = () => useContext(ThemeContext);
+
+export default ThemeProvider;
