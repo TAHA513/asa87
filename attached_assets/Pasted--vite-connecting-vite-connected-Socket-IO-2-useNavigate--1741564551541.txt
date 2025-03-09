@@ -1,0 +1,28 @@
+[vite] connecting...
+[vite] connected.
+إنشاء اتصال Socket.IO للإشعارات للمستخدم: 2
+useNavigate() may be used only in the context of a  component.
+useNavigate() may be used only in the context of a  component.
+The above error occurred in the <Sales> component:
+
+    at Sales (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev/src/pages/sales.tsx:60:21)
+    at ProtectedRoute (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev/src/lib/protected-route.tsx:22:3)
+    at Switch (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=25e19f57:379:17)
+    at Router
+    at AuthProvider (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev/src/hooks/use-auth.tsx:26:32)
+    at QueryClientProvider (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=25e19f57:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+useNavigate() may be used only in the context of a  component.
+at invariant (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=25e19f57:1198:11)
+at useNavigateUnstable (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=25e19f57:5474:3)
+at useNavigate (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=25e19f57:5471:46)
+at Sales (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev/src/pages/sales.tsx:68:20)
+at renderWithHooks (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=25e19f57:11548:26)
+at mountIndeterminateComponent (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=25e19f57:14926:21)
+at beginWork (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=25e19f57:15914:22)
+at beginWork$1 (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=25e19f57:19753:22)
+at performUnitOfWork (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=25e19f57:19198:20)
+at workLoopSync (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-RPCDYKBN.js?v=25e19f57:19137:13)
