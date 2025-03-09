@@ -165,13 +165,8 @@ const ThemeSettings = () => {
   };
 
   useEffect(() => {
-    // تم إزالة مستمع التغييرات في وضع النظام حيث لم يعد هناك خيار تلقائي
-        applyAppearance("system");
-      }
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
+    // تطبيق المظهر المحدد عند تحميل المكون
+    applyAppearance(appearance);
   }, [appearance]);
 
   useEffect(() => {
