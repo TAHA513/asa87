@@ -22,9 +22,9 @@ import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Calendar, Package, Users, Clock } from "lucide-react";
+import { Calendar, Package, Users, Clock, FileDown, BarChart2, Printer } from "lucide-react";
 import { useReactToPrint } from 'react-to-print';
 import { useRef } from "react";
 import type { Sale, Product, InsertInvoice, InsertInstallment } from "@shared/schema";
@@ -38,6 +38,9 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
+import { useNavigate } from "react-router-dom";
+import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+
 
 interface NewSaleFormData {
   productId: number;
@@ -64,6 +67,8 @@ export default function Sales() {
   const printRef = useRef<HTMLDivElement>(null);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const navigate = useNavigate();
 
   const { data: sales = [] } = useQuery<Sale[]>({
     queryKey: ["/api/sales"],
@@ -225,6 +230,24 @@ export default function Sales() {
     }
   };
 
+  const exportToCSV = () => {
+    // Add your CSV export logic here
+    console.log("Exporting to CSV");
+    toast({title: "تصدير", description: "جارى تصدير البيانات"})
+  };
+
+  const salesChartData = [
+    // Sample data, replace with your actual data
+    { date: '2024-03-01', amount: 1000, count: 5 },
+    { date: '2024-03-02', amount: 1500, count: 8 },
+    { date: '2024-03-03', amount: 1200, count: 6 },
+    { date: '2024-03-04', amount: 800, count: 3 },
+    { date: '2024-03-05', amount: 2000, count: 10 },
+    { date: '2024-03-06', amount: 1800, count: 9 },
+    { date: '2024-03-07', amount: 1600, count: 7 },
+  ];
+
+
   return (
     <div className="flex h-screen bg-background">
       <div className="w-64 h-full">
@@ -252,6 +275,7 @@ export default function Sales() {
                         <TableHead>السعر النهائي</TableHead>
                         <TableHead>العميل</TableHead>
                         <TableHead>التاريخ</TableHead>
+                        <TableHead>الخيارات</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -274,6 +298,88 @@ export default function Sales() {
                             <TableCell>{sale.customerName || "عميل نقدي"}</TableCell>
                             <TableCell className="text-muted-foreground">
                               {new Date(sale.date).toLocaleDateString('ar-IQ')}
+                            </TableCell>
+                            <TableCell className="flex gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteSale(sale.id)}
+                              >
+                                <Trash className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  // طباعة الفاتورة
+                                  const product = searchResults.find(p => p.id === sale.productId);
+                                  // Assuming you have a way to fetch customer details based on sale.customerId
+                                  const customer = {name: "test", phone: "1234567890"}; // Replace with actual customer fetch
+
+                                  const printWindow = window.open('', '_blank');
+                                  if (printWindow) {
+                                    printWindow.document.write(`
+                                      <html dir="rtl">
+                                        <head>
+                                          <title>فاتورة مبيعات</title>
+                                          <style>
+                                            body { font-family: Arial, sans-serif; padding: 20px; }
+                                            .header { text-align: center; margin-bottom: 20px; }
+                                            .details { margin-bottom: 20px; }
+                                            .total { font-weight: bold; margin-top: 20px; text-align: left; }
+                                            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                                            th, td { padding: 8px; text-align: right; border-bottom: 1px solid #ddd; }
+                                            th { background-color: #f2f2f2; }
+                                            @media print { 
+                                              button { display: none; }
+                                              body { margin: 0; padding: 0 10px; }
+                                            }
+                                          </style>
+                                        </head>
+                                        <body>
+                                          <div class="header">
+                                            <h1>فاتورة مبيعات</h1>
+                                            <p>رقم الفاتورة: ${sale.id}</p>
+                                            <p>التاريخ: ${new Date(sale.date).toLocaleDateString('ar-IQ')}</p>
+                                          </div>
+                                          <div class="details">
+                                            <h2>تفاصيل العميل:</h2>
+                                            <p>الاسم: ${customer.name || 'عميل نقدي'}</p>
+                                            <p>الهاتف: ${customer.phone || '-'}</p>
+                                          </div>
+                                          <table>
+                                            <thead>
+                                              <tr>
+                                                <th>المنتج</th>
+                                                <th>الكمية</th>
+                                                <th>السعر</th>
+                                                <th>الإجمالي</th>
+                                              </tr>
+                                            </thead>
+                                            <tbody>
+                                              <tr>
+                                                <td>${product?.name || 'منتج غير معروف'}</td>
+                                                <td>${sale.quantity}</td>
+                                                <td>${Number(sale.priceIqd).toFixed(2)} د.ع</td>
+                                                <td>${(Number(sale.priceIqd) * sale.quantity).toFixed(2)} د.ع</td>
+                                              </tr>
+                                            </tbody>
+                                          </table>
+                                          <div class="total">
+                                            <p>المجموع الإجمالي: ${(Number(sale.priceIqd) * sale.quantity).toFixed(2)} د.ع</p>
+                                          </div>
+                                          <button onclick="window.print();" style="display: block; margin: 20px auto; padding: 10px 20px;">
+                                            طباعة الفاتورة
+                                          </button>
+                                        </body>
+                                      </html>
+                                    `);
+                                    printWindow.document.close();
+                                  }
+                                }}
+                              >
+                                <Printer className="h-4 w-4" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         );
@@ -664,6 +770,31 @@ export default function Sales() {
             </CardContent>
           </Card>
         </div>
+
+        {showAnalytics && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>تحليل المبيعات - آخر 7 أيام</CardTitle>
+              <CardDescription>عرض رسم بياني بإجمالي المبيعات اليومية</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={salesChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis yAxisId="left" orientation="left" />
+                    <YAxis yAxisId="right" orientation="right" />
+                    <Tooltip formatter={(value) => `${Number(value).toLocaleString()} د.ع`} />
+                    <Legend />
+                    <Bar yAxisId="left" dataKey="amount" name="إجمالي المبيعات" fill="hsl(var(--primary))" />
+                    <Line yAxisId="right" type="monotone" dataKey="count" name="عدد المبيعات" stroke="#82ca9d" strokeWidth={2} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="hidden">
           <div ref={printRef} className="p-8">
