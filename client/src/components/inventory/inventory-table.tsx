@@ -57,11 +57,10 @@ export default function InventoryTable() {
       stock: 0,
       productCode: "",
       barcode: "",
-      expiryDate: null, // Added expiryDate to defaultValues
+      expiryDate: null,
     },
   });
 
-  // إضافة mutation للحذف
   const deleteMutation = useMutation({
     mutationFn: async (productId: number) => {
       const response = await apiRequest("DELETE", `/api/products/${productId}`);
@@ -87,7 +86,6 @@ export default function InventoryTable() {
     },
   });
 
-  // تحديث mutation للتعديل
   const updateMutation = useMutation({
     mutationFn: async (data: { id: number; updates: Partial<Product> }) => {
       const response = await apiRequest("PATCH", `/api/products/${data.id}`, data.updates);
@@ -117,7 +115,7 @@ export default function InventoryTable() {
   const handleUpdateStock = async (product: Product) => {
     const newStock = window.prompt(`أدخل الكمية الجديدة للمخزون (الكمية الحالية: ${product.stock}):`, product.stock.toString());
 
-    if (newStock === null) return; // إلغاء العملية
+    if (newStock === null) return;
 
     const stockNumber = Number(newStock);
     if (isNaN(stockNumber)) {
@@ -170,7 +168,7 @@ export default function InventoryTable() {
         stock: Number(data.stock),
         productCode: data.productCode,
         barcode: data.barcode || null,
-        expiryDate: data.expiryDate, // Added expiryDate to the request
+        expiryDate: data.expiryDate,
       });
 
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
@@ -401,7 +399,7 @@ export default function InventoryTable() {
                     ) : (
                       <div>-</div>
                     )}
-                  </TableCell> {/* Added expiry date display */}
+                  </TableCell>
                   <TableCell>
                     <Button
                       variant="destructive"
