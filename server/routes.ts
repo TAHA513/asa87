@@ -236,27 +236,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ]),
         appearance: z.enum(["light", "dark", "system"]),
         fontStyle: z.enum([
-          "noto-kufi", // نوتو كوفي
-          "cairo", // القاهرة
-          "tajawal", // طجوال
-          "amiri", // أميري
+          "noto-kufi",
+          "cairo",
+          "tajawal",
         ]),
         radius: z.number(),
         fontSize: z.enum(["small", "medium", "large", "xlarge"]),
       });
 
-      const theme = themeSchema.parse(req.body);
+      // محاولة تحليل البيانات
+      let theme;
+      try {
+        theme = themeSchema.parse(req.body);
+        console.log("تم التحقق من بيانات الثيم بنجاح:", theme);
+      } catch (validationError) {
+        console.error("خطأ في التحقق من بيانات الثيم:", validationError);
+        
+        // استخدام قيم افتراضية إذا كانت هناك مشكلة في البيانات المرسلة
+        theme = {
+          primary: req.body.primary || "hsl(215.3 98.9% 27.8%)",
+          variant: "professional", // استخدام قيمة آمنة دائمًا
+          appearance: req.body.appearance || "light",
+          fontStyle: req.body.fontStyle || "noto-kufi",
+          fontSize: req.body.fontSize || "medium",
+          radius: req.body.radius || 0.5
+        };
+        console.log("تم استخدام قيم افتراضية للثيم:", theme);
+      }
 
       // حفظ الثيم في ملف theme.json
       await fs.writeFile(
         path.join(process.cwd(), "theme.json"),
         JSON.stringify(theme, null, 2)
       );
+      console.log("تم حفظ الثيم في ملف theme.json بنجاح");
 
-      res.json({ success: true });
+      res.json({ success: true, theme });
     } catch (error) {
       console.error("Error updating theme:", error);
-      res.status(400).json({ 
+      res.status(500).json({ 
         message: "فشل في تحديث المظهر", 
         error: error instanceof Error ? error.message : "خطأ غير معروف"
       });

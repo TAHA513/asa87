@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Check, Sun, Moon, Laptop } from "lucide-react";
 import {
@@ -15,7 +16,7 @@ import { apiRequest } from "@/lib/queryClient";
 
 // تعريف السمات المتاحة
 const themes = [
-  { id: "professional", name: "العصري", color: "hsl(215.3 98.9% 27.8%)" },
+  { id: "professional", name: "المهني", color: "hsl(215.3 98.9% 27.8%)" },
   { id: "vibrant", name: "النابض", color: "hsl(349 90.9% 45.1%)" },
   { id: "tint", name: "الرمادي", color: "hsl(220 14% 42%)" },
   { id: "modern", name: "الأزرق", color: "hsl(204 100% 40%)" },
@@ -44,7 +45,7 @@ const fonts = [
   }
 ];
 
-// تعريف أحجام الخط
+// تعريف أحجام الخطوط
 const fontSizes = [
   { id: "small", name: "صغير" },
   { id: "medium", name: "متوسط" },
@@ -52,7 +53,7 @@ const fontSizes = [
   { id: "xlarge", name: "كبير جداً" }
 ];
 
-// تعريف أوضاع السطوع
+// تعريف أنماط الظهور
 const appearances = [
   { id: "light", name: "فاتح", icon: Sun },
   { id: "dark", name: "داكن", icon: Moon },
@@ -69,72 +70,10 @@ const ThemeSettings = () => {
   const [fontStyle, setFontStyle] = useState(fonts[0].id);
   const [fontSize, setFontSize] = useState("medium");
   const [appearance, setAppearance] = useState("system");
+  const [borderRadius, setBorderRadius] = useState(0.5);
   const [isLoading, setIsLoading] = useState(false);
 
-  // جلب الإعدادات الحالية عند تحميل المكوّن
-  useEffect(() => {
-    const fetchCurrentSettings = async () => {
-      try {
-        const response = await apiRequest("GET", "/api/settings");
-        if (!response.ok) throw new Error("فشل في جلب الإعدادات");
-
-        const data = await response.json();
-        if (data) {
-          // تحديث الحالة بالإعدادات المسترجعة
-          const currentTheme = themes.find(t => t.id === data.themeName) || themes[0];
-          const currentFont = fonts.find(f => f.id === data.fontName) || fonts[0];
-
-          setThemeColor(data.colors?.primary || currentTheme.color);
-          setThemeVariant(currentTheme.id);
-          setFontStyle(currentFont.id);
-          setFontSize(data.fontSize || "medium");
-          setAppearance(data.appearance || "system");
-
-          // تطبيق الإعدادات على واجهة المستخدم
-          applyAppearance(data.appearance || "system");
-        }
-      } catch (error) {
-        console.error("Error loading settings:", error);
-      }
-    };
-
-    fetchCurrentSettings();
-  }, []);
-
-  // حفظ الإعدادات على الخادم
-  const saveSettings = async () => {
-    setIsLoading(true);
-
-    try {
-      const settingsData = {
-        primary: themeColor,
-        variant: themeVariant,
-        appearance: appearance,
-        fontStyle: fontStyle,
-        fontSize: fontSize,
-        radius: 0.5
-      };
-
-      const response = await apiRequest("POST", "/api/settings", settingsData);
-      if (!response.ok) throw new Error("فشل في حفظ الإعدادات");
-
-      toast({
-        title: "تم حفظ الإعدادات",
-        description: "تم تطبيق الإعدادات الجديدة بنجاح",
-      });
-    } catch (error) {
-      console.error("Error saving settings:", error);
-      toast({
-        title: "خطأ في حفظ الإعدادات",
-        description: "حدث خطأ أثناء محاولة حفظ الإعدادات. يرجى المحاولة مرة أخرى.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // تطبيق السطوع المختار
+  // تطبيق ظهور النظام
   const applyAppearance = (mode) => {
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
@@ -144,6 +83,117 @@ const ThemeSettings = () => {
       root.classList.add(systemTheme);
     } else {
       root.classList.add(mode);
+    }
+  };
+
+  // جلب الإعدادات الحالية عند تحميل المكوّن
+  useEffect(() => {
+    const fetchCurrentSettings = async () => {
+      try {
+        // أولاً نحاول قراءة ملف theme.json
+        fetch("/theme.json")
+          .then(res => res.json())
+          .then(data => {
+            console.log("تم قراءة ملف theme.json:", data);
+            if (data) {
+              // تحديث الإعدادات من ملف theme.json
+              setThemeColor(data.primary || themes[0].color);
+              setThemeVariant(data.variant || themes[0].id);
+              setFontStyle(data.fontStyle || fonts[0].id);
+              setFontSize(data.fontSize || "medium");
+              setAppearance(data.appearance || "system");
+              setBorderRadius(data.radius || 0.5);
+              
+              // تطبيق الظهور
+              applyAppearance(data.appearance || "system");
+            }
+          })
+          .catch(err => {
+            console.log("خطأ في قراءة ملف theme.json:", err);
+            
+            // في حالة فشل قراءة الملف، نحاول جلب الإعدادات من API
+            apiRequest("GET", "/api/settings")
+              .then(response => {
+                if (!response.ok) throw new Error("فشل في جلب الإعدادات");
+                return response.json();
+              })
+              .then(data => {
+                console.log("تم جلب الإعدادات من API:", data);
+                if (data) {
+                  // تحديث الحالة بالإعدادات المسترجعة من API
+                  const currentTheme = themes.find(t => t.id === data.themeName) || themes[0];
+                  const currentFont = fonts.find(f => f.id === data.fontName) || fonts[0];
+
+                  setThemeColor(data.colors?.primary || currentTheme.color);
+                  setThemeVariant(currentTheme.id);
+                  setFontStyle(currentFont.id);
+                  setFontSize(data.fontSize || "medium");
+                  setAppearance(data.appearance || "system");
+                  
+                  // تطبيق الظهور
+                  applyAppearance(data.appearance || "system");
+                }
+              })
+              .catch(err => {
+                console.log("خطأ في تحميل الإعدادات:", err);
+              });
+          });
+      } catch (error) {
+        console.log("خطأ في تحميل الإعدادات:", error);
+      }
+    };
+
+    fetchCurrentSettings();
+  }, []);
+
+  // حفظ الإعدادات
+  const saveSettings = async () => {
+    setIsLoading(true);
+    try {
+      // تجهيز الإعدادات للحفظ
+      const themeSettings = {
+        primary: themeColor,
+        variant: themeVariant,
+        appearance,
+        fontStyle,
+        fontSize,
+        radius: borderRadius
+      };
+
+      console.log("جاري حفظ الإعدادات:", themeSettings);
+
+      // حفظ الإعدادات عبر API
+      const response = await apiRequest("POST", "/api/theme", themeSettings);
+      
+      if (!response.ok) {
+        throw new Error("فشل في حفظ الإعدادات");
+      }
+
+      // في حالة نجاح الحفظ في الملف، نقوم بحفظها أيضًا في قاعدة البيانات
+      const userSettings = {
+        ...themeSettings
+      };
+      
+      await apiRequest("POST", "/api/settings", userSettings);
+
+      toast({
+        title: "تم الحفظ",
+        description: "تم حفظ إعدادات المظهر بنجاح",
+      });
+
+      // إعادة تحميل الصفحة لتطبيق التغييرات
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      console.error("خطأ في حفظ الإعدادات:", error);
+      toast({
+        title: "حدث خطأ",
+        description: "فشل في حفظ الإعدادات. حاول مرة أخرى",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -164,7 +214,7 @@ const ThemeSettings = () => {
         <TabsContent value="theme" className="space-y-4 py-4">
           <div className="space-y-4">
             <h3 className="text-lg font-medium">اختر لون السمة</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {themes.map((theme) => (
                 <Card 
                   key={theme.id}
@@ -176,88 +226,120 @@ const ThemeSettings = () => {
                 >
                   <CardHeader className="p-3">
                     <div className="flex justify-between items-center">
-                      <CardTitle className="text-sm font-medium">{theme.name}</CardTitle>
-                      {themeVariant === theme.id && (
-                        <Check className="w-4 h-4 text-primary" />
-                      )}
+                      <CardTitle className="text-sm">{theme.name}</CardTitle>
+                      {themeVariant === theme.id && <Check className="h-4 w-4" />}
                     </div>
                   </CardHeader>
                   <CardContent className="p-3 pt-0">
-                    <div className="w-full h-6 rounded-md" style={{ backgroundColor: theme.color }}></div>
+                    <div 
+                      className="h-6 w-full rounded-sm" 
+                      style={{ backgroundColor: theme.color }}
+                    />
                   </CardContent>
                 </Card>
               ))}
             </div>
 
-            <h3 className="text-lg font-medium mt-6">وضع السطوع</h3>
+            <h3 className="text-lg font-medium mt-6">المظهر</h3>
             <RadioGroup value={appearance} onValueChange={handleAppearanceChange} className="grid grid-cols-3 gap-4">
               {appearances.map((mode) => (
                 <div key={mode.id} className="relative">
                   <RadioGroupItem 
                     value={mode.id} 
-                    id={`appearance-${mode.id}`} 
+                    id={`appearance-${mode.id}`}
                     className="sr-only peer" 
                   />
                   <Label
                     htmlFor={`appearance-${mode.id}`}
-                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                    className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
                   >
-                    <mode.icon className="mb-2 h-6 w-6" />
+                    <mode.icon className="mb-2" />
                     <span>{mode.name}</span>
                   </Label>
                 </div>
               ))}
             </RadioGroup>
+
+            <h3 className="text-lg font-medium mt-6">مستوى التقويس</h3>
+            <div className="flex flex-col space-y-2">
+              <div className="grid grid-cols-5 gap-4">
+                {[0, 0.25, 0.5, 0.75, 1].map((radius) => (
+                  <div 
+                    key={radius}
+                    className={`cursor-pointer rounded-md border-2 p-2 text-center flex items-center justify-center h-12 ${borderRadius === radius ? 'border-primary' : 'border-muted'}`}
+                    onClick={() => setBorderRadius(radius)}
+                    style={{ borderRadius: `${8 * radius}px` }}
+                  >
+                    {radius}
+                  </div>
+                ))}
+              </div>
+              <div 
+                className="w-full mt-2 border-2 border-dashed border-muted h-16 flex items-center justify-center"
+                style={{ 
+                  borderRadius: `${borderRadius * 16}px`,
+                  backgroundColor: themeColor,
+                  color: "#ffffff"
+                }}
+              >
+                معاينة التقويس
+              </div>
+            </div>
           </div>
         </TabsContent>
 
         <TabsContent value="font" className="space-y-4 py-4">
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">اختر نوع الخط</h3>
-            <RadioGroup value={fontStyle} onValueChange={setFontStyle} className="grid grid-cols-1 gap-4">
-              {fonts.map((font) => (
-                <div key={font.id} className="relative">
-                  <RadioGroupItem 
-                    value={font.id} 
-                    id={`font-${font.id}`} 
-                    className="sr-only peer" 
-                  />
-                  <Label
-                    htmlFor={`font-${font.id}`}
-                    className="flex items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                    style={{ fontFamily: font.family }}
-                  >
-                    <span>{font.name}</span>
-                    {fontStyle === font.id && (
-                      <Check className="h-4 w-4" />
-                    )}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
+          <h3 className="text-lg font-medium">نوع الخط</h3>
+          <RadioGroup value={fontStyle} onValueChange={setFontStyle} className="grid grid-cols-2 gap-4">
+            {fonts.map((font) => (
+              <div key={font.id} className="relative">
+                <RadioGroupItem 
+                  value={font.id} 
+                  id={`font-${font.id}`} 
+                  className="sr-only peer" 
+                />
+                <Label
+                  htmlFor={`font-${font.id}`}
+                  className="flex items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                  style={{ fontFamily: font.family }}
+                >
+                  <span>{font.name}</span>
+                  {fontStyle === font.id && (
+                    <Check className="h-4 w-4" />
+                  )}
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
 
-            <h3 className="text-lg font-medium mt-6">حجم الخط</h3>
-            <RadioGroup value={fontSize} onValueChange={setFontSize} className="grid grid-cols-2 gap-4">
-              {fontSizes.map((size) => (
-                <div key={size.id} className="relative">
-                  <RadioGroupItem 
-                    value={size.id} 
-                    id={`size-${size.id}`} 
-                    className="sr-only peer" 
-                  />
-                  <Label
-                    htmlFor={`size-${size.id}`}
-                    className="flex items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                    style={{ fontSize: size.id === "small" ? "0.9rem" : size.id === "large" ? "1.1rem" : size.id === "xlarge" ? "1.2rem" : "1rem" }}
-                  >
-                    <span>{size.name}</span>
-                    {fontSize === size.id && (
-                      <Check className="h-4 w-4" />
-                    )}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
+          <h3 className="text-lg font-medium mt-6">حجم الخط</h3>
+          <RadioGroup value={fontSize} onValueChange={setFontSize} className="grid grid-cols-2 gap-4">
+            {fontSizes.map((size) => (
+              <div key={size.id} className="relative">
+                <RadioGroupItem 
+                  value={size.id} 
+                  id={`size-${size.id}`} 
+                  className="sr-only peer" 
+                />
+                <Label
+                  htmlFor={`size-${size.id}`}
+                  className="flex items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
+                  style={{ fontSize: size.id === "small" ? "0.9rem" : size.id === "large" ? "1.1rem" : size.id === "xlarge" ? "1.2rem" : "1rem" }}
+                >
+                  <span>{size.name}</span>
+                  {fontSize === size.id && (
+                    <Check className="h-4 w-4" />
+                  )}
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
+          
+          <div className="mt-6 p-4 border rounded-md" style={{ fontFamily: fonts.find(f => f.id === fontStyle)?.family }}>
+            <h4 className="font-bold text-lg mb-2">معاينة الخط:</h4>
+            <p style={{ fontSize: fontSize === "small" ? "0.9rem" : fontSize === "large" ? "1.1rem" : fontSize === "xlarge" ? "1.2rem" : "1rem" }}>
+              هذا مثال لمعاينة الخط {fonts.find(f => f.id === fontStyle)?.name} بحجم {fontSizes.find(s => s.id === fontSize)?.name}.
+            </p>
           </div>
         </TabsContent>
       </Tabs>
@@ -267,7 +349,7 @@ const ThemeSettings = () => {
         onClick={saveSettings} 
         disabled={isLoading}
       >
-        {isLoading ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
+        {isLoading ? "جاري الحفظ..." : "حفظ الإعدادات"}
       </Button>
     </div>
   );
