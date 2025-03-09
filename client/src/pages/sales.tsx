@@ -24,7 +24,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { useForm } from "react-hook-form";
 import { useToast } from "@/components/ui/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Calendar, Package, Users, Clock, FileDown, BarChart2, Printer } from "lucide-react";
+import { Calendar, Package, Users, Clock, FileDown, BarChart2, Printer, Trash } from "lucide-react";
 import { useReactToPrint } from 'react-to-print';
 import { useRef } from "react";
 import type { Sale, Product, InsertInvoice, InsertInstallment } from "@shared/schema";
@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom"; // Added import
 import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 
 
@@ -68,7 +68,7 @@ export default function Sales() {
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // Using useNavigate from react-router-dom
 
   const { data: sales = [] } = useQuery<Sale[]>({
     queryKey: ["/api/sales"],
