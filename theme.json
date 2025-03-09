@@ -1,0 +1,9 @@
+
+{
+  "variant": "modern",
+  "appearance": "light",
+  "fontStyle": "cairo",
+  "fontSize": "medium",
+  "primary": "#4c7afa",
+  "radius": 0.5
+}

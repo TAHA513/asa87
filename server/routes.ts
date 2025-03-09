@@ -26,9 +26,40 @@ export async function registerRoutes(app: express.Express) {
   app.post("/api/settings", async (req, res) => {
     // تم تعطيل حفظ إعدادات المظهر بناءً على طلب المستخدم
     res.status(200).json({ 
-      success: false, 
+      success: true, 
       message: "تم تعطيل إعدادات المظهر" 
     });
+  });
+
+  // مسار الحصول على إعدادات المظهر
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const themeFilePath = path.join(process.cwd(), "theme.json");
+      let theme;
+      
+      try {
+        const themeData = await fs.readFile(themeFilePath, 'utf8');
+        theme = JSON.parse(themeData);
+      } catch (error) {
+        // إذا لم يتم العثور على الملف، إرجاع إعدادات افتراضية
+        theme = {
+          variant: "modern",
+          appearance: "light",
+          fontStyle: "cairo",
+          fontSize: "medium",
+          primary: "#4c7afa",
+          radius: 0.5
+        };
+        
+        // إنشاء ملف theme.json بالإعدادات الافتراضية
+        await fs.writeFile(themeFilePath, JSON.stringify(theme, null, 2));
+      }
+      
+      res.json(theme);
+    } catch (error) {
+      console.error("خطأ في قراءة إعدادات المظهر:", error);
+      res.status(500).json({ message: "فشل في قراءة إعدادات المظهر" });
+    }
   });
 
   // المسارات الأخرى يمكن إضافتها هنا
