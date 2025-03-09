@@ -1620,24 +1620,46 @@ export class DatabaseStorage implements IStorage {
         .groupBy(sql`date_trunc('day', date)`)
         .orderBy(sql`date_trunc('day', date)`);
 
-      // Get appointment statistics
+      // Get appointment statistics (fixed nested aggregate function)
       const appointmentStats = await db
         .select({
           date: sql`date_trunc('day', date)::date`,
-          count: sql`count(*)::int`,
-          byStatus: sql`json_object_agg(
-            status,
-            count(*)
-          )`
+          count: sql`count(*)::int`
         })
         .from(appointments)
         .groupBy(sql`date_trunc('day', date)`)
         .orderBy(sql`date_trunc('day', date)`);
 
+      // Then get status counts separately
+      const statusStats = await db
+        .select({
+          date: sql`date_trunc('day', date)::date`,
+          status: appointments.status,
+          count: sql`count(*)::int`
+        })
+        .from(appointments)
+        .groupBy(sql`date_trunc('day', date)`, appointments.status)
+        .orderBy(sql`date_trunc('day', date)`);
+
+      // Combine the status stats by date
+      const appointmentsWithStatus = appointmentStats.map(day => {
+        const statusCounts = statusStats
+          .filter(s => s.date.getTime() === day.date.getTime())
+          .reduce((acc, curr) => {
+            acc[curr.status] = curr.count;
+            return acc;
+          }, {} as Record<string, number>);
+          
+        return {
+          ...day,
+          byStatus: statusCounts
+        };
+      });
+
       return {
         sales: salesStats,
         expenses: expenseStats,
-        appointments: appointmentStats
+        appointments: appointmentsWithStatus
       };
     } catch (error) {
       console.error("Error fetching historical stats:", error);
