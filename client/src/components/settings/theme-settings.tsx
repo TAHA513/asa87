@@ -1,393 +1,287 @@
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
-import { HslColorPicker } from "react-colorful";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, Palette, Type, Sun, Moon, Monitor } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useToast } from "@/hooks/use-toast";
+import { HexColorPicker } from "react-colorful";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+import axios from "axios";
 
-const fontMapping = {
-  "noto-kufi": "نوتو كوفي",
-  "cairo": "القاهرة",
-  "tajawal": "طجوال",
+export type ThemeSettings = {
+  primary: string;
+  variant: 
+    | "professional"
+    | "vibrant"
+    | "tint"
+    | "modern"
+    | "classic"
+    | "futuristic"
+    | "elegant"
+    | "natural";
+  appearance: "light" | "dark" | "system";
+  fontStyle: "noto-kufi" | "cairo" | "tajawal";
+  fontSize: "small" | "medium" | "large" | "xlarge";
+  radius: number;
 };
 
-const appearanceMapping = {
-  "light": "فاتح",
-  "dark": "داكن",
-  "system": "تلقائي",
+const DEFAULT_SETTINGS: ThemeSettings = {
+  primary: "hsl(215.3 98.9% 27.8%)",
+  variant: "professional",
+  appearance: "light",
+  fontStyle: "noto-kufi",
+  fontSize: "medium",
+  radius: 0.5
 };
 
-const fontSizeMapping = {
-  "small": "صغير",
-  "medium": "متوسط", 
-  "large": "كبير",
-  "xlarge": "كبير جداً",
-};
-
-// القيم المسموح بها للمظهر
-const variantOptions = [
-  { id: "professional", name: "رسمي", description: "مظهر احترافي" },
-  { id: "vibrant", name: "حيوي", description: "الوان نابضة بالحياة" },
-  { id: "tint", name: "رمادي", description: "مظهر رمادي اللون" },
-  { id: "modern", name: "عصري", description: "مظهر عصري" },
-  { id: "classic", name: "كلاسيكي", description: "مظهر كلاسيكي" }
-];
-
-const themeSchema = z.object({
-  primary: z.string(),
-  variant: z.enum(["professional", "vibrant", "tint", "modern", "classic"]),
-  appearance: z.enum(["light", "dark", "system"]),
-  fontStyle: z.enum(["noto-kufi", "cairo", "tajawal"]),
-  fontSize: z.enum(["small", "medium", "large", "xlarge"]),
-  radius: z.number().min(0).max(2),
-});
-
-export default function ThemeSettings() {
+export function ThemeSettings() {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [hslColor, setHslColor] = useState("hsl(215.3 98.9% 27.8%)");
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success" | "error">("idle");
-  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [settings, setSettings] = useState<ThemeSettings>(DEFAULT_SETTINGS);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // جلب إعدادات السمة الحالية
-  const { data: settings, isLoading } = useQuery({
-    queryKey: ["/api/settings"],
-    staleTime: 1000 * 60, // 1 دقيقة
-  });
+  // جلب الإعدادات الحالية
+  useEffect(() => {
+    async function fetchSettings() {
+      try {
+        // أولا نحاول قراءة الإعدادات من ملف theme.json
+        try {
+          const res = await fetch('/theme.json');
+          if (res.ok) {
+            const data = await res.json();
+            setSettings(data);
+            return;
+          }
+        } catch (error) {
+          console.error("خطأ في قراءة ملف theme.json:", error);
+        }
 
-  const form = useForm({
-    resolver: zodResolver(themeSchema),
-    defaultValues: {
-      primary: "hsl(215.3 98.9% 27.8%)",
-      variant: "professional",
-      appearance: "light",
-      fontStyle: "noto-kufi",
-      fontSize: "medium",
-      radius: 0.5,
-    },
-  });
+        // إذا فشلت القراءة من الملف، نحاول جلب الإعدادات من API
+        const res = await axios.get("/api/settings");
+        if (res.data) {
+          console.log("تم جلب الإعدادات من API:", res.data);
+          const apiSettings: any = res.data;
 
-  // الحصول على قيم النموذج
-  const watchedValues = form.watch();
+          // تحويل إعدادات API إلى هيكل ThemeSettings
+          setSettings({
+            primary: apiSettings.colors?.primary || DEFAULT_SETTINGS.primary,
+            variant: apiSettings.themeName || DEFAULT_SETTINGS.variant,
+            appearance: apiSettings.appearance || DEFAULT_SETTINGS.appearance,
+            fontStyle: apiSettings.fontName || DEFAULT_SETTINGS.fontStyle,
+            fontSize: apiSettings.fontSize || DEFAULT_SETTINGS.fontSize,
+            radius: DEFAULT_SETTINGS.radius
+          });
+        }
+      } catch (error) {
+        console.error("خطأ في جلب الإعدادات:", error);
+      }
+    }
 
-  const saveMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof themeSchema>) => {
-      // حفظ في قاعدة البيانات
-      const response = await apiRequest("POST", "/api/settings", data);
+    fetchSettings();
+  }, []);
 
-      // حفظ في ملف theme.json
-      const themeResponse = await apiRequest("POST", "/api/theme", data);
+  // حفظ الإعدادات
+  async function saveSettings() {
+    try {
+      setIsLoading(true);
+      console.log("جاري حفظ الإعدادات:", settings);
 
-      return response.json();
-    },
-    onMutate: () => {
-      setSaveStatus("saving");
-    },
-    onSuccess: () => {
-      setSaveStatus("success");
-      // إعادة تعيين الحالة بعد ثانيتين
-      setTimeout(() => setSaveStatus("idle"), 2000);
-      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
-    },
-    onError: (error) => {
+      const response = await axios.post("/api/theme", settings);
+
+      if (response.data.success) {
+        toast({
+          title: "تم حفظ الإعدادات",
+          description: "تم تطبيق المظهر الجديد بنجاح",
+        });
+
+        // تحديث السمات CSS المتغيرة
+        if (settings.appearance === "dark") {
+          document.documentElement.classList.add("dark");
+        } else {
+          document.documentElement.classList.remove("dark");
+        }
+
+      } else {
+        toast({
+          title: "خطأ في الحفظ",
+          description: "حدث خطأ أثناء محاولة حفظ الإعدادات",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
       console.error("خطأ في حفظ الإعدادات:", error);
-      setSaveStatus("error");
       toast({
-        title: "خطأ",
-        description: "فشل في حفظ إعدادات المظهر",
+        title: "خطأ في الحفظ",
+        description: "حدث خطأ أثناء محاولة حفظ الإعدادات",
         variant: "destructive",
       });
-      // إعادة تعيين الحالة بعد ثانيتين
-      setTimeout(() => setSaveStatus("idle"), 2000);
-    },
-  });
-
-  useEffect(() => {
-    if (settings) {
-      // تعيين القيم من الإعدادات المستردة
-      form.setValue("variant", settings.themeName || "professional");
-      form.setValue("appearance", settings.appearance || "light");
-      form.setValue("fontStyle", settings.fontName || "noto-kufi");
-      form.setValue("fontSize", settings.fontSize || "medium");
-      if (settings.colors?.primary) {
-        form.setValue("primary", settings.colors.primary);
-        setHslColor(settings.colors.primary);
-      }
-      form.setValue("radius", settings.radius || 0.5); // ليس ضمن الإعدادات المستردة
+    } finally {
+      setIsLoading(false);
     }
-  }, [settings, form]);
-
-  useEffect(() => {
-    // تحديث نموذج النموذج عند تغيير لون HSL
-    form.setValue("primary", hslColor);
-  }, [hslColor, form]);
-
-  // تلقائياً حفظ التغييرات عند تغيير أي قيمة
-  useEffect(() => {
-    // منع تشغيل هذا عند التحميل الأولي
-    if (isLoading) return;
-
-    // إلغاء المؤقت السابق إذا كان موجوداً
-    if (saveTimeout) {
-      clearTimeout(saveTimeout);
-    }
-
-    // تعيين مؤقت جديد للحفظ بعد 500 مللي ثانية من آخر تغيير
-    const timeout = setTimeout(() => {
-      const data = form.getValues();
-      // التحقق من صحة البيانات قبل الحفظ
-      if (themeSchema.safeParse(data).success) {
-        saveMutation.mutate(data);
-      }
-    }, 700);
-
-    setSaveTimeout(timeout);
-
-    // التنظيف عند إزالة المكون
-    return () => {
-      if (saveTimeout) clearTimeout(saveTimeout);
-    };
-  }, [watchedValues, form, isLoading, saveMutation]);
-
-  if (isLoading) {
-    return <div className="p-8 flex justify-center">جاري تحميل الإعدادات...</div>;
   }
 
+  // وضع علامة على متغير CSS للمظهر
+  useEffect(() => {
+    if (settings.appearance === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [settings.appearance]);
+
+  // حفظ الإعدادات فوريًا عند التغيير
+  const handleChange = (key: keyof ThemeSettings, value: any) => {
+    setSettings(prev => {
+      const newSettings = { ...prev, [key]: value };
+      return newSettings;
+    });
+  };
+
   return (
-    <div className="container mx-auto py-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <h2 className="text-xl font-bold">إعدادات المظهر</h2>
-          {saveStatus === "saving" && (
-            <span className="text-sm text-muted-foreground animate-pulse">جاري الحفظ...</span>
-          )}
-          {saveStatus === "success" && (
-            <span className="text-sm text-green-500 flex items-center gap-1">
-              <CheckCircle className="w-4 h-4" /> تم الحفظ
-            </span>
-          )}
-          {saveStatus === "error" && (
-            <span className="text-sm text-red-500">فشل الحفظ</span>
-          )}
-        </div>
-      </div>
+    <div className="grid gap-6">
+      <Tabs defaultValue="theme" className="w-full">
+        <TabsList className="w-full grid grid-cols-3">
+          <TabsTrigger value="theme">السمة</TabsTrigger>
+          <TabsTrigger value="appearance">المظهر</TabsTrigger>
+          <TabsTrigger value="typography">الخطوط</TabsTrigger>
+        </TabsList>
 
-      <Form {...form}>
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="shadow-md">
-              <CardHeader>
-                <CardTitle>المظهر العام</CardTitle>
-                <CardDescription>اختر مظهر التطبيق المفضل لديك</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="appearance"
-                  render={({ field }) => (
-                    <FormItem className="space-y-4">
-                      <FormLabel>وضع العرض</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          className="flex flex-col space-y-1"
-                        >
-                          <div className="flex items-center space-x-2 space-x-reverse">
-                            <RadioGroupItem value="light" id="light" />
-                            <Label htmlFor="light" className="flex items-center">
-                              <Sun className="me-2 h-4 w-4" /> فاتح
-                            </Label>
-                          </div>
+        <TabsContent value="theme" className="space-y-4 mt-4">
+          <div className="space-y-4">
+            <Label>اللون الرئيسي</Label>
+            <div className="flex justify-center p-4">
+              <HexColorPicker
+                color={settings.primary}
+                onChange={(color) => handleChange("primary", color)}
+              />
+            </div>
 
-                          <div className="flex items-center space-x-2 space-x-reverse">
-                            <RadioGroupItem value="dark" id="dark" />
-                            <Label htmlFor="dark" className="flex items-center">
-                              <Moon className="me-2 h-4 w-4" /> داكن
-                            </Label>
-                          </div>
-
-                          <div className="flex items-center space-x-2 space-x-reverse">
-                            <RadioGroupItem value="system" id="system" />
-                            <Label htmlFor="system" className="flex items-center">
-                              <Monitor className="me-2 h-4 w-4" /> تلقائي (حسب الجهاز)
-                            </Label>
-                          </div>
-                        </RadioGroup>
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="variant"
-                  render={({ field }) => (
-                    <FormItem className="space-y-4">
-                      <FormLabel>نمط الألوان</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          className="grid grid-cols-1 gap-2"
-                        >
-                          {variantOptions.map((variant) => (
-                            <div
-                              key={variant.id}
-                              className={`flex items-center border rounded-md p-2 cursor-pointer ${
-                                field.value === variant.id
-                                  ? "border-primary bg-primary/10"
-                                  : "border-input"
-                              }`}
-                              onClick={() => field.onChange(variant.id)}
-                            >
-                              <div className="me-2">
-                                <RadioGroupItem
-                                  value={variant.id}
-                                  id={variant.id}
-                                  className="sr-only"
-                                />
-                              </div>
-                              <div>
-                                <Label htmlFor={variant.id} className="font-medium">
-                                  {variant.name}
-                                </Label>
-                                <p className="text-xs text-muted-foreground">
-                                  {variant.description}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </RadioGroup>
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-md">
-              <CardHeader>
-                <CardTitle>اللون الرئيسي</CardTitle>
-                <CardDescription>اختر اللون الرئيسي للتطبيق</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-4">
-                  <div>
-                    <HslColorPicker color={hslColor} onChange={(newColor) => {
-                      setHslColor(newColor);
-                    }} />
+            <div className="space-y-2">
+              <Label>الشكل العام</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: "professional", label: "مهني" },
+                  { id: "vibrant", label: "نابض بالحياة" },
+                  { id: "tint", label: "رمادي" },
+                  { id: "modern", label: "عصري" },
+                  { id: "classic", label: "كلاسيكي" },
+                  { id: "futuristic", label: "مستقبلي" },
+                  { id: "elegant", label: "أنيق" },
+                  { id: "natural", label: "طبيعي" }
+                ].map((variant) => (
+                  <div 
+                    key={variant.id}
+                    className={cn(
+                      "relative flex items-center justify-center rounded-md border-2 p-4 cursor-pointer hover:bg-background/50",
+                      settings.variant === variant.id
+                        ? "border-primary"
+                        : "border-transparent"
+                    )}
+                    onClick={() => handleChange("variant", variant.id)}
+                  >
+                    {variant.label}
+                    {settings.variant === variant.id && (
+                      <div className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
+                    )}
                   </div>
-                  <FormField
-                    control={form.control}
-                    name="primary"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>كود اللون</FormLabel>
-                        <FormControl>
-                          <div className="flex gap-2">
-                            <Input {...field} readOnly />
-                            <div 
-                              className="h-10 w-10 rounded-md border" 
-                              style={{ backgroundColor: field.value }} 
-                            />
-                          </div>
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="radius"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>حجم الزوايا: {field.value}</FormLabel>
-                        <FormControl>
-                          <Slider
-                            min={0}
-                            max={2}
-                            step={0.1}
-                            value={[field.value]}
-                            onValueChange={(values) => field.onChange(values[0])}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-md">
-              <CardHeader>
-                <CardTitle>النصوص</CardTitle>
-                <CardDescription>إعدادات الخطوط وحجم النص</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="fontStyle"
-                  render={({ field }) => (
-                    <FormItem className="space-y-4">
-                      <FormLabel>نوع الخط</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          className="flex flex-col space-y-1"
-                        >
-                          {Object.entries(fontMapping).map(([value, label]) => (
-                            <div key={value} className="flex items-center space-x-2 space-x-reverse">
-                              <RadioGroupItem value={value} id={`font-${value}`} />
-                              <Label htmlFor={`font-${value}`} className="flex items-center">
-                                <Type className="me-2 h-4 w-4" /> {label}
-                              </Label>
-                            </div>
-                          ))}
-                        </RadioGroup>
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="fontSize"
-                  render={({ field }) => (
-                    <FormItem className="space-y-4">
-                      <FormLabel>حجم الخط</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          value={field.value}
-                          className="flex flex-col space-y-1"
-                        >
-                          {Object.entries(fontSizeMapping).map(([value, label]) => (
-                            <div key={value} className="flex items-center space-x-2 space-x-reverse">
-                              <RadioGroupItem value={value} id={`size-${value}`} />
-                              <Label htmlFor={`size-${value}`}>{label}</Label>
-                            </div>
-                          ))}
-                        </RadioGroup>
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-      </Form>
+        </TabsContent>
+
+        <TabsContent value="appearance" className="space-y-4 mt-4">
+          <Card>
+            <CardContent className="pt-6">
+              <Label>المظهر العام</Label>
+              <RadioGroup
+                value={settings.appearance}
+                onValueChange={(value) => 
+                  handleChange("appearance", value as "light" | "dark" | "system")
+                }
+                className="mt-3 flex flex-col space-y-3"
+              >
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <RadioGroupItem value="light" id="light" />
+                  <Label htmlFor="light">فاتح</Label>
+                </div>
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <RadioGroupItem value="dark" id="dark" />
+                  <Label htmlFor="dark">داكن</Label>
+                </div>
+                <div className="flex items-center space-x-2 space-x-reverse">
+                  <RadioGroupItem value="system" id="system" />
+                  <Label htmlFor="system">نظام التشغيل</Label>
+                </div>
+              </RadioGroup>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="typography" className="space-y-4 mt-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div>
+                  <Label>نوع الخط</Label>
+                  <RadioGroup
+                    value={settings.fontStyle}
+                    onValueChange={(value) => 
+                      handleChange("fontStyle", value as "noto-kufi" | "cairo" | "tajawal")
+                    }
+                    className="mt-3 flex flex-col space-y-3"
+                  >
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <RadioGroupItem value="noto-kufi" id="noto-kufi" />
+                      <Label htmlFor="noto-kufi" className="font-noto-kufi">نوتو كوفي</Label>
+                    </div>
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <RadioGroupItem value="cairo" id="cairo" />
+                      <Label htmlFor="cairo" className="font-cairo">القاهرة</Label>
+                    </div>
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <RadioGroupItem value="tajawal" id="tajawal" />
+                      <Label htmlFor="tajawal" className="font-tajawal">طجوال</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <div>
+                  <Label>حجم الخط</Label>
+                  <RadioGroup
+                    value={settings.fontSize}
+                    onValueChange={(value) => 
+                      handleChange("fontSize", value as "small" | "medium" | "large" | "xlarge")
+                    }
+                    className="mt-3 flex flex-col space-y-3"
+                  >
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <RadioGroupItem value="small" id="small" />
+                      <Label htmlFor="small" className="text-sm">صغير</Label>
+                    </div>
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <RadioGroupItem value="medium" id="medium" />
+                      <Label htmlFor="medium" className="text-base">متوسط</Label>
+                    </div>
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <RadioGroupItem value="large" id="large" />
+                      <Label htmlFor="large" className="text-lg">كبير</Label>
+                    </div>
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <RadioGroupItem value="xlarge" id="xlarge" />
+                      <Label htmlFor="xlarge" className="text-xl">كبير جداً</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <Button onClick={saveSettings} disabled={isLoading}>
+        {isLoading ? "جاري الحفظ..." : "حفظ الإعدادات"}
+      </Button>
     </div>
   );
 }
