@@ -944,13 +944,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserSettings(userId: number): Promise<UserSettings | undefined> {
-    const [settings] = await db
-      .select()
-      .from(userSettings)
-      .where(eq(userSettings.userId, userId))
-      .orderBy(desc(userSettings.createdAt))
-      .limit(1);
-    return settings;
+    try {
+      const [settings] = await db
+        .select()
+        .from(userSettings)
+        .where(eq(userSettings.userId, userId))
+        .orderBy(desc(userSettings.createdAt))
+        .limit(1);
+      return settings;
+    } catch (error) {
+      console.error("Error in getUserSettings:", error);
+      return undefined;
+    }
   }
 
   async saveUserSettings(settings: InsertUserSettings): Promise<UserSettings> {
@@ -963,7 +968,12 @@ export class DatabaseStorage implements IStorage {
       // حذف الإعدادات القديمة أولاً
       await db.delete(userSettings).where(eq(userSettings.userId, settings.userId));
 
-      // إدخال الإعدادات الجديدة مع معالجة الأنواع بشكل صحيح
+      // تخزين قيم الألوان بطريقة صحيحة
+      const colorsValue = typeof settings.colors === 'string' 
+        ? settings.colors 
+        : JSON.stringify(settings.colors);
+
+      // إدخال الإعدادات الجديدة
       const [newSettings] = await db
         .insert(userSettings)
         .values({
@@ -972,12 +982,13 @@ export class DatabaseStorage implements IStorage {
           fontName: settings.fontName,
           fontSize: settings.fontSize,
           appearance: settings.appearance,
-          colors: JSON.stringify(settings.colors), // تحويل الألوان إلى نص JSON
+          colors: colorsValue,
           createdAt: new Date(),
           updatedAt: new Date()
         })
         .returning();
 
+      console.log("User settings saved successfully:", settings.userId);
       return newSettings;
     } catch (error) {
       console.error("Error in saveUserSettings:", error);
