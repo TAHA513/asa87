@@ -1,7 +1,6 @@
-
 {
   "primary": "hsl(22 90% 50.5%)",
-  "variant": "professional",
+  "variant": "natural",
   "appearance": "light",
   "fontStyle": "noto-kufi",
   "fontSize": "large",
