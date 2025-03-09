@@ -263,12 +263,12 @@ const ThemeSettings = () => {
       </CardHeader>
       <CardContent className="pb-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2 mb-8">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 gap-2 mb-8"> {/* Removed one column */}
             {[
               { value: "theme", icon: <Palette className="w-4 h-4" />, label: "الألوان" },
               { value: "font", icon: <Type className="w-4 h-4" />, label: "الخطوط" },
               { value: "size", icon: <Plus className="w-4 h-4" />, label: "الحجم" },
-              { value: "appearance", icon: <Sun className="w-4 h-4" />, label: "السطوع" }
+             
             ].map(tab => (
               <TabsTrigger
                 key={tab.value}
@@ -436,43 +436,7 @@ const ThemeSettings = () => {
               </Card>
             </TabsContent>
 
-            <TabsContent value="appearance">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { id: "light", name: "فاتح", icon: Sun },
-                  { id: "dark", name: "داكن", icon: Moon }
-                ].map((mode) => (
-                  <motion.div
-                    key={mode.id}
-                    variants={itemVariants}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Card
-                      className={`cursor-pointer transition-all hover:shadow-lg ${
-                        appearance === mode.id ? 'ring-2 ring-primary' : ''
-                      }`}
-                      onClick={() => {
-                        setAppearance(mode.id as "light" | "dark");
-                        applyAppearance(mode.id as "light" | "dark");
-                      }}
-                    >
-                      <CardHeader className="p-4">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-lg font-medium">{mode.name}</CardTitle>
-                          {appearance === mode.id && (
-                            <Check className="w-5 h-5 text-primary" />
-                          )}
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-4 pt-0">
-                        <mode.icon className="w-8 h-8" />
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-              </div>
-            </TabsContent>
+            {/* تم إزالة قسم إعدادات السطوع */}
           </motion.div>
         </Tabs>
 
