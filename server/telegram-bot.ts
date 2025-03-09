@@ -22,7 +22,15 @@ interface PendingCodeType {
 let pendingCode: PendingCodeType = {};
 
 bot.start((ctx) => {
-  ctx.reply('👋 مرحباً! يمكنك إرسال أوامر تطوير النظام باللغة العربية.');
+  ctx.reply(`👋 مرحباً ${ctx.from?.first_name || ""}! أنا مساعدك البرمجي.
+
+🚀 *كيفية استخدام البوت:*
+1️⃣ أرسل \`/generate\` متبوعًا بوصف ما تريد إنشاءه باللغة العربية
+2️⃣ سأقوم بإنشاء الكود المناسب وعرضه عليك
+3️⃣ يمكنك الموافقة على الكود باستخدام \`/approve\` أو رفضه باستخدام \`/reject\`
+
+*مثال:* \`/generate إنشاء صفحة تسجيل دخول بسيطة مع حقل البريد الإلكتروني وكلمة المرور وزر تسجيل الدخول\``, 
+    { parse_mode: 'Markdown' });
 });
 
 bot.command('generate', async (ctx) => {
@@ -32,19 +40,47 @@ bot.command('generate', async (ctx) => {
   }
 
   try {
-    ctx.reply('🔄 جاري تحليل الأمر وإنشاء الكود...');
+    await ctx.reply('🔄 جاري تحليل الأمر وإنشاء الكود...');
     const generatedCode = await generateCodeWithOpenAI(command);
     const chatId = ctx.chat.id.toString();
     pendingCode[chatId] = generatedCode;
 
-    // تقصير الكود إذا كان طويلاً جداً
-    const maxLength = 3000;
-    let codeToSend = generatedCode;
-    if (generatedCode.length > maxLength) {
-      codeToSend = generatedCode.substring(0, maxLength) + "...\n[تم تقصير الكود لتجنب تجاوز الحد المسموح به من تلجرام]";
+    // تقسيم الكود إلى أجزاء صغيرة للتعامل مع حدود تلجرام
+    const MAX_MESSAGE_LENGTH = 2000;
+    
+    // إرسال رسالة مقدمة
+    await ctx.reply('🔹 *الكود المقترح:*', { parse_mode: 'Markdown' });
+    
+    // تقسيم الكود الطويل إلى أجزاء
+    if (generatedCode.length > MAX_MESSAGE_LENGTH) {
+      // تقسيم الكود إلى أجزاء وإرسالها
+      let codeChunks = [];
+      for (let i = 0; i < generatedCode.length; i += MAX_MESSAGE_LENGTH) {
+        codeChunks.push(generatedCode.substring(i, i + MAX_MESSAGE_LENGTH));
+      }
+      
+      // إرسال الأجزاء واحدًا تلو الآخر
+      for (let i = 0; i < codeChunks.length; i++) {
+        await ctx.reply(`*الجزء ${i+1}/${codeChunks.length}:*\n\`\`\`\n${codeChunks[i]}\n\`\`\``, { parse_mode: 'Markdown' })
+          .catch(async (err) => {
+            // في حالة الفشل، جرب بدون تنسيق Markdown
+            console.log('خطأ في إرسال الكود بتنسيق Markdown:', err);
+            await ctx.reply(`الجزء ${i+1}/${codeChunks.length}:\n${codeChunks[i]}`);
+          });
+      }
+    } else {
+      // إرسال الكود كاملًا في رسالة واحدة
+      await ctx.reply(`\`\`\`\n${generatedCode}\n\`\`\``, { parse_mode: 'Markdown' })
+        .catch(async (err) => {
+          // في حالة الفشل، جرب بدون تنسيق
+          console.log('خطأ في إرسال الكود بتنسيق Markdown:', err);
+          await ctx.reply(generatedCode);
+        });
     }
-
-    await ctx.reply(`🔹 الكود المقترح (جزء منه):\n\`\`\`\n${codeToSend}\n\`\`\`\n\n✔️ للموافقة، أرسل: /approve\n❌ للرفض، أرسل: /reject`, { parse_mode: 'Markdown' });
+    
+    // إرسال رسالة تأكيد
+    await ctx.reply('✅ *هل توافق على هذا الكود؟*\n✔️ للموافقة، أرسل: `/approve`\n❌ للرفض، أرسل: `/reject`', { parse_mode: 'Markdown' });
+    
   } catch (error) {
     console.error('Error generating code:', error);
     ctx.reply('❌ حدث خطأ أثناء إنشاء الكود. يرجى المحاولة مرة أخرى.');
@@ -58,12 +94,21 @@ bot.command('approve', async (ctx) => {
   }
 
   try {
-    await executeCode(pendingCode[chatId]);
-    ctx.reply('✅ تم تنفيذ التعديلات بنجاح.');
+    await ctx.reply('🔄 جاري تنفيذ التعديلات...');
+    const filePath = await executeCode(pendingCode[chatId]);
+    
+    await ctx.reply(`✅ تم تنفيذ التعديلات بنجاح!
+    
+📝 *تفاصيل التنفيذ:*
+- تم إنشاء/تعديل الملف: \`${filePath}\`
+- حجم الكود: ${pendingCode[chatId].length} حرف
+    
+🚀 يمكنك الآن استخدام الكود في مشروعك.`, { parse_mode: 'Markdown' });
+    
     delete pendingCode[chatId];
   } catch (error) {
     console.error('Error executing code:', error);
-    ctx.reply('❌ حدث خطأ أثناء تنفيذ الكود. يرجى المحاولة مرة أخرى.');
+    ctx.reply(`❌ حدث خطأ أثناء تنفيذ الكود: ${error.message}\nيرجى المحاولة مرة أخرى.`);
   }
 });
 

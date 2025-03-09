@@ -120,20 +120,31 @@ async function startServer() {
 
     const port = 5001;
     server.listen({
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
-      log(`تم تشغيل السيرفر على المنفذ ${port}`);
-    });
+        port,
+        host: "0.0.0.0",
+      }, (err: Error | null) => {
+        if (err) {
+          console.error(`❌ خطأ في بدء السيرفر: ${err.message}`);
+          // إذا كان الخطأ هو أن المنفذ مستخدم بالفعل، جرب منفذًا آخر
+          if (err.message.includes('EADDRINUSE')) {
+            console.log(`⚠️ المنفذ ${port} مستخدم بالفعل، جاري تجربة منفذ آخر...`);
+            // تجربة منفذ آخر (+1)
+            process.env.PORT = String(Number(port) + 1);
+            startServer();
+          }
+        } else {
+          console.log(`✅ السيرفر يعمل على المنفذ ${port}`);
+
+          // بدء بوت التلجرام
+          console.log('🔄 جاري بدء بوت التلجرام...');
+          startTelegramBot();
+        }
+      });
 
     // تنفيذ البذور بعد بدء السيرفر
     await seedData().catch(err => {
       console.error("خطأ في تنفيذ البذور:", err);
     });
-
-    // بدء تشغيل بوت تلجرام
-    startTelegramBot();
 
   } catch (error) {
     console.error('فشل في بدء السيرفر:', error);

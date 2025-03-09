@@ -188,29 +188,51 @@ export async function generateCodeWithOpenAI(command: string): Promise<string> {
     }
 
     // حاول استخدام Groq أو OpenAI إذا كان مفتاح API موجودًا
-    const apiKey = process.env.OPENAI_API_KEY || process.env.GROQ_API_KEY;
+    // استخدام مفتاح Groq API أولاً، ثم OpenAI API إذا لم يكن متوفرًا
+    const groqApiKey = process.env.GROQ_API_KEY;
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    const apiKey = groqApiKey || openaiApiKey;
 
     if (apiKey && apiKey !== 'YOUR_ACTUAL_API_KEY_HERE') {
       try {
-        console.log('جاري استخدام Groq API لتوليد الكود...');
+        console.log('جاري استخدام API لتوليد الكود...');
+        
+        // تحديد نوع API المستخدم
+        const isGroq = !!groqApiKey && groqApiKey !== 'YOUR_ACTUAL_API_KEY_HERE';
+        const apiEndpoint = isGroq 
+          ? 'https://api.groq.com/openai/v1/chat/completions'
+          : 'https://api.openai.com/v1/chat/completions';
+        
+        console.log(`استخدام ${isGroq ? 'Groq' : 'OpenAI'} API...`);
 
-        // استخدام Groq API
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        // توجيهات النظام المحسنة
+        const systemPrompt = `أنت مساعد مطور محترف متخصص في إنشاء كود React/Next.js/TypeScript عالي الجودة.
+- ركز على كتابة كود نظيف وقابل للصيانة باستخدام أفضل الممارسات.
+- اكتب تعليقات مفيدة باللغة العربية لشرح الأجزاء المهمة.
+- التزم بالمعايير الحديثة لـ TypeScript وReact.
+- قم بتضمين معالجة الأخطاء وتحقق من المدخلات حيثما كان ذلك مناسبًا.
+- تأكد من أن الكود قابل للتنفيذ مباشرة وخالٍ من الأخطاء.`;
+
+        // استخدام API
+        const response = await fetch(apiEndpoint, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model: 'llama3-8b-8192',
+            model: isGroq ? 'llama3-8b-8192' : 'gpt-3.5-turbo',
             messages: [
-              { 
-                role: 'system', 
-                content: 'أنت مساعد مطور محترف متخصص في إنشاء كود React/Next.js/TypeScript بناءً على وصف المستخدم. قدم كودًا عالي الجودة مع تعليقات مفيدة باللغة العربية.' 
-              },
+              { role: 'system', content: systemPrompt },
               { 
                 role: 'user', 
-                content: `قم بإنشاء كود لمكون React/TypeScript يلبي الوصف التالي: ${command}` 
+                content: `قم بإنشاء كود لمكون React/TypeScript يلبي الوصف التالي: ${command}
+                
+احرص على:
+1. استخدام TypeScript بشكل صحيح مع تعريفات الأنواع
+2. توفير تعليقات توضيحية باللغة العربية
+3. اتباع أفضل الممارسات في بناء واجهات المستخدم
+4. جعل المكون قابل لإعادة الاستخدام`
               }
             ],
             temperature: 0.7,
