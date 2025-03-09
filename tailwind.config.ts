@@ -1,8 +1,8 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  // استخدام الوضع الفاتح فقط
-  darkMode: false,
+  // استخدام وضع الوسائط للوضع الداكن
+  darkMode: 'media',
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
