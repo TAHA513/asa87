@@ -1339,7 +1339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum(["default", "modern", "classic", "elegant", "vibrant", "natural", "professional", "tint", "futuristic"]),
+        variant: z.enum(["modern", "classic", "elegant", "vibrant", "natural"]),
         appearance: z.enum(["light", "dark", "system"]),
         fontStyle: z.enum([
           "noto-kufi",
@@ -1380,7 +1380,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         JSON.stringify(theme, null, 2)
       );
 
-      res.json({ success: true });
+      // تطبيق التغييرات على الصفحة بشكل مباشر
+      res.json({ 
+        success: true,
+        settings: userSettings
+      });
     } catch (error) {
       console.error("Error updating theme:", error);
       res.status(500).json({ message: "فشل في حفظ إعدادات المظهر" });

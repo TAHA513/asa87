@@ -167,11 +167,11 @@ const ThemeSettings = () => {
     } else {
       root.classList.add(mode);
     }
-    
+
     // تحديث متغير CSS وحفظ الإعداد في localStorage
     root.style.setProperty("--current-appearance", mode);
     localStorage.setItem("theme-appearance", mode);
-    
+
     // إضافة تحديث إضافي لضمان تطبيق السمة
     document.body.className = document.body.className;
   };
@@ -213,6 +213,7 @@ const ThemeSettings = () => {
   const saveSettings = async () => {
     setIsLoading(true);
     try {
+      // إعداد البيانات للإرسال
       const settings = {
         primary: selectedTheme.colors.primary,
         variant: selectedTheme.id,
@@ -223,14 +224,24 @@ const ThemeSettings = () => {
       };
 
       const response = await apiRequest("POST", "/api/settings", settings);
+      const data = await response.json();
 
-      if (response) {
+      if (data.success) {
+        // تطبيق التغييرات بشكل مباشر
         document.documentElement.style.setProperty("--primary-color", selectedTheme.colors.primary);
         document.documentElement.style.setProperty("--secondary-color", selectedTheme.colors.secondary);
         document.documentElement.style.setProperty("--accent-color", selectedTheme.colors.accent);
         document.documentElement.style.setProperty("--font-family", selectedFont.family);
         document.documentElement.style.setProperty("--font-size-base", `${fontSizes[fontSize].base}px`);
+
+        // تطبيق السطوع مع إعادة تحميل
         applyAppearance(appearance);
+
+        // تحديث التطبيق لتطبيق التغييرات
+        setTimeout(() => {
+          // محاولة تطبيق التغييرات مرة أخرى بعد التأخير
+          applyAppearance(appearance);
+        }, 100);
 
         toast({
           title: "تم الحفظ",
