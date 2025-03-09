@@ -301,50 +301,7 @@ async function analyzeProjectStructure(): Promise<string> {
   }
 }
 
-/**
- * الحصول على حالة النظام
- */
-async function getSystemStatus(): Promise<string> {
-  try {
-    const freeMem = os.freemem() / 1024 / 1024;
-    const totalMem = os.totalmem() / 1024 / 1024;
-    const memUsage = ((totalMem - freeMem) / totalMem * 100).toFixed(2);
-    
-    const cpuInfo = os.cpus();
-    const uptime = (os.uptime() / 60).toFixed(2);
-    
-    const { stdout: diskSpace } = await execPromise('df -h | grep "/$"');
-    
-    const { stdout: processCount } = await execPromise('ps aux | wc -l');
-    
-    const systemStatus = `
-📊 تقرير حالة النظام:
-
-💻 معلومات النظام:
-   - نظام التشغيل: ${os.type()} ${os.release()}
-   - اسم المضيف: ${os.hostname()}
-   - مدة التشغيل: ${uptime} دقيقة
-
-🔧 استخدام الموارد:
-   - الذاكرة المستخدمة: ${memUsage}% (${(totalMem - freeMem).toFixed(2)} MB من أصل ${totalMem.toFixed(2)} MB)
-   - عدد المعالجات: ${cpuInfo.length}
-   - عدد العمليات النشطة: ${parseInt(processCount) - 1}
-
-💾 مساحة القرص:
-${diskSpace}
-
-🔄 حالة الخدمات:
-   - خدمة الويب: نشطة ✅
-   - بوت التلجرام: نشط ✅
-   - قاعدة البيانات: نشطة ✅
-    `;
-    
-    return systemStatus;
-  } catch (error) {
-    console.error('❌ خطأ في الحصول على حالة النظام:', error);
-    return `❌ حدث خطأ أثناء الحصول على حالة النظام: ${error.message}`;
-  }
-}
+// تم حذف الإعلان المكرر لدالة getSystemStatus
 
 /**
  * الحصول على حالة الخدمات
