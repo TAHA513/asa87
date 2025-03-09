@@ -1,3 +1,9 @@
+
+// إضافة استيراد دوال التحليل والتشخيص
+import { analyzeProjectCode, analyzeProblemAndSuggestFix } from './code-generator';
+
+// باقي الكود الأصلي...
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
