@@ -256,6 +256,41 @@ export function startTelegramBot() {
   // تخزين الطلبات التي تنتظر الموافقة
   const pendingApprovals = new Map();
   
+  // أوامر الموافقة والرفض
+  bot.command('approve', async (ctx) => {
+    const userId = ctx.from.id.toString();
+    const pendingRequest = pendingApprovals.get(userId);
+    
+    if (!pendingRequest) {
+      return ctx.reply('❌ لا يوجد أمر بانتظار الموافقة.');
+    }
+    
+    await ctx.reply(`🚀 جاري تنفيذ الأمر: "${pendingRequest.command}"`);
+    
+    try {
+      // تنفيذ الأمر المعلق
+      const result = await executeCommand(pendingRequest.command);
+      await ctx.reply(`✅ تم تنفيذ طلبك بنجاح!\n\n📋 نتيجة التنفيذ:\n\n${result.split('\n').slice(0, 15).join('\n')}\n...\n(تم اختصار التقرير)`);
+      
+      // إزالة الطلب من قائمة الانتظار
+      pendingApprovals.delete(userId);
+    } catch (error) {
+      console.error('❌ خطأ في تنفيذ الأمر المعلق:', error);
+      await ctx.reply(`❌ حدث خطأ أثناء تنفيذ الأمر: ${error.message}`);
+    }
+  });
+  
+  bot.command('reject', (ctx) => {
+    const userId = ctx.from.id.toString();
+    
+    if (!pendingApprovals.has(userId)) {
+      return ctx.reply('🚫 لا يوجد أمر بانتظار الموافقة.');
+    }
+    
+    pendingApprovals.delete(userId);
+    ctx.reply('⚠️ تم إلغاء تنفيذ الأمر. هل هناك شيء آخر تريد القيام به؟');
+  });
+  
   // معالجة الرسائل العادية
   bot.on('text', async (ctx) => {
     const text = ctx.message.text;
@@ -275,7 +310,7 @@ export function startTelegramBot() {
         try {
           // تنفيذ الأمر المعلق
           const result = await executeCommand(pendingRequest.command);
-          await ctx.reply(`✅ تم تنفيذ الأمر بنجاح:\n\n${result}`);
+          await ctx.reply(`✅ تم تنفيذ الأمر بنجاح:\n\n${result.split('\n').slice(0, 15).join('\n')}\n...\n(تم اختصار التقرير)`);
           
           // إزالة الطلب من قائمة الانتظار
           pendingApprovals.delete(userId);
@@ -342,13 +377,18 @@ export function startTelegramBot() {
           planResult = `سأقوم بتحليل طلبك "${text}" وتنفيذه بأفضل طريقة ممكنة.`;
       }
       
-      await ctx.reply(`📋 خطة التنفيذ:\n\n${planResult}\n\nهل ترغب في المتابعة وتنفيذ هذه الخطة؟ (أجب بـ "نعم" أو "لا")`);
+      // توليد كود لمعالجة الطلب
+      const generatedCode = await generateCodeWithOpenAI(text);
+      
+      // عرض الكود والخطة للمستخدم وانتظار الموافقة
+      await ctx.reply(`📋 خطة التنفيذ:\n\n${planResult}\n\n📄 الكود المقترح للتنفيذ:\n\`\`\`\n${generatedCode.substring(0, 500)}${generatedCode.length > 500 ? '...' : ''}\n\`\`\`\n\nهل ترغب في المتابعة وتنفيذ هذه الخطة؟\n✅ للموافقة، أرسل: /approve\n❌ للرفض، أرسل: /reject`);
       
       // حفظ الطلب في قائمة الانتظار
       pendingApprovals.set(userId, {
         command: text,
         timestamp: Date.now(),
-        type: commandType
+        type: commandType,
+        generatedCode: generatedCode
       });
       
       // تحديث رسالة المعالجة

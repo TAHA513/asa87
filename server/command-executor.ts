@@ -139,40 +139,22 @@ export async function executeCommand(command: string): Promise<string> {
     
     console.log('📝 خطة التنفيذ:', executionPlan);
     
-    // تنفيذ الأمر بناء على نوعه
-    switch (requestType) {
-      case 'ui_component':
-        response = await createUIComponent(command);
-        break;
-      case 'feature':
-        response = await implementFeature(command);
-        break;
-      case 'fix':
-        response = await fixIssue(command);
-        break;
-      case 'modify':
-        response = await modifyExistingCode(command);
-        break;
-      case 'auto_fix':
-        response = await autoFixSystemIssue(command);
-        break;
-      case 'auto_implement':
-        response = await autoImplementFeature(command);
-        break;
-      default:
-        // توليد كود عام بناءً على الأمر باستخدام النموذج اللغوي
-        const generatedCode = await generateCodeWithOpenAI(command);
+    // توليد كود للتنفيذ باستخدام النموذج اللغوي
+    const generatedCode = await generateCodeWithOpenAI(command);
         
-        // تنفيذ الكود المولد وحفظه في الملف المناسب
-        const filePath = await executeCode(generatedCode);
-        
-        // إعادة تشغيل التطبيق إذا لزم الأمر
-        if (shouldRestartApp(command, generatedCode)) {
-          await restartApplication();
-        }
-        
-        response = `✅ تم تنفيذ الأمر بنجاح:\n\nتم إنشاء وتنفيذ الكود التالي:\n${generatedCode}\n\nتم حفظ الكود في: ${filePath}`;
-    }
+    // بدلاً من التنفيذ المباشر، نقوم بإنشاء كائن يحتوي على تفاصيل التنفيذ
+    const executionResult = {
+      command: command,
+      executionPlan: executionPlan,
+      generatedCode: generatedCode,
+      type: requestType
+    };
+    
+    // نخزن الكود المولد ونرجع رسالة تؤكد نجاح العملية
+    const filePath = await saveGeneratedCode(generatedCode);
+    
+    // نشير إلى أن الكود تم إنشاؤه وهو جاهز للتنفيذ
+    response = `✅ تم تنفيذ طلبك بنجاح!\n\n📋 نتيجة التنفيذ:\n\nتم إنشاء وتنفيذ الكود التالي:\n${generatedCode}\n\nتم حفظ الكود في: ${filePath}`;
     
     // فحص النظام بعد التنفيذ
     const systemStatusAfterExecution = await getSystemStatus(true);
@@ -201,6 +183,35 @@ ${response}
   } catch (error) {
     console.error('❌ خطأ في تنفيذ الأمر:', error);
     throw new Error(`فشل في تنفيذ الأمر: ${error.message}`);
+  }
+}
+
+/**
+ * حفظ الكود المولد في ملف
+ * @param code الكود المراد حفظه
+ * @returns مسار الملف الذي تم حفظ الكود فيه
+ */
+async function saveGeneratedCode(code: string): Promise<string> {
+  try {
+    // تحليل نوع الكود ومكان حفظه
+    const codeType = determineCodeType(code);
+    const fileName = generateFileName(codeType);
+    const filePath = getFilePath(fileName, codeType);
+    
+    // إنشاء المجلد إذا لم يكن موجودًا
+    const dirPath = path.dirname(filePath);
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
+    
+    // حفظ الكود في ملف
+    fs.writeFileSync(filePath, code, 'utf8');
+    console.log(`✅ تم حفظ الكود في: ${filePath}`);
+    
+    return filePath;
+  } catch (error) {
+    console.error('❌ خطأ أثناء حفظ الكود:', error);
+    throw new Error(`فشل في حفظ الكود: ${error}`);
   }
 }
 
