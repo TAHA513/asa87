@@ -230,8 +230,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum(["default", "professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
-        appearance: z.enum(["light", "dark"]),
+        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
+        appearance: z.enum(["light", "dark", "system"]),
         fontStyle: z.enum([
           "traditional",
           "modern",
@@ -1299,7 +1299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       "vibrant", // النابض بالحياة
       "natural", // الطبيعي
     ]),
-    appearance: z.enum(["light", "dark"]),
+    appearance: z.enum(["light", "dark", "system"]),
     fontStyle: z.enum([
       "noto-kufi", // نوتو كوفي
       "cairo", // القاهرة
@@ -1339,8 +1339,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural", "default"]),
-        appearance: z.enum(["light", "dark"]),
+        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
+        appearance: z.enum(["light", "dark", "system"]),
         fontStyle: z.enum([
           "traditional",
           "modern",
@@ -1741,12 +1741,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const reportId = parseInt(req.params.id);
-
+      
       // التحقق من صحة معرف التقرير
       if (isNaN(reportId)) {
         return res.status(400).json({ message: "معرف التقرير غير صالح" });
       }
-
+      
       const report = await storage.getReport(reportId);
       if (!report) {
         return res.status(404).json({ message: "التقرير غير موجود" });
@@ -1784,7 +1784,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة التواريخ
       const start = new Date(startDate as string);
       const end = new Date(endDate as string);
-
+      
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
         return res.status(400).json({
           message: "صيغة التاريخ غير صحيحة"
