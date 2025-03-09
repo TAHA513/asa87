@@ -1,77 +1,86 @@
-import fs from 'fs/promises';
+
+import fs from 'fs';
 import path from 'path';
+import { nanoid } from 'nanoid';
 
 /**
- * تنفيذ الكود المولد
+ * تنفيذ الكود المولد وحفظه في ملف مناسب
  * @param code الكود المراد تنفيذه
- * @returns مسار الملف الذي تم إنشاؤه
  */
-export async function executeCode(code: string): Promise<string> {
+export async function executeCode(code: string): Promise<void> {
   try {
-    console.log('🔄 جاري تنفيذ الكود...');
-
-    // تحليل نوع الكود وإنشاء ملف بناءً على ذلك
-    let fileExtension = 'js';
-    let targetDirectory = 'generated-code';
-
-    // تحديد نوع الملف ومكان الحفظ
-    if (code.includes('import React') || code.includes('useState') || code.includes('useEffect')) {
-      // إذا كان الكود يتضمن مكونات React
-      fileExtension = 'tsx';
-      if (code.includes('export default function')) {
-        // ملف صفحة كاملة
-        targetDirectory = 'client/src/pages';
-      } else {
-        // مكون فرعي
-        targetDirectory = 'client/src/components/generated';
-      }
-    } else if (code.includes('app.get') || code.includes('app.post') || code.includes('app.put')) {
-      // إذا كان الكود يتضمن مسارات API
-      fileExtension = 'ts';
-      targetDirectory = 'server/generated-routes';
-    } else if (code.includes('class') || code.includes('interface') || code.includes('type ')) {
-      // إذا كان الكود يتضمن تعريفات نوع TypeScript
-      fileExtension = 'ts';
-      targetDirectory = 'shared/generated-utils';
-    }
-
-    // إنشاء اسم الملف
-    const timestamp = Date.now();
-    let name;
+    // تحليل نوع الكود ومكان حفظه
+    const codeType = determineCodeType(code);
+    const fileName = generateFileName(codeType);
+    const filePath = getFilePath(fileName, codeType);
     
-    // استخراج اسم المكون من الكود
-    if (code.includes('export default function')) {
-      name = code.match(/export default function ([a-zA-Z0-9_]+)/)?.[1] || `Generated${timestamp}`;
-    } else if (code.includes('export function')) {
-      name = code.match(/export function ([a-zA-Z0-9_]+)/)?.[1] || `Generated${timestamp}`;
-    } else if (code.includes('function ')) {
-      name = code.match(/function ([a-zA-Z0-9_]+)/)?.[1] || `Generated${timestamp}`;
-    } else if (code.includes('class ')) {
-      name = code.match(/class ([a-zA-Z0-9_]+)/)?.[1] || `Generated${timestamp}`;
-    } else {
-      name = `generated-code-${timestamp}`;
-    }
-    
-    // تحويل الاسم ليبدأ بحرف كبير
-    name = name.charAt(0).toUpperCase() + name.slice(1);
-
-    const filename = `${name}.${fileExtension}`;
-    const filePath = path.join(process.cwd(), targetDirectory, filename);
-
     // إنشاء المجلد إذا لم يكن موجودًا
     const dirPath = path.dirname(filePath);
-    await fs.mkdir(dirPath, { recursive: true });
-
-    // كتابة الكود إلى الملف
-    await fs.writeFile(filePath, code, 'utf-8');
-    console.log(`✅ تم حفظ الكود في: ${filePath}`);
-
-    console.log('✅ تم تنفيذ الكود بنجاح!');
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
     
-    // إرجاع مسار الملف الذي تم إنشاؤه
-    return filePath;
+    // حفظ الكود في ملف
+    fs.writeFileSync(filePath, code, 'utf8');
+    console.log(`✅ تم حفظ الكود في: ${filePath}`);
+    
+    // يمكن إضافة المزيد من الإجراءات هنا مثل:
+    // - تحديث ملفات التصدير
+    // - إعادة تشغيل الخدمات
+    // - تحديث الـ routes
   } catch (error) {
-    console.error('❌ خطأ في تنفيذ الكود:', error);
+    console.error('❌ خطأ أثناء تنفيذ الكود:', error);
     throw new Error(`فشل في تنفيذ الكود: ${error}`);
+  }
+}
+
+/**
+ * تحديد نوع الكود (React component, API route, util, etc.)
+ */
+function determineCodeType(code: string): string {
+  if (code.includes('import React') || code.includes('from "react"') || code.includes("from 'react'")) {
+    return 'component';
+  } else if (code.includes('app.get(') || code.includes('app.post(') || code.includes('router.')) {
+    return 'route';
+  } else if (code.includes('export function') || code.includes('export const') || code.includes('module.exports')) {
+    return 'util';
+  }
+  return 'misc';
+}
+
+/**
+ * توليد اسم ملف فريد
+ */
+function generateFileName(codeType: string): string {
+  const timestamp = Date.now();
+  const uniqueId = nanoid(6);
+  
+  switch (codeType) {
+    case 'component':
+      return `Component-${timestamp}-${uniqueId}.tsx`;
+    case 'route':
+      return `Route-${timestamp}-${uniqueId}.ts`;
+    case 'util':
+      return `Util-${timestamp}-${uniqueId}.ts`;
+    default:
+      return `Generated-${timestamp}-${uniqueId}.js`;
+  }
+}
+
+/**
+ * تحديد مسار الملف بناءً على نوع الكود
+ */
+function getFilePath(fileName: string, codeType: string): string {
+  const basePath = process.cwd();
+  
+  switch (codeType) {
+    case 'component':
+      return path.join(basePath, 'client', 'src', 'components', 'generated', fileName);
+    case 'route':
+      return path.join(basePath, 'server', 'generated-routes', fileName);
+    case 'util':
+      return path.join(basePath, 'shared', 'generated-utils', fileName);
+    default:
+      return path.join(basePath, 'generated-code', fileName);
   }
 }

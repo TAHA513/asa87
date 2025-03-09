@@ -4,7 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import fileUpload from "express-fileupload";
 import path from "path";
 import session from "express-session";
-import { db, sql } from "./db";
+import { db, sql } from "./db"; // Import sql from db.ts
 import { seedData } from "./seed-data";
 import MemoryStore from 'memorystore';
 import { startTelegramBot } from "./telegram-bot";
@@ -124,19 +124,16 @@ async function startServer() {
       host: "0.0.0.0",
       reusePort: true,
     }, () => {
-      console.log(`✅ السيرفر يعمل على المنفذ ${port}`);
-
-      // بدء بوت التلجرام
-      console.log('🔄 جاري بدء بوت التلجرام...');
-      startTelegramBot().catch(err => {
-        console.error('❌ خطأ في بدء بوت التلجرام:', err);
-      });
+      log(`تم تشغيل السيرفر على المنفذ ${port}`);
     });
 
     // تنفيذ البذور بعد بدء السيرفر
     await seedData().catch(err => {
       console.error("خطأ في تنفيذ البذور:", err);
     });
+
+    // بدء تشغيل بوت تلجرام
+    startTelegramBot();
 
   } catch (error) {
     console.error('فشل في بدء السيرفر:', error);

@@ -1,145 +1,83 @@
-import fetch from 'node-fetch';
+
+import OpenAI from 'openai';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
+// إنشاء مثيل من OpenAI API
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+/**
+ * توليد كود باستخدام OpenAI API بناءً على الأمر
+ * @param command الأمر البرمجي باللغة العربية
+ * @returns الكود المولد
+ */
 export async function generateCodeWithOpenAI(command: string): Promise<string> {
   try {
-    if (!command || command.trim() === '') {
-      throw new Error('الأمر فارغ');
+    // تحقق من وجود مفتاح API
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY غير معرف في ملف .env');
     }
 
-    const groqApiKey = process.env.GROQ_API_KEY;
-
-    if (!groqApiKey || groqApiKey === 'YOUR_ACTUAL_API_KEY_HERE') {
-      console.log('⚠️ مفتاح GROQ API غير متوفر، استخدام وضع التوليد البديل');
-      return generateFallbackCode(command);
-    }
-
-    try {
-      console.log('🔄 جاري استخدام GROQ API لتوليد الكود...');
-      console.log('📝 الأمر المستلم:', command);
-
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${groqApiKey}`,
-          'Content-Type': 'application/json'
+    console.log('🔄 إرسال طلب إلى OpenAI API...');
+    
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        {
+          role: "system",
+          content: `أنت مساعد برمجي ماهر. ستتلقى أوامر باللغة العربية، ومهمتك هي تحويلها إلى أكواد TypeScript أو JavaScript حسب السياق. 
+          المشروع عبارة عن تطبيق ويب يستخدم Express كـ backend وReact كـ frontend. استخدم لغة TypeScript عندما يكون ذلك مناسبًا.
+          قدم الكود فقط دون أي تفسيرات أو تعليقات إضافية.`
         },
-        body: JSON.stringify({
-          model: 'mixtral-8x7b-32768',
-          messages: [
-            {
-              role: 'system',
-              content: `أنت مطور محترف متخصص في إنشاء كود React/Next.js/TypeScript عالي الجودة.
-              - ركز على كتابة كود نظيف وقابل للصيانة باستخدام أفضل الممارسات.
-              - اكتب تعليقات مفيدة باللغة العربية لشرح الأجزاء المهمة.
-              - التزم بالمعايير الحديثة لـ TypeScript وReact.
-              - قم بتضمين معالجة الأخطاء وتحقق من المدخلات.`
-            },
-            {
-              role: 'user',
-              content: `قم بإنشاء كود لمكون React/TypeScript يلبي الوصف التالي: ${command}`
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 4000
-        })
-      });
+        {
+          role: "user",
+          content: command
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 1500
+    });
 
-      if (!response.ok) {
-        throw new Error(`فشل الاتصال بـ GROQ API: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      if (!data.choices?.[0]?.message?.content) {
-        console.error('خطأ في استجابة GROQ API:', data);
-        throw new Error('لم يتم استلام محتوى صالح من GROQ API');
-      }
-
-      console.log('✅ تم توليد الكود بنجاح من GROQ API');
-      return data.choices[0].message.content;
-
-    } catch (apiError) {
-      console.error('خطأ في الاتصال بـ GROQ API:', apiError);
-      return generateFallbackCode(command);
-    }
+    const generatedCode = response.choices[0]?.message?.content?.trim() || 'لم يتم توليد أي كود.';
+    console.log('✅ تم استلام الكود من OpenAI API.');
+    return generatedCode;
   } catch (error) {
-    console.error('خطأ في توليد الكود:', error);
-    throw error;
+    console.error('❌ خطأ في توليد الكود باستخدام OpenAI:', error);
+    throw new Error(`فشل في توليد الكود: ${error}`);
   }
 }
 
-function generateFallbackCode(command: string): string {
-  if (command.includes('صفحة') && command.includes('تسجيل الدخول')) {
+// دالة بسيطة كبديل إذا لم يكن OpenAI API متاحًا
+export function generateSimpleCode(command: string): string {
+  console.log('⚠️ استخدام توليد الكود البسيط البديل');
+  
+  if (command.includes('إضافة زر')) {
     return `
-    import React, { useState } from 'react';
-    import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-    import { Input } from '../components/ui/input';
-    import { Button } from '../components/ui/button';
-    import { Label } from '../components/ui/label';
+import React from 'react';
 
-    export function LoginPage() {
-      const [username, setUsername] = useState('');
-      const [password, setPassword] = useState('');
-
-      const handleLogin = (e: React.FormEvent) => {
-        e.preventDefault();
-        console.log('تسجيل الدخول باستخدام:', { username, password });
-      };
-
-      return (
-        <div className="flex items-center justify-center min-h-screen bg-gray-100">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="text-center">تسجيل الدخول</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="username">اسم المستخدم</Label>
-                  <Input
-                    id="username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">كلمة المرور</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full">تسجيل الدخول</Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      );
-    }`;
+export const Button = () => {
+  return <button onClick={() => console.log('Button clicked!')}>زر جديد</button>;
+};
+    `;
   }
+  
+  if (command.includes('إنشاء صفحة')) {
+    return `
+import React from 'react';
 
-  return `
-  // كود بسيط تم إنشاؤه استجابة للأمر: ${command}
-  import React from 'react';
-  import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-
-  export function GeneratedComponent() {
-    return (
-      <Card className="max-w-md mx-auto my-8">
-        <CardHeader>
-          <CardTitle>المكون الجديد</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>تم إنشاء هذا المكون استجابة لطلبك</p>
-        </CardContent>
-      </Card>
-    );
-  }`;
+export const NewPage = () => {
+  return (
+    <div>
+      <h1>صفحة جديدة</h1>
+      <p>محتوى الصفحة الجديدة هنا</p>
+    </div>
+  );
+};
+    `;
+  }
+  
+  return `console.log("🚀 تنفيذ الأمر: ${command}");`;
 }
