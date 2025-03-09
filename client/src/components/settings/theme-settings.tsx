@@ -154,28 +154,18 @@ const ThemeSettings = () => {
   const [selectedTheme, setSelectedTheme] = useState(themes[0]);
   const [selectedFont, setSelectedFont] = useState(fonts[0]);
   const [fontSize, setFontSize] = useState("medium");
-  const [appearance, setAppearance] = useState<"light" | "dark" | "system">("system");
+  const [appearance, setAppearance] = useState<"light" | "dark">("light");
   const [isLoading, setIsLoading] = useState(false);
 
-  const applyAppearance = (mode: "light" | "dark" | "system") => {
+  const applyAppearance = (mode: "light" | "dark") => {
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
-
-    if (mode === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-      root.classList.add(systemTheme);
-    } else {
-      root.classList.add(mode);
-    }
-
+    root.classList.add(mode);
     root.style.setProperty("--current-appearance", mode);
   };
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
-    const handleChange = () => {
-      if (appearance === "system") {
+    // تم إزالة مستمع التغييرات في وضع النظام حيث لم يعد هناك خيار تلقائي
         applyAppearance("system");
       }
     };
@@ -452,11 +442,10 @@ const ThemeSettings = () => {
             </TabsContent>
 
             <TabsContent value="appearance">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                   { id: "light", name: "فاتح", icon: Sun },
-                  { id: "dark", name: "داكن", icon: Moon },
-                  { id: "system", name: "تلقائي", icon: Monitor }
+                  { id: "dark", name: "داكن", icon: Moon }
                 ].map((mode) => (
                   <motion.div
                     key={mode.id}
@@ -469,8 +458,8 @@ const ThemeSettings = () => {
                         appearance === mode.id ? 'ring-2 ring-primary' : ''
                       }`}
                       onClick={() => {
-                        setAppearance(mode.id as "light" | "dark" | "system");
-                        applyAppearance(mode.id as "light" | "dark" | "system");
+                        setAppearance(mode.id as "light" | "dark");
+                        applyAppearance(mode.id as "light" | "dark");
                       }}
                     >
                       <CardHeader className="p-4">
