@@ -231,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const themeSchema = z.object({
         primary: z.string(),
         variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
-        appearance: z.enum(["light"]),
+        appearance: z.enum(["light", "dark", "system"]),
         fontStyle: z.enum([
           "traditional",
           "modern",
@@ -891,7 +891,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error fetching expenses:", error);
       res.status(500).json({ message: "فشل في جلب المصروفات" });
     }
-  });app.post("/api/expenses", async (req, res) => {
+  });
+
+  app.post("/api/expenses", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -1297,7 +1299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       "vibrant", // النابض بالحياة
       "natural", // الطبيعي
     ]),
-    appearance: z.enum(["light"]),
+    appearance: z.enum(["light", "dark", "system"]),
     fontStyle: z.enum([
       "noto-kufi", // نوتو كوفي
       "cairo", // القاهرة
@@ -1319,7 +1321,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         themeName: "modern",
         fontName: "noto-kufi",
         fontSize: "medium",
-        appearance: "light",
+        appearance: "system",
         colors: {
           primary: "#2563eb",
           secondary: "#16a34a",
@@ -1338,7 +1340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const themeSchema = z.object({
         primary: z.string(),
         variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
-        appearance: z.enum(["light"]),
+        appearance: z.enum(["light", "dark", "system"]),
         fontStyle: z.enum([
           "traditional",
           "modern",
@@ -1370,8 +1372,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         appearance: theme.appearance,
         colors: {
           primary: theme.primary,
-          secondary: `color-mix(in srgb, ${theme.primary} 80%, ${theme.appearance === 'light' ? 'black' : 'black'})`,
-          accent: `color-mix(in srgb, ${theme.primary} 60%, ${theme.appearance === 'light' ? 'black' : 'black'})`,
+          secondary: `color-mix(in srgb, ${theme.primary} 80%, ${theme.appearance === 'dark' ? 'white' : 'black'})`,
+          accent: `color-mix(in srgb, ${theme.primary} 60%, ${theme.appearance === 'dark' ? 'black' : 'white'})`,
         }
       };
 
@@ -1384,8 +1386,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         appearance: theme.appearance,
         colors: {
           primary: theme.primary,
-          secondary: `color-mix(in srgb, ${theme.primary} 80%, ${theme.appearance === 'light' ? 'black' : 'black'})`,
-          accent: `color-mix(in srgb, ${theme.primary} 60%, ${theme.appearance === 'light' ? 'black' : 'black'})`,
+          secondary: `color-mix(in srgb, ${theme.primary} 80%, ${theme.appearance === 'dark' ? 'white' : 'black'})`,
+          accent: `color-mix(in srgb, ${theme.primary} 60%, ${theme.appearance === 'dark' ? 'black' : 'white'})`,
         }
       });
 
@@ -1739,12 +1741,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const reportId = parseInt(req.params.id);
-
+      
       // التحقق من صحة معرف التقرير
       if (isNaN(reportId)) {
         return res.status(400).json({ message: "معرف التقرير غير صالح" });
       }
-
+      
       const report = await storage.getReport(reportId);
       if (!report) {
         return res.status(404).json({ message: "التقرير غير موجود" });
@@ -1782,7 +1784,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة التواريخ
       const start = new Date(startDate as string);
       const end = new Date(endDate as string);
-
+      
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
         return res.status(400).json({
           message: "صيغة التاريخ غير صحيحة"

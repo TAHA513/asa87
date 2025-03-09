@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  // تم إزالة وضع الداكن
+  darkMode: ["class"],
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
