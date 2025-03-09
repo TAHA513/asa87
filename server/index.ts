@@ -4,7 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import fileUpload from "express-fileupload";
 import path from "path";
 import session from "express-session";
-import { db, sql } from "./db"; // Import sql from db.ts
+import { db, sql } from "./db";
 import { seedData } from "./seed-data";
 import MemoryStore from 'memorystore';
 import { startTelegramBot } from "./telegram-bot";
@@ -118,28 +118,20 @@ async function startServer() {
       serveStatic(app);
     }
 
-    const port = 5001;
+    const port = 5000;
     server.listen({
-        port,
-        host: "0.0.0.0",
-      }, (err: Error | null) => {
-        if (err) {
-          console.error(`❌ خطأ في بدء السيرفر: ${err.message}`);
-          // إذا كان الخطأ هو أن المنفذ مستخدم بالفعل، جرب منفذًا آخر
-          if (err.message.includes('EADDRINUSE')) {
-            console.log(`⚠️ المنفذ ${port} مستخدم بالفعل، جاري تجربة منفذ آخر...`);
-            // تجربة منفذ آخر (+1)
-            process.env.PORT = String(Number(port) + 1);
-            startServer();
-          }
-        } else {
-          console.log(`✅ السيرفر يعمل على المنفذ ${port}`);
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      console.log(`✅ السيرفر يعمل على المنفذ ${port}`);
 
-          // بدء بوت التلجرام
-          console.log('🔄 جاري بدء بوت التلجرام...');
-          startTelegramBot();
-        }
+      // بدء بوت التلجرام
+      console.log('🔄 جاري بدء بوت التلجرام...');
+      startTelegramBot().catch(err => {
+        console.error('❌ خطأ في بدء بوت التلجرام:', err);
       });
+    });
 
     // تنفيذ البذور بعد بدء السيرفر
     await seedData().catch(err => {

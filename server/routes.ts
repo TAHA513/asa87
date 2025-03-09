@@ -170,20 +170,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
+      // التحقق من وجود مخزون كافٍ قبل إتمام عملية البيع
+      const product = await storage.getProduct(req.body.productId);
+      if (!product) {
+        return res.status(404).json({ message: "المنتج غير موجود" });
+      }
+
+      if (product.stock < req.body.quantity) {
+        return res.status(400).json({ message: "الكمية المطلوبة غير متوفرة في المخزون" });
+      }
+
       const sale = await storage.createSale({
         ...req.body,
         userId: req.user!.id,
         date: new Date()
       });
 
-      // Update product stock
-      const product = await storage.getProduct(sale.productId);
-      if (product) {
-        await storage.updateProduct(product.id, {
-          ...product,
-          stock: product.stock - sale.quantity
-        });
-      }
+      // تحديث المخزون مرة واحدة فقط
+      await storage.updateProduct(product.id, {
+        ...product,
+        stock: product.stock - sale.quantity
+      });
 
       res.status(201).json(sale);
     } catch (error) {
@@ -872,7 +879,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/expenses", async (req, res) => {
+  app.post("/api/expenses", async (req,res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
@@ -1712,8 +1719,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(report);
     } catch (error) {
       console.error("Error fetching report:", error);
-      res.status(500).json({ message: "فشل في جلب التقرير" });
-    }
+      res.status(500).json({ message: "فشل في جلب التقرير" });    }
   });
 
   // Add appointment reports endpoint
