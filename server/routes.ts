@@ -1339,13 +1339,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum(["modern", "classic", "elegant", "vibrant", "natural", "tint"]),
+        variant: z.enum(["default", "blue", "purple", "red", "green"]),
         appearance: z.enum(["light", "dark", "system"]),
         fontStyle: z.enum([
           "noto-kufi",
           "cairo",
           "tajawal",
-          "amiri",
         ]),
         fontSize: z.enum(["small", "medium", "large", "xlarge"]),
         radius: z.number(),
@@ -1353,11 +1352,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const theme = themeSchema.parse(req.body);
       console.log("تم استلام إعدادات جديدة:", theme);
-
-      // حساب الألوان الثانوية والثلاثية
-      const getComputedColor = (color, mix, appearance) => {
-        return `color-mix(in srgb, ${color} 80%, ${appearance === 'dark' ? 'white' : 'black'})`;
-      };
 
       // تحويل البيانات إلى الشكل المطلوب لقاعدة البيانات
       const userSettings = {
@@ -1368,8 +1362,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         appearance: theme.appearance,
         colors: {
           primary: theme.primary,
-          secondary: getComputedColor(theme.primary, 80, theme.appearance),
-          accent: getComputedColor(theme.primary, 60, theme.appearance === 'dark' ? 'light' : 'dark'),
+          secondary: theme.appearance === 'dark' 
+            ? `color-mix(in srgb, ${theme.primary} 80%, white)` 
+            : `color-mix(in srgb, ${theme.primary} 80%, black)`,
+          accent: theme.appearance === 'dark'
+            ? `color-mix(in srgb, ${theme.primary} 60%, black)`
+            : `color-mix(in srgb, ${theme.primary} 60%, white)`
         }
       };
 
