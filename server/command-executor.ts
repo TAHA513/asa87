@@ -2,6 +2,28 @@
 import fs from 'fs';
 import path from 'path';
 import { nanoid } from 'nanoid';
+import { generateCodeWithOpenAI } from './code-generator';
+
+/**
+ * تنفيذ أمر من المستخدم
+ * @param command الأمر المراد تنفيذه
+ */
+export async function executeCommand(command: string): Promise<string> {
+  try {
+    console.log(`🔄 تنفيذ الأمر: "${command}"`);
+    
+    // توليد كود بناءً على الأمر باستخدام النموذج اللغوي
+    const generatedCode = await generateCodeWithOpenAI(command);
+    
+    // تنفيذ الكود المولد
+    await executeCode(generatedCode);
+    
+    return `تم تنفيذ الأمر بنجاح:\n${generatedCode}`;
+  } catch (error) {
+    console.error('❌ خطأ في تنفيذ الأمر:', error);
+    throw new Error(`فشل في تنفيذ الأمر: ${error}`);
+  }
+}
 
 /**
  * تنفيذ الكود المولد وحفظه في ملف مناسب
