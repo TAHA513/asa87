@@ -15,6 +15,8 @@ export const startTelegramBot = async () => {
 
   try {
     // إنشاء نسخة من البوت مع الإعدادات الصحيحة
+    console.log('🔄 جاري تهيئة بوت التلجرام...');
+
     const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN, {
       telegram: {
         apiRoot: 'https://api.telegram.org',
@@ -30,7 +32,7 @@ export const startTelegramBot = async () => {
       const botInfo = await bot.telegram.getMe();
       console.log('✅ تم الاتصال بالبوت:', botInfo.username);
       if (botInfo.id.toString() !== BOT_ID) {
-        console.warn('⚠️ معرف البوت مختلف عن المتوقع');
+        console.warn('⚠️ معرف البوت مختلف عن المتوقع:', botInfo.id.toString());
       }
     } catch (error) {
       console.error('❌ فشل الاتصال بالبوت:', error);
@@ -43,7 +45,7 @@ export const startTelegramBot = async () => {
 🚀 *كيفية استخدام البوت:*
 1️⃣ أرسل \`/generate\` متبوعًا بوصف ما تريد إنشاءه باللغة العربية
 2️⃣ سأقوم بإنشاء الكود المناسب وعرضه عليك
-3️⃣ يمكنك الموافقة على الكود باستخدام الزر المرفق
+3️⃣ يمكنك الموافقة على الكود باستخدام الأزرار المرفقة
 
 *مثال:* \`/generate إنشاء صفحة تسجيل دخول بسيطة\``, 
       { parse_mode: 'Markdown' });
@@ -57,7 +59,11 @@ export const startTelegramBot = async () => {
 
       try {
         await ctx.reply('🔄 جاري تحليل الأمر وإنشاء الكود...');
+        console.log('🔄 جاري إرسال الأمر إلى GROQ API:', command);
+
         const generatedCode = await generateCodeWithOpenAI(command);
+        console.log('✅ تم استلام الكود من GROQ API');
+
         const chatId = ctx.chat.id.toString();
         pendingCode[chatId] = generatedCode;
 

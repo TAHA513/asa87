@@ -18,6 +18,7 @@ export async function generateCodeWithOpenAI(command: string): Promise<string> {
 
     try {
       console.log('🔄 جاري استخدام GROQ API لتوليد الكود...');
+      console.log('📝 الأمر المستلم:', command);
 
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -51,10 +52,13 @@ export async function generateCodeWithOpenAI(command: string): Promise<string> {
       }
 
       const data = await response.json();
+
       if (!data.choices?.[0]?.message?.content) {
+        console.error('خطأ في استجابة GROQ API:', data);
         throw new Error('لم يتم استلام محتوى صالح من GROQ API');
       }
 
+      console.log('✅ تم توليد الكود بنجاح من GROQ API');
       return data.choices[0].message.content;
 
     } catch (apiError) {
@@ -67,9 +71,7 @@ export async function generateCodeWithOpenAI(command: string): Promise<string> {
   }
 }
 
-// وظيفة مساعدة لتوليد كود بسيط استنادًا إلى الأمر
 function generateFallbackCode(command: string): string {
-  // نفس الكود السابق للتوليد البديل
   if (command.includes('صفحة') && command.includes('تسجيل الدخول')) {
     return `
     import React, { useState } from 'react';
@@ -122,7 +124,6 @@ function generateFallbackCode(command: string): string {
       );
     }`;
   }
-  // يمكن إضافة المزيد من الحالات هنا
 
   return `
   // كود بسيط تم إنشاؤه استجابة للأمر: ${command}
