@@ -1,8 +1,8 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  // استخدام وضع الوسائط للوضع الداكن
-  darkMode: 'media',
+  // استخدام الوضع الفاتح فقط
+  darkMode: false,
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
@@ -21,13 +21,6 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-      },
-      // تعريفات ألوان إضافية
-      backgroundColor: {
-        'monochrome-light': 'hsl(0 0% 95%)',
-        'monochrome-dark': 'hsl(0 0% 15%)',
-        'pastel-bg': 'hsl(340 30% 95%)',
-        'navy-bg': 'hsl(210 50% 10%)',
       },
       colors: {
         background: "hsl(var(--background))",
