@@ -1232,8 +1232,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // إضافة مسارات إعدادات المظهر والألوان
-  import settingsRoutes from './routes/settings-routes';
-  app.use('/api/settings', settingsRoutes);
+  import * as settingsRoutes from './routes/settings-routes';
+  app.use('/api/settings', settingsRoutes.default);
 
   // Add after existing appointment routes
   app.get("/api/appointments/:id/activities", async (req, res) => {
