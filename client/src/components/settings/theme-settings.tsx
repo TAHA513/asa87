@@ -154,10 +154,10 @@ const ThemeSettings = () => {
   const [selectedTheme, setSelectedTheme] = useState(themes[0]);
   const [selectedFont, setSelectedFont] = useState(fonts[0]);
   const [fontSize, setFontSize] = useState("medium");
-  const [appearance, setAppearance] = useState<"light" | "dark">("light");
+  const [appearance, setAppearance] = useState<"light">("light"); //removed "dark"
   const [isLoading, setIsLoading] = useState(false);
 
-  const applyAppearance = (mode: "light" | "dark") => {
+  const applyAppearance = (mode: "light") => { //removed "dark"
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
     root.classList.add(mode);
@@ -179,8 +179,8 @@ const ThemeSettings = () => {
           setSelectedTheme(theme);
           setSelectedFont(font);
           setFontSize(response.fontSize || "medium");
-          setAppearance(response.appearance || "system");
-          applyAppearance(response.appearance || "system");
+          setAppearance(response.appearance || "light"); //default to light
+          applyAppearance(response.appearance || "light"); //default to light
         }
       } catch (error) {
         console.error("Error loading settings:", error);
@@ -198,7 +198,7 @@ const ThemeSettings = () => {
         variant: selectedTheme.id,
         fontStyle: selectedFont.id,
         fontSize,
-        appearance,
+        appearance: "light", // Setting appearance to light always
         radius: 0.5,
       };
 
@@ -210,7 +210,7 @@ const ThemeSettings = () => {
         document.documentElement.style.setProperty("--accent-color", selectedTheme.colors.accent);
         document.documentElement.style.setProperty("--font-family", selectedFont.family);
         document.documentElement.style.setProperty("--font-size-base", `${fontSizes[fontSize].base}px`);
-        applyAppearance(appearance);
+        applyAppearance("light"); //apply light mode
 
         toast({
           title: "تم الحفظ",
@@ -436,43 +436,8 @@ const ThemeSettings = () => {
               </Card>
             </TabsContent>
 
-            <TabsContent value="appearance">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { id: "light", name: "فاتح", icon: Sun },
-                  { id: "dark", name: "داكن", icon: Moon }
-                ].map((mode) => (
-                  <motion.div
-                    key={mode.id}
-                    variants={itemVariants}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Card
-                      className={`cursor-pointer transition-all hover:shadow-lg ${
-                        appearance === mode.id ? 'ring-2 ring-primary' : ''
-                      }`}
-                      onClick={() => {
-                        setAppearance(mode.id as "light" | "dark");
-                        applyAppearance(mode.id as "light" | "dark");
-                      }}
-                    >
-                      <CardHeader className="p-4">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-lg font-medium">{mode.name}</CardTitle>
-                          {appearance === mode.id && (
-                            <Check className="w-5 h-5 text-primary" />
-                          )}
-                        </div>
-                      </CardHeader>
-                      <CardContent className="p-4 pt-0">
-                        <mode.icon className="w-8 h-8" />
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-              </div>
-            </TabsContent>
+            {/* Removed Appearance Tab Content */}
+
           </motion.div>
         </Tabs>
 
