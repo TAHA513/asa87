@@ -1,0 +1,1 @@
+Please provide the implementation details for the feature you want me to implement. What programming language and framework would you like me to use? What is the problem you are trying to solve? Please provide the necessary information and I'll generate the code for you.
