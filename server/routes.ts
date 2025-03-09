@@ -1289,10 +1289,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const themeSchema = z.object({
     primary: z.string(),
     variant: z.enum([
+      "professional", // المهني
+      "vibrant", // النابض بالحياة
+      "tint", // الرمادي
       "modern", // العصري
       "classic", // الكلاسيكي
+      "futuristic", // المستقبلي
       "elegant", // الأنيق
-      "vibrant", // النابض بالحياة
       "natural", // الطبيعي
     ]),
     appearance: z.enum(["light", "dark", "system"]),
@@ -1300,7 +1303,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       "noto-kufi", // نوتو كوفي
       "cairo", // القاهرة
       "tajawal", // طجوال
-      "amiri", // أميري
     ]),
     fontSize: z.enum(["small", "medium", "large", "xlarge"]),
     radius: z.number(),
