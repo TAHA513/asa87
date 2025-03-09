@@ -310,17 +310,48 @@ export async function generateCodeWithOpenAI(command: string): Promise<string> {
       throw new Error('الأمر فارغ');
     }
 
-    // حاول استخدام OpenAI إذا كان مفتاح API موجودًا
+    // حاول استخدام Groq أو OpenAI إذا كان مفتاح API موجودًا
     const apiKey = process.env.OPENAI_API_KEY || process.env.GROQ_API_KEY;
     
     if (apiKey && apiKey !== 'YOUR_ACTUAL_API_KEY_HERE') {
       try {
-        // هنا يمكن إضافة منطق الاتصال بـ OpenAI
-        // لكننا سنستخدم منطق التوليد البديل للآن
-        console.log('استخدام منطق التوليد البديل لأن مفتاح API للذكاء الاصطناعي غير مكتمل');
-        return generateFallbackCode(command);
+        console.log('جاري استخدام Groq API لتوليد الكود...');
+        
+        // استخدام Groq API
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'llama3-8b-8192',
+            messages: [
+              { 
+                role: 'system', 
+                content: 'أنت مساعد مطور محترف متخصص في إنشاء كود React/Next.js/TypeScript بناءً على وصف المستخدم. قدم كودًا عالي الجودة مع تعليقات مفيدة باللغة العربية.' 
+              },
+              { 
+                role: 'user', 
+                content: `قم بإنشاء كود لمكون React/TypeScript يلبي الوصف التالي: ${command}` 
+              }
+            ],
+            temperature: 0.7,
+            max_tokens: 4000
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`فشل الاتصال بـ Groq API: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        const generatedCode = data.choices[0].message.content;
+        console.log('تم توليد الكود بنجاح باستخدام Groq API');
+        
+        return generatedCode;
       } catch (apiError) {
-        console.error('خطأ في الاتصال بـ OpenAI:', apiError);
+        console.error('خطأ في الاتصال بـ Groq API:', apiError);
         // استخدم التوليد البديل في حالة الفشل
         return generateFallbackCode(command);
       }
