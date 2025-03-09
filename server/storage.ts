@@ -953,26 +953,21 @@ export class DatabaseStorage implements IStorage {
     return settings;
   }
 
-  async saveUserSettings(settings: InsertUserSettings): Promise<UserSettings> {
+  async saveUserSettings(userId: number, settings: InsertUserSettings): Promise<UserSettings> {
     try {
-      // تحقق من المعرف
-      if (!settings.userId || typeof settings.userId !== 'number') {
-        throw new Error("معرف المستخدم غير صالح");
-      }
+      // Delete old settings first
+      await db.delete(userSettings).where(eq(userSettings.userId, userId));
 
-      // حذف الإعدادات القديمة أولاً
-      await db.delete(userSettings).where(eq(userSettings.userId, settings.userId));
-
-      // إدخال الإعدادات الجديدة مع معالجة الأنواع بشكل صحيح
+      // Now insert new settings with proper type handling
       const [newSettings] = await db
         .insert(userSettings)
         .values({
-          userId: settings.userId,
+          userId,
           themeName: settings.themeName,
           fontName: settings.fontName,
           fontSize: settings.fontSize,
           appearance: settings.appearance,
-          colors: JSON.stringify(settings.colors), // تحويل الألوان إلى نص JSON
+          colors: settings.colors as any, // Cast to any to avoid type issues with JSONB
           createdAt: new Date(),
           updatedAt: new Date()
         })
