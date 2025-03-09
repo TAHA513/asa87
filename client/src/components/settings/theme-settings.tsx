@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Check, Sun, Moon, Laptop } from "lucide-react";
 import {
   Card,
@@ -63,6 +62,7 @@ const appearances = [
 const ThemeSettings = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("theme");
+  const [isSaving, setIsSaving] = useState(false);
 
   // حالة الإعدادات
   const [themeColor, setThemeColor] = useState(themes[0].color);
@@ -103,14 +103,14 @@ const ThemeSettings = () => {
               setFontSize(data.fontSize || "medium");
               setAppearance(data.appearance || "system");
               setBorderRadius(data.radius || 0.5);
-              
+
               // تطبيق الظهور
               applyAppearance(data.appearance || "system");
             }
           })
           .catch(err => {
             console.log("خطأ في قراءة ملف theme.json:", err);
-            
+
             // في حالة فشل قراءة الملف، نحاول جلب الإعدادات من API
             apiRequest("GET", "/api/settings")
               .then(response => {
@@ -129,7 +129,7 @@ const ThemeSettings = () => {
                   setFontStyle(currentFont.id);
                   setFontSize(data.fontSize || "medium");
                   setAppearance(data.appearance || "system");
-                  
+
                   // تطبيق الظهور
                   applyAppearance(data.appearance || "system");
                 }
@@ -164,7 +164,7 @@ const ThemeSettings = () => {
 
       // حفظ الإعدادات عبر API
       const response = await apiRequest("POST", "/api/theme", themeSettings);
-      
+
       if (!response.ok) {
         throw new Error("فشل في حفظ الإعدادات");
       }
@@ -173,7 +173,7 @@ const ThemeSettings = () => {
       const userSettings = {
         ...themeSettings
       };
-      
+
       await apiRequest("POST", "/api/settings", userSettings);
 
       toast({
@@ -197,10 +197,115 @@ const ThemeSettings = () => {
     }
   };
 
+  // دالة لحفظ الإعدادات مباشرة بعد التغيير
+  const saveSettingsImmediately = useCallback(async (newSettings: any) => {
+    setIsSaving(true);
+    try {
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newSettings),
+      });
+      toast({
+        description: "تم حفظ الإعدادات بنجاح",
+      });
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      toast({
+        variant: "destructive",
+        description: "حدث خطأ أثناء حفظ الإعدادات",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }, [toast]);
+
   // معالجة تغيير ظهور النظام
-  const handleAppearanceChange = (value) => {
-    setAppearance(value);
-    applyAppearance(value);
+  const handleAppearanceChange = (value: string) => {
+    const newAppearance = value as "light" | "dark" | "system";
+    setAppearance(newAppearance);
+    // حفظ الإعدادات مباشرة بعد التغيير
+    saveSettingsImmediately({
+      appearance: newAppearance,
+      fontStyle,
+      fontSize,
+      themeVariant,
+      themeColor,
+      borderRadius
+    });
+  };
+
+  const handleThemeVariantChange = (value: string) => {
+    const newVariant = value as "modern" | "classic" | "elegant" | "vibrant" | "natural" | "professional" | "tint" | "futuristic";
+    setThemeVariant(newVariant);
+    const newTheme = themes.find(theme => theme.id === newVariant);
+    setThemeColor(newTheme ? newTheme.color : themes[0].color); // Set color based on selected variant
+
+    saveSettingsImmediately({
+      appearance,
+      fontStyle,
+      fontSize,
+      variant: newVariant,
+      primary: newTheme ? newTheme.color : themes[0].color,
+      radius: borderRadius
+    });
+  };
+
+  const handleFontStyleChange = (value: string) => {
+    const newFontStyle = value as "noto-kufi" | "cairo" | "tajawal";
+    setFontStyle(newFontStyle);
+    // حفظ الإعدادات مباشرة بعد التغيير
+    saveSettingsImmediately({
+      appearance,
+      fontStyle: newFontStyle,
+      fontSize,
+      themeVariant,
+      themeColor,
+      borderRadius
+    });
+  };
+
+  const handleFontSizeChange = (value: string) => {
+    const newFontSize = value as "small" | "medium" | "large" | "xlarge";
+    setFontSize(newFontSize);
+    // حفظ الإعدادات مباشرة بعد التغيير
+    saveSettingsImmediately({
+      appearance,
+      fontStyle,
+      fontSize: newFontSize,
+      themeVariant,
+      themeColor,
+      borderRadius
+    });
+  };
+
+
+  const handlePrimaryColorChange = (value: string) => {
+    setThemeColor(value);
+    // حفظ الإعدادات مباشرة بعد التغيير
+    saveSettingsImmediately({
+      appearance,
+      fontStyle,
+      fontSize,
+      themeVariant,
+      primary: value,
+      borderRadius
+    });
+  };
+
+  const handleRadiusChange = (value: number) => {
+    setBorderRadius(value);
+    // حفظ الإعدادات مباشرة بعد التغيير
+    saveSettingsImmediately({
+      appearance,
+      fontStyle,
+      fontSize,
+      themeVariant,
+      themeColor,
+      radius: value
+    });
   };
 
   return (
@@ -219,10 +324,7 @@ const ThemeSettings = () => {
                 <Card 
                   key={theme.id}
                   className={`cursor-pointer hover:border-primary transition-all ${themeVariant === theme.id ? 'border-primary' : ''}`}
-                  onClick={() => {
-                    setThemeVariant(theme.id);
-                    setThemeColor(theme.color);
-                  }}
+                  onClick={() => handleThemeVariantChange(theme.id)}
                 >
                   <CardHeader className="p-3">
                     <div className="flex justify-between items-center">
@@ -267,7 +369,7 @@ const ThemeSettings = () => {
                   <div 
                     key={radius}
                     className={`cursor-pointer rounded-md border-2 p-2 text-center flex items-center justify-center h-12 ${borderRadius === radius ? 'border-primary' : 'border-muted'}`}
-                    onClick={() => setBorderRadius(radius)}
+                    onClick={() => handleRadiusChange(radius)}
                     style={{ borderRadius: `${8 * radius}px` }}
                   >
                     {radius}
@@ -290,7 +392,7 @@ const ThemeSettings = () => {
 
         <TabsContent value="font" className="space-y-4 py-4">
           <h3 className="text-lg font-medium">نوع الخط</h3>
-          <RadioGroup value={fontStyle} onValueChange={setFontStyle} className="grid grid-cols-2 gap-4">
+          <RadioGroup value={fontStyle} onValueChange={handleFontStyleChange} className="grid grid-cols-2 gap-4">
             {fonts.map((font) => (
               <div key={font.id} className="relative">
                 <RadioGroupItem 
@@ -313,7 +415,7 @@ const ThemeSettings = () => {
           </RadioGroup>
 
           <h3 className="text-lg font-medium mt-6">حجم الخط</h3>
-          <RadioGroup value={fontSize} onValueChange={setFontSize} className="grid grid-cols-2 gap-4">
+          <RadioGroup value={fontSize} onValueChange={handleFontSizeChange} className="grid grid-cols-2 gap-4">
             {fontSizes.map((size) => (
               <div key={size.id} className="relative">
                 <RadioGroupItem 
@@ -334,7 +436,7 @@ const ThemeSettings = () => {
               </div>
             ))}
           </RadioGroup>
-          
+
           <div className="mt-6 p-4 border rounded-md" style={{ fontFamily: fonts.find(f => f.id === fontStyle)?.family }}>
             <h4 className="font-bold text-lg mb-2">معاينة الخط:</h4>
             <p style={{ fontSize: fontSize === "small" ? "0.9rem" : fontSize === "large" ? "1.1rem" : fontSize === "xlarge" ? "1.2rem" : "1rem" }}>
@@ -344,13 +446,10 @@ const ThemeSettings = () => {
         </TabsContent>
       </Tabs>
 
-      <Button 
-        className="w-full" 
-        onClick={saveSettings} 
-        disabled={isLoading}
-      >
-        {isLoading ? "جاري الحفظ..." : "حفظ الإعدادات"}
-      </Button>
+      {/* تم إزالة زر الحفظ لأن التغييرات تُحفظ تلقائياً */}
+      <div className="mt-6 text-sm text-muted-foreground text-center">
+        جميع التغييرات تُحفظ تلقائياً
+      </div>
     </div>
   );
 };
