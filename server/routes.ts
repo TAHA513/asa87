@@ -1230,6 +1230,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "فشل في حذف الموعد" });
     }
   });
+  
+  // إضافة مسارات إعدادات المظهر والألوان
+  import settingsRoutes from './routes/settings-routes';
+  app.use('/api/settings', settingsRoutes);
 
   // Add after existing appointment routes
   app.get("/api/appointments/:id/activities", async (req, res) => {
