@@ -97,17 +97,15 @@ process.on('unhandledRejection', (reason, promise) => {
 // التأكد من اتصال قاعدة البيانات قبل بدء السيرفر
 async function startServer() {
   try {
-    // استيراد دالة اختبار الاتصال
-    import { ensureConnection, testConnection } from './test-db-connection';
-    
     // اختبار اتصال قاعدة البيانات
     console.log('جاري اختبار الاتصال بقاعدة البيانات...');
-    const connected = await testConnection();
-    
-    if (!connected) {
-      console.error('فشل الاتصال بقاعدة البيانات، إعادة المحاولة بعد 5 ثوانٍ...');
-      setTimeout(startServer, 5000);
-      return;
+    try {
+      const result = await db.execute(sql`SELECT 1`);
+      console.log('نتيجة اختبار قاعدة البيانات:', result);
+      console.log('تم الاتصال بقاعدة البيانات بنجاح');
+    } catch (dbError) {
+      console.error('خطأ في اتصال قاعدة البيانات:', dbError);
+      throw dbError;
     }
 
     const server = await registerRoutes(app);
@@ -120,38 +118,13 @@ async function startServer() {
     }
 
     const port = 5000;
-    
-    // التحقق من عدم استخدام المنفذ قبل الاستماع
-    const checkPortBeforeListen = () => {
-      import('node:net').then(({ createServer }) => {
-        const netServer = createServer();
-        
-        netServer.once('error', (err) => {
-        if (err.code === 'EADDRINUSE') {
-          console.log(`⚠️ المنفذ ${port} قيد الاستخدام بالفعل، سيتم المحاولة مرة أخرى بعد 5 ثوانٍ...`);
-          setTimeout(checkPortBeforeListen, 5000);
-        } else {
-          console.error(`❌ خطأ في الاستماع:`, err);
-          process.exit(1);
-        }
-      });
-      
-      netServer.once('listening', () => {
-        netServer.close(() => {
-          server.listen({
-            port,
-            host: "0.0.0.0",
-          }, () => {
-            log(`✅ تم تشغيل السيرفر على المنفذ ${port}`);
-          });
-        });
-      });
-      
-      netServer.listen(port, '0.0.0.0');
-      });
-    };
-    
-    checkPortBeforeListen();
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`تم تشغيل السيرفر على المنفذ ${port}`);
+    });
 
     // تنفيذ البذور بعد بدء السيرفر
     await seedData().catch(err => {

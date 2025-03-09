@@ -90,35 +90,3 @@ async function testConnection() {
 
 // تنفيذ الاختبار
 testConnection();
-import { db, sql } from "./db";
-
-export async function testConnection() {
-  try {
-    // Run a simple query to test connection
-    await sql`SELECT 1`;
-    console.log('✅ تم الاتصال بقاعدة البيانات بنجاح');
-    return true;
-  } catch (error) {
-    console.error('❌ فشل الاتصال بقاعدة البيانات:', error);
-    return false;
-  }
-}
-
-export async function ensureConnection() {
-  let connected = false;
-  let attempts = 0;
-  const maxAttempts = 5;
-
-  while (!connected && attempts < maxAttempts) {
-    attempts++;
-    console.log(`محاولة الاتصال ${attempts}/${maxAttempts}...`);
-    connected = await testConnection();
-    
-    if (!connected && attempts < maxAttempts) {
-      console.log('إعادة المحاولة بعد 5 ثوانٍ...');
-      await new Promise(resolve => setTimeout(resolve, 5000));
-    }
-  }
-
-  return connected;
-}

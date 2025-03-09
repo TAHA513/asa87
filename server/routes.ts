@@ -230,7 +230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural", "default"]),
+        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
         appearance: z.enum(["light", "dark", "system"]),
         fontStyle: z.enum([
           "traditional",
@@ -651,7 +651,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // تم إزالة النسخة المكررة من المسار
+  // Get historical analytics data
+  app.get("/api/marketing/historical-stats", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      const timeRange = req.query.range || '30d'; // Default to last 30 days
+      const now = new Date();
+      let startDate = new Date();
+
+      switch (timeRange) {
+        case '7d':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case '30d':
+          startDate.setDate(now.getDate() - 30);
+          break;
+        case '90d':
+          startDate.setDate(now.getDate() - 90);
+          break;
+        default:
+          startDate.setDate(now.getDate() - 30);
+      }
+
+      // Fetch analytics from database
+      const analytics = await storage.getCampaignAnalytics(0); // 0 for general platform analytics
+      const filteredAnalytics = analytics
+        .filter(a => new Date(a.date) >= startDate)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      // Group by date
+      const dailyStats = filteredAnalytics.reduce((acc: any[], curr) => {
+        const date = new Date(curr.date).toISOString().split('T')[0];
+        const existingDay = acc.find(d => d.date === date);
+
+        if (existingDay) {
+          existingDay.impressions += curr.impressions;
+          existingDay.engagements += curr.clicks;
+          existingDay.spend += Number(curr.spend);
+          existingDay[curr.platform] = curr.impressions;
+        } else {
+          acc.push({
+            date,
+            impressions: curr.impressions,
+            engagements: curr.clicks,
+            spend: Number(curr.spend),
+            [curr.platform]: curr.impressions
+          });
+        }
+
+        return acc;
+      }, []);
+
+      res.json(dailyStats);
+    } catch (error) {
+      console.error("Error fetching historical stats:", error);
+      res.status(500).json({ message: "فشل في جلب البيانات التاريخية" });
+    }
+  });
 
   // API Key routes
   app.post("/api/settings/api-keys", async (req, res) => {
@@ -1239,7 +1298,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       "elegant", // الأنيق
       "vibrant", // النابض بالحياة
       "natural", // الطبيعي
-      "default", // الافتراضي
     ]),
     appearance: z.enum(["light", "dark", "system"]),
     fontStyle: z.enum([
@@ -1281,7 +1339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural", "default"]),
+        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
         appearance: z.enum(["light", "dark", "system"]),
         fontStyle: z.enum([
           "traditional",
@@ -1320,7 +1378,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // حفظ الإعدادات في قاعدة البيانات
-      await storage.saveUserSettings(req.user!.id, {
+      await storage.saveUserSettings({
+        userId: req.user!.id,
         themeName: theme.variant,
         fontName: theme.fontStyle,
         fontSize: theme.fontSize,
