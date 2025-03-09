@@ -28,7 +28,29 @@ import { db } from "./db";
 import { eq, desc, or, like, SQL, gte, lte, and, sql, lt, gt } from "drizzle-orm";
 import { caching } from "./cache";
 
+// Add the missing import for SQL type from drizzle-orm
+import { SQL } from "drizzle-orm";
+
 const CACHE_TTL = 5 * 60; // 5 minutes cache
+
+// Add missing type for the system activity filters
+interface SystemActivityFilters {
+  startDate?: Date;
+  endDate?: Date;
+  activityType?: string;
+  entityType?: string;
+}
+
+// Add type for report data
+interface ReportData {
+  type: string;
+  title: string;
+  dateRange: { start: Date; end: Date };
+  filters?: Record<string, unknown>;
+  data: Record<string, unknown>;
+  userId: number;
+  format?: string;
+}
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -111,26 +133,13 @@ export interface IStorage {
   saveUserSettings(userId: number, settings: InsertUserSettings): Promise<UserSettings>;
   getAppointments(): Promise<Appointment[]>;
   logSystemActivity(activity: InsertSystemActivity): Promise<SystemActivity>;
-  getSystemActivities(filters: {
-    startDate?: Date;
-    endDate?: Date;
-    activityType?: string;
-    entityType?: string;
-  }): Promise<SystemActivity[]>;
+  getSystemActivities(filters: SystemActivityFilters): Promise<SystemActivity[]>;
   getAppointmentActivities(appointmentId: number): Promise<SystemActivity[]>;
   generateActivityReport(report: InsertActivityReport): Promise<ActivityReport>;
   getInventoryReport(dateRange: { start: Date; end: Date }, page?: number, pageSize?: number): Promise<any>;
   getFinancialReport(dateRange: { start: Date; end: Date }): Promise<any>;
   getUserActivityReport(dateRange: { start: Date; end: Date }): Promise<any>;
-  saveReport(reportData: {
-    type: string;
-    title: string;
-    dateRange: { start: Date; end: Date };
-    filters?: Record<string, unknown>;
-    data: Record<string, unknown>;
-    userId: number;
-    format?: string;
-  }): Promise<Report>;
+  saveReport(reportData: ReportData): Promise<Report>;
   getReport(id: number): Promise<Report | undefined>;
   getUserReports(userId: number, type?: string): Promise<Report[]>;
   getAppointmentsReport(dateRange: { start: Date; end: Date }, userId: number): Promise<any>;
@@ -902,6 +911,7 @@ export class DatabaseStorage implements IStorage {
     await db.delete(fileStorage).where(eq(fileStorage.id, id));
   }
 
+  // Update the createInvoice method to handle amount conversion
   async createInvoice(invoice: InsertInvoice): Promise<Invoice> {
     const [newInvoice] = await db
       .insert(invoices)
@@ -1016,36 +1026,27 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getSystemActivities(filters: {
-    startDate?: Date;
-    endDate?: Date;
-    activityType?: string;
-    entityType?: string;
-  }): Promise<SystemActivity[]> {
-    try {
-      console.log("Getting system activities with filters:", filters);
-      let query = db.select().from(systemActivities);
+  // Update the getSystemActivities method
+  async getSystemActivities(filters: SystemActivityFilters): Promise<SystemActivity[]> {
+    const query = db
+      .select()
+      .from(systemActivities)
+      .orderBy(desc(systemActivities.timestamp));
 
-      if (filters.startDate) {
-        query = query.where(gte(systemActivities.timestamp, filters.startDate));
-      }
-      if (filters.endDate) {
-        query = query.where(lte(systemActivities.timestamp, filters.endDate));
-      }
-      if (filters.activityType) {
-        query = query.where(eq(systemActivities.activityType, filters.activityType));
-      }
-      if (filters.entityType) {
-        query = query.where(eq(systemActivities.entityType, filters.entityType));
-      }
-
-      const activities = await query.orderBy(desc(systemActivities.timestamp));
-      console.log(`Retrieved ${activities.length} activities`);
-      return activities;
-    } catch (error) {
-      console.error("Error fetching system activities:", error);
-      throw new Error("فشل في جلب سجل الحركات");
+    if (filters.startDate) {
+      query.where(gte(systemActivities.timestamp, filters.startDate));
     }
+    if (filters.endDate) {
+      query.where(lte(systemActivities.timestamp, filters.endDate));
+    }
+    if (filters.activityType) {
+      query.where(eq(systemActivities.activityType, filters.activityType));
+    }
+    if (filters.entityType) {
+      query.where(eq(systemActivities.entityType, filters.entityType));
+    }
+
+    return await query;
   }
 
   async getAppointmentActivities(appointmentId: number): Promise<SystemActivity[]> {
@@ -1382,35 +1383,23 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async saveReport(reportData: {
-    type: string;
-    title: string;
-    dateRange: { start: Date; end: Date };
-    filters?: Record<string, unknown>;
-    data: Record<string, unknown>;
-    userId: number;
-    format?: string;
-  }): Promise<Report> {
-    try {
-      const [newReport] = await db
-        .insert(reports)
-        .values({
-          type: reportData.type,
-          title: reportData.title,
-          startDate: reportData.dateRange.start,
-          endDate: reportData.dateRange.end,
-          filters: reportData.filters || {},
-          data: reportData.data,
-          userId: reportData.userId,
-          format: reportData.format || 'json',
-          createdAt: new Date()
-        })
-        .returning();
-      return newReport;
-    } catch (error) {
-      console.error("Error saving report:", error);
-      throw new Error("فشل في حفظ التقرير");
-    }
+  // Update the saveReport method to handle type conversion
+  async saveReport(reportData: ReportData): Promise<Report> {
+    const [report] = await db
+      .insert(reports)
+      .values({
+        userId: reportData.userId,
+        type: reportData.type,
+        title: reportData.title,
+        dateRange: reportData.dateRange,
+        filters: reportData.filters || {},
+        data: reportData.data,
+        format: reportData.format || 'json',
+        createdAt: new Date()
+      })
+      .returning();
+
+    return report;
   }
 
   async getReport(id: number): Promise<Report | undefined> {
@@ -1420,7 +1409,7 @@ export class DatabaseStorage implements IStorage {
         console.error("Invalid report ID:", id);
         throw new Error("معرف التقرير غير صالح");
       }
-      
+
       const [report] = await db
         .select()
         .from(reports)
@@ -1649,7 +1638,7 @@ export class DatabaseStorage implements IStorage {
             acc[curr.status] = curr.count;
             return acc;
           }, {} as Record<string, number>);
-          
+
         return {
           ...day,
           byStatus: statusCounts

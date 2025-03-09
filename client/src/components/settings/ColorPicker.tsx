@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { SketchPicker } from 'react-color';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useTheme, ThemeColors } from '@/lib/theme-manager';
-import { Toast } from '@/components/ui/toast';
+import { useToast } from '@/hooks/use-toast';
 
 type ColorKey = keyof ThemeColors;
 
@@ -19,40 +18,43 @@ const colorLabels: Record<ColorKey, string> = {
 
 const ColorPicker: React.FC = () => {
   const { theme, setColors, saveThemeToServer, resetTheme } = useTheme();
+  const { toast } = useToast();
   const [activeColor, setActiveColor] = useState<ColorKey>('primary');
   const [showPicker, setShowPicker] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  
+
   const handleColorClick = (colorKey: ColorKey) => {
     setActiveColor(colorKey);
     setShowPicker(true);
   };
-  
+
   const handleColorChange = (color: any) => {
     setColors({ [activeColor]: color.hex });
   };
-  
+
   const handleSave = async () => {
     try {
       await saveThemeToServer();
-      showSuccessToast('تم حفظ الإعدادات بنجاح');
+      toast({
+        title: "تم الحفظ",
+        description: "تم حفظ الإعدادات بنجاح",
+      });
     } catch (error) {
-      showSuccessToast('حدث خطأ أثناء حفظ الإعدادات');
+      toast({
+        variant: "destructive",
+        title: "خطأ",
+        description: "حدث خطأ أثناء حفظ الإعدادات",
+      });
     }
   };
-  
+
   const handleReset = () => {
     resetTheme();
-    showSuccessToast('تم إعادة ضبط الإعدادات');
+    toast({
+      title: "تم إعادة الضبط",
+      description: "تم إعادة ضبط الإعدادات للقيم الافتراضية",
+    });
   };
-  
-  const showSuccessToast = (message: string) => {
-    setToastMessage(message);
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
-  };
-  
+
   return (
     <Card className="w-full max-w-3xl mx-auto">
       <CardHeader>
@@ -78,7 +80,7 @@ const ColorPicker: React.FC = () => {
             </div>
           ))}
         </div>
-        
+
         {showPicker && (
           <div className="flex flex-col items-center mt-4">
             <h3 className="mb-2 text-lg font-medium">{colorLabels[activeColor]}</h3>
@@ -103,10 +105,6 @@ const ColorPicker: React.FC = () => {
           حفظ الإعدادات
         </Button>
       </CardFooter>
-      
-      {showToast && (
-        <Toast message={toastMessage} type="success" />
-      )}
     </Card>
   );
 };

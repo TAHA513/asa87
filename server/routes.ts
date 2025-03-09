@@ -19,6 +19,8 @@ import {
   insertAppointmentSchema,
   type Customer,
 } from "@shared/schema";
+import express from "express";
+import * as settingsRoutes from './routes/settings-routes';
 
 // Helper functions for platform stats
 function mockPlatformStats() {
@@ -257,8 +259,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             appearance: themeData.appearance,
             colors: {
               primary: themeData.primary,
-              secondary: themeData.appearance === 'dark' 
-                ? `color-mix(in srgb, ${themeData.primary} 80%, white)` 
+              secondary: themeData.appearance === 'dark'
+                ? `color-mix(in srgb, ${themeData.primary} 80%, white)`
                 : `color-mix(in srgb, ${themeData.primary} 80%, black)`,
               accent: themeData.appearance === 'dark'
                 ? `color-mix(in srgb, ${themeData.primary} 60%, black)`
@@ -284,21 +286,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("تم حفظ الثيم في ملف theme.json بنجاح");
       } catch (fileError) {
         console.error("خطأ في حفظ ملف theme.json:", fileError);
-        return res.status(500).json({ 
-          message: "فشل في حفظ ملف theme.json", 
+        return res.status(500).json({
+          message: "فشل في حفظ ملف theme.json",
           error: fileError instanceof Error ? fileError.message : "خطأ غير معروف"
         });
       }
 
       // إرسال الاستجابة بنجاح
-      res.json({ 
+      res.json({
         success: true,
         theme: themeData
       });
     } catch (error) {
       console.error("Error updating theme:", error);
-      res.status(500).json({ 
-        message: "فشل في تحديث المظهر", 
+      res.status(500).json({
+        message: "فشل في تحديث المظهر",
         error: error instanceof Error ? error.message : "خطأ غير معروف"
       });
     }
@@ -1230,9 +1232,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "فشل في حذف الموعد" });
     }
   });
-  
+
   // إضافة مسارات إعدادات المظهر والألوان
-  import * as settingsRoutes from './routes/settings-routes';
   app.use('/api/settings', settingsRoutes.default);
 
   // Add after existing appointment routes
@@ -1383,7 +1384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const themeSchema = z.object({
         primary: z.string(),
         variant: z.enum([
-          "professional", "vibrant", "tint", "modern", 
+          "professional", "vibrant", "tint", "modern",
           "classic", "futuristic", "elegant", "natural"
         ]),
         appearance: z.enum(["light", "dark", "system"]),
@@ -1408,8 +1409,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         appearance: theme.appearance,
         colors: {
           primary: theme.primary,
-          secondary: theme.appearance === 'dark' 
-            ? `color-mix(in srgb, ${theme.primary} 80%, white)` 
+          secondary: theme.appearance === 'dark'
+            ? `color-mix(in srgb, ${theme.primary} 80%, white)`
             : `color-mix(in srgb, ${theme.primary} 80%, black)`,
           accent: theme.appearance === 'dark'
             ? `color-mix(in srgb, ${theme.primary} 60%, black)`
@@ -1429,16 +1430,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("تم حفظ الثيم في ملف theme.json");
 
       // إرسال الاستجابة بنجاح
-      res.json({ 
+      res.json({
         success: true,
         settings: userSettings
       });
     } catch (error) {
       console.error("Error updating theme:", error);
       // تخطي محاولة الحفظ في ملف السمات إذا فشل التحقق من صحة البيانات
-      res.status(400).json({ 
-        message: "فشل في حفظ إعدادات المظهر", 
-        error: error instanceof Error ? error.message : "خطأ غير معروف" 
+      res.status(400).json({
+        message: "فشل في حفظ إعدادات المظهر",
+        error: error instanceof Error ? error.message : "خطأ غير معروف"
       });
     }
   });
