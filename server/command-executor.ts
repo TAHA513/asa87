@@ -1,11 +1,11 @@
-
 import fs from 'fs';
 import path from 'path';
 import { nanoid } from 'nanoid';
-import { generateCodeWithOpenAI } from './code-generator';
+import { generateCodeWithOpenAI, analyzeProjectCode, analyzeProblemAndSuggestFix } from './code-generator';
 import { exec } from 'child_process';
 import util from 'util';
 import os from 'os';
+import { storage } from './storage';
 
 const execPromise = util.promisify(exec);
 
@@ -15,132 +15,82 @@ const execPromise = util.promisify(exec);
  */
 export async function executeCommand(command: string): Promise<string> {
   try {
-    console.log(`🔄 تنفيذ الأمر: "${command}"`);
-    
-    // التحقق إذا كان الأمر يتعلق بتحليل النظام أو تقرير شامل
-    if (command.includes('تحليل النظام') || 
-        command.includes('تقرير كامل') || 
-        command.includes('فحص شامل') ||
-        command.includes('analyze') ||
-        command.includes('تقرير شامل')) {
-      
-      const analysisResponse = await generateCodeWithOpenAI(`
-        قم بإنشاء تقرير تحليلي شامل عن نظام إدارة المخزون والمبيعات يتضمن:
-        1. نظرة عامة على النظام وأدائه
-        2. الميزات الرئيسية المتوفرة حالياً
-        3. المشكلات المحتملة وطرق حلها
-        4. اقتراحات للتحسين والتطوير
-        
-        يجب أن يكون التقرير:
-        - مفصل ومنظم بعناوين وأقسام
-        - كتابة محتوى نصي فقط (دون أكواد برمجية)
-        - باللغة العربية الفصحى المبسطة
-        - موجه للمستخدم النهائي
-      `, true);
-      
-      return analysisResponse;
+    console.log(`🔍 تنفيذ الأمر: "${command}"`);
+
+    // التحقق من نوع الأمر المطلوب
+    if (command.includes('فحص النظام') || command.includes('حالة النظام')) {
+      const { stdout: systemInfo } = await execPromise('top -b -n 1 | head -n 20');
+      const { stdout: diskUsage } = await execPromise('df -h');
+      const { stdout: memoryInfo } = await execPromise('free -h');
+
+      return `📊 تقرير حالة النظام:
+
+🔄 معلومات المعالج والعمليات:
+${systemInfo}
+
+💾 استخدام الذاكرة:
+${memoryInfo}
+
+💿 مساحة القرص:
+${diskUsage}
+      `;
     }
-    
-    // تحقق من الأوامر البسيطة للمحادثة العادية
-    if (
-      command.length < 25 || 
-      command.includes('مرحبا') || 
-      command.includes('أهلا') || 
-      command.includes('كيف') || 
-      command.includes('شكرا') ||
-      command.includes('?') || 
-      command.includes('؟')
-    ) {
-      // التعامل مع أسئلة المحادثة العادية بشكل مباشر
-      const chatResponse = await generateCodeWithOpenAI(`
-        بصفتك مساعد ذكي، أجب على هذه الرسالة بشكل طبيعي ومباشر:
-        "${command}"
-        يجب أن يكون ردك:
-        - قصير (جملة أو جملتين)
-        - طبيعي كأنك تتحدث مع صديق
-        - بلغة عربية سهلة وواضحة
-        - دون توضيح أنك ذكاء اصطناعي
-      `);
-      
-      return chatResponse;
+
+    if (command.includes('قائمة الملفات')) {
+      const { stdout: fileList } = await execPromise('find . -type f -not -path "*/node_modules/*" -not -path "*/.git/*" | sort');
+      return `📁 قائمة الملفات الموجودة في النظام:\n\n${fileList}`;
     }
-    
-    // أختصار فحص النظام لتسريع الاستجابة
-    const systemStatusBrief = await getSystemStatus(true);
-    
-    // التحقق إذا كان الأمر يتعلق بدراسة وتحليل النظام بالكامل
-    if (command.includes('تحليل النظام بالكامل') || command.includes('دراسة النظام') || 
-        command.includes('تشخيص كامل') || command.includes('فحص شامل')) {
-      return await analyzeFullSystem();
+
+    if (command.includes('مراقبة الخدمات')) {
+      const { stdout: serviceInfo } = await execPromise('ps aux | grep -E "node|npm|tsx" | grep -v grep');
+      return `🔍 حالة الخدمات الحالية:\n\n${serviceInfo}`;
     }
-    
-    // التحقق إذا كان الأمر يتعلق بفحص النظام
-    if (command.includes('فحص النظام') || command.includes('حالة النظام') || command.includes('معلومات النظام')) {
-      return await getSystemStatus();
+
+    if (command.includes('تحليل النظام')) {
+      const analysis = await analyzeProjectCode();
+      return `📊 تحليل شامل للنظام:\n\n${analysis}`;
     }
-    
-    // التحقق إذا كان الأمر يتعلق بمراقبة الخدمات
-    if (command.includes('مراقبة الخدمات') || command.includes('حالة الخدمات')) {
-      return await getServicesStatus();
+
+    if (command.includes('تحليل قاعدة البيانات')) {
+      // جلب معلومات من قاعدة البيانات
+      const products = await storage.getProducts();
+      const customers = await storage.searchCustomers('');
+      const sales = await storage.getSales();
+
+      return `📊 تحليل قاعدة البيانات:
+
+📦 المنتجات: ${products.length} منتج
+👥 العملاء: ${customers.length} عميل
+💰 المبيعات: ${sales.length} عملية بيع
+
+تفاصيل المنتجات الأكثر مبيعاً:
+${products.slice(0, 5).map(p => `- ${p.name}: ${p.stock} قطعة متاحة، السعر: ${p.priceUsd}$`).join('\n')}
+      `;
     }
-    
-    // التحقق إذا كان الأمر يتعلق بالملفات
-    if (command.includes('قائمة الملفات') || command.includes('عرض الملفات')) {
-      return await listFiles();
+
+    if (command.includes('اقتراح تحسينات')) {
+      const suggestions = await analyzeProblemAndSuggestFix('اقتراحات لتحسين النظام');
+      return `🚀 اقتراحات لتحسين النظام:\n\n${suggestions}`;
     }
-    
-    // التحقق إذا كان الأمر يتعلق بتحليل قاعدة البيانات
-    if (command.includes('تحليل قاعدة البيانات') || command.includes('فحص قاعدة البيانات')) {
-      return await analyzeDatabaseStructure();
+
+    if (command.startsWith('أصلح تلقائيًا:') || command.startsWith('fix:')) {
+      const problem = command.split(':')[1].trim();
+      const solution = await analyzeProblemAndSuggestFix(problem);
+      return `🛠️ حل المشكلة "${problem}":\n\n${solution}`;
     }
-    
-    // التحقق إذا كان الأمر يتعلق باقتراح تحسينات
-    if (command.includes('اقتراح تحسينات') || command.includes('تحسين النظام') || 
-        command.includes('تطوير النظام') || command.includes('اقترح تحسينات')) {
-      return await suggestSystemImprovements();
+
+    if (command.startsWith('نفذ تلقائيًا:') || command.startsWith('implement:')) {
+      const feature = command.split(':')[1].trim();
+      const implementation = await analyzeProblemAndSuggestFix(`تنفيذ ميزة: ${feature}`);
+      return `✅ تنفيذ الميزة "${feature}":\n\n${implementation}`;
     }
-    
-    // تحليل نوع الطلب بسرعة لتوجيه التنفيذ بشكل صحيح
-    const requestType = analyzeRequest(command);
-    
-    // توليد كود للتنفيذ باستخدام النموذج اللغوي مباشرة
-    const generatedCode = await generateCodeWithOpenAI(command);
-    
-    // حفظ الكود المولد
-    const filePath = await saveGeneratedCode(generatedCode);
-    
-    // توليد رد تفاعلي وطبيعي بدلاً من الرد التقني الطويل
-    const humanResponse = await generateCodeWithOpenAI(`
-      بناءً على هذا الطلب: "${command}"
-      
-      قمت بإنشاء كود وحفظه في: ${filePath}
-      
-      اكتب رداً طبيعياً ومباشراً يشرح ما تم إنجازه بأسلوب محادثة طبيعي وودي.
-      الرد يجب أن يكون:
-      - مباشر وشخصي (كأنك تتحدث مع صديق)
-      - يشرح ما تم إنجازه بشكل بسيط
-      - لا يستخدم الرموز التعبيرية المبالغ فيها
-      - لا يتضمن تفاصيل تقنية معقدة
-      - باللغة العربية الفصحى المبسطة
-      
-      مثال: "لقد نفذت طلبك ونجحت في إنشاء [وصف موجز]. يمكنك الآن استخدام هذه الميزة من خلال [شرح بسيط]. هل هناك أي شيء آخر تحتاج مساعدة به؟"
-    `);
-    
-    return humanResponse;
+
+    // للأوامر غير المعروفة، نستخدم تحليل النص الذكي
+    const analysis = await analyzeProblemAndSuggestFix(command);
+    return analysis;
   } catch (error) {
-    console.error('❌ خطأ في تنفيذ الأمر:', error);
-    
-    // توليد رسالة خطأ ودية وطبيعية بدلاً من الرسالة التقنية
-    const friendlyErrorResponse = await generateCodeWithOpenAI(`
-      حدث خطأ أثناء محاولة تنفيذ هذا الطلب: "${command}"
-      
-      الخطأ التقني هو: ${error.message}
-      
-      اكتب رسالة خطأ ودية ومفيدة باللغة العربية، تشرح المشكلة بطريقة بسيطة وتقترح حلاً أو بديلاً.
-      الرسالة يجب أن تكون قصيرة وطبيعية كمحادثة بين شخصين.
-    `);
-    
-    return friendlyErrorResponse || `عذراً، واجهت مشكلة أثناء تنفيذ طلبك. هل يمكنك إعادة صياغته بطريقة أخرى؟`;
+    console.error('خطأ في تنفيذ الأمر:', error);
+    return `❌ فشل في تنفيذ الأمر "${command}": ${error.message}\n\nيرجى المحاولة مرة أخرى بصياغة مختلفة أو الاتصال بمسؤول النظام.`;
   }
 }
 
@@ -155,17 +105,17 @@ async function saveGeneratedCode(code: string): Promise<string> {
     const codeType = determineCodeType(code);
     const fileName = generateFileName(codeType);
     const filePath = getFilePath(fileName, codeType);
-    
+
     // إنشاء المجلد إذا لم يكن موجودًا
     const dirPath = path.dirname(filePath);
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath, { recursive: true });
     }
-    
+
     // حفظ الكود في ملف
     fs.writeFileSync(filePath, code, 'utf8');
     console.log(`✅ تم حفظ الكود في: ${filePath}`);
-    
+
     return filePath;
   } catch (error) {
     console.error('❌ خطأ أثناء حفظ الكود:', error);
@@ -182,18 +132,18 @@ async function getSystemStatus(brief: boolean = false): Promise<string> {
     const freeMem = os.freemem() / 1024 / 1024;
     const totalMem = os.totalmem() / 1024 / 1024;
     const memUsage = ((totalMem - freeMem) / totalMem * 100).toFixed(2);
-    
+
     const cpuInfo = os.cpus();
     const uptime = (os.uptime() / 60).toFixed(2);
-    
+
     const { stdout: diskSpace } = await execPromise('df -h | grep "/$"');
-    
+
     const { stdout: processCount } = await execPromise('ps aux | wc -l');
-    
+
     if (brief) {
       return `نظام التشغيل: ${os.type()} ${os.release()}, استخدام الذاكرة: ${memUsage}%, وقت التشغيل: ${uptime} دقيقة`;
     }
-    
+
     const systemStatus = `
 📊 تقرير حالة النظام:
 
@@ -215,7 +165,7 @@ ${diskSpace}
    - بوت التلجرام: نشط ✅
    - قاعدة البيانات: نشطة ✅
     `;
-    
+
     return systemStatus;
   } catch (error) {
     console.error('❌ خطأ في الحصول على حالة النظام:', error);
@@ -229,13 +179,13 @@ ${diskSpace}
 async function analyzeProjectStructure(): Promise<string> {
   try {
     const projectRoot = process.cwd();
-    
+
     // تحليل هيكل المجلدات الرئيسية
     const rootFiles = fs.readdirSync(projectRoot);
     const serverDir = path.join(projectRoot, 'server');
     const clientDir = path.join(projectRoot, 'client');
     const sharedDir = path.join(projectRoot, 'shared');
-    
+
     const serverFiles = fs.existsSync(serverDir) ? fs.readdirSync(serverDir) : [];
     const clientSrcDir = path.join(clientDir, 'src');
     const clientSrcFiles = fs.existsSync(clientSrcDir) ? fs.readdirSync(clientSrcDir) : [];
@@ -243,7 +193,7 @@ async function analyzeProjectStructure(): Promise<string> {
     const clientComponentsFiles = fs.existsSync(clientComponentsDir) ? fs.readdirSync(clientComponentsDir) : [];
     const clientPagesDir = path.join(clientSrcDir, 'pages');
     const clientPagesFiles = fs.existsSync(clientPagesDir) ? fs.readdirSync(clientPagesDir) : [];
-    
+
     // تجميع معلومات هيكل المشروع
     const structureInfo = `
 🔍 هيكل المشروع:
@@ -262,15 +212,13 @@ async function analyzeProjectStructure(): Promise<string> {
 📂 الملفات المشتركة:
    - ملفات: ${fs.existsSync(sharedDir) ? fs.readdirSync(sharedDir).join(', ') : 'لا يوجد'}
     `;
-    
+
     return structureInfo;
   } catch (error) {
     console.error('❌ خطأ في تحليل هيكل المشروع:', error);
     return `❌ حدث خطأ أثناء تحليل هيكل المشروع: ${error.message}`;
   }
 }
-
-// تم حذف الإعلان المكرر لدالة getSystemStatus
 
 /**
  * الحصول على حالة الخدمات
@@ -280,10 +228,10 @@ async function getServicesStatus(): Promise<string> {
     const { stdout: serverStatus } = await execPromise('ps aux | grep "tsx server" | grep -v grep || echo "غير نشطة"');
     const { stdout: botStatus } = await execPromise('ps aux | grep "telegram-bot" | grep -v grep || echo "غير نشطة"');
     const { stdout: dbStatus } = await execPromise('ps aux | grep "postgres" | grep -v grep || echo "غير نشطة"');
-    
+
     // تحقق من الاتصال بقاعدة البيانات
     const dbConnection = !dbStatus.includes("غير نشطة") ? "متصلة ✅" : "غير متصلة ❌";
-    
+
     const servicesStatus = `
 🔄 حالة الخدمات:
 
@@ -293,7 +241,7 @@ async function getServicesStatus(): Promise<string> {
 
 آخر تحديث: ${new Date().toLocaleString('ar-SA')}
     `;
-    
+
     return servicesStatus;
   } catch (error) {
     console.error('❌ خطأ في الحصول على حالة الخدمات:', error);
@@ -309,10 +257,10 @@ async function listFiles(): Promise<string> {
     const projectRoot = process.cwd();
     const serverDir = path.join(projectRoot, 'server');
     const clientDir = path.join(projectRoot, 'client');
-    
+
     const serverFiles = fs.readdirSync(serverDir);
     const clientFiles = fs.readdirSync(path.join(clientDir, 'src'));
-    
+
     const filesList = `
 📁 قائمة الملفات:
 
@@ -322,7 +270,7 @@ ${serverFiles.map(file => `   - ${file}`).join('\n')}
 📂 ملفات العميل:
 ${clientFiles.map(file => `   - ${file}`).join('\n')}
     `;
-    
+
     return filesList;
   } catch (error) {
     console.error('❌ خطأ في عرض قائمة الملفات:', error);
@@ -341,17 +289,17 @@ export async function executeCode(code: string): Promise<string> {
     const codeType = determineCodeType(code);
     const fileName = generateFileName(codeType);
     const filePath = getFilePath(fileName, codeType);
-    
+
     // إنشاء المجلد إذا لم يكن موجودًا
     const dirPath = path.dirname(filePath);
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath, { recursive: true });
     }
-    
+
     // حفظ الكود في ملف
     fs.writeFileSync(filePath, code, 'utf8');
     console.log(`✅ تم حفظ الكود في: ${filePath}`);
-    
+
     // تنفيذ عمليات إضافية بناء على نوع الكود
     if (codeType === 'component') {
       await addComponentToExports(filePath);
@@ -360,7 +308,7 @@ export async function executeCode(code: string): Promise<string> {
     } else if (codeType === 'util') {
       await updateUtilImports(filePath);
     }
-    
+
     return filePath;
   } catch (error) {
     console.error('❌ خطأ أثناء تنفيذ الكود:', error);
@@ -374,49 +322,49 @@ export async function executeCode(code: string): Promise<string> {
  */
 function analyzeRequest(command: string): string {
   const command_lower = command.toLowerCase();
-  
+
   // التعرف على طلبات الإصلاح التلقائي
   if ((command_lower.includes('إصلاح') || command_lower.includes('صحح') || command_lower.includes('حل مشكلة')) && 
       (command_lower.includes('تلقائيًا') || command_lower.includes('تلقائي') || command_lower.includes('مباشرة'))) {
     return 'auto_fix';
   }
-  
+
   // التعرف على طلبات تنفيذ الميزات التلقائي
   if ((command_lower.includes('نفذ') || command_lower.includes('طبق') || command_lower.includes('أضف ميزة')) && 
       (command_lower.includes('تلقائيًا') || command_lower.includes('مباشرة') || command_lower.includes('بشكل آلي'))) {
     return 'auto_implement';
   }
-  
+
   // التعرف على طلبات واجهة المستخدم
   if (command_lower.includes('أضف') || command_lower.includes('إنشاء') || command_lower.includes('واجهة') || 
       command_lower.includes('مكون') || command_lower.includes('صفحة') || command_lower.includes('زر')) {
     return 'ui_component';
   }
-  
+
   // التعرف على طلبات الميزات
   if (command_lower.includes('خاصية') || command_lower.includes('ميزة') || command_lower.includes('وظيفة') || 
       command_lower.includes('أضف قدرة') || command_lower.includes('إضافة إمكانية')) {
     return 'feature';
   }
-  
+
   // التعرف على طلبات الإصلاح
   if (command_lower.includes('إصلاح') || command_lower.includes('صحح') || command_lower.includes('مشكلة') || 
       command_lower.includes('خطأ') || command_lower.includes('حل مشكلة')) {
     return 'fix';
   }
-  
+
   // التعرف على طلبات التعديل
   if (command_lower.includes('تعديل') || command_lower.includes('تغيير') || command_lower.includes('تحديث') || 
       command_lower.includes('تحسين') || command_lower.includes('طور')) {
     return 'modify';
   }
-  
+
   // التعرف على طلبات تحليل النظام
   if (command_lower.includes('تحليل') || command_lower.includes('دراسة') || command_lower.includes('فحص') || 
       command_lower.includes('تشخيص')) {
     return 'analyze';
   }
-  
+
   return 'general';
 }
 
@@ -426,27 +374,27 @@ function analyzeRequest(command: string): string {
  */
 async function createUIComponent(command: string): Promise<string> {
   console.log(`🔄 إنشاء مكون واجهة مستخدم: "${command}"`);
-  
+
   // توليد كود المكون
   const componentCode = await generateCodeWithOpenAI(`أنشئ مكون React.js باستخدام TypeScript للواجهة العربية: ${command}. استخدم مكتبة shadcn/ui وأسلوب Tailwind CSS وتأكد من دعم RTL.`);
-  
+
   // استخراج اسم المكون
   const componentNameMatch = componentCode.match(/export\s+(?:default\s+)?(?:const|function)\s+(\w+)/);
   const componentName = componentNameMatch ? componentNameMatch[1] : `Custom${Date.now().toString(36).slice(-4)}Component`;
-  
+
   // إنشاء اسم ملف مناسب
   const fileName = `${componentName}.tsx`;
   const filePath = path.join(process.cwd(), 'client', 'src', 'components', 'custom', fileName);
-  
+
   // إنشاء المجلد إذا لم يكن موجودًا
   const dirPath = path.dirname(filePath);
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
   }
-  
+
   // حفظ الكود في ملف
   fs.writeFileSync(filePath, componentCode, 'utf8');
-  
+
   // إضافة المكون إلى ملف التصدير إذا كان موجودًا
   try {
     const indexPath = path.join(process.cwd(), 'client', 'src', 'components', 'custom', 'index.ts');
@@ -462,7 +410,7 @@ async function createUIComponent(command: string): Promise<string> {
   } catch (error) {
     console.warn('⚠️ لم يتم إضافة المكون إلى ملف التصدير:', error);
   }
-  
+
   return `✅ تم إنشاء مكون واجهة المستخدم "${componentName}" بنجاح!\n\nيمكنك استخدامه في أي صفحة عن طريق استيراده:\n\nimport { ${componentName} } from '@/components/custom/${componentName}';\n\nتم حفظ الكود في: ${filePath}\n\nالكود المولد:\n${componentCode}`;
 }
 
@@ -472,29 +420,29 @@ async function createUIComponent(command: string): Promise<string> {
  */
 async function implementFeature(command: string): Promise<string> {
   console.log(`🔄 تنفيذ ميزة جديدة: "${command}"`);
-  
+
   // توليد خطة لتنفيذ الميزة
   const planPrompt = `قم بتحليل الميزة التالية وإنشاء خطة تنفيذ مفصلة مع تحديد الملفات التي يجب تعديلها وكيفية تنفيذ الميزة: ${command}`;
   const plan = await generateCodeWithOpenAI(planPrompt);
-  
+
   // تحديد الملفات التي يجب تعديلها بناءً على الخطة
   // هنا نحتاج إلى تنفيذ المنطق الخاص بتحليل الخطة وتنفيذها
-  
+
   // كمثال مبسط، سنقوم بإنشاء ملف واحد للميزة الجديدة
   const featureName = `Feature${Date.now().toString(36).slice(-4)}`;
   const featureCode = await generateCodeWithOpenAI(`قم بإنشاء كود TypeScript لتنفيذ الميزة التالية: ${command}`);
-  
+
   const filePath = path.join(process.cwd(), 'shared', 'features', `${featureName}.ts`);
-  
+
   // إنشاء المجلد إذا لم يكن موجودًا
   const dirPath = path.dirname(filePath);
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
   }
-  
+
   // حفظ الكود في ملف
   fs.writeFileSync(filePath, featureCode, 'utf8');
-  
+
   return `✅ تم تنفيذ الميزة الجديدة بنجاح!\n\nتم حفظ الكود في: ${filePath}\n\nخطة التنفيذ:\n${plan}\n\nالكود المولد:\n${featureCode}`;
 }
 
@@ -504,13 +452,13 @@ async function implementFeature(command: string): Promise<string> {
  */
 async function fixIssue(command: string): Promise<string> {
   console.log(`🔄 إصلاح مشكلة: "${command}"`);
-  
+
   // تحليل المشكلة وتحديد الملفات المحتملة
   const analysisPrompt = `قم بتحليل المشكلة التالية وتحديد الأسباب المحتملة والملفات التي قد تحتاج إلى تعديل: ${command}`;
   const analysis = await generateCodeWithOpenAI(analysisPrompt);
-  
+
   // هنا نحتاج إلى منطق أكثر تعقيدًا لتحديد الملفات التي تحتاج إلى تعديل وإجراء التغييرات اللازمة
-  
+
   return `🔍 تحليل المشكلة:\n${analysis}\n\nلتنفيذ الإصلاح بشكل آلي، يرجى تحديد الملف الذي تريد إصلاحه بشكل أكثر تحديداً. يمكنك استخدام أمر مثل: "أصلح مشكلة X في ملف Y"`;
 }
 
@@ -520,10 +468,10 @@ async function fixIssue(command: string): Promise<string> {
  */
 async function modifyExistingCode(command: string): Promise<string> {
   console.log(`🔄 تعديل كود موجود: "${command}"`);
-  
+
   // هنا نحتاج إلى تحليل الأمر لتحديد الملف الذي يحتاج إلى تعديل
   // ثم قراءة محتوى الملف وإجراء التعديلات اللازمة
-  
+
   return `لتعديل كود موجود بشكل آلي، يرجى تحديد اسم الملف الذي تريد تعديله بشكل صريح. يمكنك استخدام أمر مثل: "عدل ملف X لإضافة ميزة Y"`;
 }
 
@@ -535,7 +483,7 @@ async function addComponentToExports(componentPath: string): Promise<void> {
   try {
     const dirPath = path.dirname(componentPath);
     const componentName = path.basename(componentPath, path.extname(componentPath));
-    
+
     const indexPath = path.join(dirPath, 'index.ts');
     if (fs.existsSync(indexPath)) {
       let indexContent = fs.readFileSync(indexPath, 'utf8');
@@ -616,7 +564,7 @@ function determineCodeType(code: string): string {
 function generateFileName(codeType: string): string {
   const timestamp = Date.now();
   const uniqueId = nanoid(6);
-  
+
   switch (codeType) {
     case 'component':
       return `Component-${timestamp}-${uniqueId}.tsx`;
@@ -634,7 +582,7 @@ function generateFileName(codeType: string): string {
  */
 function getFilePath(fileName: string, codeType: string): string {
   const basePath = process.cwd();
-  
+
   switch (codeType) {
     case 'component':
       return path.join(basePath, 'client', 'src', 'components', 'generated', fileName);
@@ -654,22 +602,22 @@ function getFilePath(fileName: string, codeType: string): string {
 async function analyzeFullSystem(): Promise<string> {
   try {
     console.log('🔄 جاري تحليل النظام بالكامل...');
-    
+
     // جمع معلومات النظام
     const systemStatus = await getSystemStatus();
-    
+
     // تحليل حالة قواعد البيانات
     const dbStatus = await analyzeDatabaseStatus();
-    
+
     // تحليل أداء النظام
     const performanceAnalysis = await analyzeSystemPerformance();
-    
+
     // تحليل هيكل المشروع وملفاته
     const codeAnalysis = await analyzeProjectCode();
-    
+
     // تحليل المشاكل المحتملة وأمن النظام
     const securityAndIssues = await analyzeSecurityAndIssues();
-    
+
     // تجميع كل التقارير
     const fullReport = `
 # 📊 تقرير شامل عن حالة النظام
@@ -699,7 +647,7 @@ ${generateImprovementPlan()}
     return fullReport;
   } catch (error) {
     console.error('❌ خطأ في تحليل النظام:', error);
-    
+
     // حاول تقديم تقرير جزئي على الأقل
     try {
       const basicSystemInfo = await getSystemStatus(true);
@@ -707,10 +655,10 @@ ${generateImprovementPlan()}
         حدث خطأ أثناء إنشاء التقرير الشامل: ${error.message}
         لكن هذه بعض المعلومات الأساسية عن النظام:
         ${basicSystemInfo}
-        
+
         قم بإنشاء تقرير مختصر يشرح المشكلة ويقدم بعض التوصيات الأساسية بناءً على المعلومات المتاحة.
       `);
-      
+
       return `⚠️ تقرير جزئي (حدث خطأ أثناء التحليل الشامل):\n\n${partialReport}`;
     } catch (secondError) {
       return `❌ حدث خطأ أثناء تحليل النظام: ${error.message}\n\nلم نتمكن من إنشاء حتى تقرير جزئي. يرجى التحقق من سجلات النظام.`;
@@ -726,15 +674,15 @@ async function analyzeDatabaseStatus(): Promise<string> {
     // يمكن توسيع هذه الدالة لإجراء فحص فعلي لقاعدة البيانات
     const dbStatusPrompt = `
       قم بإنشاء تقرير افتراضي عن حالة قاعدة البيانات في النظام، يتضمن:
-      
+
       1. حالة الاتصال بقاعدة البيانات
       2. أداء الاستعلامات
       3. هيكل الجداول وعلاقاتها
       4. المشاكل المحتملة وتوصيات التحسين
-      
+
       اجعل التقرير واقعياً ومفصلاً بشكل معقول، بناءً على سياق تطبيق ويب متوسط الحجم.
     `;
-    
+
     return await generateCodeWithOpenAI(dbStatusPrompt);
   } catch (error) {
     console.error('❌ خطأ في تحليل حالة قاعدة البيانات:', error);
@@ -751,26 +699,26 @@ async function analyzeSystemPerformance(): Promise<string> {
     const { stdout: memInfo } = await execPromise('free -h');
     const { stdout: diskInfo } = await execPromise('df -h');
     const { stdout: cpuInfo } = await execPromise('top -bn1 | head -n 5');
-    
+
     const performancePrompt = `
       استناداً إلى معلومات الأداء التالية، قم بتحليل أداء النظام:
-      
+
       # معلومات الذاكرة
       ${memInfo}
-      
+
       # معلومات القرص
       ${diskInfo}
-      
+
       # معلومات المعالج
       ${cpuInfo}
-      
+
       قدم تحليلاً للأداء يتضمن:
       1. تقييم للموارد المستهلكة حالياً
       2. تحديد أي اختناقات محتملة
       3. توصيات لتحسين الأداء
       4. إشارة لأي قضايا حرجة تتطلب اهتماماً فورياً
     `;
-    
+
     return await generateCodeWithOpenAI(performancePrompt);
   } catch (error) {
     console.error('❌ خطأ في تحليل أداء النظام:', error);
@@ -784,39 +732,39 @@ async function analyzeSystemPerformance(): Promise<string> {
 async function analyzeProjectCode(): Promise<string> {
   try {
     const projectRoot = process.cwd();
-    
+
     // تحليل هيكل المجلدات
     const { stdout: dirTree } = await execPromise('find . -type d -not -path "*/node_modules/*" -not -path "*/.git/*" | sort');
-    
+
     // إحصاء الملفات حسب النوع
     const { stdout: fileStats } = await execPromise('find . -type f -not -path "*/node_modules/*" -not -path "*/.git/*" | grep -E "\\.(js|ts|tsx|jsx|css|scss|html|json)$" | sort');
-    
+
     // قراءة عينة من الملفات المهمة
     const serverFiles = fs.readdirSync(path.join(projectRoot, 'server')).filter(file => file.endsWith('.ts'));
     const sampleServerFile = serverFiles.length > 0 ? 
       fs.readFileSync(path.join(projectRoot, 'server', serverFiles[0]), 'utf8').substring(0, 500) : '';
-    
+
     const codePrompt = `
       استناداً إلى المعلومات التالية، قم بتحليل هيكل المشروع وجودة الكود:
-      
+
       # هيكل المجلدات
       ${dirTree}
-      
+
       # إحصاءات الملفات
       ${fileStats.split('\n').length} ملف برمجي
-      
+
       # عينة من الكود (من ملف سيرفر)
       \`\`\`
       ${sampleServerFile}
       \`\`\`
-      
+
       قدم تحليلاً يتضمن:
       1. تقييم هيكل المشروع والتنظيم
       2. تقييم جودة الكود بناءً على العينة
       3. التقنيات المستخدمة في المشروع
       4. توصيات لتحسين هيكل المشروع وجودة الكود
     `;
-    
+
     return await generateCodeWithOpenAI(codePrompt);
   } catch (error) {
     console.error('❌ خطأ في تحليل هيكل المشروع:', error);
@@ -832,23 +780,23 @@ async function analyzeSecurityAndIssues(): Promise<string> {
     // فحص ملفات الإعدادات لمشاكل الأمان
     const { stdout: envInfo } = await execPromise('ls -la .env* || echo "لا توجد ملفات .env"');
     const { stdout: packageInfo } = await execPromise('cat package.json || echo "ملف package.json غير موجود"');
-    
+
     const securityPrompt = `
       استناداً إلى المعلومات التالية، قم بتحليل أمان المشروع:
-      
+
       # ملفات البيئة (.env)
       ${envInfo}
-      
+
       # معلومات الحزم
       ${packageInfo.substring(0, 1000)}
-      
+
       قدم تحليلاً أمنياً يتضمن:
       1. مخاوف أمنية محتملة في إعدادات المشروع
       2. التحقق من وجود معلومات حساسة مكشوفة
       3. التبعيات المحتمل أن تكون قديمة أو غير آمنة
       4. توصيات لتحسين أمان التطبيق
     `;
-    
+
     return await generateCodeWithOpenAI(securityPrompt);
   } catch (error) {
     console.error('❌ خطأ في تحليل أمان النظام:', error);
@@ -859,7 +807,7 @@ async function analyzeSecurityAndIssues(): Promise<string> {
 /**
  * الحصول على التوصيات ذات الأولوية القصوى
  */
-function getTopRecommendations(): string[] {
+functiongetTopRecommendations(): string[] {
   return [
     "تحديث حزم npm الحرجة للأمان",
     "إضافة مراقبة وتسجيل الأخطاء لتحسين اكتشاف المشاكل",
@@ -897,7 +845,7 @@ function generateImprovementPlan(): string {
 async function analyzeDatabaseStructure(): Promise<string> {
   try {
     console.log('🔄 جاري تحليل قاعدة البيانات...');
-    
+
     // استعلام لاسترجاع هيكل قاعدة البيانات
     const dbAnalysisPrompt = `
 قم بتحليل قاعدة البيانات بناءً على الملفات التالية:
@@ -910,7 +858,7 @@ async function analyzeDatabaseStructure(): Promise<string> {
 `;
 
     const dbAnalysis = await generateCodeWithOpenAI(dbAnalysisPrompt);
-    
+
     return `🗄️ تقرير تحليل قاعدة البيانات:\n\n${dbAnalysis}`;
   } catch (error) {
     console.error('❌ خطأ في تحليل قاعدة البيانات:', error);
@@ -924,7 +872,7 @@ async function analyzeDatabaseStructure(): Promise<string> {
 async function suggestSystemImprovements(): Promise<string> {
   try {
     console.log('🔄 جاري توليد اقتراحات لتحسين النظام...');
-    
+
     // تحليل النظام واقتراح تحسينات
     const improvementsPrompt = `
 بناء على تحليل النظام، اقترح تحسينات محددة في المجالات التالية:
@@ -939,7 +887,7 @@ async function suggestSystemImprovements(): Promise<string> {
 `;
 
     const improvements = await generateCodeWithOpenAI(improvementsPrompt);
-    
+
     // توليد أكواد لتنفيذ بعض التحسينات المقترحة
     const implementationPrompt = `
 استنادًا إلى التحسينات المقترحة، قدم كود لتنفيذ أهم تحسين واحد في كل من الفئات التالية:
@@ -952,10 +900,10 @@ async function suggestSystemImprovements(): Promise<string> {
 `;
 
     const implementationCode = await generateCodeWithOpenAI(implementationPrompt);
-    
+
     // تنفيذ بعض التحسينات تلقائيًا
     const improvementFilePath = await executeCode(implementationCode);
-    
+
     return `🚀 اقتراحات لتحسين النظام:\n\n${improvements}\n\n✅ تم تنفيذ بعض التحسينات تلقائيًا وحفظها في:\n${improvementFilePath}`;
   } catch (error) {
     console.error('❌ خطأ في اقتراح تحسينات النظام:', error);
@@ -969,7 +917,7 @@ async function suggestSystemImprovements(): Promise<string> {
 async function autoFixSystemIssue(command: string): Promise<string> {
   try {
     console.log(`🔄 جاري إصلاح مشكلة تلقائيًا: "${command}"`);
-    
+
     // تحليل المشكلة وإيجاد الحل
     const analysisPrompt = `
 تحليل المشكلة التالية وإيجاد حل:
@@ -981,7 +929,7 @@ ${command}
 `;
 
     const analysis = await generateCodeWithOpenAI(analysisPrompt);
-    
+
     // توليد كود للإصلاح
     const fixPrompt = `
 استنادًا إلى التحليل التالي، قم بإنشاء كود لإصلاح المشكلة:
@@ -991,15 +939,15 @@ ${analysis}
 `;
 
     const fixCode = await generateCodeWithOpenAI(fixPrompt);
-    
+
     // تنفيذ الإصلاح تلقائيًا
     const fixFilePath = await executeCode(fixCode);
-    
+
     // إعادة تشغيل التطبيق إذا لزم الأمر
     if (shouldRestartApp(command, fixCode)) {
       await restartApplication();
     }
-    
+
     return `🔍 تحليل المشكلة:\n\n${analysis}\n\n✅ تم تنفيذ الإصلاح تلقائيًا وحفظه في:\n${fixFilePath}`;
   } catch (error) {
     console.error('❌ خطأ في إصلاح مشكلة النظام تلقائيًا:', error);
@@ -1013,7 +961,7 @@ ${analysis}
 async function autoImplementFeature(command: string): Promise<string> {
   try {
     console.log(`🔄 جاري تنفيذ ميزة جديدة تلقائيًا: "${command}"`);
-    
+
     // تخطيط الميزة
     const planPrompt = `
 قم بتخطيط تنفيذ الميزة التالية:
@@ -1026,7 +974,7 @@ ${command}
 `;
 
     const plan = await generateCodeWithOpenAI(planPrompt);
-    
+
     // توليد كود لتنفيذ الميزة
     const implementPrompt = `
 استنادًا إلى الخطة التالية، قم بإنشاء كود لتنفيذ الميزة:
@@ -1036,15 +984,15 @@ ${plan}
 `;
 
     const implementCode = await generateCodeWithOpenAI(implementPrompt);
-    
+
     // تنفيذ الميزة تلقائيًا
     const implementFilePath = await executeCode(implementCode);
-    
+
     // إعادة تشغيل التطبيق إذا لزم الأمر
     if (shouldRestartApp(command, implementCode)) {
       await restartApplication();
     }
-    
+
     return `📝 خطة تنفيذ الميزة:\n\n${plan}\n\n✅ تم تنفيذ الميزة تلقائيًا وحفظها في:\n${implementFilePath}`;
   } catch (error) {
     console.error('❌ خطأ في تنفيذ ميزة جديدة تلقائيًا:', error);

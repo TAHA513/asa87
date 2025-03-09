@@ -1033,7 +1033,7 @@ export class DatabaseStorage implements IStorage {
   private processWeeklyReport(activities: SystemActivity[]) {
     const weeklyActivities = activities.reduce((acc: any, activity) => {
       const date = new Date(activity.timestamp);
-      const weekStart = new Date(date.setDate(date.getDate() - date.getDay())).toISOString().split('T')[0];
+      const weekStart = new Date(date.setDate(date.getDate() - date.getDay())).toISOString().split('T[0];
       if (!acc[weekStart]) {
         acc[weekStart] = {
           total: 0,
@@ -1944,6 +1944,18 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getFrontendComponents(): Promise<string[]> {
+    // Implement logic to fetch frontend components from your system.
+    // This might involve reading files, querying a database, or accessing an API.
+    // Replace this with your actual implementation.
+    return ["ComponentA", "ComponentB", "ComponentC"];
+  }
+
+  async getApiEndpoints(): Promise<string[]> {
+    // Implement logic to fetch API endpoints from your system.
+    // Replace this with your actual implementation.
+    return ["/api/users", "/api/products", "/api/sales"];
+  }
 }
 
 export const storage = new DatabaseStorage();
