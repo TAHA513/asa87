@@ -227,42 +227,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Theme Settings
   app.post("/api/theme", async (req, res) => {
     try {
-      // التحقق من صحة البيانات
-      const themeSchema = z.object({
-        primary: z.string(),
-        variant: z.enum([
-          "professional", "vibrant", "tint", "modern", 
-          "classic", "futuristic", "elegant", "natural"
-        ]),
-        appearance: z.enum(["light", "dark", "system"]),
-        fontStyle: z.enum([
-          "noto-kufi",
-          "cairo",
-          "tajawal",
-        ]),
-        radius: z.number(),
-        fontSize: z.enum(["small", "medium", "large", "xlarge"]),
-      });
+      // قائمة القيم الصالحة المقبولة
+      const ALLOWED_VARIANTS = ["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"];
+      const ALLOWED_APPEARANCES = ["light", "dark", "system"];
+      const ALLOWED_FONT_STYLES = ["noto-kufi", "cairo", "tajawal"];
+      const ALLOWED_FONT_SIZES = ["small", "medium", "large", "xlarge"];
 
-      // محاولة تحليل البيانات
-      let theme;
-      try {
-        theme = themeSchema.parse(req.body);
-        console.log("تم التحقق من بيانات الثيم بنجاح:", theme);
-      } catch (validationError) {
-        console.error("خطأ في التحقق من بيانات الثيم:", validationError);
-        
-        // استخدام قيم افتراضية إذا كانت هناك مشكلة في البيانات المرسلة
-        theme = {
-          primary: req.body.primary || "hsl(215.3 98.9% 27.8%)",
-          variant: "professional", // استخدام قيمة آمنة دائمًا
-          appearance: req.body.appearance || "light",
-          fontStyle: req.body.fontStyle || "noto-kufi",
-          fontSize: req.body.fontSize || "medium",
-          radius: req.body.radius || 0.5
-        };
-        console.log("تم استخدام قيم افتراضية للثيم:", theme);
-      }
+      // استخراج البيانات مع التحقق البسيط
+      const theme = {
+        primary: req.body.primary || "hsl(215.3 98.9% 27.8%)",
+        variant: ALLOWED_VARIANTS.includes(req.body.variant) ? req.body.variant : "professional",
+        appearance: ALLOWED_APPEARANCES.includes(req.body.appearance) ? req.body.appearance : "light",
+        fontStyle: ALLOWED_FONT_STYLES.includes(req.body.fontStyle) ? req.body.fontStyle : "noto-kufi",
+        fontSize: ALLOWED_FONT_SIZES.includes(req.body.fontSize) ? req.body.fontSize : "medium",
+        radius: typeof req.body.radius === 'number' ? req.body.radius : 0.5
+      };
+
+      console.log("تم التحقق من بيانات الثيم بنجاح:", theme);
 
       // حفظ الثيم في ملف theme.json
       await fs.writeFile(
@@ -1753,12 +1734,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const reportId = parseInt(req.params.id);
-      
+
       // التحقق من صحة معرف التقرير
       if (isNaN(reportId)) {
         return res.status(400).json({ message: "معرف التقرير غير صالح" });
       }
-      
+
       const report = await storage.getReport(reportId);
       if (!report) {
         return res.status(404).json({ message: "التقرير غير موجود" });
@@ -1796,7 +1777,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة التواريخ
       const start = new Date(startDate as string);
       const end = new Date(endDate as string);
-      
+
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
         return res.status(400).json({
           message: "صيغة التاريخ غير صحيحة"
