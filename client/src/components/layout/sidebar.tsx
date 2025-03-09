@@ -46,9 +46,10 @@ export default function Sidebar() {
   return (
     <div className="flex flex-col h-full bg-white border-l">
       <div className="p-4">
-        <h1 className="text-base font-medium text-black">
-          نظام إدارة الأعمال
-        </h1>
+        <div className="flex items-center justify-between">
+            <h1 className="text-xl font-semibold">نظام المتجر</h1>
+            <NotificationCenter />
+          </div>
         <p className="text-xs text-gray-600">
           مرحباً, {user?.username}
         </p>

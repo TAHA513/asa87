@@ -40,6 +40,8 @@ export default function NotificationCenter() {
   // إنشاء اتصال بالسوكت عند تحميل المكوّن
   useEffect(() => {
     if (user) {
+      console.log("إنشاء اتصال Socket.IO للإشعارات للمستخدم:", user.id);
+      
       // استخدام البداية النسبية للمسار
       const socketInstance = io("/", {
         withCredentials: true,
@@ -52,9 +54,10 @@ export default function NotificationCenter() {
       });
 
       socketInstance.on("notification", (notification) => {
+        console.log("تم استلام إشعار جديد:", notification);
         const newNotification = {
           id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-          type: notification.type,
+          type: notification.type as NotificationType,
           data: notification.data,
           timestamp: new Date(notification.timestamp),
           read: false,
@@ -111,26 +114,21 @@ export default function NotificationCenter() {
       case "system_update":
         return <Info className="h-5 w-5 text-primary" />;
       default:
-        return <Info className="h-5 w-5 text-muted-foreground" />;
+        return <Info className="h-5 w-5" />;
     }
   };
 
   const getNotificationContent = (notification: Notification) => {
     const { type, data } = notification;
-
+    
     switch (type) {
       case "inventory_alert":
         return (
           <div>
             <h4 className="font-semibold">تنبيه المخزون</h4>
-            <p className="text-sm">{data.message}</p>
-          </div>
-        );
-      case "inventory_check_complete":
-        return (
-          <div>
-            <h4 className="font-semibold">فحص المخزون</h4>
-            <p className="text-sm">{data.message}</p>
+            <p className="text-sm">
+              المنتج "{data.productName}" منخفض في المخزون ({data.currentStock})
+            </p>
           </div>
         );
       case "upcoming_appointments":
@@ -142,19 +140,10 @@ export default function NotificationCenter() {
             </p>
           </div>
         );
-      case "installment_due":
+      case "inventory_check_complete":
         return (
           <div>
-            <h4 className="font-semibold">دفعة تقسيط مستحقة</h4>
-            <p className="text-sm">
-              استحقاق دفعة للعميل {data.customerName} بقيمة {data.amount}
-            </p>
-          </div>
-        );
-      case "system_update":
-        return (
-          <div>
-            <h4 className="font-semibold">تحديث النظام</h4>
+            <h4 className="font-semibold">فحص المخزون</h4>
             <p className="text-sm">{data.message}</p>
           </div>
         );
@@ -167,6 +156,22 @@ export default function NotificationCenter() {
         );
     }
   };
+
+  // للتجربة، قم بإضافة إشعار تجريبي بعد تحميل المكون
+  useEffect(() => {
+    if (notifications.length === 0) {
+      setTimeout(() => {
+        const testNotification = {
+          id: `test-${Date.now()}`,
+          type: "system_update" as NotificationType,
+          data: { message: "مرحباً بك في نظام الإشعارات الجديد" },
+          timestamp: new Date(),
+          read: false,
+        };
+        setNotifications([testNotification]);
+      }, 3000);
+    }
+  }, []);
 
   if (!user) return null;
 
@@ -241,6 +246,7 @@ export default function NotificationCenter() {
                     size="icon"
                     className="h-6 w-6"
                     onClick={() => markAsRead(notification.id)}
+                    title="تعليم كمقروء"
                   >
                     <Check className="h-3 w-3" />
                   </Button>
