@@ -98,7 +98,7 @@ process.on('unhandledRejection', (reason, promise) => {
 async function startServer() {
   try {
     // استيراد دالة اختبار الاتصال
-    const { ensureConnection, testConnection } = require('./db');
+    import { ensureConnection, testConnection } from './test-db-connection';
     
     // اختبار اتصال قاعدة البيانات
     console.log('جاري اختبار الاتصال بقاعدة البيانات...');
@@ -123,9 +123,10 @@ async function startServer() {
     
     // التحقق من عدم استخدام المنفذ قبل الاستماع
     const checkPortBeforeListen = () => {
-      const netServer = require('node:net').createServer();
-      
-      netServer.once('error', (err) => {
+      import('node:net').then(({ createServer }) => {
+        const netServer = createServer();
+        
+        netServer.once('error', (err) => {
         if (err.code === 'EADDRINUSE') {
           console.log(`⚠️ المنفذ ${port} قيد الاستخدام بالفعل، سيتم المحاولة مرة أخرى بعد 5 ثوانٍ...`);
           setTimeout(checkPortBeforeListen, 5000);
@@ -147,6 +148,7 @@ async function startServer() {
       });
       
       netServer.listen(port, '0.0.0.0');
+      });
     };
     
     checkPortBeforeListen();
