@@ -950,9 +950,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/api/suppliers/:id", async (req, res) => {
+  app.delete("/api/suppliers/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجبتسجيل الدخول أولاً" });
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
     try {
       const supplier = await storage.getSupplier(Number(req.params.id));
@@ -969,7 +969,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/suppliers/:id/transactions", async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجبتسجيل الدخول أولاً" });
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
 
     try {
