@@ -348,7 +348,7 @@ export default function InventoryTable() {
           <TableHeader>
             <TableRow>
               <TableHead>اسم المنتج</TableHead>
-              <TableHead>رمز المنتج</TableHead>>
+              <TableHead>رمز المنتج</TableHead>
               <TableHead>الباركود</TableHead>
               <TableHead>الوصف</TableHead>
               <TableHead>السعر</TableHead>
