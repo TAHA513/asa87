@@ -230,19 +230,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
-        appearance: z.enum(["light", "dark", "system"]),
+        variant: z.enum(["modern", "classic", "elegant", "vibrant", "natural"]),
+        appearance: z.enum(["light"]),  // تم تغييره ليدعم فقط الوضع الفاتح
         fontStyle: z.enum([
-          "traditional",
-          "modern",
-          "minimal",
-          "digital",
-          "elegant",
-          "kufi",
-          "naskh",
-          "ruqaa",
-          "thuluth",
-          "contemporary",
           "noto-kufi", // نوتو كوفي
           "cairo", // القاهرة
           "tajawal", // طجوال
@@ -1339,19 +1329,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
-        appearance: z.enum(["light", "dark", "system"]),
+        variant: z.enum(["modern", "classic", "elegant", "vibrant", "natural"]),
+        appearance: z.enum(["light"]),  // تم تغييره ليدعم فقط الوضع الفاتح
         fontStyle: z.enum([
-          "traditional",
-          "modern",
-          "minimal",
-          "digital",
-          "elegant",
-          "kufi",
-          "naskh",
-          "ruqaa",
-          "thuluth",
-          "contemporary",
           "noto-kufi",
           "cairo",
           "tajawal",
