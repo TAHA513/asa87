@@ -31,8 +31,97 @@ import { caching } from "./cache";
 const CACHE_TTL = 5 * 60; // 5 minutes cache
 
 export interface IStorage {
-  // ...existing methods...
-
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(insertUser: InsertUser): Promise<User>;
+  updateUser(id: number, update: Partial<User>): Promise<User>;
+  getProducts(): Promise<Product[]>;
+  getProduct(id: number): Promise<Product | undefined>;
+  createProduct(product: Product): Promise<Product>;
+  updateProduct(id: number, update: Partial<Product>): Promise<Product>;
+  deleteProduct(id: number): Promise<void>;
+  getSales(): Promise<Sale[]>;
+  createSale(sale: {
+    productId: number;
+    quantity: number;
+    priceIqd: string;
+    discount: string;
+    userId: number;
+    isInstallment: boolean;
+    date: Date;
+    customerName?: string;
+  }): Promise<Sale>;
+  getCurrentExchangeRate(): Promise<ExchangeRate>;
+  setExchangeRate(rate: number): Promise<ExchangeRate>;
+  getInstallments(): Promise<Installment[]>;
+  getInstallment(id: number): Promise<Installment | undefined>;
+  createInstallment(installment: Installment): Promise<Installment>;
+  updateInstallment(id: number, update: Partial<Installment>): Promise<Installment>;
+  getInstallmentPayments(installmentId: number): Promise<InstallmentPayment[]>;
+  createInstallmentPayment(payment: InstallmentPayment): Promise<InstallmentPayment>;
+  getCampaigns(): Promise<Campaign[]>;
+  getCampaign(id: number): Promise<Campaign | undefined>;
+  createCampaign(campaign: InsertCampaign): Promise<Campaign>;
+  updateCampaign(id: number, update: Partial<Campaign>): Promise<Campaign>;
+  getCampaignAnalytics(campaignId: number): Promise<CampaignAnalytics[]>;
+  createCampaignAnalytics(analytics: InsertCampaignAnalytics): Promise<CampaignAnalytics>;
+  getSocialMediaAccounts(userId: number): Promise<SocialMediaAccount[]>;
+  createSocialMediaAccount(account: SocialMediaAccount): Promise<SocialMediaAccount>;
+  deleteSocialMediaAccount(id: number): Promise<void>;
+  setApiKeys(userId: number, keys: Record<string, any>): Promise<void>;
+  getApiKeys(userId: number): Promise<Record<string, any> | null>;
+  migrateLocalStorageToDb(userId: number, keys: Record<string, any>): Promise<void>;
+  getInventoryTransactions(): Promise<InventoryTransaction[]>;
+  createInventoryTransaction(transaction: InsertInventoryTransaction): Promise<InventoryTransaction>;
+  getExpenseCategories(userId: number): Promise<ExpenseCategory[]>;
+  getExpenseCategory(id: number): Promise<ExpenseCategory | undefined>;
+  createExpenseCategory(category: InsertExpenseCategory): Promise<ExpenseCategory>;
+  updateExpenseCategory(id: number, update: Partial<ExpenseCategory>): Promise<ExpenseCategory>;
+  deleteExpenseCategory(id: number): Promise<void>;
+  getExpenses(userId: number): Promise<Expense[]>;
+  getExpense(id: number): Promise<Expense | undefined>;
+  createExpense(expense: InsertExpense): Promise<Expense>;
+  updateExpense(id: number, update: Partial<Expense>): Promise<Expense>;
+  deleteExpense(id: number): Promise<void>;
+  getSuppliers(userId: number): Promise<Supplier[]>;
+  getSupplier(id: number): Promise<Supplier | undefined>;
+  createSupplier(supplier: InsertSupplier): Promise<Supplier>;
+  updateSupplier(id: number, update: Partial<Supplier>): Promise<Supplier>;
+  deleteSupplier(id: number): Promise<void>;
+  getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]>;
+  createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction>;
+  searchCustomers(search?: string): Promise<Customer[]>;
+  getCustomer(id: number): Promise<Customer | undefined>;
+  getCustomerSales(customerId: number): Promise<Sale[]>;
+  createCustomer(customer: InsertCustomer): Promise<Customer>;
+  getCustomerAppointments(customerId: number): Promise<Appointment[]>;
+  createAppointment(appointment: InsertAppointment): Promise<Appointment>;
+  updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment>;
+  deleteAppointment(id: number): Promise<void>;
+  deleteCustomer(id: number): Promise<void>;
+  saveFile(file: InsertFileStorage): Promise<FileStorage>;
+  getFileById(id: number): Promise<FileStorage | undefined>;
+  getUserFiles(userId: number): Promise<FileStorage[]>;
+  deleteFile(id: number): Promise<void>;
+  createInvoice(invoice: InsertInvoice): Promise<Invoice>;
+  getInvoice(id: number): Promise<Invoice | undefined>;
+  updateInvoicePrintStatus(id: number, printed: boolean): Promise<Invoice>;
+  searchProducts(query: string): Promise<Product[]>;
+  getUserSettings(userId: number): Promise<UserSettings | undefined>;
+  saveUserSettings(userId: number, settings: InsertUserSettings): Promise<UserSettings>;
+  getAppointments(): Promise<Appointment[]>;
+  logSystemActivity(activity: InsertSystemActivity): Promise<SystemActivity>;
+  getSystemActivities(filters: {
+    startDate?: Date;
+    endDate?: Date;
+    activityType?: string;
+    entityType?: string;
+  }): Promise<SystemActivity[]>;
+  getAppointmentActivities(appointmentId: number): Promise<SystemActivity[]>;
+  generateActivityReport(report: InsertActivityReport): Promise<ActivityReport>;
+  getInventoryReport(dateRange: { start: Date; end: Date }, page?: number, pageSize?: number): Promise<any>;
+  getFinancialReport(dateRange: { start: Date; end: Date }): Promise<any>;
+  getUserActivityReport(dateRange: { start: Date; end: Date }): Promise<any>;
   saveReport(reportData: {
     type: string;
     title: string;
@@ -42,9 +131,8 @@ export interface IStorage {
     userId: number;
     format?: string;
   }): Promise<Report>;
-
   getReport(id: number): Promise<Report | undefined>;
-  getUserReports(userId: number, type?: string): Promise<any>;
+  getUserReports(userId: number, type?: string): Promise<Report[]>;
   getAppointmentsReport(dateRange: { start: Date; end: Date }, userId: number): Promise<any>;
   getInvoices(filters?: {
     search?: string;
@@ -52,6 +140,9 @@ export interface IStorage {
     endDate?: Date;
     status?: string;
   }): Promise<Invoice[]>;
+  getHistoricalStats(): Promise<any>;
+  getFrontendComponents():Promise<string[]>;
+  getApiEndpoints():Promise<string[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1027,13 +1118,14 @@ export class DatabaseStorage implements IStorage {
 
     return {
       type: 'daily',
-      data: dailyActivities,    };
+      data: dailyActivities,
+    };
   }
 
   private processWeeklyReport(activities: SystemActivity[]) {
     const weeklyActivities = activities.reduce((acc: any, activity) => {
       const date = new Date(activity.timestamp);
-      const weekStart = new Date(date.setDate(date.getDate() - date.getDay())).toISOString().split('T[0];
+      const weekStart = new Date(date.setDate(date.getDate() - date.getDay())).toISOString().split('T')[0];
       if (!acc[weekStart]) {
         acc[weekStart] = {
           total: 0,
@@ -1053,176 +1145,7 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  private processMonthlyReport(activities: SystemActivity[]) {
-    const monthlyActivities = activities.reduce((acc: any, activity) => {
-      const monthStart = new Date(activity.timestamp).toISOString().slice(0, 7);
-      if (!acc[monthStart]) {
-        acc[monthStart] = {
-          total: 0,
-          byType: {},
-          byUser: {},
-        };
-      }
-      acc[monthStart].total++;
-      acc[monthStart].byType[activity.activityType] = (acc[monthStart].byType[activity.activityType] || 0) + 1;
-      acc[monthStart].byUser[activity.userId] = (acc[monthStart].byUser[activity.userId] || 0) + 1;
-      return acc;
-    }, {});
-
-    return {
-      type: 'monthly',
-      data: monthlyActivities,
-    };
-  }
-
-  async getActivityReport(id: number): Promise<ActivityReport | undefined> {
-    const [report] = await db
-      .select()
-      .from(activityReports)
-      .where(eq(activityReports.id, id));
-    return report;
-  }
-
-  async getActivityReports(userId: number): Promise<ActivityReport[]> {
-    return db
-      .select()
-      .from(activityReports)
-      .where(eq(activityReports.generatedBy, userId))
-      .orderBy(desc(activityReports.createdAt));
-  }
-
-  async getDetailedSalesReport(dateRange: { start: Date; end: Date }, userId: number, page = 1, pageSize = 50) {
-    console.log("Generating detailed sales report for:", dateRange);
-
-    const cacheKey = `sales_report:${dateRange.start.toISOString()}_${dateRange.end.toISOString()}_${page}`;
-    const cached= await this.cache.get(cacheKey);
-    if (cached) {
-      console.log("Returning cached sales report");
-      return JSON.parse(cached);
-    }
-
-    // Calculate offset for pagination
-    const offset = (page - 1) * pageSize;
-
-    //// Get total count first
-    const [{ count }] = await db
-      .select({
-        count: sql<number>`count(*)::int`,
-      })
-      .from(sales)
-      .where(
-        and(
-          gte(sales.date, dateRange.start),
-          lte(sales.date, dateRange.end)
-        )
-      );
-
-    // Get paginated sales records with JOIN
-    const saleRecords = await db
-      .select({
-        id: sales.id,
-        productId: sales.productId,
-        quantity: sales.quantity,
-        priceIqd: sales.priceIqd,
-        date: sales.date,
-        productName: products.name,
-      })
-      .from(sales)
-      .leftJoin(products, eq(sales.productId, products.id))
-      .where(
-        and(
-          gte(sales.date, dateRange.start),
-          lte(sales.date, dateRange.end)
-        )
-      )
-      .limit(pageSize)
-      .offset(offset)
-      .orderBy(desc(sales.date));
-
-    console.log(`Found ${saleRecords.length} sales records for page ${page}`);
-
-    // Process sales data efficiently
-    const { productSales, dailyStats } = this.processSalesData(saleRecords);
-
-    const report = {
-      totalRecords: count,
-      currentPage: page,
-      totalPages: Math.ceil(count / pageSize),
-      totalSales: count,
-      totalRevenue: saleRecords.reduce((sum, sale) => sum + Number(sale.priceIqd), 0).toString(),
-      productsSold: Object.entries(productSales).map(([productId, data]) => ({
-        productId: Number(productId),
-        name: data.name || 'منتج محذوف',
-        quantity: data.quantity,
-        revenue: data.revenue.toString(),
-      })),
-      dailyStats: Object.entries(dailyStats).map(([date, data]) => ({
-        date,
-        sales: data.sales,
-        revenue: data.revenue.toString(),
-      })),
-    };
-
-    // Save report to database
-    await this.saveReport({
-      type: "sales",
-      title: `تقرير المبيعات ${new Date().toLocaleDateString('ar-IQ')}`,
-      dateRange: {
-        start: dateRange.start,
-        end: dateRange.end
-      },
-      filters: { page, pageSize },
-      data: report,
-      userId: userId
-    });
-
-    // Cache the report
-    await this.cache.set(cacheKey, JSON.stringify(report), CACHE_TTL);
-    console.log("Successfully generated, saved and cached sales report");
-
-    return report;
-  }
-
-  private processSalesData(saleRecords: any[]) {
-    const productSales: Record<number, {
-      name: string;
-      quantity: number;
-      revenue: number;
-    }> = {};
-
-    const dailyStats: Record<string, {
-      sales: number;
-      revenue: number;
-    }> = {};
-
-    for (const sale of saleRecords) {
-      // Process product sales
-      if (!productSales[sale.productId]) {
-        productSales[sale.productId] = {
-          name: sale.productName,
-          quantity: 0,
-          revenue: 0,
-        };
-      }
-      productSales[sale.productId].quantity += sale.quantity;
-      productSales[sale.productId].revenue += Number(sale.priceIqd);
-
-      // Process daily stats
-      const date = new Date(sale.date).toISOString().split('T')[0];
-      if (!dailyStats[date]) {
-        dailyStats[date] = {
-          sales: 0,
-          revenue: 0,
-        };
-      }
-      dailyStats[date].sales++;
-      dailyStats[date].revenue += Number(sale.priceIqd);
-    }
-
-    return { productSales, dailyStats };
-  }
-
-  // Similar optimizations for other report methods...
+  // Remove duplicate getInventoryReport implementation and keep the paginated version
   async getInventoryReport(dateRange: { start: Date; end: Date }, page = 1, pageSize = 50) {
     const cacheKey = `inventory_report:${dateRange.start.toISOString()}_${dateRange.end.toISOString()}_${page}`;
     const cached = await this.cache.get(cacheKey);
@@ -1298,66 +1221,14 @@ export class DatabaseStorage implements IStorage {
     await this.cache.set(cacheKey, JSON.stringify(report), CACHE_TTL);
     return report;
   }
-  async getInventoryReport(dateRange: { start: Date; end: Date }) {
-    const [productsCount] = await db
-      .select({
-        count: sql<number>`count(*)::int`,
-      })
-      .from(products);
-
-    const lowStockProducts = await db
-      .select({
-        id: products.id,
-        name: products.name,
-        stock: products.stock,
-        minQuantity: products.minQuantity,
-      })
-      .from(products)
-      .where(
-        and(
-          lt(products.stock, products.minQuantity),
-          gt(products.minQuantity, 0)
-        )
-      );
-
-    const movements = await db
-      .select({
-        date: inventoryTransactions.date,
-        type: inventoryTransactions.type,
-        quantity: inventoryTransactions.quantity,
-        productId: inventoryTransactions.productId,
-        productName: products.name,
-      })
-      .from(inventoryTransactions)
-      .leftJoin(products, eq(inventoryTransactions.productId, products.id))
-      .where(
-        and(
-          gte(inventoryTransactions.date, dateRange.start),
-          lte(inventoryTransactions.date, dateRange.end)
-        )
-      )
-      .orderBy(desc(inventoryTransactions.date));
-
-    return {
-      totalProducts: productsCount.count,
-      lowStock: lowStockProducts.map(p => ({
-        productId: p.id,
-        name: p.name,
-        currentStock: p.stock,
-        minRequired: p.minQuantity,
-      })),
-      movements: movements.map(m => ({
-        date: new Date(m.date).toISOString(),
-        type: m.type,
-        quantity: m.quantity,
-        productId: m.productId,
-        productName: m.productName,
-      })),
-    };
-  }
 
   async getFinancialReport(dateRange: { start: Date; end: Date }) {
-    const sales = await db
+    type DailyStat = {
+      revenue: string;
+      expenses: string;
+    };
+
+    const salesData = await db
       .select({
         date: sales.date,
         amount: sql<string>`CAST(SUM(CAST(price_iqd AS DECIMAL)) AS TEXT)`,
@@ -1371,7 +1242,7 @@ export class DatabaseStorage implements IStorage {
       )
       .groupBy(sales.date);
 
-    const expenses = await db
+    const expensesData = await db
       .select({
         date: expenses.date,
         categoryId: expenses.categoryId,
@@ -1396,28 +1267,26 @@ export class DatabaseStorage implements IStorage {
       categories.map(c => [c.id, c.name])
     );
 
-    const expensesByCategory = expenses.reduce((acc: any, expense) => {
-      const categoryName = categoryMap[expense.categoryId] || 'أخرى';
-      if (!acc[categoryName]) {
-        acc[categoryName] = 0;
-      }
-      acc[categoryName] += Number(expense.amount);
-      return acc;
-    }, {});
+    const expensesByCategory: Record<string, number> = {};
+    const dailyStats: Record<string, DailyStat> = {};
 
-    const dailyStats = expenses.reduce((acc: any, expense) => {
+    // Process expenses
+    expensesData.forEach(expense => {
+      const categoryName = categoryMap[expense.categoryId] || 'أخرى';
+      expensesByCategory[categoryName] = (expensesByCategory[categoryName] || 0) + Number(expense.amount);
+
       const date = new Date(expense.date).toISOString().split('T')[0];
-      if (!acc[date]) {
-        acc[date] = {
+      if (!dailyStats[date]) {
+        dailyStats[date] = {
           revenue: '0',
           expenses: '0',
         };
       }
-      acc[date].expenses = (Number(acc[date].expenses) + Number(expense.amount)).toString();
-      return acc;
-    }, {});
+      dailyStats[date].expenses = (Number(dailyStats[date].expenses) + Number(expense.amount)).toString();
+    });
 
-    sales.forEach(sale => {
+    // Process sales
+    salesData.forEach(sale => {
       const date = new Date(sale.date).toISOString().split('T')[0];
       if (!dailyStats[date]) {
         dailyStats[date] = {
@@ -1425,11 +1294,11 @@ export class DatabaseStorage implements IStorage {
           expenses: '0',
         };
       }
-      dailyStats[date].revenue = sale.amount;
+      dailyStats[date].revenue = sale.amount || '0';
     });
 
-    const totalRevenue = sales.reduce((sum, sale) => sum + Number(sale.amount), 0);
-    const totalExpenses = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+    const totalRevenue = salesData.reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
+    const totalExpenses = expensesData.reduce((sum, expense) => sum + Number(expense.amount), 0);
 
     return {
       revenue: totalRevenue.toString(),
@@ -1441,7 +1310,7 @@ export class DatabaseStorage implements IStorage {
           amount: amount.toString(),
         }))
         .sort((a, b) => Number(b.amount) - Number(a.amount)),
-      dailyBalance: Object.entries(dailyStats).map(([date, data]: [string, any]) => ({
+      dailyBalance: Object.entries(dailyStats).map(([date, data]) => ({
         date,
         revenue: data.revenue,
         expenses: data.expenses,
@@ -1521,30 +1390,30 @@ export class DatabaseStorage implements IStorage {
     data: Record<string, unknown>;
     userId: number;
     format?: string;
-  }) {
+  }): Promise<Report> {
     try {
-      const [report] = await db
+      const [newReport] = await db
         .insert(reports)
         .values({
           type: reportData.type,
           title: reportData.title,
-          dateRange: reportData.dateRange,
+          startDate: reportData.dateRange.start,
+          endDate: reportData.dateRange.end,
           filters: reportData.filters || {},
           data: reportData.data,
           userId: reportData.userId,
-          format: reportData.format || "json",
-          status: "generated",
+          format: reportData.format || 'json',
           createdAt: new Date()
         })
         .returning();
-      return report;
+      return newReport;
     } catch (error) {
       console.error("Error saving report:", error);
       throw new Error("فشل في حفظ التقرير");
     }
   }
 
-  async getReport(id: number) {
+  async getReport(id: number): Promise<Report | undefined> {
     try {
       const [report] = await db
         .select()
@@ -1557,50 +1426,34 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getUserReports(userId: number, type?: string) {
+  async getUserReports(userId: number, type?: string): Promise<Report[]> {
     try {
       let query = db
         .select()
         .from(reports)
-        .where(eq(reports.userId, userId))
-        .orderBy(desc(reports.createdAt));
+        .where(eq(reports.userId, userId));
 
       if (type) {
         query = query.where(eq(reports.type, type));
       }
 
-      return query;
+      return await query.orderBy(desc(reports.createdAt));
     } catch (error) {
       console.error("Error fetching user reports:", error);
       throw new Error("فشل في جلب تقارير المستخدم");
     }
   }
-  async getAppointmentsReport(dateRange: { start: Date; end: Date }, userId: number) {
-    console.log("Generating appointments report for:", dateRange);
 
-    const cacheKey = `appointments_report:${dateRange.start.toISOString()}_${dateRange.end.toISOString()}`;
-    const cached = await this.cache.get(cacheKey);
-    if (cached) {
-      console.log("Returning cached appointments report");
-      return JSON.parse(cached);
-    }
-
+  async getAppointmentsReport(dateRange: { start: Date; end: Date }, userId: number): Promise<any> {
     try {
-      // Get all appointments in date range with customer info
       const appointments = await db
         .select({
           id: appointments.id,
+          title: appointments.title,
+          date: appointments.date,
+          status: appointments.status,
           customerId: appointments.customerId,
           customerName: customers.name,
-          customerPhone: customers.phone,
-          title: appointments.title,
-          description: appointments.description,
-          date: appointments.date,
-          duration: appointments.duration,
-          status: appointments.status,
-          notes: appointments.notes,
-          createdAt: appointments.createdAt,
-          updatedAt: appointments.updatedAt
         })
         .from(appointments)
         .leftJoin(customers, eq(appointments.customerId, customers.id))
@@ -1612,143 +1465,31 @@ export class DatabaseStorage implements IStorage {
         )
         .orderBy(desc(appointments.date));
 
-      // Process appointments data
       const stats = {
         total: appointments.length,
-        completed: 0,
-        cancelled: 0,
-        pending: 0,
-        byDay: {} as Record<string, number>,
-        byTimeSlot: Array(24).fill(0),
-        avgDuration: 0,
-        customerStats: {} as Record<number, {
-          name: string;
-          totalAppointments: number;
-          completedAppointments: number;
-          cancelledAppointments: number;
-        }>,
-        dailyDistribution: {} as Record<string, {
-          total: number;
-          completed: number;
-          cancelled: number;
-          pending: number;
-        }>
+        byStatus: appointments.reduce((acc: Record<string, number>, apt) => {
+          acc[apt.status] = (acc[apt.status] || 0) + 1;
+          return acc;
+        }, {}),
+        byDate: appointments.reduce((acc: Record<string, number>, apt) => {
+          const date = new Date(apt.date).toISOString().split('T')[0];
+          acc[date] = (acc[date] || 0) + 1;
+          return acc;
+        }, {})
       };
 
-      let totalDuration = 0;
-
-      appointments.forEach(apt => {
-        // Count by status
-        switch (apt.status) {
-          case 'completed':
-            stats.completed++;
-            break;
-          case 'cancelled':
-            stats.cancelled++;
-            break;
-          case 'scheduled':
-            stats.pending++;
-            break;
-        }
-
-        // Count by day
-        const dayKey = new Date(apt.date).toISOString().split('T')[0];
-        stats.byDay[dayKey] = (stats.byDay[dayKey] || 0) + 1;
-
-        // Count by time slot
-        const hour = new Date(apt.date).getHours();
-        stats.byTimeSlot[hour]++;
-
-        // Calculate duration
-        if (apt.duration) {
-          totalDuration += apt.duration;
-        }
-
-        // Track customer stats
-        if (!stats.customerStats[apt.customerId]) {
-          stats.customerStats[apt.customerId] = {
-            name: apt.customerName,
-            totalAppointments: 0,
-            completedAppointments: 0,
-            cancelledAppointments: 0
-          };
-        }
-        stats.customerStats[apt.customerId].totalAppointments++;
-        if (apt.status === 'completed') {
-          stats.customerStats[apt.customerId].completedAppointments++;
-        } else if (apt.status === 'cancelled') {
-          stats.customerStats[apt.customerId].cancelledAppointments++;
-        }
-
-        // Daily distribution
-        if (!stats.dailyDistribution[dayKey]) {
-          stats.dailyDistribution[dayKey] = {
-            total: 0,
-            completed: 0,
-            cancelled: 0,
-            pending: 0
-          };
-        }
-        stats.dailyDistribution[dayKey].total++;
-        switch (apt.status) {
-          case 'completed':
-            stats.dailyDistribution[dayKey].completed++;
-            break;
-          case 'cancelled':
-            stats.dailyDistribution[dayKey].cancelled++;
-            break;
-          case 'scheduled':
-            stats.dailyDistribution[dayKey].pending++;
-            break;
-        }
-      });
-
-      // Calculate average duration
-      stats.avgDuration = appointments.length > 0 ? totalDuration / appointments.length : 0;
-
-      // Prepare detailed report
       const report = {
-        summary: {
-          totalAppointments: stats.total,
-          completedAppointments: stats.completed,
-          cancelledAppointments: stats.cancelled,
-          pendingAppointments: stats.pending,
-          averageDuration: stats.avgDuration,
-          completionRate: stats.total > 0 ? (stats.completed / stats.total * 100).toFixed(2) : "0",
-          cancellationRate: stats.total > 0 ? (stats.cancelled / stats.total * 100).toFixed(2) : "0"
+        dateRange: {
+          start: dateRange.start,
+          end: dateRange.end
         },
-        timeAnalysis: {
-          dailyDistribution: Object.entries(stats.dailyDistribution).map(([date, data]) => ({
-            date,
-            ...data,
-            completionRate: data.total > 0 ? (data.completed / data.total * 100).toFixed(2) : "0"
-          })),
-          hourlyDistribution: stats.byTimeSlot.map((count, hour) => ({
-            hour,
-            count,
-            percentage: stats.total > 0 ? ((count / stats.total) * 100).toFixed(2) : "0"
-          }))
-        },
-        customerAnalysis: Object.entries(stats.customerStats)
-          .map(([customerId, data]) => ({
-            customerId: Number(customerId),
-            ...data,
-            loyaltyScore: ((data.completedAppointments / data.totalAppointments) * 100).toFixed(2)
-          }))
-          .sort((a, b) => b.totalAppointments - a.totalAppointments)
-          .slice(0, 10), // Top 10 customers
-        details: appointments.map(apt => ({
+        stats,
+        appointments: appointments.map(apt => ({
           id: apt.id,
-          customerName: apt.customerName,
-          customerPhone: apt.customerPhone,
           title: apt.title,
-          description: apt.description,
           date: apt.date,
-          duration: apt.duration,
           status: apt.status,
-          notes: apt.notes,
-          createdAt: apt.createdAt,
-          updatedAt: apt.updatedAt
+          customerName: apt.customerName || 'عميل غير معروف'
         }))
       };
 
@@ -1756,17 +1497,10 @@ export class DatabaseStorage implements IStorage {
       await this.saveReport({
         type: "appointments",
         title: `تقرير المواعيد ${new Date().toLocaleDateString('ar-IQ')}`,
-        dateRange: {
-          start: dateRange.start,
-          end: dateRange.end
-        },
+        dateRange,
         data: report,
-        userId: userId
+        userId
       });
-
-      // Cache the report
-      await this.cache.set(cacheKey, JSON.stringify(report), CACHE_TTL);
-      console.log("Successfully generated, saved and cached appointments report");
 
       return report;
     } catch (error) {
@@ -1782,15 +1516,13 @@ export class DatabaseStorage implements IStorage {
     status?: string;
   }): Promise<Invoice[]> {
     try {
-      let query = db.select().from(invoices)
-        .leftJoin(invoiceItems, eq(invoices.id, invoiceItems.invoiceId))
-        .orderBy(desc(invoices.createdAt));
+      let query = db.select().from(invoices);
 
       if (filters?.search) {
         query = query.where(
           or(
-            like(invoices.invoiceNumber, `%${filters.search}%`),
-            like(invoices.customerName, `%${filters.search}%`)
+            like(invoices.customerName, `%${filters.search}%`),
+            like(invoices.invoiceNumber, `%${filters.search}%`)
           )
         );
       }
@@ -1807,60 +1539,102 @@ export class DatabaseStorage implements IStorage {
         query = query.where(eq(invoices.status, filters.status));
       }
 
-      const results = await query;
+      const results = await query.orderBy(desc(invoices.createdAt));
 
-      // تجميع النتائج وإزالة التكرار
-      const invoiceMap = new Map<number, Invoice>();
-      results.forEach((row) => {
-        if (!invoiceMap.has(row.invoice.id)) {
-          invoiceMap.set(row.invoice.id, {
-            ...row.invoice,
-            items: []
-          });
-        }
-        if (row.invoiceItem) {
-          const invoice = invoiceMap.get(row.invoice.id);
-          invoice?.items.push(row.invoiceItem);
-        }
-      });
+      // Get invoice items for each invoice
+      const invoiceIds = results.map(inv => inv.id);
+      const items = await db
+        .select()
+        .from(invoiceItems)
+        .where(sql`invoice_id = ANY(${invoiceIds})`);
 
-      console.log(`Retrieved ${invoiceMap.size} invoices`);
-      return Array.from(invoiceMap.values());
+      // Create a map of invoice items
+      const itemMap = items.reduce((acc: Record<number, InvoiceItem[]>, item) => {
+        if (!acc[item.invoiceId]) {
+          acc[item.invoiceId] = [];
+        }
+        acc[item.invoiceId].push(item);
+        return acc;
+      }, {});
+
+      // Attach items to invoices
+      return results.map(invoice => ({
+        ...invoice,
+        items: itemMap[invoice.id] || []
+      }));
     } catch (error) {
       console.error("Error fetching invoices:", error);
       throw new Error("فشل في جلب الفواتير");
     }
   }
 
-  async getHistoricalStats(): Promise<any> {
-    try {
-      // التحقق من وجود الجداول قبل الاستعلام
-      const hasAnalyticsTable = await db.execute(sql`
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_schema = 'public' 
-          AND table_name = 'campaign_analytics'
-        );
-      `);
-
-      if (!hasAnalyticsTable.rows[0].exists) {
-        return {
-          sales: await this.getSalesStats(),
-          expenses: await this.getExpensesStats(),
-          appointments: await this.getAppointmentsStats()
+  private processMonthlyReport(activities: SystemActivity[]) {
+    const monthlyActivities = activities.reduce((acc: any, activity) => {
+      const monthStart = new Date(activity.timestamp).toISOString().slice(0, 7);
+      if (!acc[monthStart]) {
+        acc[monthStart] = {
+          total: 0,
+          byType: {},
+          byUser: {},
         };
       }
+      acc[monthStart].total++;
+      acc[monthStart].byType[activity.activityType] = (acc[monthStart].byType[activity.activityType] || 0) + 1;
+      acc[monthStart].byUser[activity.userId] = (acc[monthStart].byUser[activity.userId] || 0) + 1;
+      return acc;
+    }, {});
 
-      // إذا كان الجدول موجود، قم بجلب البيانات
+    return {
+      type: 'monthly',
+      data: monthlyActivities,
+    };
+  }
+
+  async getHistoricalStats(): Promise<any> {
+    try {
+      // Get sales statistics
+      const salesStats = await db
+        .select({
+          date: sql`date_trunc('day', date)::date`,
+          total: sql`sum(CAST(final_price_iqd AS DECIMAL))::text`,
+          count: sql`count(*)::int`
+        })
+        .from(sales)
+        .groupBy(sql`date_trunc('day', date)`)
+        .orderBy(sql`date_trunc('day', date)`);
+
+      // Get expense statistics
+      const expenseStats = await db
+        .select({
+          date: sql`date_trunc('day', date)::date`,
+          total: sql`sum(CAST(amount AS DECIMAL))::text`,
+          count: sql`count(*)::int`
+        })
+        .from(expenses)
+        .groupBy(sql`date_trunc('day', date)`)
+        .orderBy(sql`date_trunc('day', date)`);
+
+      // Get appointment statistics
+      const appointmentStats = await db
+        .select({
+          date: sql`date_trunc('day', date)::date`,
+          count: sql`count(*)::int`,
+          byStatus: sql`json_object_agg(
+            status,
+            count(*)
+          )`
+        })
+        .from(appointments)
+        .groupBy(sql`date_trunc('day', date)`)
+        .orderBy(sql`date_trunc('day', date)`);
+
       return {
-        sales: await this.getSalesStats(),
-        expenses: await this.getExpensesStats(),
-        appointments: await this.getAppointmentsStats(),
-        analytics: await this.getCampaignAnalyticsStats()
+        sales: salesStats,
+        expenses: expenseStats,
+        appointments: appointmentStats
       };
     } catch (error) {
-      console.error("خطأ في جلب الإحصائيات التاريخية:", error);
-      // إرجاع البيانات المتوفرة فقط في حالة حدوث خطأ
+      console.error("Error fetching historical stats:", error);
       return {
         sales: [],
         expenses: [],
@@ -1869,93 +1643,48 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  private async getSalesStats(): Promise<any[]> {
-    try {
-      const salesStats = await db
-        .select({
-          date: sql`date_trunc('day', date)::date`,
-          total: sql`sum(final_price_iqd::numeric)`,
-          count: sql`count(*)`
-        })
-        .from(sales)
-        .groupBy(sql`date_trunc('day', date)`)
-        .orderBy(sql`date_trunc('day', date)`);
-
-      return salesStats;
-    } catch (error) {
-      console.error("خطأ في جلب إحصائيات المبيعات:", error);
-      return [];
-    }
-  }
-
-  private async getExpensesStats(): Promise<any[]> {
-    try {
-      const expensesStats = await db
-        .select({
-          date: sql`date_trunc('day', date)::date`,
-          total: sql`sum(amount::numeric)`,
-          count: sql`count(*)`
-        })
-        .from(expenses)
-        .groupBy(sql`date_trunc('day', date)`)
-        .orderBy(sql`date_trunc('day', date)`);
-
-      return expensesStats;
-    } catch (error) {
-      console.error("خطأ في جلب إحصائيات المصروفات:", error);
-      return [];
-    }
-  }
-
-  private async getAppointmentsStats(): Promise<any[]> {
-    try {
-      const appointmentsStats = await db
-        .select({
-          date: sql`date_trunc('day', date)::date`,
-          count: sql`count(*)`
-        })
-        .from(appointments)
-        .groupBy(sql`date_trunc('day', date)`)
-        .orderBy(sql`date_trunc('day', date)`);
-
-      return appointmentsStats;
-    } catch (error) {
-      console.error("خطأ في جلب إحصائيات المواعيد:", error);
-      return [];
-    }
-  }
-
-  private async getCampaignAnalyticsStats(): Promise<any[]> {
-    try {
-      const analyticsStats = await db
-        .select({
-          date: sql`date_trunc('day', date)::date`,
-          impressions: sql`sum(impressions)`,
-          clicks: sql`sum(clicks)`,
-          spend: sql`sum(spend::numeric)`,
-        })
-        .from(campaignAnalytics)
-        .groupBy(sql`date_trunc('day', date)`)
-        .orderBy(sql`date_trunc('day', date)`);
-      return analyticsStats;
-    } catch (error) {
-      console.error("خطأ في جلب إحصائيات حملات التسويق:", error);
-      return [];
-    }
-  }
-
   async getFrontendComponents(): Promise<string[]> {
-    // Implement logic to fetch frontend components from your system.
-    // This might involve reading files, querying a database, or accessing an API.
-    // Replace this with your actual implementation.
-    return ["ComponentA", "ComponentB", "ComponentC"];
+    try {
+      // List of available frontend components used in the application
+      return [
+        "DashboardLayout",
+        "Sidebar",
+        "Navbar",
+        "ProductCard",
+        "CustomerForm",
+        "AppointmentCalendar",
+        "InvoiceViewer",
+        "ReportGenerator",
+        "InventoryManager",
+        "ExpenseTracker"
+      ];
+    } catch (error) {
+      console.error("Error fetching frontend components:", error);
+      return [];
+    }
   }
 
   async getApiEndpoints(): Promise<string[]> {
-    // Implement logic to fetch API endpoints from your system.
-    // Replace this with your actual implementation.
-    return ["/api/users", "/api/products", "/api/sales"];
+    try {
+      // List of available API endpoints in the application
+      return [
+        "/api/users",
+        "/api/products",
+        "/api/sales",
+        "/api/customers",
+        "/api/appointments",
+        "/api/invoices",
+        "/api/reports",
+        "/api/inventory",
+        "/api/expenses",
+        "/api/settings"
+      ];
+    } catch (error) {
+      console.error("Error fetching API endpoints:", error);
+      return [];
+    }
   }
+
 }
 
 export const storage = new DatabaseStorage();

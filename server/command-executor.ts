@@ -24,7 +24,7 @@ export async function executeCommand(command: string): Promise<string> {
       const { stdout: memoryInfo } = await execPromise('free -h');
 
       return `📊 تقرير حالة النظام:
-
+        
 🔄 معلومات المعالج والعمليات:
 ${systemInfo}
 
@@ -324,44 +324,44 @@ function analyzeRequest(command: string): string {
   const command_lower = command.toLowerCase();
 
   // التعرف على طلبات الإصلاح التلقائي
-  if ((command_lower.includes('إصلاح') || command_lower.includes('صحح') || command_lower.includes('حل مشكلة')) && 
-      (command_lower.includes('تلقائيًا') || command_lower.includes('تلقائي') || command_lower.includes('مباشرة'))) {
+  if ((command_lower.includes('إصلاح') || command_lower.includes('صحح') || command_lower.includes('حل مشكلة')) &&
+    (command_lower.includes('تلقائيًا') || command_lower.includes('تلقائي') || command_lower.includes('مباشرة'))) {
     return 'auto_fix';
   }
 
   // التعرف على طلبات تنفيذ الميزات التلقائي
-  if ((command_lower.includes('نفذ') || command_lower.includes('طبق') || command_lower.includes('أضف ميزة')) && 
-      (command_lower.includes('تلقائيًا') || command_lower.includes('مباشرة') || command_lower.includes('بشكل آلي'))) {
+  if ((command_lower.includes('نفذ') || command_lower.includes('طبق') || command_lower.includes('أضف ميزة')) &&
+    (command_lower.includes('تلقائيًا') || command_lower.includes('مباشرة') || command_lower.includes('بشكل آلي'))) {
     return 'auto_implement';
   }
 
   // التعرف على طلبات واجهة المستخدم
-  if (command_lower.includes('أضف') || command_lower.includes('إنشاء') || command_lower.includes('واجهة') || 
-      command_lower.includes('مكون') || command_lower.includes('صفحة') || command_lower.includes('زر')) {
+  if (command_lower.includes('أضف') || command_lower.includes('إنشاء') || command_lower.includes('واجهة') ||
+    command_lower.includes('مكون') || command_lower.includes('صفحة') || command_lower.includes('زر')) {
     return 'ui_component';
   }
 
   // التعرف على طلبات الميزات
-  if (command_lower.includes('خاصية') || command_lower.includes('ميزة') || command_lower.includes('وظيفة') || 
-      command_lower.includes('أضف قدرة') || command_lower.includes('إضافة إمكانية')) {
+  if (command_lower.includes('خاصية') || command_lower.includes('ميزة') || command_lower.includes('وظيفة') ||
+    command_lower.includes('أضف قدرة') || command_lower.includes('إضافة إمكانية')) {
     return 'feature';
   }
 
   // التعرف على طلبات الإصلاح
-  if (command_lower.includes('إصلاح') || command_lower.includes('صحح') || command_lower.includes('مشكلة') || 
-      command_lower.includes('خطأ') || command_lower.includes('حل مشكلة')) {
+  if (command_lower.includes('إصلاح') || command_lower.includes('صحح') || command_lower.includes('مشكلة') ||
+    command_lower.includes('خطأ') || command_lower.includes('حل مشكلة')) {
     return 'fix';
   }
 
   // التعرف على طلبات التعديل
-  if (command_lower.includes('تعديل') || command_lower.includes('تغيير') || command_lower.includes('تحديث') || 
-      command_lower.includes('تحسين') || command_lower.includes('طور')) {
+  if (command_lower.includes('تعديل') || command_lower.includes('تغيير') || command_lower.includes('تحديث') ||
+    command_lower.includes('تحسين') || command_lower.includes('طور')) {
     return 'modify';
   }
 
   // التعرف على طلبات تحليل النظام
-  if (command_lower.includes('تحليل') || command_lower.includes('دراسة') || command_lower.includes('فحص') || 
-      command_lower.includes('تشخيص')) {
+  if (command_lower.includes('تحليل') || command_lower.includes('دراسة') || command_lower.includes('فحص') ||
+    command_lower.includes('تشخيص')) {
     return 'analyze';
   }
 
@@ -524,11 +524,11 @@ async function updateUtilImports(utilPath: string): Promise<void> {
  */
 function shouldRestartApp(command: string, code: string): boolean {
   // تحديد ما إذا كان الكود يتطلب إعادة تشغيل التطبيق
-  return command.includes('إعادة تشغيل') || 
-         code.includes('server') || 
-         code.includes('app.use') || 
-         code.includes('routes') ||
-         code.includes('import express');
+  return command.includes('إعادة تشغيل') ||
+    code.includes('server') ||
+    code.includes('app.use') ||
+    code.includes('routes') ||
+    code.includes('import express');
 }
 
 /**
@@ -741,7 +741,7 @@ async function analyzeProjectCode(): Promise<string> {
 
     // قراءة عينة من الملفات المهمة
     const serverFiles = fs.readdirSync(path.join(projectRoot, 'server')).filter(file => file.endsWith('.ts'));
-    const sampleServerFile = serverFiles.length > 0 ? 
+    const sampleServerFile = serverFiles.length > 0 ?
       fs.readFileSync(path.join(projectRoot, 'server', serverFiles[0]), 'utf8').substring(0, 500) : '';
 
     const codePrompt = `
@@ -807,13 +807,13 @@ async function analyzeSecurityAndIssues(): Promise<string> {
 /**
  * الحصول على التوصيات ذات الأولوية القصوى
  */
-functiongetTopRecommendations(): string[] {
+function getTopRecommendations(): string[] {
   return [
-    "تحديث حزم npm الحرجة للأمان",
-    "إضافة مراقبة وتسجيل الأخطاء لتحسين اكتشاف المشاكل",
-    "تحسين كفاءة استعلامات قاعدة البيانات الأكثر استخداماً",
-    "تحسين تنسيق وتوثيق الكود لسهولة الصيانة",
-    "إضافة اختبارات آلية لتقليل الأخطاء"
+    "تحسين أداء قاعدة البيانات من خلال إضافة فهارس مناسبة",
+    "تحسين واجهة المستخدم لتكون أكثر سهولة وسرعة",
+    "إضافة المزيد من التقارير التحليلية",
+    "تحسين أمان النظام وإضافة المزيد من طبقات الحماية",
+    "تحسين عملية النسخ الاحتياطي واستعادة البيانات"
   ];
 }
 
@@ -822,20 +822,20 @@ functiongetTopRecommendations(): string[] {
  */
 function generateImprovementPlan(): string {
   return `
-1. المرحلة الأولى (1-2 أسبوع):
-   - تطبيق التوصيات الأمنية العاجلة
-   - إصلاح المشاكل الحرجة في أداء النظام
-   - تحسين توثيق المشروع
+1. المرحلة الأولى - التحسينات الفورية:
+   - تحسين أداء الاستعلامات
+   - إضافة فهارس لقاعدة البيانات
+   - تحسين التوثيق
 
-2. المرحلة الثانية (2-4 أسابيع):
-   - تحسين هيكل الكود وإعادة تنظيم المشروع
-   - تحسين واجهة المستخدم وتجربة المستخدم
-   - إضافة اختبارات آلية
+2. المرحلة الثانية - تحسينات المستخدم:
+   - تحسين واجهة المستخدم
+   - إضافة ميزات جديدة مطلوبة
+   - تحسين الأداء العام
 
-3. المرحلة الثالثة (4-8 أسابيع):
-   - تنفيذ تحسينات قاعدة البيانات
-   - إضافة ميزات جديدة متوافقة مع المتطلبات المتجددة
-   - تحسين أداء النظام وقابليته للتوسع
+3. المرحلة الثالثة - تحسينات الأمان:
+   - مراجعة وتحسين الأمان
+   - إضافة المزيد من الاختبارات
+   - تحسين عملية النسخ الاحتياطي
 `;
 }
 
