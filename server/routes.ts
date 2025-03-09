@@ -230,7 +230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
+        variant: z.enum(["default", "professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
         appearance: z.enum(["light", "dark"]),
         fontStyle: z.enum([
           "traditional",
@@ -891,8 +891,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error fetching expenses:", error);
       res.status(500).json({ message: "فشل في جلب المصروفات" });
     }
-  });
-
+  });```javascript
   app.post("/api/expenses", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
@@ -1339,7 +1338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
+        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural", "default"]),
         appearance: z.enum(["light", "dark"]),
         fontStyle: z.enum([
           "traditional",

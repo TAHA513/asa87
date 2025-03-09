@@ -154,6 +154,7 @@ const ThemeSettings = () => {
   const [selectedTheme, setSelectedTheme] = useState(themes[0]);
   const [selectedFont, setSelectedFont] = useState(fonts[0]);
   const [fontSize, setFontSize] = useState("medium");
+  const [appearance, setAppearance] = useState<"light">("light");
   const [isLoading, setIsLoading] = useState(false);
 
   const applyLightMode = () => {
@@ -178,7 +179,15 @@ const ThemeSettings = () => {
           setSelectedTheme(theme);
           setSelectedFont(font);
           setFontSize(response.fontSize || "medium");
-          setAppearance(response.appearance || "system");
+          setAppearance("light");
+        }
+      } catch (error) {
+        console.error("Error loading settings:", error);
+      }
+    };
+    
+    loadSettings();
+  }, []);ce(response.appearance || "system");
           applyAppearance(response.appearance || "system");
         }
       } catch (error) {
