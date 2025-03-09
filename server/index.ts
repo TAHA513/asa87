@@ -117,7 +117,7 @@ async function startServer() {
       serveStatic(app);
     }
 
-    const port = 5000; // تم تغيير المنفذ من 5001 إلى 5000
+    const port = 5000;
     server.listen({
       port,
       host: "0.0.0.0",
