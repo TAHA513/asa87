@@ -6,67 +6,64 @@ import path from 'path';
 dotenv.config();
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-
-if (!GROQ_API_KEY) {
-  console.error('❌ لم يتم العثور على مفتاح Groq API في متغيرات البيئة');
-}
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 /**
- * توليد كود باستخدام OpenAI
- * @param prompt الوصف المطلوب
- * @param systemPrompt إرشادات النظام المخصصة (اختياري)
+ * توليد كود بناء على وصف باستخدام OpenAI API
+ * @param prompt وصف الكود المطلوب
+ * @param isAnalysisRequest هل هذا طلب تحليل
+ * @returns الكود المولد
  */
-export async function generateCodeWithOpenAI(prompt: string, systemPrompt?: string): Promise<string> {
+export async function generateCodeWithOpenAI(prompt: string, isAnalysisRequest = false): Promise<string> {
   try {
     console.log(`🔄 توليد كود بناء على: "${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}"`);
 
-    const defaultSystemPrompt = `أنت مساعد برمجة ذكي متخصص في إنشاء وتحليل التعليمات البرمجية. 
-      تتمتع بخبرة واسعة في جميع جوانب تطوير البرمجيات، وأهم شيء هو أنك تقدم إجابات دقيقة ومفيدة.
+    // التحقق من وجود مفتاح API
+    if (!GROQ_API_KEY) {
+      throw new Error('مفتاح API غير موجود. يرجى إضافته إلى متغيرات البيئة.');
+    }
 
-      عندما تُطلب منك كتابة كود، قم بإنشاء أفضل حل فعّال يلبي الاحتياجات المحددة.
-      عندما تُطلب منك تحليل مشكلة، قم بتشخيصها بدقة واقتراح حلول عملية.
+    // تعديل النظام رسالة بناءً على نوع الطلب
+    let systemMessage = 'أنت مساعد مبرمج خبير يقوم بإنشاء التعليمات البرمجية وتحليل وإصلاح المشاكل في نظام إدارة المخزون والمبيعات. استخدم لغة عربية واضحة ومفهومة في شرح وتوليد الكود.';
 
-      إذا طُلب منك فحص النظام، قم بتقديم تقرير شامل بالمشاكل والحلول المقترحة.
-      عند طلب التحليل، قدم الإجابة بتنسيق منظم باستخدام العناوين والنقاط.
+    if (isAnalysisRequest) {
+      systemMessage = 'أنت مساعد ذكي يقوم بتحليل أنظمة البرمجة وتقديم تقارير مفصلة. قدم دائمًا تحليلك باللغة العربية بشكل مفهوم وواضح. لا تقم بإنشاء أكواد برمجية كاملة في ردودك، بل قدم تحليلًا وتوصيات واضحة.';
+    }
 
-      المستخدم يتحدث العربية، لذا يجب أن تكون ردودك باللغة العربية السلسة والواضحة، ما لم يُطلب منك الرد بلغة أخرى.`;
-
+    // إعداد طلب الـ API
     const response = await axios.post(
-      'https://api.groq.com/openai/v1/chat/completions',
+      GROQ_API_URL,
       {
-        model: 'llama3-70b-8192',
+        model: 'llama3-8b-8192', // يمكن تغييره إلى نموذج آخر مثل 'mixtral-8x7b-32768' إذا لزم الأمر
         messages: [
-          {
-            role: 'system',
-            content: systemPrompt || defaultSystemPrompt
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
+          { role: 'system', content: systemMessage },
+          { role: 'user', content: prompt }
         ],
-        temperature: 0.5,
-        max_tokens: 8000
+        temperature: 0.2,
+        max_tokens: 4000
       },
       {
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${GROQ_API_KEY}`
+          'Authorization': `Bearer ${GROQ_API_KEY}`,
+          'Content-Type': 'application/json'
         }
       }
     );
 
-    const generatedText = response.data.choices[0].message.content.trim();
-    console.log(`✅ تم توليد الكود بنجاح`);
+    // استخراج الكود المولد من الرد
+    const generatedContent = response.data.choices[0].message.content;
 
-    return generatedText;
+    console.log('✅ تم توليد الكود بنجاح');
+    return generatedContent;
   } catch (error) {
     console.error('❌ خطأ في توليد الكود:', error);
+
     if (axios.isAxiosError(error) && error.response) {
-      console.error('تفاصيل الخطأ:', error.response.data);
+      console.error('استجابة الخطأ:', error.response.data);
+      throw new Error(`فشل في توليد الكود: ${error.response.data.error?.message || 'خطأ غير معروف من API'}`);
     }
 
-    throw new Error(`فشل في توليد الكود: ${error}`);
+    throw new Error(`فشل في توليد الكود: ${error.message}`);
   }
 }
 
@@ -118,14 +115,7 @@ export async function analyzeProjectCode(directoryPath: string = process.cwd(), 
     `;
 
     // توليد التحليل باستخدام Groq
-    const systemPrompt = `
-      أنت محلل برمجي متخصص بتحليل المشاريع وتشخيص المشاكل واقتراح الحلول.
-      ستقوم بتحليل مشروع ويب وتقديم تقرير شامل بالعربية للمستخدم.
-      اجعل التقرير منظماً ومهنياً، مع التركيز على النقاط العملية.
-      استخدم لغة غير تقنية عند الإمكان ليفهم المستخدم غير التقني ما تقوله.
-    `;
-
-    return await generateCodeWithOpenAI(analysisPrompt, systemPrompt);
+    return await generateCodeWithOpenAI(analysisPrompt, true);
   } catch (error) {
     console.error('❌ خطأ في تحليل رمز المشروع:', error);
     throw new Error(`فشل في تحليل رمز المشروع: ${error}`);
@@ -262,13 +252,7 @@ export async function analyzeProblemAndSuggestFix(problemDescription: string, re
       4. نصائح لتجنب هذه المشكلة في المستقبل
     `;
 
-    const systemPrompt = `
-      أنت خبير في تشخيص وحل مشاكل البرمجة. ستحلل المشكلة المقدمة وتقترح حلولاً عملية.
-      قدّم إجابة مفصلة وعملية باللغة العربية، مع التركيز على الخطوات الملموسة لحل المشكلة.
-      استخدم أسلوباً يمكن للمطورين من مختلف المستويات فهمه.
-    `;
-
-    return await generateCodeWithOpenAI(analysisPrompt, systemPrompt);
+    return await generateCodeWithOpenAI(analysisPrompt);
   } catch (error) {
     console.error('❌ خطأ في تحليل المشكلة:', error);
     throw new Error(`فشل في تحليل المشكلة: ${error}`);

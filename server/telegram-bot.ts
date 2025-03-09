@@ -160,7 +160,7 @@ export function startTelegramBot() {
       setTimeout(() => updateMessage('جاري تحليل الكود والملفات...'), 15000);
       setTimeout(() => updateMessage('جاري إنشاء تقرير شامل...'), 25000);
       
-      // تنفيذ التحليل الفعلي
+      // تنفيذ التحليل الفعلي مع علامة أنه طلب تحليل
       const result = await executeCommand('تحليل النظام بالكامل');
       
       // تقسيم التقرير إلى أجزاء إذا كان طويلاً
