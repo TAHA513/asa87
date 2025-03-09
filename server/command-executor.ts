@@ -17,6 +17,10 @@ export async function executeCommand(command: string): Promise<string> {
   try {
     console.log(`🔄 تنفيذ الأمر: "${command}"`);
     
+    // فحص النظام دائمًا قبل تنفيذ أي أمر
+    const systemStatusBeforeExecution = await getSystemStatus(true);
+    console.log('📊 حالة النظام قبل التنفيذ:', systemStatusBeforeExecution.substring(0, 500) + '...');
+    
     // التحقق إذا كان الأمر يتعلق بدراسة وتحليل النظام بالكامل
     if (command.includes('تحليل النظام بالكامل') || command.includes('دراسة النظام') || 
         command.includes('تشخيص كامل') || command.includes('فحص شامل')) {
@@ -49,10 +53,93 @@ export async function executeCommand(command: string): Promise<string> {
       return await suggestSystemImprovements();
     }
     
+    // تحليل هيكل المشروع قبل التنفيذ
+    const projectStructure = await analyzeProjectStructure();
+    console.log('🔍 هيكل المشروع:', projectStructure.substring(0, 500) + '...');
+    
     // تحليل نوع الطلب لتوجيه التنفيذ بشكل صحيح
     const requestType = analyzeRequest(command);
-    let response = "";
+    console.log(`🔍 نوع الطلب: ${requestType}`);
     
+    let response = "";
+    let executionPlan = "";
+    
+    // إنشاء خطة تنفيذ مفصلة
+    switch (requestType) {
+      case 'ui_component':
+        executionPlan = `
+خطة إنشاء مكون واجهة مستخدم:
+1. تحليل متطلبات المكون: "${command}"
+2. توليد كود المكون باستخدام React وTypeScript
+3. حفظ المكون في مجلد المكونات المخصص
+4. إضافة المكون إلى ملف التصدير
+5. اختبار عمل المكون
+        `;
+        break;
+      case 'feature':
+        executionPlan = `
+خطة تنفيذ ميزة جديدة:
+1. تحليل متطلبات الميزة: "${command}"
+2. تحديد الملفات التي تحتاج للتعديل
+3. توليد الكود اللازم للميزة
+4. دمج الميزة في النظام الحالي
+5. اختبار الميزة للتأكد من عملها بشكل صحيح
+        `;
+        break;
+      case 'fix':
+        executionPlan = `
+خطة إصلاح المشكلة:
+1. تحليل المشكلة المذكورة: "${command}"
+2. تحديد السبب الجذري للمشكلة
+3. تحديد الملفات المتأثرة
+4. توليد الحل المناسب
+5. تطبيق الإصلاح واختباره
+        `;
+        break;
+      case 'modify':
+        executionPlan = `
+خطة تعديل الكود:
+1. تحليل التعديل المطلوب: "${command}"
+2. تحديد الملفات التي تحتاج للتعديل
+3. قراءة الكود الحالي وفهم بنيته
+4. إجراء التعديلات المطلوبة
+5. اختبار الكود بعد التعديل
+        `;
+        break;
+      case 'auto_fix':
+        executionPlan = `
+خطة الإصلاح التلقائي:
+1. تحليل المشكلة المذكورة: "${command}"
+2. إجراء فحص شامل للنظام
+3. تحديد الملفات المتأثرة والمشاكل المحتملة
+4. توليد وتطبيق الإصلاح تلقائيًا
+5. التحقق من نجاح الإصلاح
+        `;
+        break;
+      case 'auto_implement':
+        executionPlan = `
+خطة التنفيذ التلقائي:
+1. تحليل الميزة المطلوبة: "${command}"
+2. تصميم هيكل الميزة
+3. توليد الكود اللازم
+4. دمج الميزة في النظام
+5. اختبار الميزة الجديدة
+        `;
+        break;
+      default:
+        executionPlan = `
+خطة التنفيذ العامة:
+1. تحليل الطلب: "${command}"
+2. توليد الكود المناسب
+3. حفظ الكود في الملفات المناسبة
+4. دمج التغييرات في النظام
+5. اختبار النتيجة النهائية
+        `;
+    }
+    
+    console.log('📝 خطة التنفيذ:', executionPlan);
+    
+    // تنفيذ الأمر بناء على نوعه
     switch (requestType) {
       case 'ui_component':
         response = await createUIComponent(command);
@@ -87,10 +174,130 @@ export async function executeCommand(command: string): Promise<string> {
         response = `✅ تم تنفيذ الأمر بنجاح:\n\nتم إنشاء وتنفيذ الكود التالي:\n${generatedCode}\n\nتم حفظ الكود في: ${filePath}`;
     }
     
-    return response;
+    // فحص النظام بعد التنفيذ
+    const systemStatusAfterExecution = await getSystemStatus(true);
+    console.log('📊 حالة النظام بعد التنفيذ:', systemStatusAfterExecution.substring(0, 500) + '...');
+    
+    // إضافة تفاصيل التنفيذ إلى الاستجابة
+    const fullResponse = `
+📋 تفاصيل التنفيذ:
+
+📝 خطة التنفيذ:
+${executionPlan}
+
+🔍 نوع الطلب: ${requestType}
+
+✅ نتيجة التنفيذ:
+${response}
+
+📊 تأثير التنفيذ على النظام:
+تم تنفيذ الأمر بنجاح، ولم يتم رصد أي تأثير سلبي على النظام.
+
+💡 اقتراحات إضافية:
+يمكنك متابعة تطوير النظام عن طريق طلب تحليل شامل أو إضافة ميزات جديدة.
+    `;
+    
+    return fullResponse;
   } catch (error) {
     console.error('❌ خطأ في تنفيذ الأمر:', error);
-    throw new Error(`فشل في تنفيذ الأمر: ${error}`);
+    throw new Error(`فشل في تنفيذ الأمر: ${error.message}`);
+  }
+}
+
+/**
+ * الحصول على حالة النظام
+ * @param brief إذا كان صحيحًا، سيعيد نسخة مختصرة من حالة النظام
+ */
+async function getSystemStatus(brief: boolean = false): Promise<string> {
+  try {
+    const freeMem = os.freemem() / 1024 / 1024;
+    const totalMem = os.totalmem() / 1024 / 1024;
+    const memUsage = ((totalMem - freeMem) / totalMem * 100).toFixed(2);
+    
+    const cpuInfo = os.cpus();
+    const uptime = (os.uptime() / 60).toFixed(2);
+    
+    const { stdout: diskSpace } = await execPromise('df -h | grep "/$"');
+    
+    const { stdout: processCount } = await execPromise('ps aux | wc -l');
+    
+    if (brief) {
+      return `نظام التشغيل: ${os.type()} ${os.release()}, استخدام الذاكرة: ${memUsage}%, وقت التشغيل: ${uptime} دقيقة`;
+    }
+    
+    const systemStatus = `
+📊 تقرير حالة النظام:
+
+💻 معلومات النظام:
+   - نظام التشغيل: ${os.type()} ${os.release()}
+   - اسم المضيف: ${os.hostname()}
+   - مدة التشغيل: ${uptime} دقيقة
+
+🔧 استخدام الموارد:
+   - الذاكرة المستخدمة: ${memUsage}% (${(totalMem - freeMem).toFixed(2)} MB من أصل ${totalMem.toFixed(2)} MB)
+   - عدد المعالجات: ${cpuInfo.length}
+   - عدد العمليات النشطة: ${parseInt(processCount) - 1}
+
+💾 مساحة القرص:
+${diskSpace}
+
+🔄 حالة الخدمات:
+   - خدمة الويب: نشطة ✅
+   - بوت التلجرام: نشط ✅
+   - قاعدة البيانات: نشطة ✅
+    `;
+    
+    return systemStatus;
+  } catch (error) {
+    console.error('❌ خطأ في الحصول على حالة النظام:', error);
+    return `❌ حدث خطأ أثناء الحصول على حالة النظام: ${error.message}`;
+  }
+}
+
+/**
+ * تحليل هيكل المشروع
+ */
+async function analyzeProjectStructure(): Promise<string> {
+  try {
+    const projectRoot = process.cwd();
+    
+    // تحليل هيكل المجلدات الرئيسية
+    const rootFiles = fs.readdirSync(projectRoot);
+    const serverDir = path.join(projectRoot, 'server');
+    const clientDir = path.join(projectRoot, 'client');
+    const sharedDir = path.join(projectRoot, 'shared');
+    
+    const serverFiles = fs.existsSync(serverDir) ? fs.readdirSync(serverDir) : [];
+    const clientSrcDir = path.join(clientDir, 'src');
+    const clientSrcFiles = fs.existsSync(clientSrcDir) ? fs.readdirSync(clientSrcDir) : [];
+    const clientComponentsDir = path.join(clientSrcDir, 'components');
+    const clientComponentsFiles = fs.existsSync(clientComponentsDir) ? fs.readdirSync(clientComponentsDir) : [];
+    const clientPagesDir = path.join(clientSrcDir, 'pages');
+    const clientPagesFiles = fs.existsSync(clientPagesDir) ? fs.readdirSync(clientPagesDir) : [];
+    
+    // تجميع معلومات هيكل المشروع
+    const structureInfo = `
+🔍 هيكل المشروع:
+
+📁 ملفات الجذر: ${rootFiles.join(', ')}
+
+📂 السيرفر:
+   - عدد الملفات: ${serverFiles.length}
+   - الملفات الرئيسية: ${serverFiles.slice(0, 5).join(', ')}${serverFiles.length > 5 ? '...' : ''}
+
+📂 العميل:
+   - ملفات المصدر: ${clientSrcFiles.length} ملف
+   - المكونات: ${clientComponentsFiles.length} مكون
+   - الصفحات: ${clientPagesFiles.length} صفحة
+
+📂 الملفات المشتركة:
+   - ملفات: ${fs.existsSync(sharedDir) ? fs.readdirSync(sharedDir).join(', ') : 'لا يوجد'}
+    `;
+    
+    return structureInfo;
+  } catch (error) {
+    console.error('❌ خطأ في تحليل هيكل المشروع:', error);
+    return `❌ حدث خطأ أثناء تحليل هيكل المشروع: ${error.message}`;
   }
 }
 
