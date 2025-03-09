@@ -57,6 +57,7 @@ export default function InventoryTable() {
       stock: 0,
       productCode: "",
       barcode: "",
+      expiryDate: null, // Added expiryDate to defaultValues
     },
   });
 
@@ -169,6 +170,7 @@ export default function InventoryTable() {
         stock: Number(data.stock),
         productCode: data.productCode,
         barcode: data.barcode || null,
+        expiryDate: data.expiryDate, // Added expiryDate to the request
       });
 
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
@@ -315,6 +317,19 @@ export default function InventoryTable() {
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={form.control}
+                    name="expiryDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>تاريخ الانتهاء</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <Button type="submit" className="w-full">
                     إضافة المنتج
@@ -336,6 +351,7 @@ export default function InventoryTable() {
               <TableHead>الوصف</TableHead>
               <TableHead>السعر</TableHead>
               <TableHead>المخزون</TableHead>
+              <TableHead>تاريخ انتهاء الصلاحية</TableHead> {/* Added expiry date column */}
               <TableHead>الإجراءات</TableHead>
             </TableRow>
           </TableHeader>
@@ -373,6 +389,15 @@ export default function InventoryTable() {
                       </Button>
                     </div>
                   </TableCell>
+                  <TableCell>
+                    {product.expiryDate ? (
+                      <div>
+                        {new Date(product.expiryDate).toLocaleDateString('ar-IQ')}
+                      </div>
+                    ) : (
+                      <div>-</div>
+                    )}
+                  </TableCell> {/* Added expiry date display */}
                   <TableCell>
                     <Button
                       variant="destructive"
