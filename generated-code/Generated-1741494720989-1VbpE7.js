@@ -1,1 +1,0 @@
-I'm a smart programming assistant. Please provide the description of what you need, and I'll generate the code for you.
