@@ -17,6 +17,12 @@ export async function executeCommand(command: string): Promise<string> {
   try {
     console.log(`🔄 تنفيذ الأمر: "${command}"`);
     
+    // التحقق إذا كان الأمر يتعلق بدراسة وتحليل النظام بالكامل
+    if (command.includes('تحليل النظام بالكامل') || command.includes('دراسة النظام') || 
+        command.includes('تشخيص كامل') || command.includes('فحص شامل')) {
+      return await analyzeFullSystem();
+    }
+    
     // التحقق إذا كان الأمر يتعلق بفحص النظام
     if (command.includes('فحص النظام') || command.includes('حالة النظام') || command.includes('معلومات النظام')) {
       return await getSystemStatus();
@@ -30,6 +36,17 @@ export async function executeCommand(command: string): Promise<string> {
     // التحقق إذا كان الأمر يتعلق بالملفات
     if (command.includes('قائمة الملفات') || command.includes('عرض الملفات')) {
       return await listFiles();
+    }
+    
+    // التحقق إذا كان الأمر يتعلق بتحليل قاعدة البيانات
+    if (command.includes('تحليل قاعدة البيانات') || command.includes('فحص قاعدة البيانات')) {
+      return await analyzeDatabaseStructure();
+    }
+    
+    // التحقق إذا كان الأمر يتعلق باقتراح تحسينات
+    if (command.includes('اقتراح تحسينات') || command.includes('تحسين النظام') || 
+        command.includes('تطوير النظام') || command.includes('اقترح تحسينات')) {
+      return await suggestSystemImprovements();
     }
     
     // تحليل نوع الطلب لتوجيه التنفيذ بشكل صحيح
@@ -48,6 +65,12 @@ export async function executeCommand(command: string): Promise<string> {
         break;
       case 'modify':
         response = await modifyExistingCode(command);
+        break;
+      case 'auto_fix':
+        response = await autoFixSystemIssue(command);
+        break;
+      case 'auto_implement':
+        response = await autoImplementFeature(command);
         break;
       default:
         // توليد كود عام بناءً على الأمر باستخدام النموذج اللغوي
@@ -219,24 +242,46 @@ export async function executeCode(code: string): Promise<string> {
 function analyzeRequest(command: string): string {
   const command_lower = command.toLowerCase();
   
+  // التعرف على طلبات الإصلاح التلقائي
+  if ((command_lower.includes('إصلاح') || command_lower.includes('صحح') || command_lower.includes('حل مشكلة')) && 
+      (command_lower.includes('تلقائيًا') || command_lower.includes('تلقائي') || command_lower.includes('مباشرة'))) {
+    return 'auto_fix';
+  }
+  
+  // التعرف على طلبات تنفيذ الميزات التلقائي
+  if ((command_lower.includes('نفذ') || command_lower.includes('طبق') || command_lower.includes('أضف ميزة')) && 
+      (command_lower.includes('تلقائيًا') || command_lower.includes('مباشرة') || command_lower.includes('بشكل آلي'))) {
+    return 'auto_implement';
+  }
+  
+  // التعرف على طلبات واجهة المستخدم
   if (command_lower.includes('أضف') || command_lower.includes('إنشاء') || command_lower.includes('واجهة') || 
       command_lower.includes('مكون') || command_lower.includes('صفحة') || command_lower.includes('زر')) {
     return 'ui_component';
   }
   
+  // التعرف على طلبات الميزات
   if (command_lower.includes('خاصية') || command_lower.includes('ميزة') || command_lower.includes('وظيفة') || 
       command_lower.includes('أضف قدرة') || command_lower.includes('إضافة إمكانية')) {
     return 'feature';
   }
   
+  // التعرف على طلبات الإصلاح
   if (command_lower.includes('إصلاح') || command_lower.includes('صحح') || command_lower.includes('مشكلة') || 
       command_lower.includes('خطأ') || command_lower.includes('حل مشكلة')) {
     return 'fix';
   }
   
+  // التعرف على طلبات التعديل
   if (command_lower.includes('تعديل') || command_lower.includes('تغيير') || command_lower.includes('تحديث') || 
-      command_lower.includes('تحسين')) {
+      command_lower.includes('تحسين') || command_lower.includes('طور')) {
     return 'modify';
+  }
+  
+  // التعرف على طلبات تحليل النظام
+  if (command_lower.includes('تحليل') || command_lower.includes('دراسة') || command_lower.includes('فحص') || 
+      command_lower.includes('تشخيص')) {
+    return 'analyze';
   }
   
   return 'general';
@@ -466,5 +511,225 @@ function getFilePath(fileName: string, codeType: string): string {
       return path.join(basePath, 'shared', 'generated-utils', fileName);
     default:
       return path.join(basePath, 'generated-code', fileName);
+  }
+}
+
+
+/**
+ * تحليل كامل للنظام وبنيته
+ */
+async function analyzeFullSystem(): Promise<string> {
+  try {
+    console.log('🔄 جاري تحليل النظام بالكامل...');
+    
+    // جمع معلومات النظام
+    const systemStatus = await getSystemStatus();
+    
+    // تحليل هيكل الملفات
+    const projectRoot = process.cwd();
+    const serverDir = path.join(projectRoot, 'server');
+    const clientDir = path.join(projectRoot, 'client', 'src');
+    
+    // تحليل ملفات السيرفر
+    const serverFiles = fs.readdirSync(serverDir).filter(file => file.endsWith('.ts'));
+    let serverAnalysis = '';
+    
+    for (const file of serverFiles.slice(0, 5)) { // تحليل أول 5 ملفات فقط لتجنب التقارير الطويلة
+      const filePath = path.join(serverDir, file);
+      const fileContent = fs.readFileSync(filePath, 'utf8');
+      const fileInfo = await generateCodeWithOpenAI(`تحليل ملف سيرفر: ${file}\n\n${fileContent.slice(0, 1000)}...`);
+      serverAnalysis += `📄 ${file}: ${fileInfo}\n\n`;
+    }
+    
+    // تحليل أهم مكونات العميل
+    const clientComponents = fs.readdirSync(path.join(clientDir, 'components'));
+    const clientPages = fs.existsSync(path.join(clientDir, 'pages')) ? 
+      fs.readdirSync(path.join(clientDir, 'pages')) : [];
+    
+    // توليد تقرير شامل
+    const fullAnalysisPrompt = `
+قم بتحليل النظام التالي وتقديم تقرير شامل:
+
+1. معلومات النظام:
+${systemStatus}
+
+2. هيكل الملفات:
+- ملفات السيرفر: ${serverFiles.join(', ')}
+- مكونات العميل: ${clientComponents.join(', ')}
+- صفحات العميل: ${clientPages.join(', ')}
+
+3. تحليل ملفات السيرفر:
+${serverAnalysis}
+
+قم بتلخيص النظام، وحالته الحالية، ونقاط القوة والضعف فيه، واقترح تحسينات محددة يمكن تنفيذها.
+`;
+
+    const analysisReport = await generateCodeWithOpenAI(fullAnalysisPrompt);
+    
+    return `📊 تقرير تحليل النظام الشامل:\n\n${analysisReport}`;
+  } catch (error) {
+    console.error('❌ خطأ في تحليل النظام:', error);
+    return `❌ حدث خطأ أثناء تحليل النظام: ${error.message}`;
+  }
+}
+
+/**
+ * تحليل هيكل قاعدة البيانات
+ */
+async function analyzeDatabaseStructure(): Promise<string> {
+  try {
+    console.log('🔄 جاري تحليل قاعدة البيانات...');
+    
+    // استعلام لاسترجاع هيكل قاعدة البيانات
+    const dbAnalysisPrompt = `
+قم بتحليل قاعدة البيانات بناءً على الملفات التالية:
+
+1. ملف تعريف الأنواع (types.ts)
+2. ملف الوصول لقاعدة البيانات (db.ts)
+3. ملف المخطط (schema.ts في مجلد shared)
+
+قدم تقريرًا عن هيكل قاعدة البيانات، والعلاقات بين الجداول، واقترح أي تحسينات ممكنة.
+`;
+
+    const dbAnalysis = await generateCodeWithOpenAI(dbAnalysisPrompt);
+    
+    return `🗄️ تقرير تحليل قاعدة البيانات:\n\n${dbAnalysis}`;
+  } catch (error) {
+    console.error('❌ خطأ في تحليل قاعدة البيانات:', error);
+    return `❌ حدث خطأ أثناء تحليل قاعدة البيانات: ${error.message}`;
+  }
+}
+
+/**
+ * اقتراح تحسينات للنظام
+ */
+async function suggestSystemImprovements(): Promise<string> {
+  try {
+    console.log('🔄 جاري توليد اقتراحات لتحسين النظام...');
+    
+    // تحليل النظام واقتراح تحسينات
+    const improvementsPrompt = `
+بناء على تحليل النظام، اقترح تحسينات محددة في المجالات التالية:
+
+1. الأداء والكفاءة
+2. واجهة المستخدم وتجربة المستخدم
+3. الأمان
+4. قابلية التوسع
+5. جودة الكود
+
+قدم اقتراحات عملية يمكن تنفيذها، مع وصف موجز لكل تحسين وكيفية تنفيذه.
+`;
+
+    const improvements = await generateCodeWithOpenAI(improvementsPrompt);
+    
+    // توليد أكواد لتنفيذ بعض التحسينات المقترحة
+    const implementationPrompt = `
+استنادًا إلى التحسينات المقترحة، قدم كود لتنفيذ أهم تحسين واحد في كل من الفئات التالية:
+
+1. تحسين الأداء: قم بإنشاء وظيفة للتخزين المؤقت للبيانات المستخدمة بشكل متكرر
+2. تحسين واجهة المستخدم: قم بإنشاء مكون لعرض التنبيهات وإشعارات النظام
+3. تعزيز الأمان: قم بإنشاء وظيفة لتسجيل النشاط والمحاولات المشبوهة
+
+قدم كود قابل للتنفيذ لكل تحسين.
+`;
+
+    const implementationCode = await generateCodeWithOpenAI(implementationPrompt);
+    
+    // تنفيذ بعض التحسينات تلقائيًا
+    const improvementFilePath = await executeCode(implementationCode);
+    
+    return `🚀 اقتراحات لتحسين النظام:\n\n${improvements}\n\n✅ تم تنفيذ بعض التحسينات تلقائيًا وحفظها في:\n${improvementFilePath}`;
+  } catch (error) {
+    console.error('❌ خطأ في اقتراح تحسينات النظام:', error);
+    return `❌ حدث خطأ أثناء اقتراح تحسينات النظام: ${error.message}`;
+  }
+}
+
+/**
+ * إصلاح مشكلة في النظام تلقائيًا
+ */
+async function autoFixSystemIssue(command: string): Promise<string> {
+  try {
+    console.log(`🔄 جاري إصلاح مشكلة تلقائيًا: "${command}"`);
+    
+    // تحليل المشكلة وإيجاد الحل
+    const analysisPrompt = `
+تحليل المشكلة التالية وإيجاد حل:
+${command}
+
+1. حدد الملفات التي قد تكون سببًا للمشكلة
+2. وصف المشكلة والسبب المحتمل لها
+3. اقترح حلًا محددًا يمكن تنفيذه
+`;
+
+    const analysis = await generateCodeWithOpenAI(analysisPrompt);
+    
+    // توليد كود للإصلاح
+    const fixPrompt = `
+استنادًا إلى التحليل التالي، قم بإنشاء كود لإصلاح المشكلة:
+${analysis}
+
+قدم كود قابل للتنفيذ لإصلاح المشكلة.
+`;
+
+    const fixCode = await generateCodeWithOpenAI(fixPrompt);
+    
+    // تنفيذ الإصلاح تلقائيًا
+    const fixFilePath = await executeCode(fixCode);
+    
+    // إعادة تشغيل التطبيق إذا لزم الأمر
+    if (shouldRestartApp(command, fixCode)) {
+      await restartApplication();
+    }
+    
+    return `🔍 تحليل المشكلة:\n\n${analysis}\n\n✅ تم تنفيذ الإصلاح تلقائيًا وحفظه في:\n${fixFilePath}`;
+  } catch (error) {
+    console.error('❌ خطأ في إصلاح مشكلة النظام تلقائيًا:', error);
+    return `❌ حدث خطأ أثناء إصلاح مشكلة النظام: ${error.message}`;
+  }
+}
+
+/**
+ * تنفيذ ميزة جديدة تلقائيًا
+ */
+async function autoImplementFeature(command: string): Promise<string> {
+  try {
+    console.log(`🔄 جاري تنفيذ ميزة جديدة تلقائيًا: "${command}"`);
+    
+    // تخطيط الميزة
+    const planPrompt = `
+قم بتخطيط تنفيذ الميزة التالية:
+${command}
+
+1. وصف الميزة وفوائدها
+2. تحديد الملفات التي يجب إنشاؤها أو تعديلها
+3. خطوات التنفيذ بالتفصيل
+4. أي متطلبات أو تبعيات
+`;
+
+    const plan = await generateCodeWithOpenAI(planPrompt);
+    
+    // توليد كود لتنفيذ الميزة
+    const implementPrompt = `
+استنادًا إلى الخطة التالية، قم بإنشاء كود لتنفيذ الميزة:
+${plan}
+
+قدم كود قابل للتنفيذ للميزة الجديدة.
+`;
+
+    const implementCode = await generateCodeWithOpenAI(implementPrompt);
+    
+    // تنفيذ الميزة تلقائيًا
+    const implementFilePath = await executeCode(implementCode);
+    
+    // إعادة تشغيل التطبيق إذا لزم الأمر
+    if (shouldRestartApp(command, implementCode)) {
+      await restartApplication();
+    }
+    
+    return `📝 خطة تنفيذ الميزة:\n\n${plan}\n\n✅ تم تنفيذ الميزة تلقائيًا وحفظها في:\n${implementFilePath}`;
+  } catch (error) {
+    console.error('❌ خطأ في تنفيذ ميزة جديدة تلقائيًا:', error);
+    return `❌ حدث خطأ أثناء تنفيذ ميزة جديدة: ${error.message}`;
   }
 }
