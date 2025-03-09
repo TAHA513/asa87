@@ -167,8 +167,13 @@ const ThemeSettings = () => {
     } else {
       root.classList.add(mode);
     }
-
+    
+    // تحديث متغير CSS وحفظ الإعداد في localStorage
     root.style.setProperty("--current-appearance", mode);
+    localStorage.setItem("theme-appearance", mode);
+    
+    // إضافة تحديث إضافي لضمان تطبيق السمة
+    document.body.className = document.body.className;
   };
 
   useEffect(() => {
