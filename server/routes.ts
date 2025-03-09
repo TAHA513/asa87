@@ -1339,19 +1339,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
+        variant: z.enum(["modern", "classic", "elegant", "vibrant", "natural"]),
         appearance: z.enum(["light", "dark", "system"]),
         fontStyle: z.enum([
-          "traditional",
-          "modern",
-          "minimal",
-          "digital",
-          "elegant",
-          "kufi",
-          "naskh",
-          "ruqaa",
-          "thuluth",
-          "contemporary",
           "noto-kufi",
           "cairo",
           "tajawal",
@@ -1378,7 +1368,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // حفظ الإعدادات في قاعدة البيانات
-      await storage.saveUserSettings(userSettings);
+      await storage.saveUserSettings(req.user!.id, userSettings);
 
       // حفظ الثيم في ملف theme.json
       await fs.writeFile(
