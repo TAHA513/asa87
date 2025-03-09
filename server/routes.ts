@@ -1339,7 +1339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة البيانات
       const themeSchema = z.object({
         primary: z.string(),
-        variant: z.enum(["tint", "modern", "classic", "elegant", "vibrant", "natural"]),
+        variant: z.enum(["modern", "classic", "elegant", "vibrant", "natural", "tint"]),
         appearance: z.enum(["light", "dark", "system"]),
         fontStyle: z.enum([
           "noto-kufi",
@@ -1352,6 +1352,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const theme = themeSchema.parse(req.body);
+      console.log("تم استلام إعدادات جديدة:", theme);
+
+      // حساب الألوان الثانوية والثلاثية
+      const getComputedColor = (color, mix, appearance) => {
+        return `color-mix(in srgb, ${color} 80%, ${appearance === 'dark' ? 'white' : 'black'})`;
+      };
 
       // تحويل البيانات إلى الشكل المطلوب لقاعدة البيانات
       const userSettings = {
@@ -1362,32 +1368,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         appearance: theme.appearance,
         colors: {
           primary: theme.primary,
-          secondary: `color-mix(in srgb, ${theme.primary} 80%, ${theme.appearance === 'dark' ? 'white' : 'black'})`,
-          accent: `color-mix(in srgb, ${theme.primary} 60%, ${theme.appearance === 'dark' ? 'black' : 'white'})`,
+          secondary: getComputedColor(theme.primary, 80, theme.appearance),
+          accent: getComputedColor(theme.primary, 60, theme.appearance === 'dark' ? 'light' : 'dark'),
         }
       };
 
       // حفظ الإعدادات في قاعدة البيانات
       try {
-        await storage.saveUserSettings(req.user!.id, userSettings);
+        const savedSettings = await storage.saveUserSettings(req.user!.id, userSettings);
+        console.log("تم حفظ الإعدادات في قاعدة البيانات:", savedSettings);
       } catch (error) {
-        console.error("خطأ في حفظ الإعدادات:", error);
+        console.error("خطأ في حفظ الإعدادات في قاعدة البيانات:", error);
+        throw error;
       }
 
       // حفظ الثيم في ملف theme.json
-      await fs.writeFile(
-        path.join(process.cwd(), "theme.json"),
-        JSON.stringify(theme, null, 2)
-      );
+      try {
+        await fs.writeFile(
+          path.join(process.cwd(), "theme.json"),
+          JSON.stringify(theme, null, 2)
+        );
+        console.log("تم حفظ الثيم في ملف theme.json");
+      } catch (error) {
+        console.error("خطأ في حفظ الثيم في ملف theme.json:", error);
+        throw error;
+      }
 
-      // تطبيق التغييرات على الصفحة بشكل مباشر
+      // إرسال الاستجابة بنجاح
       res.json({ 
         success: true,
         settings: userSettings
       });
     } catch (error) {
       console.error("Error updating theme:", error);
-      res.status(500).json({ message: "فشل في حفظ إعدادات المظهر" });
+      res.status(500).json({ 
+        message: "فشل في حفظ إعدادات المظهر", 
+        error: error instanceof Error ? error.message : "خطأ غير معروف" 
+      });
     }
   });
 

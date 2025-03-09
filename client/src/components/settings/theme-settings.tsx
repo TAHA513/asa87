@@ -1,141 +1,99 @@
-import { useEffect, useState } from "react";
-import { Check, Palette, Type, Moon, Sun, Monitor, Minus, Plus } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { apiRequest } from "@/lib/queryClient";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { Check, Palette, Sun, Type, Maximize, Moon, Laptop } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { apiRequest } from "@/lib/queryClient";
 
 const themes = [
   {
-    id: "tint",
-    name: "الدرجات اللونية",
-    colors: {
-      primary: "hsl(142.1 76.2% 36.3%)",
-      secondary: "hsl(217.2 91.2% 59.8%)",
-      accent: "hsl(316.0 73.3% 52.5%)",
-    },
-    preview: "tint",
-  },
-  {
     id: "modern",
-    name: "العصري",
+    name: "عصري",
     colors: {
       primary: "hsl(142.1 76.2% 36.3%)",
-      secondary: "hsl(217.2 91.2% 59.8%)",
-      accent: "hsl(316.0 73.3% 52.5%)",
+      secondary: "hsl(164.3 76.2% 46.3%)",
+      accent: "hsl(120.1 40.1% 36.3%)",
     },
-    preview: "modern",
   },
   {
-    name: "الكلاسيكي",
     id: "classic",
+    name: "كلاسيكي",
     colors: {
       primary: "hsl(215.3 98.9% 27.8%)",
-      secondary: "hsl(221.2 83.2% 53.3%)",
-      accent: "hsl(262.1 83.3% 57.8%)",
+      secondary: "hsl(215.3 98.9% 37.8%)",
+      accent: "hsl(215.3 68.9% 47.8%)",
     },
-    preview: "classic",
   },
   {
-    name: "الأنيق",
     id: "elegant",
+    name: "أنيق",
     colors: {
-      primary: "hsl(200.4 15.3% 46.9%)",
-      secondary: "hsl(171.2 76.5% 36.6%)",
-      accent: "hsl(280.1 81.3% 40.8%)",
+      primary: "hsl(273.1 70.1% 40.2%)",
+      secondary: "hsl(273.1 70.1% 50.2%)",
+      accent: "hsl(303.1 70.1% 50.2%)",
     },
-    preview: "elegant",
   },
   {
-    name: "النابض بالحياة",
     id: "vibrant",
+    name: "نابض بالحياة",
     colors: {
-      primary: "hsl(20.5 90.2% 48.2%)",
-      secondary: "hsl(280.1 65.3% 70.8%)",
-      accent: "hsl(346.8 77.2% 49.8%)",
+      primary: "hsl(349 90.9% 45.1%)",
+      secondary: "hsl(349 90.9% 55.1%)",
+      accent: "hsl(19 90.9% 55.1%)",
     },
-    preview: "vibrant",
   },
   {
-    name: "الطبيعي",
     id: "natural",
+    name: "طبيعي",
     colors: {
       primary: "hsl(120.1 40.1% 39.2%)",
-      secondary: "hsl(25.3 95.3% 52.8%)",
-      accent: "hsl(160.1 84.1% 39.2%)",
+      secondary: "hsl(120.1 40.1% 49.2%)",
+      accent: "hsl(150.1 40.1% 49.2%)",
     },
-    preview: "natural",
   },
 ];
 
 const fonts = [
   {
-    name: "نوتو كوفي",
     id: "noto-kufi",
-    family: "'Noto Kufi Arabic'",
-    weight: "400,700",
-    style: "modern",
-    preview: "خط عربي حديث وأنيق",
+    name: "نوتو كوفي",
+    family: "'Noto Kufi Arabic', sans-serif",
   },
   {
-    name: "القاهرة",
     id: "cairo",
-    family: "'Cairo'",
-    weight: "400,600,700",
-    style: "elegant",
-    preview: "خط عصري متناسق",
+    name: "القاهرة",
+    family: "'Cairo', sans-serif",
   },
   {
-    name: "الأميري",
-    id: "amiri",
-    family: "'Amiri'",
-    weight: "400,700",
-    style: "traditional",
-    preview: "خط كلاسيكي جميل",
-  },
-  {
-    name: "تجوال",
     id: "tajawal",
-    family: "'Tajawal'",
-    weight: "400,500,700",
-    style: "contemporary",
-    preview: "خط عربي معاصر",
+    name: "طجوال",
+    family: "'Tajawal', sans-serif",
+  },
+];
+
+const appearanceModes = [
+  {
+    id: "light",
+    name: "فاتح",
+    icon: Sun,
   },
   {
-    name: "آي بي إم بلكس",
-    id: "ibm-plex",
-    family: "'IBM Plex Sans Arabic'",
-    weight: "400,500,700",
-    style: "modern",
-    preview: "خط عصري للواجهات",
+    id: "dark",
+    name: "داكن",
+    icon: Moon,
   },
   {
-    name: "عارف رقعة",
-    id: "aref-ruqaa",
-    family: "'Aref Ruqaa'",
-    weight: "400,700",
-    style: "calligraphic",
-    preview: "خط رقعة أصيل",
-  },
-  {
-    name: "لطيف",
-    id: "lateef",
-    family: "'Lateef'",
-    weight: "400,700",
-    style: "readable",
-    preview: "خط سهل القراءة",
-  },
-  {
-    name: "ريم الكوفي",
-    id: "reem-kufi",
-    family: "'Reem Kufi'",
-    weight: "400,500,700",
-    style: "geometric",
-    preview: "خط كوفي هندسي",
+    id: "system",
+    name: "تلقائي (حسب النظام)",
+    icon: Laptop,
   },
 ];
 
@@ -166,7 +124,38 @@ const ThemeSettings = () => {
   const [fontSize, setFontSize] = useState("medium");
   const [appearance, setAppearance] = useState<"light" | "dark" | "system">("system");
   const [isLoading, setIsLoading] = useState(false);
+  const [currentSettings, setCurrentSettings] = useState(null);
 
+  // استرجاع الإعدادات الحالية عند بدء تحميل المكون
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await apiRequest("GET", "/api/settings");
+        const data = await response.json();
+
+        if (data) {
+          // تحديث حالة المكون بناءً على الإعدادات المسترجعة
+          const themeObj = themes.find(t => t.id === data.themeName) || themes[0];
+          const fontObj = fonts.find(f => f.id === data.fontName) || fonts[0];
+
+          setSelectedTheme(themeObj);
+          setSelectedFont(fontObj);
+          setFontSize(data.fontSize || "medium");
+          setAppearance(data.appearance || "system");
+          setCurrentSettings(data);
+
+          // تطبيق الإعدادات على واجهة المستخدم
+          applySettingsToUI(themeObj, fontObj, data.fontSize, data.appearance);
+        }
+      } catch (error) {
+        console.error("فشل في استرجاع الإعدادات:", error);
+      }
+    };
+
+    fetchSettings();
+  }, []);
+
+  // تطبيق السطوع المختار
   const applyAppearance = (mode: "light" | "dark" | "system") => {
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
@@ -181,49 +170,52 @@ const ThemeSettings = () => {
     // تحديث متغير CSS وحفظ الإعداد في localStorage
     root.style.setProperty("--current-appearance", mode);
     localStorage.setItem("theme-appearance", mode);
-
-    // إضافة تحديث إضافي لضمان تطبيق السمة
-    document.body.className = document.body.className;
   };
 
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  // تطبيق الإعدادات على واجهة المستخدم
+  const applySettingsToUI = (theme, font, size, mode) => {
+    document.documentElement.style.setProperty("--primary-color", theme.colors.primary);
+    document.documentElement.style.setProperty("--secondary-color", theme.colors.secondary);
+    document.documentElement.style.setProperty("--accent-color", theme.colors.accent);
+    document.documentElement.style.setProperty("--font-family", font.family);
+    document.documentElement.style.setProperty("--font-size-base", `${fontSizes[size].base}px`);
 
-    const handleChange = () => {
-      if (appearance === "system") {
-        applyAppearance("system");
-      }
-    };
+    applyAppearance(mode);
+  };
 
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [appearance]);
+  // اختيار وتطبيق السمة
+  const selectTheme = (theme) => {
+    setSelectedTheme(theme);
+    document.documentElement.style.setProperty("--primary-color", theme.colors.primary);
+    document.documentElement.style.setProperty("--secondary-color", theme.colors.secondary);
+    document.documentElement.style.setProperty("--accent-color", theme.colors.accent);
+  };
 
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const response = await apiRequest("GET", "/api/settings");
-        if (response) {
-          const theme = themes.find(t => t.id === response.variant) || themes[0];
-          const font = fonts.find(f => f.id === response.fontStyle) || fonts[0];
-          setSelectedTheme(theme);
-          setSelectedFont(font);
-          setFontSize(response.fontSize || "medium");
-          setAppearance(response.appearance || "system");
-          applyAppearance(response.appearance || "system");
-        }
-      } catch (error) {
-        console.error("Error loading settings:", error);
-      }
-    };
+  // اختيار وتطبيق الخط
+  const selectFont = (font) => {
+    setSelectedFont(font);
+    document.documentElement.style.setProperty("--font-family", font.family);
+  };
 
-    loadSettings();
-  }, []);
+  // اختيار وتطبيق حجم الخط
+  const selectFontSize = (size) => {
+    setFontSize(size);
+    document.documentElement.style.setProperty(
+      "--font-size-base",
+      `${fontSizes[size].base}px`
+    );
+  };
 
+  // اختيار وتطبيق السطوع
+  const selectAppearance = (mode) => {
+    setAppearance(mode);
+    applyAppearance(mode);
+  };
+
+  // حفظ الإعدادات
   const saveSettings = async () => {
     setIsLoading(true);
     try {
-      // إعداد البيانات للإرسال
       const settings = {
         primary: selectedTheme.colors.primary,
         variant: selectedTheme.id,
@@ -237,21 +229,8 @@ const ThemeSettings = () => {
       const data = await response.json();
 
       if (data.success) {
-        // تطبيق التغييرات بشكل مباشر
-        document.documentElement.style.setProperty("--primary-color", selectedTheme.colors.primary);
-        document.documentElement.style.setProperty("--secondary-color", selectedTheme.colors.secondary);
-        document.documentElement.style.setProperty("--accent-color", selectedTheme.colors.accent);
-        document.documentElement.style.setProperty("--font-family", selectedFont.family);
-        document.documentElement.style.setProperty("--font-size-base", `${fontSizes[fontSize].base}px`);
-
-        // تطبيق السطوع مع إعادة تحميل
-        applyAppearance(appearance);
-
-        // تحديث التطبيق لتطبيق التغييرات
-        setTimeout(() => {
-          // محاولة تطبيق التغييرات مرة أخرى بعد التأخير
-          applyAppearance(appearance);
-        }, 100);
+        // تأكد من تطبيق الإعدادات
+        applySettingsToUI(selectedTheme, selectedFont, fontSize, appearance);
 
         toast({
           title: "تم الحفظ",
@@ -308,7 +287,7 @@ const ThemeSettings = () => {
             {[
               { value: "theme", icon: <Palette className="w-4 h-4" />, label: "الألوان" },
               { value: "font", icon: <Type className="w-4 h-4" />, label: "الخطوط" },
-              { value: "size", icon: <Plus className="w-4 h-4" />, label: "الحجم" },
+              { value: "size", icon: <Maximize className="w-4 h-4" />, label: "الحجم" },
               { value: "appearance", icon: <Sun className="w-4 h-4" />, label: "السطوع" }
             ].map(tab => (
               <TabsTrigger
@@ -327,6 +306,7 @@ const ThemeSettings = () => {
             initial="hidden"
             animate="visible"
           >
+            {/* محتوى تبويب السمات */}
             <TabsContent value="theme">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {themes.map((theme) => (
@@ -340,12 +320,7 @@ const ThemeSettings = () => {
                       className={`cursor-pointer transition-all hover:shadow-lg ${
                         selectedTheme.id === theme.id ? 'ring-2 ring-primary' : ''
                       }`}
-                      onClick={() => {
-                        setSelectedTheme(theme);
-                        document.documentElement.style.setProperty("--primary-color", theme.colors.primary);
-                        document.documentElement.style.setProperty("--secondary-color", theme.colors.secondary);
-                        document.documentElement.style.setProperty("--accent-color", theme.colors.accent);
-                      }}
+                      onClick={() => selectTheme(theme)}
                     >
                       <CardHeader className="p-4">
                         <div className="flex items-center justify-between">
@@ -357,13 +332,18 @@ const ThemeSettings = () => {
                       </CardHeader>
                       <CardContent className="p-4 pt-0">
                         <div className="flex gap-2">
-                          {Object.entries(theme.colors).map(([key, color]) => (
-                            <div
-                              key={key}
-                              className="w-8 h-8 rounded-full shadow-inner"
-                              style={{ backgroundColor: color }}
-                            />
-                          ))}
+                          <div
+                            className="w-8 h-8 rounded-full"
+                            style={{ backgroundColor: theme.colors.primary }}
+                          />
+                          <div
+                            className="w-8 h-8 rounded-full"
+                            style={{ backgroundColor: theme.colors.secondary }}
+                          />
+                          <div
+                            className="w-8 h-8 rounded-full"
+                            style={{ backgroundColor: theme.colors.accent }}
+                          />
                         </div>
                       </CardContent>
                     </Card>
@@ -372,8 +352,9 @@ const ThemeSettings = () => {
               </div>
             </TabsContent>
 
+            {/* محتوى تبويب الخطوط */}
             <TabsContent value="font">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {fonts.map((font) => (
                   <motion.div
                     key={font.id}
@@ -385,10 +366,7 @@ const ThemeSettings = () => {
                       className={`cursor-pointer transition-all hover:shadow-lg ${
                         selectedFont.id === font.id ? 'ring-2 ring-primary' : ''
                       }`}
-                      onClick={() => {
-                        setSelectedFont(font);
-                        document.documentElement.style.setProperty("--font-family", font.family);
-                      }}
+                      onClick={() => selectFont(font)}
                     >
                       <CardHeader className="p-4">
                         <div className="flex items-center justify-between">
@@ -399,11 +377,8 @@ const ThemeSettings = () => {
                         </div>
                       </CardHeader>
                       <CardContent className="p-4 pt-0">
-                        <p
-                          className="text-xl leading-relaxed"
-                          style={{ fontFamily: font.family }}
-                        >
-                          {font.preview}
+                        <p style={{ fontFamily: font.family }}>
+                          هذا النص سيظهر بخط {font.name}
                         </p>
                       </CardContent>
                     </Card>
@@ -412,78 +387,50 @@ const ThemeSettings = () => {
               </div>
             </TabsContent>
 
+            {/* محتوى تبويب الحجم */}
             <TabsContent value="size">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-xl font-medium">حجم الخط</CardTitle>
-                  <CardDescription>اختر حجم الخط المناسب للعرض</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-8">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {Object.entries(fontSizes).map(([size, config]) => (
-                        <motion.div
-                          key={size}
-                          variants={itemVariants}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          <Card
-                            className={`cursor-pointer p-4 hover:shadow-lg ${
-                              fontSize === size ? 'ring-2 ring-primary' : ''
-                            }`}
-                            onClick={() => {
-                              setFontSize(size);
-                              document.documentElement.style.setProperty("--font-size-base", `${config.base}px`);
-                            }}
-                          >
-                            <div className="text-center">
-                              <div 
-                                className="mb-2 font-medium"
-                                style={{ fontSize: `${config.base}px` }}
-                              >
-                                نص تجريبي
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                {size === "small" && "صغير"}
-                                {size === "medium" && "متوسط"}
-                                {size === "large" && "كبير"}
-                                {size === "xlarge" && "كبير جداً"}
-                              </div>
-                            </div>
-                          </Card>
-                        </motion.div>
-                      ))}
-                    </div>
-
-                    <div className="space-y-4">
-                      <Label className="text-lg font-medium">معاينة الحجم</Label>
-                      <div 
-                        className="space-y-4 p-6 bg-card rounded-lg"
-                        style={{
-                          fontSize: `${fontSizes[fontSize as keyof typeof fontSizes].base}px`,
-                          fontFamily: selectedFont.family
-                        }}
-                      >
-                        <h1 className="text-2xl font-bold">عنوان رئيسي</h1>
-                        <h2 className="text-xl font-semibold">عنوان فرعي</h2>
-                        <p className="leading-relaxed">
-                          هذا نص تجريبي لمعاينة حجم الخط المختار. يمكنك رؤية كيف سيظهر النص في مختلف العناصر.
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {Object.entries(fontSizes).map(([size, data]) => (
+                  <motion.div
+                    key={size}
+                    variants={itemVariants}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Card
+                      className={`cursor-pointer transition-all hover:shadow-lg ${
+                        fontSize === size ? 'ring-2 ring-primary' : ''
+                      }`}
+                      onClick={() => selectFontSize(size)}
+                    >
+                      <CardHeader className="p-4">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg font-medium">
+                            {size === 'small' && 'صغير'}
+                            {size === 'medium' && 'متوسط'}
+                            {size === 'large' && 'كبير'}
+                            {size === 'xlarge' && 'كبير جداً'}
+                          </CardTitle>
+                          {fontSize === size && (
+                            <Check className="w-5 h-5 text-primary" />
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-0">
+                        <p style={{ fontSize: `${data.base}px` }}>
+                          نموذج النص {data.base}px
                         </p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
             </TabsContent>
 
+            {/* محتوى تبويب السطوع */}
             <TabsContent value="appearance">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[
-                  { id: "light", name: "فاتح", icon: Sun },
-                  { id: "dark", name: "داكن", icon: Moon },
-                  { id: "system", name: "تلقائي", icon: Monitor }
-                ].map((mode) => (
+                {appearanceModes.map((mode) => (
                   <motion.div
                     key={mode.id}
                     variants={itemVariants}
@@ -494,10 +441,7 @@ const ThemeSettings = () => {
                       className={`cursor-pointer transition-all hover:shadow-lg ${
                         appearance === mode.id ? 'ring-2 ring-primary' : ''
                       }`}
-                      onClick={() => {
-                        setAppearance(mode.id as "light" | "dark" | "system");
-                        applyAppearance(mode.id as "light" | "dark" | "system");
-                      }}
+                      onClick={() => selectAppearance(mode.id as "light" | "dark" | "system")}
                     >
                       <CardHeader className="p-4">
                         <div className="flex items-center justify-between">
@@ -516,22 +460,17 @@ const ThemeSettings = () => {
               </div>
             </TabsContent>
           </motion.div>
-        </Tabs>
 
-        <motion.div
-          className="mt-8 flex justify-end"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Button
-            onClick={saveSettings}
-            disabled={isLoading}
-            className="w-full md:w-auto"
-          >
-            {isLoading ? "جارِ الحفظ..." : "حفظ التغييرات"}
-          </Button>
-        </motion.div>
+          <div className="flex justify-end mt-6">
+            <Button
+              onClick={saveSettings}
+              disabled={isLoading}
+              className="w-full md:w-auto"
+            >
+              {isLoading ? "جارٍ الحفظ..." : "حفظ الإعدادات"}
+            </Button>
+          </div>
+        </Tabs>
       </CardContent>
     </Card>
   );
