@@ -6,7 +6,7 @@ import { ThemeProvider } from "@/hooks/useAppTheme";
 
 // Import existing components
 import Dashboard from "@/pages/dashboard";
-import { Layout as DashboardLayout } from "@/components/layout/layout";
+import { Layout } from "@/components/layout/layout";
 import Login from "@/pages/auth-page";
 import Products from "@/pages/products";
 import Sales from "@/pages/sales";
@@ -27,7 +27,7 @@ function App() {
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/" element={<DashboardLayout />}>
+            <Route path="/" element={<Layout />}>
               <Route index element={<Dashboard />} />
               <Route path="products" element={<Products />} />
               <Route path="sales" element={<Sales />} />
