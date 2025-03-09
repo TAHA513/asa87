@@ -154,20 +154,19 @@ const ThemeSettings = () => {
   const [selectedTheme, setSelectedTheme] = useState(themes[0]);
   const [selectedFont, setSelectedFont] = useState(fonts[0]);
   const [fontSize, setFontSize] = useState("medium");
-  const [appearance, setAppearance] = useState<"light" | "dark">("light");
   const [isLoading, setIsLoading] = useState(false);
 
-  const applyAppearance = (mode: "light" | "dark") => {
+  const applyLightMode = () => {
     const root = window.document.documentElement;
-    root.classList.remove("light", "dark");
-    root.classList.add(mode);
-    root.style.setProperty("--current-appearance", mode);
+    root.classList.remove("dark");
+    root.classList.add("light");
+    root.style.setProperty("--current-appearance", "light");
   };
 
   useEffect(() => {
-    // تطبيق المظهر المحدد عند تحميل المكون
-    applyAppearance(appearance);
-  }, [appearance]);
+    // تطبيق الوضع الفاتح دائمًا عند تحميل المكون
+    applyLightMode();
+  }, []);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -437,27 +436,21 @@ const ThemeSettings = () => {
             </TabsContent>
 
             <TabsContent value="appearance">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  { id: "light", name: "فاتح", icon: Sun },
-                  { id: "dark", name: "داكن", icon: Moon }
-                ].map((mode) => (
-                  <motion.div
-                    key={mode.id}
-                    variants={itemVariants}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Card
-                      className={`cursor-pointer transition-all hover:shadow-lg ${
-                        appearance === mode.id ? 'ring-2 ring-primary' : ''
-                      }`}
-                      onClick={() => {
-                        setAppearance(mode.id as "light" | "dark");
-                        applyAppearance(mode.id as "light" | "dark");
-                      }}
-                    >
-                      <CardHeader className="p-4">
+              <div className="p-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>وضع المظهر</CardTitle>
+                    <CardDescription>
+                      تم تفعيل الوضع الفاتح فقط للتطبيق
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex items-center gap-2">
+                    <Sun className="w-6 h-6 text-primary" />
+                    <span className="font-medium">الوضع الفاتح</span>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-lg font-medium">{mode.name}</CardTitle>
                           {appearance === mode.id && (
