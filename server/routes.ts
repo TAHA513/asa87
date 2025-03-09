@@ -1378,7 +1378,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // حفظ الإعدادات في قاعدة البيانات
-      await storage.saveUserSettings(userSettings);
+      await storage.saveUserSettings({
+        userId: req.user!.id,
+        themeName: theme.variant,
+        fontName: theme.fontStyle,
+        fontSize: theme.fontSize,
+        appearance: theme.appearance,
+        colors: {
+          primary: theme.primary,
+          secondary: `color-mix(in srgb, ${theme.primary} 80%, ${theme.appearance === 'dark' ? 'white' : 'black'})`,
+          accent: `color-mix(in srgb, ${theme.primary} 60%, ${theme.appearance === 'dark' ? 'black' : 'white'})`,
+        }
+      });
 
       // حفظ الثيم في ملف theme.json
       await fs.writeFile(
