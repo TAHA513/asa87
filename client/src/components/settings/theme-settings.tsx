@@ -316,9 +316,15 @@ const ThemeSettings = () => {
                       }`}
                       onClick={() => {
                         setSelectedTheme(theme);
+                        // تطبيق الألوان مباشرة على المتصفح
                         document.documentElement.style.setProperty("--primary-color", theme.colors.primary);
                         document.documentElement.style.setProperty("--secondary-color", theme.colors.secondary);
                         document.documentElement.style.setProperty("--accent-color", theme.colors.accent);
+                        // حفظ الألوان في localStorage للرجوع إليها في حالة إعادة تحميل الصفحة
+                        localStorage.setItem("theme-primary", theme.colors.primary);
+                        localStorage.setItem("theme-secondary", theme.colors.secondary);
+                        localStorage.setItem("theme-accent", theme.colors.accent);
+                        localStorage.setItem("theme-variant", theme.id);
                       }}
                     >
                       <CardHeader className="p-4">
