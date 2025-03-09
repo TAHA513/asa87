@@ -325,7 +325,7 @@ export default function InventoryTable() {
                           <Input 
                             type="date" 
                             value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''} 
-                            onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : '')}
+                            onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : undefined)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -348,7 +348,7 @@ export default function InventoryTable() {
           <TableHeader>
             <TableRow>
               <TableHead>اسم المنتج</TableHead>
-              <TableHead>رمز المنتج</TableHead>
+              <TableHead>رمز المنتج</TableHead>>
               <TableHead>الباركود</TableHead>
               <TableHead>الوصف</TableHead>
               <TableHead>السعر</TableHead>

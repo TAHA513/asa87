@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
-import { useNavigate } from "react-router-dom"; // Added import
+import { useNavigate, useLocation } from "react-router-dom";
 import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 
 
@@ -68,7 +68,8 @@ export default function Sales() {
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
-  const navigate = useNavigate(); // Using useNavigate from react-router-dom
+  const navigate = useNavigate();
+  const location = useLocation(); //Using useLocation
 
   const { data: sales = [] } = useQuery<Sale[]>({
     queryKey: ["/api/sales"],
@@ -856,3 +857,9 @@ export default function Sales() {
     </div>
   );
 }
+
+//  Assuming setLocation is a custom function or hook.  Replace with your actual implementation.
+//const setLocation = (path: string) => {
+//  // Your logic to update the location here
+//  console.log("Setting location to:", path)
+//}
