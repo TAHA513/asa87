@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,10 +36,23 @@ const DEFAULT_SETTINGS: ThemeSettings = {
   radius: 0.5
 };
 
-export function ThemeSettings() {
+// تعريف تغييرات السمات المتاحة
+const THEME_VARIANTS = [
+  { id: "professional", label: "مهني", color: "hsl(215.3 98.9% 27.8%)" },
+  { id: "vibrant", label: "نابض بالحياة", color: "hsl(349 90.9% 45.1%)" },
+  { id: "tint", label: "رمادي", color: "hsl(190 50% 65%)" },
+  { id: "modern", label: "عصري", color: "hsl(271.5 91.7% 65.1%)" },
+  { id: "classic", label: "كلاسيكي", color: "hsl(142.1 76.2% 36.3%)" },
+  { id: "futuristic", label: "مستقبلي", color: "hsl(261 73.7% 50.7%)" },
+  { id: "elegant", label: "أنيق", color: "hsl(0 0% 10%)" },
+  { id: "natural", label: "طبيعي", color: "hsl(22 90% 50.5%)" },
+];
+
+export default function ThemeSettings() {
   const { toast } = useToast();
   const [settings, setSettings] = useState<ThemeSettings>(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(false);
+  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // جلب الإعدادات الحالية
   useEffect(() => {
@@ -129,53 +143,78 @@ export function ThemeSettings() {
     }
   }, [settings.appearance]);
 
-  // حفظ الإعدادات فوريًا عند التغيير
+  // حفظ الإعدادات فوريًا عند التغيير مع تأخير صغير
   const handleChange = (key: keyof ThemeSettings, value: any) => {
     setSettings(prev => {
       const newSettings = { ...prev, [key]: value };
+      
+      // إلغاء المؤقت السابق إذا وجد
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+      
+      // إنشاء مؤقت جديد للحفظ بعد 500 مللي ثانية
+      const timeout = setTimeout(() => {
+        saveSettings();
+      }, 500);
+      
+      setSaveTimeout(timeout);
+      
       return newSettings;
     });
   };
 
+  // تنظيف المؤقت عند إلغاء تحميل المكون
+  useEffect(() => {
+    return () => {
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+    };
+  }, [saveTimeout]);
+
   return (
-    <div className="grid gap-6">
-      <Tabs defaultValue="theme" className="w-full">
-        <TabsList className="w-full grid grid-cols-3">
-          <TabsTrigger value="theme">السمة</TabsTrigger>
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <h3 className="text-2xl font-medium">تخصيص المظهر</h3>
+        <p className="text-sm text-muted-foreground">
+          قم بتخصيص مظهر التطبيق ليناسب ذوقك واحتياجاتك
+        </p>
+      </div>
+
+      <Tabs defaultValue="colors" className="space-y-4">
+        <TabsList className="grid grid-cols-3">
+          <TabsTrigger value="colors">الألوان</TabsTrigger>
           <TabsTrigger value="appearance">المظهر</TabsTrigger>
           <TabsTrigger value="typography">الخطوط</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="theme" className="space-y-4 mt-4">
+        <TabsContent value="colors" className="space-y-4">
           <div className="space-y-4">
-            <Label>اللون الرئيسي</Label>
-            <div className="flex justify-center p-4">
-              <HexColorPicker
-                color={settings.primary}
-                onChange={(color) => handleChange("primary", color)}
-              />
+            <div>
+              <Label>اللون الرئيسي</Label>
+              <div className="mt-3 flex items-center gap-4">
+                <div 
+                  className="w-20 h-20 border rounded-md cursor-pointer"
+                  style={{ backgroundColor: settings.primary }}
+                />
+                <HexColorPicker
+                  color={settings.primary}
+                  onChange={(color) => handleChange("primary", color)}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>الشكل العام</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { id: "professional", label: "مهني" },
-                  { id: "vibrant", label: "نابض بالحياة" },
-                  { id: "tint", label: "رمادي" },
-                  { id: "modern", label: "عصري" },
-                  { id: "classic", label: "كلاسيكي" },
-                  { id: "futuristic", label: "مستقبلي" },
-                  { id: "elegant", label: "أنيق" },
-                  { id: "natural", label: "طبيعي" }
-                ].map((variant) => (
-                  <div 
+            <div>
+              <Label>نمط الألوان</Label>
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {THEME_VARIANTS.map((variant) => (
+                  <div
                     key={variant.id}
                     className={cn(
-                      "relative flex items-center justify-center rounded-md border-2 p-4 cursor-pointer hover:bg-background/50",
-                      settings.variant === variant.id
-                        ? "border-primary"
-                        : "border-transparent"
+                      "relative h-16 rounded-md cursor-pointer flex items-center justify-center p-2 text-center text-sm transition-all",
+                      "border hover:border-primary",
+                      settings.variant === variant.id && "border-primary"
                     )}
                     onClick={() => handleChange("variant", variant.id)}
                   >
@@ -269,7 +308,7 @@ export function ThemeSettings() {
                     </div>
                     <div className="flex items-center space-x-2 space-x-reverse">
                       <RadioGroupItem value="xlarge" id="xlarge" />
-                      <Label htmlFor="xlarge" className="text-xl">كبير جداً</Label>
+                      <Label htmlFor="xlarge" className="text-xl">كبير جدًا</Label>
                     </div>
                   </RadioGroup>
                 </div>
@@ -278,10 +317,6 @@ export function ThemeSettings() {
           </Card>
         </TabsContent>
       </Tabs>
-
-      <Button onClick={saveSettings} disabled={isLoading}>
-        {isLoading ? "جاري الحفظ..." : "حفظ الإعدادات"}
-      </Button>
     </div>
   );
 }
