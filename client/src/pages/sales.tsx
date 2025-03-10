@@ -248,7 +248,6 @@ export default function Sales() {
     return acc;
       });
     }
-
     return acc;
   }, []);
 
