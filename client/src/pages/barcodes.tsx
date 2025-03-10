@@ -9,6 +9,7 @@ import JsBarcode from "jsbarcode";
 import { printBarcode } from "@/lib/api";
 import { Checkbox } from "@/components/ui/checkbox"; // Added import for Checkbox
 import { useReactToPrint } from "react-to-print";
+import './print-styles.css'; // Import for print styles
 
 
 export default function Barcodes() {
@@ -29,24 +30,6 @@ export default function Barcodes() {
     image: string;
   }
 
-
-/* أنماط للطباعة */
-@media print {
-  .barcode-item {
-    page-break-inside: avoid;
-    margin: 20mm 0;
-    text-align: center;
-  }
-  
-  .print-container {
-    display: block !important;
-  }
-  
-  @page {
-    size: A4;
-    margin: 10mm;
-  }
-}
 
   // توليد الباركود عند تغيير أي من الخيارات
   useEffect(() => {
@@ -179,7 +162,7 @@ export default function Barcodes() {
           selectedBarcodes.forEach(barcodeId => {
             const svg = document.getElementById(`printBarcode-${barcodeId}`);
             const item = barcodeList.find(item => item.id === barcodeId);
-            
+
             if (item && svg instanceof SVGElement) {
               try {
                 JsBarcode(svg, item.value, {
@@ -217,13 +200,6 @@ export default function Barcodes() {
         body {
           margin: 0;
           padding: 0;
-        }
-        .barcode-item {
-          page-break-inside: avoid;
-          margin-bottom: 10mm;
-        }
-        .print-container {
-          display: block !important;
         }
       }
     `,
@@ -417,18 +393,6 @@ export default function Barcodes() {
                       </div>
                     ) : null;
                   })}
-                </div>ssName="grid grid-cols-2 gap-8">
-                    {selectedBarcodes.map((barcodeId) => {
-                      const item = barcodeList.find(item => item.id === barcodeId);
-                      return item ? (
-                        <div key={item.id} className="barcode-item flex flex-col items-center p-4 border rounded">
-                          <p className="mb-2 font-bold text-lg">{item.value}</p>
-                          <svg className="w-full h-auto" id={`print-barcode-${item.id}`}></svg>
-                          <p className="mt-2 text-sm text-muted-foreground">{item.description || ""}</p>
-                        </div>
-                      ) : null;
-                    })}
-                  </div>
                 </div>
               </div>
             </>
