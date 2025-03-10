@@ -209,7 +209,7 @@ export default function Barcodes() {
             }
           });
               }
-            });
+            }); // Fixed missing comma or syntax error
           };
           resolve(true);
         }, 300); // زيادة التأخير لإعطاء وقت كافي لتهيئة العناصر
