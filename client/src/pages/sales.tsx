@@ -246,9 +246,6 @@ export default function Sales() {
       });
     }
     return acc;
-        date,
-        sales: 1,
-        revenue: sale.totalPrice
       });
     }
 
