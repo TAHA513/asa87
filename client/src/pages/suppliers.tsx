@@ -54,7 +54,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import Sidebar from "@/components/sidebar";
+import Sidebar from "@/components/ui/sidebar";
 
 // تعريف أنواع البيانات
 type Supplier = {
