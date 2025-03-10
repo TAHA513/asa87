@@ -26,7 +26,7 @@ export default defineConfig({
     hmr: {
       overlay: false,
       protocol: 'wss',
-      host: 'localhost',
+      host: '0.0.0.0',
       port: 443,
       timeout: 30000, // زيادة مهلة الاتصال
       clientPort: 443,
@@ -36,12 +36,12 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://0.0.0.0:5000',
         changeOrigin: true,
         secure: false
       },
       '/socket.io': {
-        target: 'http://localhost:5000',
+        target: 'http://0.0.0.0:5000',
         changeOrigin: true,
         ws: true
       }
