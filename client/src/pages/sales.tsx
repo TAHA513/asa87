@@ -224,14 +224,28 @@ export default function Sales() {
 
   // Analytics data transformation
   const analyticsData = sales.reduce((acc: any[], sale) => {
-    const date = new Date(sale.saleDate).toLocaleDateString();
+    // استخدم date أو saleDate حسب ما هو متوفر
+    const saleDate = sale.date || sale.saleDate;
+    if (!saleDate) return acc;
+    
+    const date = new Date(saleDate).toLocaleDateString();
     const existingDate = acc.find(item => item.date === date);
+    
+    // التأكد من أن totalPrice أو priceIqd * quantity متوفر
+    const revenue = sale.totalPrice || 
+                   (sale.priceIqd && sale.quantity ? Number(sale.priceIqd) * sale.quantity : 0);
 
     if (existingDate) {
       existingDate.sales += 1;
-      existingDate.revenue += sale.totalPrice;
+      existingDate.revenue += revenue;
     } else {
       acc.push({
+        date,
+        sales: 1,
+        revenue: revenue
+      });
+    }
+    return acc;
         date,
         sales: 1,
         revenue: sale.totalPrice
