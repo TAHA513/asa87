@@ -144,10 +144,14 @@ export default function BarcodesPage() {
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
     onBeforeGetContent: () => {
-      return new Promise((resolve) => {
-        generateBarcodes();
-        setTimeout(resolve, 500);
-      });
+      // عندما يكون الباركود غير موجود، قد نحتاج لإنشائه
+      if (barcodes.some(b => b.text) && !document.getElementById('barcode-' + barcodes[0].id + '-0')?.innerHTML) {
+        return new Promise((resolve) => {
+          generateBarcodes();
+          setTimeout(resolve, 800);
+        });
+      }
+      return Promise.resolve();
     },
     removeAfterPrint: false,
     copyStyles: true,
@@ -286,18 +290,7 @@ export default function BarcodesPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    // أولاً قم بتوليد الباركود
-                    generateBarcodes();
-                    // ثم بعد فترة زمنية قصيرة قم بفتح نافذة الطباعة
-                    setTimeout(() => {
-                      if (printRef.current) {
-                        handlePrint();
-                      } else {
-                        console.log("مرجع الطباعة غير موجود");
-                      }
-                    }, 800);
-                  }}
+                  onClick={handlePrint}
                   disabled={
                     barcodes.length === 0 ||
                     isGenerating ||
@@ -356,16 +349,7 @@ export default function BarcodesPage() {
           }
           .no-print {
             display: none !important;
-          }ibility: visible;
           }
-          .print-container {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          .no-print {
-            display: none !important;
           }
         }
 
