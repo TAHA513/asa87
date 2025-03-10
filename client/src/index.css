@@ -93,6 +93,41 @@
   .text-ar-xl {
     font-size: var(--font-size-xl);
     line-height: 2;
+
+/* تنسيقات الطباعة */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  .print-container,
+  .print-container * {
+    visibility: visible;
+  }
+  
+  .print-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+  }
+  
+  .barcode-item {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 15px;
+  }
+}
+
+/* تنسيقات عناصر الطباعة */
+.print-container {
+  display: block;
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
   }
 
   /* Arabic text weight utilities */

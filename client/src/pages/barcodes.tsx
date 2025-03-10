@@ -185,12 +185,18 @@ const BarcodeGenerator = () => {
   const printSelectedCode = (id: number) => {
     const selectedCode = savedCodes.find((code) => code.id === id);
     if (selectedCode) {
+      // تعيين القيم أولاً
       setType(selectedCode.type);
       setContent(selectedCode.content);
       setSize(selectedCode.size as "small" | "medium" | "large");
       
-      // تأخير أطول للتأكد من تحديث العناصر قبل الطباعة
-      setTimeout(() => {
+      // استخدام Promise مع setTimeout لضمان تحديث الحالة
+      new Promise((resolve) => {
+        setTimeout(resolve, 500); // وقت أطول للتأكد من تحديث الحالة
+      }).then(() => {
+        console.log("جاري محاولة الطباعة للباركود:", selectedCode.content);
+        console.log("مرجع الطباعة موجود:", !!printRef.current);
+        
         if (printRef.current) {
           handlePrint();
         } else {
@@ -200,7 +206,7 @@ const BarcodeGenerator = () => {
             variant: "destructive",
           });
         }
-      }, 300);
+      });
     }
   };
 
@@ -256,6 +262,11 @@ const BarcodeGenerator = () => {
   };
 
   const getBarcodesForPrinting = () => {
+    // التأكد من وجود محتوى للباركود
+    if (!content) {
+      return <div>لا يوجد محتوى للطباعة</div>;
+    }
+    
     return Array.from({ length: quantity }, (_, i) => (
       <div
         key={i}
@@ -264,7 +275,8 @@ const BarcodeGenerator = () => {
           padding: '10px',
           margin: '5px 0',
           textAlign: 'center',
-          breakInside: 'avoid'
+          breakInside: 'avoid',
+          pageBreakInside: 'avoid'
         }}
       >
         {renderBarcode()}
@@ -277,13 +289,11 @@ const BarcodeGenerator = () => {
       <h1 className="text-3xl font-bold mb-6 text-center">نظام الباركود</h1>
       
       {/* منطقة الطباعة المخفية - تأكد من وجودها دائمًا */}
-      <div className="hidden">
+      <div style={{ display: "none" }}>
         <div ref={printRef} className="print-container p-8">
-          {content && (
-            <div className="flex flex-col items-center justify-center">
-              {getBarcodesForPrinting()}
-            </div>
-          )}
+          <div className="flex flex-col items-center justify-center">
+            {getBarcodesForPrinting()}
+          </div>
         </div>
       </div>
 
@@ -375,8 +385,13 @@ const BarcodeGenerator = () => {
                           return;
                         }
                         
-                        // تأخير أطول للتأكد من تحديث العناصر قبل الطباعة
-                        setTimeout(() => {
+                        console.log("جاري محاولة الطباعة للمحتوى:", content);
+                        console.log("مرجع الطباعة موجود:", !!printRef.current);
+                        
+                        // استخدام Promise مع setTimeout للتأكد من تحديث الحالة
+                        new Promise((resolve) => {
+                          setTimeout(resolve, 500); // وقت أطول للتأكد من تحديث المحتوى
+                        }).then(() => {
                           if (printRef.current) {
                             handlePrint();
                           } else {
@@ -386,7 +401,7 @@ const BarcodeGenerator = () => {
                               variant: "destructive",
                             });
                           }
-                        }, 300);
+                        });
                       }}
                     >
                       <span>طباعة</span>
