@@ -8,6 +8,7 @@ import { Barcode, Printer } from "lucide-react";
 import JsBarcode from "jsbarcode";
 import { printBarcode } from "@/lib/api";
 import { Checkbox } from "@/components/ui/checkbox"; // Added import for Checkbox
+import { useReactToPrint } from "react-to-print";
 
 
 export default function Barcodes() {
@@ -139,20 +140,75 @@ export default function Barcodes() {
     setSelectedBarcodes(prev => [...prev, newItem.id]);
   };
 
-  const handleMultiplePrint = () => {
-    //This function needs implementation for printing multiple barcodes.  This is a placeholder.
-      if (!multiplePrintRef.current) {
+  const handleMultiplePrint = useReactToPrint({
+    content: () => multiplePrintRef.current,
+    onBeforeGetContent: () => {
+      return new Promise((resolve) => {
+        if (!multiplePrintRef.current || selectedBarcodes.length === 0) {
           toast({
-              title: "خطأ في الطباعة",
-              description: "لم يتم العثور على المحتوى للطباعة",
-              variant: "destructive",
+            title: "خطأ في الطباعة",
+            description: "لم يتم تحديد أي باركود للطباعة",
+            variant: "destructive",
           });
+          resolve(false);
           return;
-      }
-      //Add implementation to print the selected barcodes here.
-      console.log("Printing multiple barcodes:", selectedBarcodes); // Placeholder - replace with actual printing logic.
+        }
 
-  };
+        // تهيئة الباركودات للطباعة
+        setTimeout(() => {
+          const barcodeElements = multiplePrintRef.current?.querySelectorAll('svg');
+          if (barcodeElements) {
+            barcodeElements.forEach((svg, index) => {
+              // الحصول على الباركود المناسب من القائمة المحددة
+              const selectedBarcodeId = selectedBarcodes[index];
+              const item = barcodeList.find(item => item.id === selectedBarcodeId);
+              
+              if (item && svg instanceof SVGElement) {
+                try {
+                  JsBarcode(svg, item.value, {
+                    format: barcodeFormat,
+                    width: barcodeWidth,
+                    height: barcodeHeight,
+                    displayValue: true,
+                    font: "monospace",
+                    fontSize: 12,
+                    margin: 5,
+                  });
+                } catch (error) {
+                  console.error(`خطأ في إنشاء الباركود: ${error}`);
+                }
+              }
+            });
+          }
+          resolve(true);
+        }, 300); // زيادة التأخير لإعطاء وقت كافي لتهيئة العناصر
+      });
+    },
+    onAfterPrint: () => {
+      toast({
+        title: "تمت الطباعة",
+        description: `تمت طباعة ${selectedBarcodes.length} باركود بنجاح`,
+      });
+    },
+    pageStyle: `
+      @page {
+        margin: 10mm;
+      }
+      @media print {
+        body {
+          margin: 0;
+          padding: 0;
+        }
+        .barcode-item {
+          page-break-inside: avoid;
+          margin-bottom: 10mm;
+        }
+        .print-container {
+          display: block !important;
+        }
+      }
+    `,
+  });
 
 
   const removeFromList = (id: string) => {
@@ -330,17 +386,20 @@ export default function Barcodes() {
                 طباعة الباركودات المحددة ({selectedBarcodes.length})
               </Button>
 
-              <div ref={multiplePrintRef} className="hidden">
-                <div className="grid grid-cols-2 gap-4">
-                  {barcodeList
-                    .filter(item => selectedBarcodes.includes(item.id))
-                    .map(item => (
-                      <div key={item.id} className="flex flex-col items-center p-2 border rounded">
-                        <img src={item.image} alt={item.value} className="max-w-full h-auto" />
-                        <p className="mt-2">{item.value}</p>
-                      </div>
-                    ))
-                  }
+              <div style={{ display: 'none' }}>
+                <div ref={multiplePrintRef} className="print-container">
+                  <div className="grid grid-cols-2 gap-8">
+                    {selectedBarcodes.map((barcodeId) => {
+                      const item = barcodeList.find(item => item.id === barcodeId);
+                      return item ? (
+                        <div key={item.id} className="barcode-item flex flex-col items-center p-4 border rounded">
+                          <p className="mb-2 font-bold text-lg">{item.value}</p>
+                          <svg className="w-full h-auto" id={`print-barcode-${item.id}`}></svg>
+                          <p className="mt-2 text-sm text-muted-foreground">{item.description || ""}</p>
+                        </div>
+                      ) : null;
+                    })}
+                  </div>
                 </div>
               </div>
             </>
