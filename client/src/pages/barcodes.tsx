@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { useReactToPrint } from "react-to-print";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast"; // Corrected import statement
 import Sidebar from "@/components/sidebar";
 import JsBarcode from "jsbarcode";
 import { Printer, Plus } from "lucide-react";
@@ -129,13 +128,13 @@ export default function BarcodesPage() {
         });
         return;
       }
-      
+
       // تقسيم النص إلى أسطر
       const codes = bulkBarcodes
         .split("\n")
         .map((code) => code.trim())
         .filter((code) => code.length > 0);
-      
+
       if (codes.length === 0) {
         toast({
           title: "خطأ",
@@ -144,7 +143,7 @@ export default function BarcodesPage() {
         });
         return;
       }
-      
+
       setGeneratedBarcodes([...generatedBarcodes, ...codes]);
       toast({
         title: "تم إنشاء الباركود بنجاح",
