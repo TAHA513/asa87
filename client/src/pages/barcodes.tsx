@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import Loader2 from "@/components/ui/Loader2"; // Assuming this component exists
+import { Loader2 } from "lucide-react";
 
 // تعريف النمط للباركود المحفوظ
 interface SavedBarcode {
@@ -46,6 +46,8 @@ const BarcodeGenerator = () => {
 
   // مراجع للطباعة
   const printRef = useRef<HTMLDivElement>(null);
+  const barcodeRef = useRef<HTMLDivElement>(null);
+
 
   // تحميل الباركودات المحفوظة عند بدء التطبيق
   useEffect(() => {
