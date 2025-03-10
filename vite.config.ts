@@ -26,7 +26,9 @@ export default defineConfig({
     hmr: {
       overlay: false, // Disable error overlay
       clientPort: 443, // Use HTTPS port for WebSocket
-      port: 5000      // Internal HMR port
+      port: 5000,     // Internal HMR port
+      host: undefined, // Let Vite auto-detect the host - important for Replit
+      path: '/__vite_hmr' // Use a specific path for WebSocket connections
     },
     host: '0.0.0.0',
     port: 5000,

@@ -12,5 +12,6 @@ import "@fontsource/tajawal/400.css";
 import "@fontsource/tajawal/700.css";
 
 import "./index.css";
+import "./vite-client-setup"; // Import the Vite client setup first
 
 createRoot(document.getElementById("root")!).render(<App />);

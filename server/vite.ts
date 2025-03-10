@@ -30,7 +30,8 @@ export async function setupVite(app: Express, server: Server) {
       clientPort: 443,
       port: 5000,
       protocol: 'wss',
-      host: '0.0.0.0'
+      path: '/__vite_hmr', // Match the path in vite.config.ts
+      host: undefined // Let Vite auto-detect the host
     },
     allowedHosts: true,
   };
