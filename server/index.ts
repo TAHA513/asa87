@@ -123,8 +123,8 @@ async function startServer() {
       serveStatic(app);
     }
 
-    // استخدام المنفذ 5000 فقط
-    const port = 5000;
+    // استخدام المنفذ 5173 لتجنب التعارضات مع المنفذ 5000
+    const port = 5173;
     const httpServer = createServer(app);
     
     // إيقاف أي عملية تستخدم نفس المنفذ قبل البدء
@@ -249,41 +249,32 @@ async function startServer() {
     }
   }, 12 * 60 * 60 * 1000); // تشغيل مرتين في اليوم
 
-    // تعريف دالة لبدء الخادم مع محاولات إعادة المحاولة
-    const startServer = () => {
-      server.listen({
-        port,
+    // تعريف دالة لبدء الخادم مع عدد محدود من المحاولات
+    const startServer = (attemptCount = 0, currentPort = port) => {
+      // تحديد الحد الأقصى لعدد المحاولات لمنع الحلقات اللانهائية
+      const MAX_ATTEMPTS = 3;
+      
+      if (attemptCount >= MAX_ATTEMPTS) {
+        console.error(`فشل في بدء الخادم بعد ${MAX_ATTEMPTS} محاولات. يرجى إعادة تشغيل التطبيق.`);
+        return;
+      }
+      
+      httpServer.listen({
+        port: currentPort,
         host: "0.0.0.0",
         reusePort: true,
       }, () => {
-        log(`تم تشغيل السيرفر على المنفذ ${port}`);
+        log(`تم تشغيل السيرفر على المنفذ ${currentPort}`);
       }).on('error', (error) => {
         if (error.code === 'EADDRINUSE') {
-          console.error(`المنفذ ${port} قيد الاستخدام. جاري إيقاف العمليات السابقة...`);
+          console.error(`المنفذ ${currentPort} قيد الاستخدام.`);
           
-          // محاولة إيقاف العمليات التي تستخدم المنفذ باستخدام import
-          try {
-            // استخدام child_process بطريقة ESM
-            import('child_process').then(({ execSync }) => {
-              execSync(`lsof -t -i:${port} | xargs -r kill -9`);
-              console.log(`تم إيقاف العمليات على المنفذ ${port}، إعادة المحاولة خلال 2 ثانية...`);
-              
-              // إعادة المحاولة بعد ثانيتين
-              setTimeout(startServer, 2000);
-            });
-          } catch (killError) {
-            console.error('فشل في إيقاف العمليات:', killError);
-            // محاولة إعادة بدء الخادم بمنفذ مختلف إذا فشلت عملية القتل
-            const newPort = port + 1;
-            console.log(`محاولة استخدام منفذ بديل: ${newPort}`);
-            server.listen({
-              port: newPort,
-              host: "0.0.0.0",
-              reusePort: true,
-            }, () => {
-              log(`تم تشغيل السيرفر على المنفذ البديل ${newPort}`);
-            });
-          }
+          // محاولة استخدام منفذ مختلف
+          const newPort = currentPort + 1;
+          console.log(`محاولة استخدام منفذ بديل: ${newPort}`);
+          
+          // استمرار مع المنفذ الجديد والمحاولة التالية
+          startServer(attemptCount + 1, newPort);
         } else {
           console.error('خطأ في تشغيل السيرفر:', error);
         }
