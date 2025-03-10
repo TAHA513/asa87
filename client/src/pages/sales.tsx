@@ -270,7 +270,7 @@ export default function Sales() {
 
   const goToInstallments = (saleId: number) => {
     // Navigate to installments page with the sale ID
-    setLocation(`/installments?saleId=${saleId}`);
+    navigate(`/installments?saleId=${saleId}`);
   };
 
   return (
