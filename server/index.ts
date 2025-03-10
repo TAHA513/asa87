@@ -199,6 +199,7 @@ async function startServer() {
       host: "0.0.0.0"
     }, () => {
       log(`تم تشغيل السيرفر على المنفذ ${port}`);
+      console.log(`الواجهة متاحة على الرابط: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
     });
 
     // تنفيذ البذور بعد بدء السيرفر
