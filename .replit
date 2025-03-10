@@ -6,16 +6,13 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 [nix]
 channel = "stable-23_11"
 
-# تكوين واضح ونظيف للمنافذ
-[[ports]]
-localPort = 5000
-externalPort = 80
-description = "Express Server"
-
 [[ports]]
 localPort = 3000
 externalPort = 3000
-description = "Vite Dev Server"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
 
 # إعدادات النشر
 [deployment]
@@ -24,7 +21,7 @@ build = ["sh", "-c", "npm run build"]
 run = ["sh", "-c", "npm start"]
 
 [workflows]
-runButton = "Run Application"
+runButton = "Start application"
 
 [[workflows.workflow]]
 name = "Start application"
@@ -38,7 +35,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "npm run dev:both"
 waitForPort = 5000
 
 [[workflows.workflow]]
