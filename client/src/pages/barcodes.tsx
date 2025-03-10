@@ -144,18 +144,28 @@ export default function BarcodesPage() {
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
     onBeforeGetContent: () => {
-      // عندما يكون الباركود غير موجود، قد نحتاج لإنشائه
-      if (barcodes.some(b => b.text) && !document.getElementById('barcode-' + barcodes[0].id + '-0')?.innerHTML) {
-        return new Promise((resolve) => {
+      // تأكد من أن الباركود تم إنشاؤه قبل الطباعة
+      return new Promise((resolve) => {
+        if (!document.getElementById(`barcode-${barcodes[0]?.id}-0`)?.innerHTML) {
           generateBarcodes();
-          setTimeout(resolve, 800);
-        });
-      }
-      return Promise.resolve();
+          // إعطاء وقت كافي لإنشاء الباركود
+          setTimeout(resolve, 1000);
+        } else {
+          resolve();
+        }
+      });
+    },
+    onPrintError: (error) => {
+      console.error("خطأ في الطباعة:", error);
+      toast({
+        title: "خطأ في الطباعة",
+        description: "حدث خطأ أثناء محاولة الطباعة، يرجى المحاولة مرة أخرى",
+        variant: "destructive",
+      });
     },
     removeAfterPrint: false,
     copyStyles: true,
-    documentTitle: "الباركود المطبوع",
+    documentTitle: "الباركود",باركود المطبوع",
     pageStyle: `
       @page {
         size: auto;
@@ -273,7 +283,7 @@ export default function BarcodesPage() {
                 ))}
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-4 mt-4 justify-end">
                 <Button
                   onClick={generateBarcodes}
                   disabled={
@@ -281,13 +291,16 @@ export default function BarcodesPage() {
                     isGenerating ||
                     !barcodes.some((b) => b.text)
                   }
+                  className="flex-1 md:flex-none"
                 >
-                  {isGenerating && (
+                  {isGenerating ? (
                     <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                  ) : (
+                    <QrCode className="h-4 w-4 ml-2" />
                   )}
-                  <QrCode className="h-4 w-4 ml-2" />
                   إنشاء الباركود
                 </Button>
+
                 <Button
                   variant="outline"
                   onClick={handlePrint}
@@ -296,6 +309,7 @@ export default function BarcodesPage() {
                     isGenerating ||
                     !barcodes.some((b) => b.text)
                   }
+                  className="flex-1 md:flex-none"
                 >
                   <Printer className="h-4 w-4 ml-2" />
                   طباعة
@@ -330,7 +344,7 @@ export default function BarcodesPage() {
   );
 }
 
-<style jsx>{`
+<style jsx global>{`
         @media print {
           body * {
             visibility: hidden;
@@ -338,6 +352,24 @@ export default function BarcodesPage() {
           .print-container,
           .print-container * {
             visibility: visible;
+          }
+          .print-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            border: none !important;
+          }
+          .print-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+          }
+          .print-item {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
+        }e;
             position: relative;
           }
           .print-container {
