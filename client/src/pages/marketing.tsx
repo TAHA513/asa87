@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
@@ -53,7 +52,7 @@ export default function MarketingPage() {
     opened: 0,
     clicked: 0,
   });
-  const [, navigate] = useLocation(); // استخدام useLocation بدلا من useNavigate
+  const [, navigate] = useLocation();
 
   const form = useForm({
     resolver: zodResolver(formSchema),
