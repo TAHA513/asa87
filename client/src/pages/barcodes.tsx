@@ -96,13 +96,37 @@ const BarcodeGenerator = () => {
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
     documentTitle: "باركود",
+    onBeforeGetContent: () => {
+      return new Promise<void>((resolve) => {
+        // تأكد من أن محتوى الطباعة جاهز
+        resolve();
+      });
+    },
     onAfterPrint: () => {
       toast({
         title: "تمت الطباعة بنجاح",
         description: "تم إرسال الباركود إلى الطابعة",
       });
     },
-    pageStyle: printStyles,
+    removeAfterPrint: false,
+    pageStyle: `
+      @page {
+        size: auto;
+        margin: 10mm;
+      }
+      @media print {
+        body {
+          margin: 0;
+          padding: 0;
+        }
+        .barcode-item {
+          page-break-inside: avoid;
+          text-align: center;
+          margin: 10px 0;
+        }
+      }
+      ${printStyles}
+    `,
   });
 
   const saveBarcode = () => {
@@ -202,7 +226,13 @@ const BarcodeGenerator = () => {
     return Array.from({ length: quantity }, (_, i) => (
       <div
         key={i}
-        className="barcode-item"
+        className="barcode-item print-item"
+        style={{
+          padding: '10px',
+          margin: '5px 0',
+          textAlign: 'center',
+          breakInside: 'avoid'
+        }}
       >
         {renderBarcode()}
       </div>
@@ -289,8 +319,14 @@ const BarcodeGenerator = () => {
 
                   <div className="flex space-x-2 rtl:space-x-reverse">
                     <Button onClick={saveBarcode}>حفظ الباركود</Button>
-                    <Button variant="outline" onClick={handlePrint}>
-                      طباعة
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        // تأخير قصير للتأكد من أن المحتوى جاهز للطباعة
+                        setTimeout(handlePrint, 100);
+                      }}
+                    >
+                      <span>طباعة</span>
                     </Button>
                   </div>
                 </div>

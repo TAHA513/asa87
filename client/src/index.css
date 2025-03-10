@@ -97,6 +97,39 @@
 
   /* Arabic text weight utilities */
   .font-ar-normal {
+
+/* أنماط الطباعة */
+@media print {
+  @page {
+    size: auto;
+    margin: 10mm;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  .print-item {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* تحسين عرض عناصر الباركود للطباعة */
+.barcode-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
     font-weight: 400;
   }
 
