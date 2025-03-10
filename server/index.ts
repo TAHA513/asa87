@@ -42,22 +42,31 @@ app.use(fileUpload({
 // خدمة الملفات المرفوعة بشكل ثابت
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
-// تسجيل وقت الطلب - تحسين الأداء
+// تسجيل وقت الطلب
 app.use((req, res, next) => {
-  // تسجيل الطلبات الهامة فقط للتخفيف من الضغط
-  if (process.env.NODE_ENV === 'production' && !req.path.startsWith("/api")) {
-    return next();
-  }
-  
   const start = Date.now();
   const path = req.path;
-  
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+
+  const originalResJson = res.json;
+  res.json = function (bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
+
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (duration > 500) { // تسجيل الطلبات البطيئة فقط
-      log(`${req.method} ${path} ${res.statusCode} in ${duration}ms [SLOW]`);
-    } else if (path.startsWith("/api")) {
-      log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`);
+    if (path.startsWith("/api")) {
+      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      }
+
+      if (logLine.length > 80) {
+        logLine = logLine.slice(0, 79) + "…";
+      }
+
+      log(logLine);
     }
   });
 
