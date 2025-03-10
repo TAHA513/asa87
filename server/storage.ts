@@ -277,7 +277,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSaleItems(saleId: number): Promise<SaleItem[]> {
-    return db.select()
+    return db
+      .select()
       .from(saleItems)
       .where(eq(saleItems.saleId, saleId));
   }
@@ -878,7 +879,7 @@ export class DatabaseStorage implements IStorage {
 
       // Ensure userId is a number
       const userIdNum = Number(userId);
-      
+
       // Process colors to ensure they are stored as a valid JSONB object
       const processedColors = typeof settings.colors === 'string' 
         ? JSON.parse(settings.colors)
@@ -932,7 +933,7 @@ export class DatabaseStorage implements IStorage {
           lt(appointments.date, endDate)
         ))
         .orderBy(appointments.date);
-    } catch (error) {
+    } catch (error{
       console.error("خطأ في جلب المواعيد حسب النطاق الزمني:", error);
       return [];
     }
@@ -1212,7 +1213,7 @@ export class DatabaseStorage implements IStorage {
         console.error("Invalid report ID:", id);
         throw new Error("معرف التقرير غير صالح");
       }
-      
+
 
       const [report] = await db
         .select()
@@ -1442,7 +1443,7 @@ export class DatabaseStorage implements IStorage {
             acc[curr.status] = curr.count;
             return acc;
           }, {} as Record<string, number>);
-          
+
         return {
           ...day,
           byStatus: statusCounts

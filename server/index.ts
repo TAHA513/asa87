@@ -84,5 +84,22 @@ async function startServer() {
   }
 }
 
+// إضافة مسار للصفحة الرئيسية
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'مرحبًا بك في واجهة برمجة التطبيقات (API)',
+    status: 'ok',
+    endpoints: ['/api/users', '/api/products', '/health']
+  });
+});
+
+// تقديم ملفات العميل الثابتة بعد بناء التطبيق
+app.use(express.static('client/dist'));
+
+// معالجة كل المسارات الأخرى للعميل
+app.get('*', (req, res) => {
+  res.sendFile('client/dist/index.html', { root: '.' });
+});
+
 // بدء الخادم
 startServer();
