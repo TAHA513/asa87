@@ -224,6 +224,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Theme Settings
+  app.post("/api/theme", async (req, res) => {
+    try {
+      // التحقق من صحة البيانات
+      const themeSchema = z.object({
+        primary: z.string(),
+        variant: z.enum(["professional", "vibrant", "tint", "modern", "classic", "futuristic", "elegant", "natural"]),
+        appearance: z.enum(["light", "dark", "system"]),
+        fontStyle: z.enum([
+          "traditional",
+          "modern",
+          "minimal",
+          "digital",
+          "elegant",
+          "kufi",
+          "naskh",
+          "ruqaa",
+          "thuluth",
+          "contemporary",
+          "noto-kufi", // نوتو كوفي
+          "cairo", // القاهرة
+          "tajawal", // طجوال
+          "amiri", // أميري
+        ]),
+        radius: z.number(),
+        fontSize: z.enum(["small", "medium", "large", "xlarge"]), //Added fontSize
+      });
+
+      const theme = themeSchema.parse(req.body);
+
+      // حفظ الثيم في ملف theme.json
+      await fs.writeFile(
+        path.join(process.cwd(), "theme.json"),
+        JSON.stringify(theme, null, 2)
+      );
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating theme:", error);
+      res.status(500).json({ message: "فشل في تحديث المظهر" });
+    }
+  });
 
   // طرق التقسيط
   app.get("/api/installments", async (_req, res) => {
@@ -1667,250 +1709,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   // Add after existing report routes
-  app.post("/api/reports/activities", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const { startDate, endDate, type, filters } = req.body;
-
-      const report = await storage.generateActivityReport({
-        name: `تقرير النشاطات - ${new Date().toLocaleDateString('ar-IQ')}`,
-        description: `تقرير تفصيلي للنشاطات من ${new Date(startDate).toLocaleDateString('ar-IQ')} إلى ${new Date(endDate).toLocaleDateString('ar-IQ')}`,
-        dateRange: {
-          startDate: new Date(startDate),
-          endDate: new Date(endDate)
-        },
-        reportType: type,
-        filters,
-        generatedBy: req.user!.id,
-        data: {}
-      });
-
-      res.json(report);
-    } catch (error) {
-      console.error("Error generating activity report:", error);
-      res.status(500).json({ message: "فشل في إنشاء التقرير" });
-    }
-  });
-
-  app.get("/api/reports/activities/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const report = await storage.getActivityReport(Number(req.params.id));
-      if (!report) {
-        return res.status(404).json({ message: "التقرير غير موجود" });
-      }
-      res.json(report);
-    } catch (error) {
-      console.error("Error fetching activity report:", error);
-      res.status(500).json({ message: "فشل في جلب التقرير" });
-    }
-  });
-
-  // Add detailed reports endpoints
-  app.get("/api/reports/sales", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const { startDate, endDate, page = "1", pageSize = "50" } = req.query;
-      const report = await storage.getDetailedSalesReport({
-        start: new Date(startDate as string),
-        end: new Date(endDate as string)
-      },
-        req.user!.id,
-        Number(page),
-        Number(pageSize)
-      );
-      res.json(report);
-    } catch (error) {
-      console.error("Error generating sales report:", error);
-      res.status(500).json({ message: "فشل في إنشاء تقرير المبيعات" });
-    }
-  });
-
-  app.get("/api/reports/inventory", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const { startDate, endDate } = req.query;
-      const report = await storage.getInventoryReport({
-        start: new Date(startDate as string),
-        end: new Date(endDate as string)
-      });
-      res.json(report);
-    } catch (error) {
-      console.error("Error generating inventory report:", error);
-      res.status(500).json({ message: "فشل في إنشاء تقرير المخزون" });
-    }
-  });
-
-  app.get("/api/reports/financial", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const { startDate, endDate } = req.query;
-      const report = await storage.getFinancialReport({
-        start: new Date(startDate as string),
-        end: new Date(endDate as string)
-      });
-      res.json(report);
-    } catch (error) {
-      console.error("Error generating financial report:", error);
-      res.status(500).json({ message: "فشل في إنشاء التقرير المالي" });
-    }
-  });
-
-  app.get("/api/reports/user-activity", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const { startDate, endDate } = req.query;
-      const report = await storage.getUserActivityReport({
-        start: new Date(startDate as string),
-        end: new Date(endDate as string)
-      });
-      res.json(report);
-    } catch (error) {
-      console.error("Error generating user activity report:", error);
-      res.status(500).json({ message: "فشل في إنشاء تقرير نشاط المستخدمين" });
-    }
-  });
-  // Add after existing report routes
-  app.post("/api/reports/activities", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const { startDate, endDate, type, filters } = req.body;
-
-      const report = await storage.generateActivityReport({
-        name: `تقرير النشاطات - ${new Date().toLocaleDateString('ar-IQ')}`,
-        description: `تقرير تفصيلي للنشاطات من ${new Date(startDate).toLocaleDateString('ar-IQ')} إلى ${new Date(endDate).toLocaleDateString('ar-IQ')}`,
-        dateRange: {
-          startDate: new Date(startDate),
-          endDate: new Date(endDate)
-        },
-        reportType: type,
-        filters,
-        generatedBy: req.user!.id,
-        data: {}
-      });
-
-      res.json(report);
-    } catch (error) {
-      console.error("Error generating activity report:", error);
-      res.status(500).json({ message: "فشل في إنشاء التقرير" });
-    }
-  });
-
-  app.get("/api/reports/activities/:id", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const report = await storage.getActivityReport(Number(req.params.id));
-      if (!report) {
-        return res.status(404).json({ message: "التقرير غير موجود" });
-      }
-      res.json(report);
-    } catch (error) {
-      console.error("Error fetching activity report:", error);
-      res.status(500).json({ message: "فشل في جلب التقرير" });
-    }
-  });
-
-  // Add detailed reports endpoints
-  app.get("/api/reports/sales", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const { startDate, endDate, page = "1", pageSize = "50" } = req.query;
-      const report = await storage.getDetailedSalesReport({
-        start: new Date(startDate as string),
-        end: new Date(endDate as string)
-      },
-        req.user!.id,
-        Number(page),
-        Number(pageSize)
-      );
-      res.json(report);
-    } catch (error) {
-      console.error("Error generating sales report:", error);
-      res.status(500).json({ message: "فشل في إنشاء تقرير المبيعات" });
-    }
-  });
-
-  app.get("/api/reports/inventory", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const { startDate, endDate } = req.query;
-      const report = await storage.getInventoryReport({
-        start: new Date(startDate as string),
-        end: new Date(endDate as string)
-      });
-      res.json(report);
-    } catch (error) {
-      console.error("Error generating inventory report:", error);
-      res.status(500).json({ message: "فشل في إنشاء تقرير المخزون" });
-    }
-  });
-
-  app.get("/api/reports/financial", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const { startDate, endDate } = req.query;
-      const report = await storage.getFinancialReport({
-        start: new Date(startDate as string),
-        end: new Date(endDate as string)
-      });
-      res.json(report);
-    } catch (error) {
-      console.error("Error generating financial report:", error);
-      res.status(500).json({ message: "فشل في إنشاء التقرير المالي" });
-    }
-  });
-
-  app.get("/api/reports/user-activity", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const { startDate, endDate } = req.query;
-      const report = await storage.getUserActivityReport({
-        start: new Date(startDate as string),
-        end: new Date(endDate as string)
-      });
-      res.json(report);
-    } catch (error) {
-      console.error("Error generating user activity report:", error);
-      res.status(500).json({ message: "فشل في إنشاء تقرير نشاط المستخدمين" });
-    }
-  });
-  // Add after existing report routes
   app.get("/api/reports", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
@@ -2105,6 +1903,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: req.user!.id,
         date: new Date()
       });
+
 
       res.status(201).json(invoice);
     } catch (error) {
