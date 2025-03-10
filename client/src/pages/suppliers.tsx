@@ -314,7 +314,7 @@ export default function SuppliersPage() {
   // إذا كان هناك تحميل
   if (isLoadingSuppliers) {
     return (
-      <SidebarProvider> {/* Added SidebarProvider */}
+      <SidebarProvider>
         <div className="flex h-screen">
           <div className="w-64 h-full">
             <SidebarNav />
@@ -325,13 +325,13 @@ export default function SuppliersPage() {
             </div>
           </main>
         </div>
-      </SidebarProvider> {/* Added SidebarProvider */}
+      </SidebarProvider>
     );
   }
 
   // عرض الصفحة الرئيسية
   return (
-    <SidebarProvider> {/* Added SidebarProvider */}
+    <SidebarProvider>
       <div className="flex h-screen">
         <div className="w-64 h-full">
           <SidebarNav />
