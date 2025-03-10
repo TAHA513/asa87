@@ -22,6 +22,11 @@ export default defineConfig({
         ]
       : []),
   ],
+  server: {
+    hmr: {
+      overlay: false // Disable error overlay
+    }
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "client", "src"),
