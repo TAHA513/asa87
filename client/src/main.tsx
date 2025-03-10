@@ -16,11 +16,9 @@ import "./index.css";
 createRoot(document.getElementById("root")!).render(<App />);
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './app'
 import './index.css'
-
-// مكتبة React Error Boundary للتعامل مع الأخطاء
 import { ErrorBoundary } from 'react-error-boundary'
+import App from './app'
 
 function ErrorFallback({ error }: { error: Error }) {
   return (
@@ -46,5 +44,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <App />
     </ErrorBoundary>
-  </React.StrictMode>,
+  </React.StrictMode>
 )
