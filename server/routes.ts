@@ -1490,12 +1490,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      console.log("Fetching appointments...");
-      const appointments = await storage.getAppointments(); // Changed from getCustomerAppointments
-      console.log("Fetched appointments:", appointments);
+      // استخدام التخزين المؤقت لتسريع الاستجابة
+      const cacheKey = `appointments_${req.user!.id}`;
+      const cachedData = globalCache.get(cacheKey);
+
+      if (cachedData) {
+        return res.json(cachedData);
+      }
+
+      // محاولة الحصول على البيانات مع وقت انتظار محدد
+      const appointmentsPromise = storage.getAppointments();
+
+      // تعيين مهلة زمنية للطلب
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('تجاوز الوقت المحدد للطلب')), 5000)
+      );
+
+      const appointments = await Promise.race([
+        appointmentsPromise,
+        timeoutPromise
+      ]) as any;
+
+      // تخزين النتيجة في الذاكرة المؤقتة
+      globalCache.set(cacheKey, appointments);
+
       res.json(appointments);
     } catch (error) {
       console.error("Error fetching appointments:", error);
+      // استجابة محسنة في حالة الخطأ
+      if (error instanceof Error && error.message === 'تجاوز الوقت المحدد للطلب') {
+        return res.status(408).json({ message: "انتهت مهلة الاتصال، يرجى المحاولة مرة أخرى" });
+      }
       res.status(500).json({ message: "فشل في جلب المواعيد" });
     }
   });
@@ -1710,7 +1735,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   // Add after existing report routes
   app.get("/api/reports", async (req, res) => {
-    if (!req.isAuthenticated()) {
+    if (!req.isAuthenticated) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
 
@@ -1730,12 +1755,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const reportId = parseInt(req.params.id);
-      
+
       // التحقق من صحة معرف التقرير
       if (isNaN(reportId)) {
         return res.status(400).json({ message: "معرف التقرير غير صالح" });
       }
-      
+
       const report = await storage.getReport(reportId);
       if (!report) {
         return res.status(404).json({ message: "التقرير غير موجود" });
@@ -1773,7 +1798,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صحة التواريخ
       const start = new Date(startDate as string);
       const end = new Date(endDate as string);
-      
+
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
         return res.status(400).json({
           message: "صيغة التاريخ غير صحيحة"

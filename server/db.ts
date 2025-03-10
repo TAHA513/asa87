@@ -13,14 +13,17 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL must be set. Did you forget to provision a database?");
 }
 
-// Create connection pool with proper error handling and retry logic
+// Create optimized connection pool with proper error handling and retry logic
 const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: 5000, // 5 second timeout
-  max: 20, // Maximum 20 clients in pool
-  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
+  connectionTimeoutMillis: 10000, // 10 second timeout for better reliability
+  max: 10, // Optimal number of clients in pool
+  min: 2, // Keep minimum 2 connections ready
+  idleTimeoutMillis: 60000, // Keep connections longer (1 minute)
   keepAlive: true, // Keep connections alive
-  allowExitOnIdle: false // Prevent pool from ending when idle
+  allowExitOnIdle: false, // Prevent pool from ending when idle
+  statement_timeout: 30000, // Timeout long-running queries after 30 seconds
+  query_timeout: 30000 // Timeout long-running queries
 });
 
 // Configure drizzle with proper typing

@@ -73,9 +73,12 @@ app.use((req, res, next) => {
   next();
 });
 
-// معالجة الأخطاء
+// تحسين معالجة الأخطاء
 const errorHandler = (err: any, _req: Request, res: Response, next: NextFunction) => {
-  console.error('خطأ في السيرفر:', err);
+  // فقط تسجيل الأخطاء الحرجة في وحدة التحكم
+  if (err.status >= 500 || !err.status) {
+    console.error('خطأ في السيرفر:', err);
+  }
 
   if (res.headersSent) {
     return next(err);
@@ -84,11 +87,25 @@ const errorHandler = (err: any, _req: Request, res: Response, next: NextFunction
   const status = err.status || err.statusCode || 500;
   const message = err.message || "خطأ في السيرفر";
 
+  // تعديل الاستجابة لتكون أسرع وأخف
   res.status(status).json({ 
     error: true,
-    message 
+    message,
+    code: err.code || 'SERVER_ERROR'
   });
 };
+
+// إضافة معالج لضغط الاستجابات
+import compression from 'express';
+app.use(compression());
+
+// إضافة تحسين لمعالجة الطلبات المتزامنة
+app.use((req, res, next) => {
+  // تعيين حد زمني للطلبات الطويلة
+  req.setTimeout(30000); // 30 seconds timeout
+  res.setTimeout(30000);
+  next();
+});
 
 // معالجة الأخطاء غير المتوقعة في العملية
 process.on('uncaughtException', (error) => {
