@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -227,10 +226,10 @@ export default function Sales() {
     // استخدم date أو saleDate حسب ما هو متوفر
     const saleDate = sale.date || sale.saleDate;
     if (!saleDate) return acc;
-    
+
     const date = new Date(saleDate).toLocaleDateString();
     const existingDate = acc.find(item => item.date === date);
-    
+
     // التأكد من أن totalPrice أو priceIqd * quantity متوفر
     const revenue = sale.totalPrice || 
                    (sale.priceIqd && sale.quantity ? Number(sale.priceIqd) * sale.quantity : 0);
@@ -246,18 +245,8 @@ export default function Sales() {
       });
     }
     return acc;
-      }, []);
-      
-      if (!existingDate) {
-        chartData.push({
-          date,
-          sales: 1,
-          revenue: sale.totalPrice
-        });
-      }
-    }
-    return acc;
   }, []);
+
 
   const handleDeleteSale = (saleId: number) => {
     // Implementation for deleting a sale
@@ -323,12 +312,12 @@ export default function Sales() {
                   const productId = Number(formData.get('productId'));
                   const customerId = Number(formData.get('customerId'));
                   const quantity = Number(formData.get('quantity'));
-                  
+
                   // Find the product to get its price
                   const product = products.find(p => p.id === productId);
                   const unitPrice = product ? product.price : 0;
                   const totalPrice = unitPrice * quantity;
-                  
+
                   const newSale = {
                     productId,
                     customerId,
@@ -342,7 +331,7 @@ export default function Sales() {
                     guarantorName: formData.get('guarantorName'),
                     guarantorPhone: formData.get('guarantorPhone'),
                   };
-                  
+
                   addSaleMutation.mutate(newSale);
                 }}
                 className="space-y-4"
@@ -487,7 +476,7 @@ export default function Sales() {
               </form>
             </DialogContent>
           </Dialog>
-          
+
           <Dialog open={isCustomerDialogOpen} onOpenChange={setIsCustomerDialogOpen}>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
@@ -507,7 +496,7 @@ export default function Sales() {
                     address: formData.get('address'),
                     notes: formData.get('notes'),
                   };
-                  
+
                   addCustomerMutation.mutate(newCustomer);
                 }}
                 className="space-y-4"
