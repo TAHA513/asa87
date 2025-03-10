@@ -17,7 +17,7 @@ class EnhancedConnectionPool {
   private healthCheckInterval: NodeJS.Timeout | null = null;
   private reconnectBackoff = 1000; // Start with 1 second
   private maxReconnectBackoff = 30000; // Max 30 seconds
-  private isConnected = false;
+  private _isConnected = false;
 
   constructor() {
     // Create the pool with optimal settings
@@ -88,11 +88,11 @@ class EnhancedConnectionPool {
     try {
       // Quick connection test
       await this.pool.query('SELECT 1');
-      this.isConnected = true;
+      this._isConnected = true;
       this.reconnectBackoff = 1000; // Reset backoff on success
     } catch (err) {
       console.warn('Database health check failed:', err);
-      this.isConnected = false;
+      this._isConnected = false;
       
       // If we're disconnected, try to reconnect with exponential backoff
       setTimeout(() => {
@@ -110,7 +110,7 @@ class EnhancedConnectionPool {
       const client = await this.pool.connect();
       client.release();
       console.log('Successfully reconnected to database');
-      this.isConnected = true;
+      this._isConnected = true;
     } catch (err) {
       console.error('Database reconnection attempt failed:', err);
     }
@@ -173,8 +173,8 @@ class EnhancedConnectionPool {
   }
 
   // Get connected status
-  isConnected() {
-    return this.isConnected;
+  getConnectionStatus() {
+    return this._isConnected;
   }
 }
 
@@ -182,4 +182,4 @@ class EnhancedConnectionPool {
 export const connectionPool = new EnhancedConnectionPool();
 export const db = connectionPool.getDrizzle();
 export { sql };
-export const executeQuery = connectionPool.executeQuery.bind(connectionPool);
+export const executeQuery = (fn: Function) => connectionPool.executeQuery(fn);
