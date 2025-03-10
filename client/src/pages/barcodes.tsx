@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -20,6 +19,7 @@ interface BarcodeItem {
   width: number;
   height: number;
   label: string;
+  createdAt: Date; // Added createdAt property
 }
 
 export default function Barcodes() {
@@ -126,6 +126,7 @@ export default function Barcodes() {
       width: barcodeWidth,
       height: barcodeHeight,
       label: barcodeLabel || barcodeText,
+      createdAt: new Date() // Added createdAt timestamp
     };
 
     setBarcodeList(prev => [...prev, newBarcode]);
@@ -144,7 +145,7 @@ export default function Barcodes() {
   const removeFromList = (id: string) => {
     setBarcodeList(prev => prev.filter(item => item.id !== id));
     setSelectedBarcodes(prev => prev.filter(itemId => itemId !== id));
-    
+
     toast({
       title: "تم الحذف",
       description: "تم حذف الباركود من القائمة",
@@ -192,7 +193,7 @@ export default function Barcodes() {
               // الحصول على الباركود المناسب من القائمة المحددة
               const selectedBarcodeId = selectedBarcodes[index];
               const item = barcodeList.find(item => item.id === selectedBarcodeId);
-              
+
               if (item && svg instanceof SVGElement) {
                 try {
                   JsBarcode(svg, item.value, {
@@ -282,11 +283,41 @@ export default function Barcodes() {
 
   // تصفية الباركودات حسب البحث والفلتر
   const filteredBarcodes = barcodeList.filter(barcode => {
-    const matchesSearch = barcode.value.includes(searchValue) || 
-                        barcode.label.toLowerCase().includes(searchValue.toLowerCase());
-    const matchesFormat = filterFormat ? barcode.format === filterFormat : true;
+    const matchesSearch = searchValue === '' || 
+      barcode.value.toLowerCase().includes(searchValue.toLowerCase()) || 
+      (barcode.label && barcode.label.toLowerCase().includes(searchValue.toLowerCase()));
+
+    const matchesFormat = filterFormat === '' || barcode.format === filterFormat;
+
     return matchesSearch && matchesFormat;
   });
+
+  // عرض معاينة الباركودات في الجدول
+  useEffect(() => {
+    const previewBarcodes = document.querySelectorAll('.preview-barcode');
+    if (previewBarcodes.length > 0) {
+      previewBarcodes.forEach(svg => {
+        if (svg instanceof SVGElement) {
+          const value = svg.getAttribute('data-barcode-value');
+          const format = svg.getAttribute('data-barcode-format');
+          if (value && format) {
+            try {
+              JsBarcode(svg, value, {
+                format: format,
+                width: 1.5,
+                height: 40,
+                displayValue: false,
+                margin: 0,
+              });
+            } catch (error) {
+              console.error("خطأ في معاينة الباركود:", error);
+            }
+          }
+        }
+      });
+    }
+  }, [filteredBarcodes]);
+
 
   return (
     <div className="container mx-auto py-6">
@@ -294,7 +325,7 @@ export default function Barcodes() {
         <Barcode className="ml-2 rtl:mr-2" />
         إنشاء وطباعة الباركودات
       </h1>
-      
+
       <Tabs value={currentTab} onValueChange={setCurrentTab} className="mb-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="create" className="text-lg">إنشاء باركود</TabsTrigger>
@@ -486,13 +517,15 @@ export default function Barcodes() {
                           <TableHead>الوصف</TableHead>
                           <TableHead>النوع</TableHead>
                           <TableHead>الأبعاد</TableHead>
+                          <TableHead>معاينة</TableHead>
+                          <TableHead>تاريخ الإنشاء</TableHead>
                           <TableHead>إجراءات</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredBarcodes.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                            <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
                               لا توجد نتائج مطابقة لعملية البحث
                             </TableCell>
                           </TableRow>
@@ -510,6 +543,14 @@ export default function Barcodes() {
                               <TableCell>{barcode.format}</TableCell>
                               <TableCell>
                                 {barcode.width} × {barcode.height}
+                              </TableCell>
+                              <TableCell>
+                                <div className="w-[100px] h-[50px] overflow-hidden flex items-center justify-center">
+                                  <svg className="preview-barcode" data-barcode-value={barcode.value} data-barcode-format={barcode.format}></svg>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {barcode.createdAt.toLocaleDateString('ar-AE')}
                               </TableCell>
                               <TableCell>
                                 <Button variant="ghost" size="sm" onClick={() => removeFromList(barcode.id)}>
@@ -530,12 +571,12 @@ export default function Barcodes() {
           {/* رؤية الطباعة للباركودات المحددة */}
           <div className="hidden">
             <div ref={multiplePrintRef} className="p-4 grid grid-cols-2 gap-4 print-container">
-              {selectedBarcodes.map((id) => {
-                const barcode = barcodeList.find((item) => item.id === id);
-                return barcode ? (
-                  <div key={id} className="barcode-item text-center p-4 border rounded">
-                    <svg id={`barcode-print-${id}`} className="w-full"></svg>
-                    {barcode.label && <div className="mt-2 text-sm font-semibold">{barcode.label}</div>}
+              {selectedBarcodes.map((barcodeId) => {
+                const item = barcodeList.find((item) => item.id === barcodeId);
+                return item ? (
+                  <div key={item.id} className="barcode-item my-4 p-4 border rounded-lg">
+                    <svg className="barcode-svg w-full"></svg>
+                    {item.label && <div className="barcode-label mt-2 text-center font-semibold">{item.label}</div>}
                   </div>
                 ) : null;
               })}
