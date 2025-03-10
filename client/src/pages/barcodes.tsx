@@ -20,6 +20,8 @@ import { Loader2, Printer, QrCode, Plus, Trash2, RefreshCw } from "lucide-react"
 import { useReactToPrint } from 'react-to-print';
 import JsBarcode from 'jsbarcode';
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@headlessui/react'
+
 
 const BARCODE_TYPES = [
   { value: "CODE128", label: "Code 128" },
@@ -41,7 +43,9 @@ export default function BarcodesPage() {
   const { toast } = useToast();
   const [barcodes, setBarcodes] = useState<BarcodeItem[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const printRef = useRef<HTMLDivElement>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [selectedBarcode, setSelectedBarcode] = useState<BarcodeItem | null>(null);
+  const printRef = useRef(null);
   const barcodeRefs = useRef<{ [key: string]: (SVGSVGElement | null)[] }>({});
 
   useEffect(() => {
@@ -152,22 +156,17 @@ export default function BarcodesPage() {
     }
   };
 
-  const handlePrint = useReactToPrint({
-    content: () => printRef.current,
-    onBeforeGetContent: () => {
-      // تأكد من أن الباركود تم إنشاؤه قبل الطباعة
-      return new Promise((resolve) => {
-        if (!document.getElementById(`barcode-${barcodes[0]?.id}-0`)?.innerHTML) {
-          generateBarcodes();
-          // إعطاء وقت كافي لإنشاء الباركود
-          setTimeout(resolve, 1000);
-        } else {
-          resolve();
-        }
-      });
+  const printRef2 = useRef(null);
+
+  const { handlePrint, isPrinting } = useReactToPrint({
+    content: () => printRef2.current,
+    onBeforePrint: () => setIsPrinting(true),
+    onAfterPrint: () => {
+      setIsPrinting(false);
+      setSelectedBarcode(null);
     },
-    onPrintError: (error) => {
-      console.error("خطأ في الطباعة:", error);
+    onPrintError: () => {
+      setIsPrinting(false);
       toast({
         title: "خطأ في الطباعة",
         description: "حدث خطأ أثناء محاولة الطباعة، يرجى المحاولة مرة أخرى",
@@ -195,6 +194,35 @@ export default function BarcodesPage() {
       }
     `,
   });
+
+  // وظيفة لتحديد باركود للطباعة
+  const handlePrintBarcode = (barcode: BarcodeItem) => {
+    setSelectedBarcode(barcode);
+
+    // إنشاء الباركود في نافذة الطباعة بعد فتح النافذة
+    setTimeout(() => {
+      const element = document.getElementById(`print-barcode-${barcode.id}`) as SVGSVGElement;
+      if (element && barcode.text) {
+        if (barcode.type === "QR") {
+          // لاحقًا يمكن تنفيذ منطق QR code هنا
+          console.log("QR code generation not implemented yet");
+        } else {
+          try {
+            JsBarcode(element, barcode.text, {
+              format: barcode.type,
+              displayValue: true,
+              lineColor: "#000",
+              width: 2,
+              height: 80,
+              margin: 10,
+            });
+          } catch (error) {
+            console.error("خطأ في إنشاء باركود الطباعة:", error);
+          }
+        }
+      }
+    }, 300);
+  };
 
   return (
     <div className="flex h-screen bg-background">
@@ -314,7 +342,11 @@ export default function BarcodesPage() {
 
                 <Button
                   variant="outline"
-                  onClick={handlePrint}
+                  onClick={() => {
+                    if (barcodes.length > 0 && barcodes[0].text) {
+                      handlePrintBarcode(barcodes[0]);
+                    }
+                  }}
                   disabled={
                     barcodes.length === 0 ||
                     isGenerating ||
@@ -327,7 +359,7 @@ export default function BarcodesPage() {
                 </Button>
               </div>
 
-              <div id="print-content" ref={printRef} className="mt-6 p-4 border rounded-lg print-container">
+              <div id="print-content" ref={printRef2} className="mt-6 p-4 border rounded-lg print-container">
                 <h3 className="text-lg font-bold mb-4 text-center print:block">الباركود المطبوع</h3>
                 {barcodes.map((barcode) => (
                   barcode.text ? (
@@ -351,6 +383,49 @@ export default function BarcodesPage() {
           </Card>
         </div>
       </main>
+      {/* نافذة حوار طباعة باركود */}
+      <Dialog open={!!selectedBarcode} onOpenChange={(open) => !open && setSelectedBarcode(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>طباعة الباركود</DialogTitle>
+            <DialogDescription>معاينة وطباعة الباركود المحدد</DialogDescription>
+          </DialogHeader>
+
+          {selectedBarcode && (
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-between items-center">
+                <span className="font-bold">النوع: {selectedBarcode?.type}</span>
+                <span className="font-bold">النص: {selectedBarcode?.text}</span>
+              </div>
+
+              <div className="print-container" ref={printRef}>
+                <div className="text-center">
+                  {selectedBarcode.type === "QR" ? (
+                    <div className="qr-code-placeholder h-64 w-64 mx-auto border border-dashed border-gray-300 flex items-center justify-center">
+                      <span className="text-gray-500">محتوى QR (قيد التطوير)</span>
+                    </div>
+                  ) : (
+                    <div className="barcode-container">
+                      <svg id={`print-barcode-${selectedBarcode.id}`} className="w-full"></svg>
+                    </div>
+                  )}
+                  <div className="mt-2">{selectedBarcode.text}</div>
+                </div>
+              </div>
+
+              <div className="flex justify-between">
+                <Button variant="outline" onClick={() => setSelectedBarcode(null)}>
+                  إلغاء
+                </Button>
+                <Button onClick={handlePrint} disabled={isPrinting}>
+                  {isPrinting ? "جاري الطباعة..." : "طباعة"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
