@@ -1,6 +1,7 @@
-import { useState, useRef } from "react";
+
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import Sidebar from "@/components/layout/sidebar";
+import { Sidebar, SidebarProvider } from "@/components/ui/sidebar";
 import {
   Card,
   CardContent,
@@ -16,15 +17,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Printer, QrCode, Plus, Trash2 } from "lucide-react";
+import { Loader2, Printer, QrCode, Plus, Trash2, RefreshCw } from "lucide-react";
 import { useReactToPrint } from 'react-to-print';
 import JsBarcode from 'jsbarcode';
+import { useToast } from "@/components/ui/use-toast";
 
 const BARCODE_TYPES = [
   { value: "CODE128", label: "Code 128" },
   { value: "EAN13", label: "EAN-13" },
   { value: "UPC", label: "UPC" },
   { value: "CODE39", label: "Code 39" },
+  { value: "QR", label: "QR Code" },
 ];
 
 interface BarcodeItem {
@@ -36,10 +39,18 @@ interface BarcodeItem {
 
 export default function BarcodesPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [barcodes, setBarcodes] = useState<BarcodeItem[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const barcodeRefs = useRef<{ [key: string]: (SVGSVGElement | null)[] }>({});
+
+  useEffect(() => {
+    // إضافة باركود افتراضي عند تحميل الصفحة إذا لم يكن هناك أي باركود
+    if (barcodes.length === 0) {
+      addBarcodeItem();
+    }
+  }, []);
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
@@ -71,6 +82,12 @@ export default function BarcodesPage() {
         }
       }
     `,
+    onAfterPrint: () => {
+      toast({
+        title: "تمت الطباعة بنجاح",
+        description: "تم إرسال الباركود إلى الطابعة",
+      });
+    }
   });
 
   const addBarcodeItem = () => {
@@ -84,7 +101,28 @@ export default function BarcodesPage() {
   };
 
   const removeBarcodeItem = (id: string) => {
-    setBarcodes(barcodes.filter(b => b.id !== id));
+    if (barcodes.length > 1) {
+      setBarcodes(barcodes.filter(b => b.id !== id));
+    } else {
+      toast({
+        title: "لا يمكن الحذف",
+        description: "يجب أن يكون هناك باركود واحد على الأقل",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const clearAllBarcodes = () => {
+    setBarcodes([{
+      id: Date.now().toString(),
+      text: "",
+      type: "CODE128",
+      quantity: 1,
+    }]);
+    toast({
+      title: "تم المسح",
+      description: "تم مسح جميع الباركودات",
+    });
   };
 
   const updateBarcodeItem = (id: string, updates: Partial<BarcodeItem>) => {
@@ -95,23 +133,39 @@ export default function BarcodesPage() {
     setIsGenerating(true);
     try {
       barcodes.forEach(barcode => {
+        if (!barcode.text) return;
+        
         const refs = barcodeRefs.current[barcode.id] || [];
         refs.forEach(ref => {
           if (ref && barcode.text) {
-            JsBarcode(ref, barcode.text, {
-              format: barcode.type,
-              width: 2,
-              height: 80,
-              displayValue: true,
-              font: "monospace",
-              fontSize: 14,
-              margin: 10,
-            });
+            try {
+              JsBarcode(ref, barcode.text, {
+                format: barcode.type,
+                width: 2,
+                height: 80,
+                displayValue: true,
+                font: "monospace",
+                fontSize: 14,
+                margin: 10,
+              });
+            } catch (error) {
+              console.error("خطأ في إنشاء الباركود:", error);
+              toast({
+                title: "خطأ في إنشاء الباركود",
+                description: "تأكد من صحة النص المدخل ونوع الباركود",
+                variant: "destructive",
+              });
+            }
           }
         });
       });
     } catch (error) {
       console.error("خطأ في إنشاء الباركود:", error);
+      toast({
+        title: "خطأ في إنشاء الباركود",
+        description: "تأكد من صحة البيانات المدخلة",
+        variant: "destructive",
+      });
     }
     setIsGenerating(false);
   };
@@ -119,9 +173,11 @@ export default function BarcodesPage() {
   return (
     <div className="flex h-screen">
       <div className="w-64 h-full">
-        <Sidebar />
+        <SidebarProvider>
+          <Sidebar />
+        </SidebarProvider>
       </div>
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-8 overflow-auto">
         <div className="max-w-4xl mx-auto space-y-6">
           <div>
             <h2 className="text-3xl font-bold">إنشاء الباركود</h2>
@@ -131,18 +187,23 @@ export default function BarcodesPage() {
           </div>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>إنشاء باركود جديد</CardTitle>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={clearAllBarcodes}>
+                  <RefreshCw className="h-4 w-4 ml-2" />
+                  مسح الكل
+                </Button>
+                <Button onClick={addBarcodeItem}>
+                  <Plus className="h-4 w-4 ml-2" />
+                  إضافة باركود
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button onClick={addBarcodeItem}>
-                <Plus className="h-4 w-4 ml-2" />
-                إضافة باركود جديد
-              </Button>
-
               <div className="space-y-4">
                 {barcodes.map((barcode) => (
-                  <div key={barcode.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg">
+                  <div key={barcode.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-card">
                     <div>
                       <label className="text-sm font-medium">نوع الباركود</label>
                       <Select
@@ -219,8 +280,9 @@ export default function BarcodesPage() {
                 {barcodes.map((barcode) => (
                   <div key={barcode.id} className="mb-6">
                     <div className="print-grid grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {Array.from({ length: barcode.quantity }).map((_, index) => (
+                      {barcode.text && Array.from({ length: barcode.quantity }).map((_, index) => (
                         <div key={index} className="print-item border p-2 rounded print:border-none">
+                          <div className="text-center text-sm mb-1 font-medium">{barcode.text}</div>
                           <svg
                             ref={(el) => {
                               if (!barcodeRefs.current[barcode.id]) {
@@ -235,6 +297,11 @@ export default function BarcodesPage() {
                     </div>
                   </div>
                 ))}
+                {barcodes.length === 0 || !barcodes.some(b => b.text) ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    أدخل النص وانقر على زر "إنشاء الباركود" لعرض النتيجة
+                  </div>
+                ) : null}
               </div>
             </CardContent>
           </Card>
