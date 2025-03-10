@@ -81,7 +81,7 @@ export default function Sales() {
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
-  const [location, setLocation] = useLocation(); // Using useLocation from wouter
+  const [, navigate] = useLocation(); // Using useLocation from wouter correctly
 
   const { data: sales = [] } = useQuery<Sale[]>({
     queryKey: ["/api/sales"],
@@ -196,10 +196,10 @@ export default function Sales() {
   const filteredSales = sales.filter(sale => {
     const searchTerm = filterText.toLowerCase();
     return (
-      sale.product.name.toLowerCase().includes(searchTerm) ||
-      sale.customer.name.toLowerCase().includes(searchTerm) ||
-      sale.paymentStatus.toLowerCase().includes(searchTerm) ||
-      sale.paymentMethod.toLowerCase().includes(searchTerm) ||
+      sale.product?.name?.toLowerCase().includes(searchTerm) ||
+      sale.customer?.name?.toLowerCase().includes(searchTerm) ||
+      sale.paymentStatus?.toLowerCase().includes(searchTerm) ||
+      sale.paymentMethod?.toLowerCase().includes(searchTerm) ||
       (sale.notes && sale.notes.toLowerCase().includes(searchTerm))
     );
   });
