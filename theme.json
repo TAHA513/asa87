@@ -1,28 +1,8 @@
-
 {
-  "name": "نظام إدارة المبيعات",
-  "primary": "#0284c7",
-  "background": "#f8fafc",
-  "foreground": "#0f172a",
-  "card": "#ffffff",
-  "cardForeground": "#0f172a",
-  "popover": "#ffffff",
-  "popoverForeground": "#0f172a",
-  "primaryForeground": "#f8fafc",
-  "secondary": "#f1f5f9",
-  "secondaryForeground": "#0f172a",
-  "muted": "#f1f5f9",
-  "mutedForeground": "#64748b",
-  "accent": "#f1f5f9",
-  "accentForeground": "#0f172a",
-  "destructive": "#ef4444",
-  "destructiveForeground": "#f8fafc",
-  "border": "#e2e8f0",
-  "input": "#e2e8f0",
-  "ring": "#94a3b8",
-  "radius": 0.5,
-  "variant": "default",
-  "appearance": "light",
+  "primary": "hsl(142.1 76.2% 36.3%)",
+  "variant": "modern",
+  "appearance": "dark",
   "fontStyle": "noto-kufi",
-  "fontSize": "medium"
+  "fontSize": "medium",
+  "radius": 0.5
 }
