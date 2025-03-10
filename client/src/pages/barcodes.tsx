@@ -210,7 +210,7 @@ export default function Barcodes() {
           });
               }
             });
-          }
+          };
           resolve(true);
         }, 300); // زيادة التأخير لإعطاء وقت كافي لتهيئة العناصر
       });
