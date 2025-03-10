@@ -1,14 +1,12 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/use-auth";
-import Sidebar from "@/components/layout/sidebar";
+
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Form,
   FormControl,
@@ -17,15 +15,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { 
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -34,12 +24,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useForm } from "react-hook-form";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, MegaphoneIcon, Send, Users } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Sidebar } from "@/components/sidebar";
+import { useLocation } from "wouter";
 
 const formSchema = z.object({
   title: z.string().min(2, {
@@ -61,7 +53,7 @@ export default function MarketingPage() {
     opened: 0,
     clicked: 0,
   });
-  const navigate = useNavigate();
+  const [, navigate] = useLocation(); // استخدام useLocation بدلا من useNavigate
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -80,22 +72,26 @@ export default function MarketingPage() {
     try {
       const response = await fetch("/api/marketing/campaigns");
       const data = await response.json();
-      setCampaigns(data.campaigns || []);
+      setCampaigns(data || []);
 
       // Fetch campaign statistics
-      const statsResponse = await fetch("/api/marketing/statistics");
+      const statsResponse = await fetch("/api/marketing/platform-stats");
       const statsData = await statsResponse.json();
-      setCampaignStats(statsData);
+      setCampaignStats({
+        total: statsData.length || 0,
+        opened: statsData.filter((s: any) => s.opened)?.length || 0,
+        clicked: statsData.filter((s: any) => s.clicked)?.length || 0,
+      });
     } catch (error) {
       toast({
         title: "خطأ",
-        description: "فشل في تحميل حملات التسويق",
+        description: "فشل في جلب الحملات التسويقية",
         variant: "destructive",
       });
     }
   };
 
-  const onSubmit = async (values) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setLoading(true);
     try {
       const response = await fetch("/api/marketing/campaigns", {
@@ -106,25 +102,22 @@ export default function MarketingPage() {
         body: JSON.stringify(values),
       });
 
-      if (response.ok) {
-        toast({
-          title: "تم إنشاء الحملة",
-          description: "تم إنشاء حملة التسويق بنجاح",
-        });
-        form.reset();
-        fetchCampaigns();
-      } else {
-        const errorData = await response.json();
-        toast({
-          title: "خطأ",
-          description: errorData.message || "فشل في إنشاء الحملة",
-          variant: "destructive",
-        });
+      if (!response.ok) {
+        throw new Error("فشل في إنشاء الحملة");
       }
+
+      toast({
+        title: "تم إنشاء الحملة بنجاح",
+        description: "تم إنشاء الحملة التسويقية بنجاح",
+      });
+
+      form.reset();
+      fetchCampaigns();
+      navigate("/marketing");
     } catch (error) {
       toast({
         title: "خطأ",
-        description: "حدث خطأ أثناء إنشاء الحملة",
+        description: "فشل في إنشاء الحملة التسويقية",
         variant: "destructive",
       });
     } finally {
@@ -132,38 +125,81 @@ export default function MarketingPage() {
     }
   };
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
   return (
-    <div className="flex min-h-screen flex-col">
-      <div className="flex flex-1">
+    <div className="flex h-screen">
+      <div className="w-64 h-full">
         <Sidebar />
-        <main className="flex-1 p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold">التسويق والحملات</h1>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="ml-2 h-4 w-4" />
-                  إنشاء حملة جديدة
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>إنشاء حملة تسويقية جديدة</DialogTitle>
-                  <DialogDescription>
-                    أنشئ حملة تسويقية جديدة لإرسالها إلى العملاء أو الموردين
-                  </DialogDescription>
-                </DialogHeader>
+      </div>
+      <main className="flex-1 p-8 overflow-auto">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold">التسويق</h1>
+          </div>
 
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3 mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>إجمالي الحملات</CardTitle>
+                <CardDescription>
+                  عدد الحملات التسويقية النشطة
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">{campaignStats.total || 0}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>معدل الفتح</CardTitle>
+                <CardDescription>
+                  نسبة الرسائل التي تم فتحها
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">
+                  {campaignStats.total
+                    ? Math.round(
+                        (campaignStats.opened / campaignStats.total) * 100
+                      )
+                    : 0}
+                  %
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>معدل النقر</CardTitle>
+                <CardDescription>
+                  نسبة الرسائل التي تم النقر عليها
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">
+                  {campaignStats.total
+                    ? Math.round(
+                        (campaignStats.clicked / campaignStats.total) * 100
+                      )
+                    : 0}
+                  %
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>إنشاء حملة جديدة</CardTitle>
+                <CardDescription>
+                  أنشئ حملة تسويقية جديدة لعملائك أو مورديك
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="space-y-6"
+                  >
                     <FormField
                       control={form.control}
                       name="title"
@@ -171,7 +207,10 @@ export default function MarketingPage() {
                         <FormItem>
                           <FormLabel>عنوان الحملة</FormLabel>
                           <FormControl>
-                            <Input placeholder="أدخل عنوان الحملة" {...field} />
+                            <Input
+                              placeholder="أدخل عنوان الحملة"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -186,9 +225,8 @@ export default function MarketingPage() {
                           <FormLabel>محتوى الحملة</FormLabel>
                           <FormControl>
                             <Textarea
-                              placeholder="أدخل محتوى الحملة التسويقية"
+                              placeholder="أدخل محتوى الحملة"
                               {...field}
-                              rows={5}
                             />
                           </FormControl>
                           <FormMessage />
@@ -222,97 +260,55 @@ export default function MarketingPage() {
                       )}
                     />
 
-                    <DialogFooter>
-                      <Button type="submit" disabled={loading}>
-                        {loading && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                        إرسال الحملة
-                      </Button>
-                    </DialogFooter>
+                    <Button type="submit" disabled={loading}>
+                      {loading ? "جاري الإنشاء..." : "إنشاء الحملة"}
+                    </Button>
                   </form>
                 </Form>
-              </DialogContent>
-            </Dialog>
-          </div>
+              </CardContent>
+            </Card>
 
-          <div className="grid gap-6 md:grid-cols-3 mb-6">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium">إجمالي الحملات</CardTitle>
-                <MegaphoneIcon className="h-4 w-4 text-muted-foreground" />
+              <CardHeader>
+                <CardTitle>الحملات الحالية</CardTitle>
+                <CardDescription>
+                  قائمة بالحملات التسويقية الحالية
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{campaignStats.total}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium">معدل الفتح</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{campaignStats.opened}%</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                <CardTitle className="text-sm font-medium">معدل النقر</CardTitle>
-                <Send className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{campaignStats.clicked}%</div>
+                {campaigns.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-4">
+                    لا توجد حملات حالية
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {campaigns.map((campaign: any) => (
+                      <Card key={campaign.id} className="overflow-hidden">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-lg">
+                            {campaign.title}
+                          </CardTitle>
+                          <CardDescription>
+                            المستهدفون:{" "}
+                            {campaign.target === "all"
+                              ? "الجميع"
+                              : campaign.target === "customers"
+                              ? "العملاء"
+                              : "الموردين"}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="pb-3">
+                          <p className="text-sm truncate">{campaign.content}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>الحملات التسويقية</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {campaigns.length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-muted-foreground">لا توجد حملات تسويقية بعد</p>
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  {campaigns.map((campaign) => (
-                    <Card key={campaign.id} className="overflow-hidden">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-bold">{campaign.title}</h3>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {campaign.content.substring(0, 100)}
-                              {campaign.content.length > 100 ? "..." : ""}
-                            </p>
-                            <div className="flex items-center text-xs text-muted-foreground mt-2">
-                              <p>
-                                الفئة المستهدفة:{" "}
-                                {campaign.target === "all"
-                                  ? "الجميع"
-                                  : campaign.target === "customers"
-                                  ? "العملاء"
-                                  : "الموردين"}
-                              </p>
-                              <p className="mx-2">•</p>
-                              <p>{new Date(campaign.createdAt).toLocaleDateString('ar-AE')}</p>
-                            </div>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button variant="outline" size="sm" onClick={() => navigate(`/campaign/${campaign.id}`)}>
-                              عرض التفاصيل
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
