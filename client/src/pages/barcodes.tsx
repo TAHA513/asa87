@@ -1,8 +1,12 @@
-import React, { useState, useRef, useEffect } from "react";
+
+import React, { useState, useEffect, useRef } from "react";
+import { useReactToPrint } from "react-to-print";
+import Barcode from "react-barcode";
+import QRCode from "react-qr-code";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -18,51 +22,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useReactToPrint } from "react-to-print";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
-import Barcode from "react-barcode";
-import QRCode from "react-qr-code";
+import { useToast } from "@/components/ui/use-toast";
 
-// أنماط الطباعة
-const printStyles = `
-  @media print {
-    @page {
-      size: A4;
-      margin: 10mm;
-    }
-
-    body * {
-      visibility: hidden;
-    }
-
-    .print-container,
-    .print-container * {
-      visibility: visible;
-    }
-
-    .print-container {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100%;
-    }
-
-    .barcode-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10mm;
-      page-break-inside: avoid;
-    }
-
-    .barcode-item {
-      break-inside: avoid;
-      text-align: center;
-      padding: 5mm;
-      border: 1px dashed #ccc;
-    }
-  }
-`;
+// تعريف النمط للباركود المحفوظ
+interface SavedBarcode {
+  id: number;
+  type: "barcode" | "qrcode";
+  content: string;
+  date: string;
+  size: string;
+}
 
 const BarcodeGenerator = () => {
   const { toast } = useToast();
@@ -70,15 +40,11 @@ const BarcodeGenerator = () => {
   const [content, setContent] = useState<string>("123456789012");
   const [quantity, setQuantity] = useState<number>(1);
   const [size, setSize] = useState<"small" | "medium" | "large">("medium");
-  const [savedCodes, setSavedCodes] = useState<Array<{
-    id: number;
-    type: "barcode" | "qrcode";
-    content: string;
-    date: string;
-    size: string;
-  }>>([]);
-
+  const [savedCodes, setSavedCodes] = useState<SavedBarcode[]>([]);
+  
+  // مراجع للطباعة
   const printRef = useRef<HTMLDivElement>(null);
+  const printContentRef = useRef<HTMLDivElement>(null);
 
   // تحميل الباركودات المحفوظة عند بدء التطبيق
   useEffect(() => {
@@ -93,26 +59,24 @@ const BarcodeGenerator = () => {
     localStorage.setItem("savedCodes", JSON.stringify(savedCodes));
   }, [savedCodes]);
 
+  // إعداد وظيفة الطباعة
   const handlePrint = useReactToPrint({
-    content: () => {
-      // التحقق من وجود المرجع والمحتوى قبل الطباعة
-      if (!printRef.current) {
-        toast({
-          title: "خطأ في الطباعة",
-          description: "لا يمكن العثور على محتوى للطباعة",
-          variant: "destructive",
-        });
-        return null;
-      }
-      return printRef.current;
-    },
+    content: () => printRef.current,
     documentTitle: "باركود",
     onBeforeGetContent: () => {
       return new Promise<void>((resolve) => {
-        // تأخير قصير للتأكد من تحميل جميع العناصر
+        console.log("التحضير للطباعة...");
+        console.log("مرجع الطباعة موجود:", !!printRef.current);
+        
+        // تأكد من وجود المحتوى قبل الطباعة
+        if (!printRef.current) {
+          console.error("مرجع الطباعة غير موجود!");
+        }
+        
+        // انتظر قليلاً قبل الطباعة
         setTimeout(() => {
           resolve();
-        }, 250);
+        }, 500);
       });
     },
     onPrintError: (errorLocation, error) => {
@@ -130,31 +94,14 @@ const BarcodeGenerator = () => {
       });
     },
     removeAfterPrint: false,
-    pageStyle: `
-      @page {
-        size: auto;
-        margin: 10mm;
-      }
-      @media print {
-        body {
-          margin: 0;
-          padding: 0;
-        }
-        .barcode-item {
-          page-break-inside: avoid;
-          text-align: center;
-          margin: 10px 0;
-        }
-      }
-      ${printStyles}
-    `,
   });
 
+  // حفظ باركود جديد
   const saveBarcode = () => {
     if (!content) {
       toast({
         title: "خطأ",
-        description: "يرجى إدخال محتوى الباركود",
+        description: "الرجاء إدخال محتوى الباركود",
         variant: "destructive",
       });
       return;
@@ -164,9 +111,10 @@ const BarcodeGenerator = () => {
       id: Date.now(),
       type,
       content,
-      date: new Date().toLocaleDateString("ar-EG"),
+      date: new Date().toLocaleString("ar-IQ"),
       size,
     };
+
     setSavedCodes([...savedCodes, newCode]);
     toast({
       title: "تم الحفظ",
@@ -174,6 +122,7 @@ const BarcodeGenerator = () => {
     });
   };
 
+  // حذف باركود
   const deleteCode = (id: number) => {
     setSavedCodes(savedCodes.filter((code) => code.id !== id));
     toast({
@@ -182,21 +131,19 @@ const BarcodeGenerator = () => {
     });
   };
 
+  // طباعة باركود محدد
   const printSelectedCode = (id: number) => {
     const selectedCode = savedCodes.find((code) => code.id === id);
     if (selectedCode) {
-      // تعيين القيم أولاً
-      setType(selectedCode.type);
+      // تعيين القيم للباركود المحدد
+      setType(selectedCode.type as "barcode" | "qrcode");
       setContent(selectedCode.content);
       setSize(selectedCode.size as "small" | "medium" | "large");
       
-      // استخدام Promise مع setTimeout لضمان تحديث الحالة
-      new Promise((resolve) => {
-        setTimeout(resolve, 500); // وقت أطول للتأكد من تحديث الحالة
-      }).then(() => {
+      // انتظر حتى يتم تحديث الحالة ثم طباعة
+      setTimeout(() => {
         console.log("جاري محاولة الطباعة للباركود:", selectedCode.content);
         console.log("مرجع الطباعة موجود:", !!printRef.current);
-        
         if (printRef.current) {
           handlePrint();
         } else {
@@ -206,10 +153,11 @@ const BarcodeGenerator = () => {
             variant: "destructive",
           });
         }
-      });
+      }, 500);
     }
   };
 
+  // تحديد عرض الباركود حسب الحجم
   const getBarcodeWidth = () => {
     switch (size) {
       case "small":
@@ -223,6 +171,7 @@ const BarcodeGenerator = () => {
     }
   };
 
+  // تحديد حجم رمز QR حسب الحجم
   const getQRCodeSize = () => {
     switch (size) {
       case "small":
@@ -236,6 +185,7 @@ const BarcodeGenerator = () => {
     }
   };
 
+  // عرض الباركود أو رمز QR
   const renderBarcode = () => {
     if (type === "barcode") {
       return (
@@ -261,12 +211,13 @@ const BarcodeGenerator = () => {
     }
   };
 
+  // إنشاء مصفوفة من الباركودات للطباعة
   const getBarcodesForPrinting = () => {
-    // التأكد من وجود محتوى للباركود
     if (!content) {
       return <div>لا يوجد محتوى للطباعة</div>;
     }
     
+    // إنشاء عدد من نسخ الباركود حسب العدد المطلوب
     return Array.from({ length: quantity }, (_, i) => (
       <div
         key={i}
@@ -284,13 +235,38 @@ const BarcodeGenerator = () => {
     ));
   };
 
+  // تنفيذ طباعة الباركود الحالي
+  const printCurrentBarcode = () => {
+    if (!content) {
+      toast({
+        title: "تنبيه",
+        description: "يرجى إدخال محتوى الباركود أولاً",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    console.log("جاري محاولة الطباعة للمحتوى:", content);
+    console.log("مرجع الطباعة موجود:", !!printRef.current);
+    
+    if (printRef.current) {
+      handlePrint();
+    } else {
+      toast({
+        title: "خطأ في الطباعة",
+        description: "لا يمكن العثور على محتوى للطباعة",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto py-6">
       <h1 className="text-3xl font-bold mb-6 text-center">نظام الباركود</h1>
       
-      {/* منطقة الطباعة المخفية - تأكد من وجودها دائمًا */}
-      <div style={{ display: "none" }}>
-        <div ref={printRef} className="print-container p-8">
+      {/* منطقة الطباعة - مهمة جداً أن تكون موجودة دائماً وليست مخفية بـ display: none */}
+      <div style={{ position: 'absolute', left: '-9999px', top: 0 }} className="print-container">
+        <div ref={printRef} style={{ width: '100%', padding: '20px' }}>
           <div className="flex flex-col items-center justify-center">
             {getBarcodesForPrinting()}
           </div>
@@ -313,42 +289,42 @@ const BarcodeGenerator = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="type">نوع الباركود</Label>
+                    <Label htmlFor="barcodeType">نوع الباركود</Label>
                     <Select
                       value={type}
                       onValueChange={(value) => setType(value as "barcode" | "qrcode")}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="barcodeType">
                         <SelectValue placeholder="اختر نوع الباركود" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="barcode">باركود خطي</SelectItem>
-                        <SelectItem value="qrcode">QR كود</SelectItem>
+                        <SelectItem value="qrcode">رمز QR</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="content">محتوى الباركود</Label>
+                    <Label htmlFor="barcodeContent">محتوى الباركود</Label>
                     <Input
-                      id="content"
-                      placeholder={
-                        type === "barcode"
-                          ? "أدخل الأرقام أو النص (123456789012)"
-                          : "أدخل النص أو الرابط"
-                      }
+                      id="barcodeContent"
                       value={content}
                       onChange={(e) => setContent(e.target.value)}
+                      placeholder={
+                        type === "barcode"
+                          ? "أدخل رقم المنتج أو الباركود"
+                          : "أدخل النص أو رابط URL"
+                      }
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="size">حجم الباركود</Label>
+                    <Label htmlFor="barcodeSize">حجم الباركود</Label>
                     <Select
                       value={size}
                       onValueChange={(value) => setSize(value as "small" | "medium" | "large")}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="barcodeSize">
                         <SelectValue placeholder="اختر حجم الباركود" />
                       </SelectTrigger>
                       <SelectContent>
@@ -375,43 +351,16 @@ const BarcodeGenerator = () => {
                     <Button onClick={saveBarcode}>حفظ الباركود</Button>
                     <Button 
                       variant="outline" 
-                      onClick={() => {
-                        if (!content) {
-                          toast({
-                            title: "تنبيه",
-                            description: "يرجى إدخال محتوى الباركود أولاً",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        
-                        console.log("جاري محاولة الطباعة للمحتوى:", content);
-                        console.log("مرجع الطباعة موجود:", !!printRef.current);
-                        
-                        // استخدام Promise مع setTimeout للتأكد من تحديث الحالة
-                        new Promise((resolve) => {
-                          setTimeout(resolve, 500); // وقت أطول للتأكد من تحديث المحتوى
-                        }).then(() => {
-                          if (printRef.current) {
-                            handlePrint();
-                          } else {
-                            toast({
-                              title: "خطأ في الطباعة",
-                              description: "لا يمكن العثور على محتوى للطباعة",
-                              variant: "destructive",
-                            });
-                          }
-                        });
-                      }}
+                      onClick={printCurrentBarcode}
                     >
                       <span>طباعة</span>
                     </Button>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-center p-4 border rounded-md">
-                  <div className="text-center">
-                    <div className="mb-4">معاينة</div>
+                <div className="flex flex-col items-center justify-center p-4 border rounded-lg">
+                  <h3 className="text-lg font-semibold mb-4">معاينة الباركود</h3>
+                  <div className="p-4 bg-white rounded-lg shadow-sm">
                     {renderBarcode()}
                   </div>
                 </div>
@@ -427,8 +376,8 @@ const BarcodeGenerator = () => {
             </CardHeader>
             <CardContent>
               {savedCodes.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  لا توجد باركودات محفوظة
+                <div className="text-center py-4">
+                  لا يوجد باركودات محفوظة
                 </div>
               ) : (
                 <Table>
@@ -445,11 +394,9 @@ const BarcodeGenerator = () => {
                     {savedCodes.map((code) => (
                       <TableRow key={code.id}>
                         <TableCell>
-                          {code.type === "barcode" ? "باركود خطي" : "QR كود"}
+                          {code.type === "barcode" ? "باركود خطي" : "رمز QR"}
                         </TableCell>
-                        <TableCell className="max-w-[150px] truncate">
-                          {code.content}
-                        </TableCell>
+                        <TableCell>{code.content}</TableCell>
                         <TableCell>{code.date}</TableCell>
                         <TableCell>
                           {code.size === "small"
@@ -492,22 +439,40 @@ const BarcodeGenerator = () => {
             </CardHeader>
             <CardContent>
               <div className="mb-4">
-                <Button onClick={handlePrint}>طباعة الباركود</Button>
+                <p className="text-muted-foreground mb-2">
+                  يمكنك طباعة الباركود الحالي عدة مرات على نفس الصفحة.
+                </p>
+                <div className="flex space-x-2 rtl:space-x-reverse">
+                  <Button 
+                    onClick={printCurrentBarcode}
+                  >
+                    طباعة الباركود
+                  </Button>
+                </div>
               </div>
 
-              <div ref={printRef} className="print-container">
-                <div className="barcode-grid">
-                  {getBarcodesForPrinting()}
+              <div className="border p-4 rounded-lg">
+                <h3 className="text-lg font-semibold mb-4">معاينة الطباعة</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {Array.from({ length: Math.min(6, quantity) }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="flex flex-col items-center justify-center p-2 border rounded"
+                    >
+                      {renderBarcode()}
+                    </div>
+                  ))}
                 </div>
+                {quantity > 6 && (
+                  <p className="text-center mt-4 text-sm text-muted-foreground">
+                    + {quantity - 6} باركود إضافي للطباعة
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-
-      <style>
-        {printStyles}
-      </style>
     </div>
   );
 };
