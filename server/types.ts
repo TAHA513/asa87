@@ -6,7 +6,8 @@ import { User, InsertUser, Product, Sale, ExchangeRate, Installment, Installment
   Supplier, InsertSupplier, SupplierTransaction, InsertSupplierTransaction,
   Customer, InsertCustomer, Appointment, InsertAppointment,
   FileStorage, InsertFileStorage, Invoice, InsertInvoice } from "@shared/schema";
-import { InsertSystemActivity, SystemActivity, InsertActivityReport, ActivityReport } from "./activity-types"; // Assuming these types are defined elsewhere
+import { InsertSystemActivity, SystemActivity, InsertActivityReport, ActivityReport } from "./activity-types"; 
+import { ThemeSettings } from "@shared/types/settings";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -84,24 +85,18 @@ export interface IStorage {
   getInvoice(id: number): Promise<Invoice | undefined>;
   updateInvoicePrintStatus(id: number, printed: boolean): Promise<Invoice>;
   searchProducts(query: string): Promise<Product[]>;
-
-  // Analytics Methods
   getAnalyticsSales(): Promise<{
     date: string;
     amount: number;
   }[]>;
-
   getAnalyticsCustomers(): Promise<{
     name: string;
     value: number;
   }[]>;
-
   getAnalyticsProducts(): Promise<{
     name: string;
     sales: number;
   }[]>;
-
-  // Activity Logging Methods
   logSystemActivity(activity: InsertSystemActivity): Promise<SystemActivity>;
   getSystemActivities(filters: {
     startDate?: Date;
@@ -110,13 +105,9 @@ export interface IStorage {
     activityType?: string;
     entityType?: string;
   }): Promise<SystemActivity[]>;
-
-  // Report Generation Methods
   generateActivityReport(report: InsertActivityReport): Promise<ActivityReport>;
   getActivityReport(id: number): Promise<ActivityReport | undefined>;
   getActivityReports(userId: number): Promise<ActivityReport[]>;
-
-  // Advanced Analytics Methods
   getDetailedSalesReport(dateRange: { start: Date; end: Date }): Promise<{
     totalSales: number;
     totalRevenue: string;
@@ -132,7 +123,6 @@ export interface IStorage {
       revenue: string;
     }[];
   }>;
-
   getInventoryReport(dateRange: { start: Date; end: Date }): Promise<{
     totalProducts: number;
     lowStock: {
@@ -149,7 +139,6 @@ export interface IStorage {
       productName: string;
     }[];
   }>;
-
   getFinancialReport(dateRange: { start: Date; end: Date }): Promise<{
     revenue: string;
     expenses: string;
@@ -165,7 +154,6 @@ export interface IStorage {
       balance: string;
     }[];
   }>;
-
   getUserActivityReport(dateRange: { start: Date; end: Date }): Promise<{
     totalUsers: number;
     activeUsers: number;
@@ -180,4 +168,6 @@ export interface IStorage {
       count: number;
     }[];
   }>;
+  getSettings(userId: number): Promise<ThemeSettings | undefined>;
+  saveSettings(userId: number, settings: ThemeSettings): Promise<void>;
 }
