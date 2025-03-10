@@ -314,10 +314,9 @@ export default function SuppliersPage() {
   // إذا كان هناك تحميل
   if (isLoadingSuppliers) {
     return (
-      <SidebarProvider>
-        <div className="flex h-screen">
-          <div className="w-64 h-full">
-            <SidebarNav />
+      <div className="flex h-screen">
+        <div className="w-64 h-full">
+          <SidebarNav />
           </div>
           <main className="flex-1 p-8">
             <div className="h-[400px] flex items-center justify-center">
@@ -325,19 +324,18 @@ export default function SuppliersPage() {
             </div>
           </main>
         </div>
-      </SidebarProvider>
+      </div>
     );
   }
 
   // عرض الصفحة الرئيسية
   return (
-    <SidebarProvider>
-      <div className="flex h-screen">
-        <div className="w-64 h-full">
-          <SidebarNav />
-        </div>
-        <main className="flex-1 p-8 overflow-y-auto">
-          <div className="max-w-7xl mx-auto space-y-6">
+    <div className="flex h-screen">
+      <div className="w-64 h-full">
+        <SidebarNav />
+      </div>
+      <main className="flex-1 p-8 overflow-y-auto">
+        <div className="max-w-7xl mx-auto space-y-6">
             <div className="flex justify-between items-center">
               <div>
                 <h2 className="text-3xl font-bold">الموردين</h2>
@@ -798,6 +796,6 @@ export default function SuppliersPage() {
           </DialogContent>
         </Dialog>
       </div>
-    </SidebarProvider>
+    </div>
   );
 }

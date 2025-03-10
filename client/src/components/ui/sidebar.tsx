@@ -16,6 +16,21 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { Link, useLocation } from "wouter";
+import {
+  BarChart3,
+  CalendarIcon,
+  LayoutDashboard,
+  Package,
+  Settings,
+  ShoppingCart,
+  Users,
+  Wallet,
+  Database,
+  FileText,
+  Truck,
+  BarChartHorizontal
+} from "lucide-react";
 
 const SIDEBAR_COOKIE_NAME = "sidebar:state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -24,26 +39,143 @@ const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
-type SidebarContext = {
-  state: "expanded" | "collapsed"
-  open: boolean
-  setOpen: (open: boolean) => void
-  openMobile: boolean
-  setOpenMobile: (open: boolean) => void
-  isMobile: boolean
-  toggleSidebar: () => void
-}
+type SidebarContextType = {
+  expanded: boolean;
+  setExpanded: React.Dispatch<React.SetStateAction<boolean>>;
+};
 
-const SidebarContext = React.createContext<SidebarContext | null>(null)
+const SidebarContext = React.createContext<SidebarContextType | undefined>(undefined);
 
-function useSidebar() {
-  const context = React.useContext(SidebarContext)
+export function useSidebar() {
+  const context = React.useContext(SidebarContext);
   if (!context) {
-    throw new Error("useSidebar must be used within a SidebarProvider.")
+    throw new Error("useSidebar must be used within a SidebarProvider.");
   }
-
-  return context
+  return context;
 }
+
+export function SidebarProvider({ children }: { children: React.ReactNode }) {
+  const [expanded, setExpanded] = React.useState(true);
+
+  return (
+    <SidebarContext.Provider value={{ expanded, setExpanded }}>
+      {children}
+    </SidebarContext.Provider>
+  );
+}
+
+interface SidebarProps {
+  className?: string;
+}
+
+// إضافة مكون SidebarNav
+export function SidebarNav() {
+  const [location] = useLocation();
+
+  const routes = [
+    {
+      title: "لوحة القيادة",
+      href: "/",
+      icon: LayoutDashboard,
+    },
+    {
+      title: "المنتجات",
+      href: "/products",
+      icon: Package,
+    },
+    {
+      title: "المبيعات",
+      href: "/sales",
+      icon: ShoppingCart,
+    },
+    {
+      title: "العملاء",
+      href: "/customers",
+      icon: Users,
+    },
+    {
+      title: "المواعيد",
+      href: "/appointments",
+      icon: CalendarIcon,
+    },
+    {
+      title: "التقارير",
+      href: "/reports",
+      icon: BarChart3,
+    },
+    {
+      title: "الباركود",
+      href: "/barcodes",
+      icon: FileText,
+    },
+    {
+      title: "الموردين",
+      href: "/suppliers",
+      icon: Truck,
+    },
+    {
+      title: "المصروفات",
+      href: "/expenses",
+      icon: Wallet,
+    },
+    {
+      title: "المخزون",
+      href: "/inventory",
+      icon: Database,
+    },
+    {
+      title: "التسويق",
+      href: "/marketing",
+      icon: BarChartHorizontal,
+    },
+    {
+      title: "الإعدادات",
+      href: "/settings",
+      icon: Settings,
+    },
+  ];
+
+  return (
+    <div className="flex flex-col h-full bg-card border-l">
+      <div className="py-4 border-b">
+        <h2 className="text-lg font-bold text-center">نظام المتجر</h2>
+      </div>
+      <nav className="flex-1 overflow-y-auto p-3">
+        <ul className="space-y-2">
+          {routes.map((route) => (
+            <li key={route.href}>
+              <Link href={route.href}>
+                <a
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+                    location === route.href
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-secondary"
+                  )}
+                >
+                  <route.icon className="h-5 w-5" />
+                  <span>{route.title}</span>
+                </a>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      <div className="p-4 border-t">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground">
+            A
+          </div>
+          <div>
+            <p className="text-sm font-medium">مدير النظام</p>
+            <p className="text-xs text-muted-foreground">admin@example.com</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 const SidebarProvider = React.forwardRef<
   HTMLDivElement,
@@ -115,17 +247,12 @@ const SidebarProvider = React.forwardRef<
     // This makes it easier to style the sidebar with Tailwind classes.
     const state = open ? "expanded" : "collapsed"
 
-    const contextValue = React.useMemo<SidebarContext>(
+    const contextValue = React.useMemo<SidebarContextType>(
       () => ({
-        state,
-        open,
-        setOpen,
-        isMobile,
-        openMobile,
-        setOpenMobile,
-        toggleSidebar,
+        expanded: open,
+        setExpanded: setOpen,
       }),
-      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+      [open, setOpen]
     )
 
     return (
@@ -174,6 +301,7 @@ const Sidebar = React.forwardRef<
     },
     ref
   ) => {
+    const { expanded, setExpanded } = useSidebar()
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
     if (collapsible === "none") {
@@ -262,7 +390,7 @@ const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
   React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
-  const { toggleSidebar } = useSidebar()
+  const { setExpanded } = useSidebar()
 
   return (
     <Button
@@ -273,7 +401,7 @@ const SidebarTrigger = React.forwardRef<
       className={cn("h-7 w-7", className)}
       onClick={(event) => {
         onClick?.(event)
-        toggleSidebar()
+        setExpanded((expanded) => !expanded)
       }}
       {...props}
     >
@@ -288,7 +416,7 @@ const SidebarRail = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<"button">
 >(({ className, ...props }, ref) => {
-  const { toggleSidebar } = useSidebar()
+  const { setExpanded } = useSidebar()
 
   return (
     <button
@@ -296,7 +424,7 @@ const SidebarRail = React.forwardRef<
       data-sidebar="rail"
       aria-label="Toggle Sidebar"
       tabIndex={-1}
-      onClick={toggleSidebar}
+      onClick={() => setExpanded((expanded) => !expanded)}
       title="Toggle Sidebar"
       className={cn(
         "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex",
@@ -553,7 +681,7 @@ const SidebarMenuButton = React.forwardRef<
     ref
   ) => {
     const Comp = asChild ? Slot : "button"
-    const { isMobile, state } = useSidebar()
+    const { expanded } = useSidebar()
 
     const button = (
       <Comp
@@ -582,7 +710,7 @@ const SidebarMenuButton = React.forwardRef<
         <TooltipContent
           side="right"
           align="center"
-          hidden={state !== "collapsed" || isMobile}
+          hidden={expanded !== "collapsed"}
           {...tooltip}
         />
       </Tooltip>
@@ -759,4 +887,5 @@ export {
   SidebarSeparator,
   SidebarTrigger,
   useSidebar,
+  SidebarNav
 }
