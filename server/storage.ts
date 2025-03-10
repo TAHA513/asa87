@@ -933,7 +933,7 @@ export class DatabaseStorage implements IStorage {
           lt(appointments.date, endDate)
         ))
         .orderBy(appointments.date);
-    } catch (error{
+    } catch (error) {
       console.error("خطأ في جلب المواعيد حسب النطاق الزمني:", error);
       return [];
     }
