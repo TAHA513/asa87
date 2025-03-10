@@ -12,6 +12,7 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { Server as SocketServer } from "socket.io";
 import { instrument } from "@socket.io/admin-ui";
+import * as childProcess from 'child_process';
 
 const MemoryStoreSession = MemoryStore(session);
 
@@ -128,8 +129,7 @@ async function startServer() {
     
     // إيقاف أي عملية تستخدم نفس المنفذ قبل البدء
     try {
-        const { execSync } = require('child_process');
-        execSync(`lsof -t -i:${port} | xargs -r kill -9`);
+        childProcess.execSync(`lsof -t -i:${port} | xargs -r kill -9`);
         console.log(`تم إيقاف أي عمليات سابقة على المنفذ ${port}`);
     } catch (error) {
         console.log('لا توجد عمليات سابقة على هذا المنفذ');
@@ -261,16 +261,28 @@ async function startServer() {
         if (error.code === 'EADDRINUSE') {
           console.error(`المنفذ ${port} قيد الاستخدام. جاري إيقاف العمليات السابقة...`);
           
-          // محاولة إيقاف العمليات التي تستخدم المنفذ
+          // محاولة إيقاف العمليات التي تستخدم المنفذ باستخدام import
           try {
-            const { execSync } = require('child_process');
-            execSync(`lsof -t -i:${port} | xargs -r kill -9`);
-            console.log(`تم إيقاف العمليات على المنفذ ${port}، إعادة المحاولة خلال 2 ثانية...`);
-            
-            // إعادة المحاولة بعد ثانيتين
-            setTimeout(startServer, 2000);
+            // استخدام child_process بطريقة ESM
+            import('child_process').then(({ execSync }) => {
+              execSync(`lsof -t -i:${port} | xargs -r kill -9`);
+              console.log(`تم إيقاف العمليات على المنفذ ${port}، إعادة المحاولة خلال 2 ثانية...`);
+              
+              // إعادة المحاولة بعد ثانيتين
+              setTimeout(startServer, 2000);
+            });
           } catch (killError) {
             console.error('فشل في إيقاف العمليات:', killError);
+            // محاولة إعادة بدء الخادم بمنفذ مختلف إذا فشلت عملية القتل
+            const newPort = port + 1;
+            console.log(`محاولة استخدام منفذ بديل: ${newPort}`);
+            server.listen({
+              port: newPort,
+              host: "0.0.0.0",
+              reusePort: true,
+            }, () => {
+              log(`تم تشغيل السيرفر على المنفذ البديل ${newPort}`);
+            });
           }
         } else {
           console.error('خطأ في تشغيل السيرفر:', error);
