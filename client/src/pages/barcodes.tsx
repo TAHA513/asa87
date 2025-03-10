@@ -158,7 +158,7 @@ export default function BarcodesPage() {
 
   const printRef2 = useRef(null);
 
-  const { handlePrint, isPrinting } = useReactToPrint({
+  const { handlePrint } = useReactToPrint({
     content: () => printRef2.current,
     onBeforePrint: () => setIsPrinting(true),
     onAfterPrint: () => {
