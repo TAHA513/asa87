@@ -1,0 +1,56 @@
+
+> rest-express@1.0.0 dev
+جاري اختبار الاتصال بقاعدة البيانات...
+Successfully connected to database
+نتيجة اختبار قاعدة البيانات: Result {
+  command: 'SELECT',
+  rowCount: 1,
+  oid: null,
+  rows: [ { '?column?': 1 } ],
+  fields: [
+    Field {
+      name: '?column?',
+      tableID: 0,
+      columnID: 0,
+      dataTypeID: 23,
+      dataTypeSize: 4,
+      dataTypeModifier: -1,
+      format: 'text'
+    }
+  ],
+  _parsers: [ [Function: parseInteger] ],
+  _types: { getTypeParser: [Function: getTypeParser] },
+  RowCtor: null,
+  rowAsArray: false
+}
+تم الاتصال بقاعدة البيانات بنجاح
+Starting to register routes...
+All routes registered successfully
+AssertError: Expected union value
+    at AssertValue (file:///home/runner/workspace/node_modules/@sinclair/typebox/build/esm/value/assert/assert.mjs:44:11)
+    at Assert (file:///home/runner/workspace/node_modules/@sinclair/typebox/build/esm/value/assert/assert.mjs:48:32)
+    at file:///home/runner/workspace/node_modules/@sinclair/typebox/build/esm/value/parse/parse.mjs:13:38
+    at file:///home/runner/workspace/node_modules/@sinclair/typebox/build/esm/value/parse/parse.mjs:20:52
+    at Array.reduce (<anonymous>)
+    at ParseValue (file:///home/runner/workspace/node_modules/@sinclair/typebox/build/esm/value/parse/parse.mjs:20:25)
+    at Module.Parse (file:///home/runner/workspace/node_modules/@sinclair/typebox/build/esm/value/parse/parse.mjs:24:72)
+    at safeParseThemeJson (/home/runner/workspace/node_modules/@replit/vite-plugin-shadcn-theme-json/src/schemas.ts:25:26)
+    at PluginContext.buildStart (/home/runner/workspace/node_modules/@replit/vite-plugin-shadcn-theme-json/src/index.ts:35:43)
+    at async Promise.all (index 5) {
+  error: {
+    type: 62,
+    schema: { anyOf: [Array], [Symbol(TypeBox.Kind)]: 'Union' },
+    path: '/variant',
+    value: 'neutral',
+    message: 'Expected union value',
+    errors: [
+      [ValueErrorIterator],
+      [ValueErrorIterator],
+      [ValueErrorIterator]
+    ]
+  }
+}
+بدء إضافة بيانات المستخدم الافتراضي
+5:04:33 AM [express] تم تشغيل السيرفر على المنفذ 5000
+المستخدم الافتراضي موجود بالفعل، تخطي إنشاء حساب جديد
+اكتملت عملية بذر البيانات بنجاح
