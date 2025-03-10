@@ -1,7 +1,7 @@
 import {
   users, products, sales, exchangeRates, fileStorage,
   installments, installmentPayments, marketingCampaigns,
-  campaignAnalytics, socialMediaAccounts, apiKeys,
+  campaignAnalytics, socialMediaAccounts,
   inventoryTransactions, expenseCategories, expenses,
   suppliers, supplierTransactions, customers, appointments,
   invoices, invoiceItems, userSettings, reports,
@@ -9,7 +9,7 @@ import {
   type FileStorage, type Installment, type InstallmentPayment,
   type Campaign, type InsertCampaign, type CampaignAnalytics,
   type InsertCampaignAnalytics, type SocialMediaAccount,
-  type ApiKey, type InsertApiKey, type InventoryTransaction,
+  type InventoryTransaction,
   type InsertInventoryTransaction, type ExpenseCategory,
   type InsertExpenseCategory, type Expense, type InsertExpense,
   type Supplier, type InsertSupplier, type SupplierTransaction,
