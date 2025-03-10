@@ -29,8 +29,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Sidebar } from "@/components/ui/sidebar";
-import { useLocation } from "wouter";
+import { Sidebar, SidebarProvider } from "@/components/ui/sidebar"; // Assuming SidebarProvider exists
+import { useLocation, useSetLocation } from "wouter";
 
 const formSchema = z.object({
   title: z.string().min(2, {
@@ -52,7 +52,7 @@ export default function MarketingPage() {
     opened: 0,
     clicked: 0,
   });
-  const [, navigate] = useLocation();
+  const [location, setLocation] = useLocation(); // Using useLocation and useSetLocation from wouter
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -112,7 +112,7 @@ export default function MarketingPage() {
 
       form.reset();
       fetchCampaigns();
-      navigate("/marketing");
+      setLocation("/marketing"); // Using setLocation for navigation
     } catch (error) {
       toast({
         title: "خطأ",
@@ -127,7 +127,9 @@ export default function MarketingPage() {
   return (
     <div className="flex h-screen">
       <div className="w-64 h-full">
-        <Sidebar />
+        <SidebarProvider>
+          <Sidebar />
+        </SidebarProvider>
       </div>
       <main className="flex-1 p-8 overflow-auto">
         <div className="max-w-7xl mx-auto">
