@@ -7,6 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Barcode, Printer } from "lucide-react";
 import JsBarcode from "jsbarcode";
 import { printBarcode } from "@/lib/api";
+import { Checkbox } from "@/components/ui/checkbox"; // Added import for Checkbox
+
 
 export default function Barcodes() {
   const { toast } = useToast();
@@ -16,6 +18,15 @@ export default function Barcodes() {
   const [barcodeFormat, setBarcodeFormat] = useState<string>("CODE128");
   const barcodeRef = useRef<SVGSVGElement>(null);
   const barcodeContainerRef = useRef<HTMLDivElement>(null);
+  const multiplePrintRef = useRef<HTMLDivElement>(null); // Added ref for multiple print
+  const [barcodeList, setBarcodeList] = useState<BarcodeItem[]>([]); // Added state for barcode list
+  const [selectedBarcodes, setSelectedBarcodes] = useState<string[]>([]); // Added state for selected barcodes
+
+  interface BarcodeItem {
+    id: string;
+    value: string;
+    image: string;
+  }
 
   // توليد الباركود عند تغيير أي من الخيارات
   useEffect(() => {
@@ -114,6 +125,49 @@ export default function Barcodes() {
     }
   };
 
+  const addToList = () => {
+    if (!barcodeRef.current || barcodeText.trim() === "") return;
+
+    const svgData = new XMLSerializer().serializeToString(barcodeRef.current);
+    const newItem: BarcodeItem = {
+      id: Date.now().toString(),
+      value: barcodeText,
+      image: `data:image/svg+xml;base64,${btoa(svgData)}`
+    };
+
+    setBarcodeList(prev => [...prev, newItem]);
+    setSelectedBarcodes(prev => [...prev, newItem.id]);
+  };
+
+  const handleMultiplePrint = () => {
+    //This function needs implementation for printing multiple barcodes.  This is a placeholder.
+      if (!multiplePrintRef.current) {
+          toast({
+              title: "خطأ في الطباعة",
+              description: "لم يتم العثور على المحتوى للطباعة",
+              variant: "destructive",
+          });
+          return;
+      }
+      //Add implementation to print the selected barcodes here.
+      console.log("Printing multiple barcodes:", selectedBarcodes); // Placeholder - replace with actual printing logic.
+
+  };
+
+
+  const removeFromList = (id: string) => {
+    setBarcodeList(prev => prev.filter(item => item.id !== id));
+    setSelectedBarcodes(prev => prev.filter(itemId => itemId !== id));
+  };
+
+  const toggleSelectBarcode = (id: string) => {
+    setSelectedBarcodes(prev =>
+      prev.includes(id)
+        ? prev.filter(itemId => itemId !== id)
+        : [...prev, id]
+    );
+  };
+
   return (
     <div className="container mx-auto py-6">
       <h1 className="text-3xl font-bold mb-6">إنشاء وطباعة الباركود</h1>
@@ -194,6 +248,9 @@ export default function Barcodes() {
                 <Barcode className="w-4 h-4 mr-2 rtl:ml-2 rtl:mr-0" />
                 تنزيل
               </Button>
+              <Button onClick={addToList} className="flex-1">
+                إضافة إلى القائمة
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -212,6 +269,84 @@ export default function Barcodes() {
           </CardContent>
         </Card>
       </div>
+
+      {/* قسم الطباعة المتعددة */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>طباعة مجموعة باركودات</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {barcodeList.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">
+              لم تتم إضافة أي باركود إلى القائمة بعد
+            </p>
+          ) : (
+            <>
+              <div className="overflow-x-auto mb-4">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-right p-2">تحديد</th>
+                      <th className="text-right p-2">قيمة الباركود</th>
+                      <th className="text-right p-2">معاينة</th>
+                      <th className="text-right p-2">إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {barcodeList.map((item) => (
+                      <tr key={item.id} className="border-b">
+                        <td className="p-2">
+                          <Checkbox
+                            checked={selectedBarcodes.includes(item.id)}
+                            onCheckedChange={() => toggleSelectBarcode(item.id)}
+                          />
+                        </td>
+                        <td className="p-2">{item.value}</td>
+                        <td className="p-2">
+                          <img src={item.image} alt={item.value} className="h-12" />
+                        </td>
+                        <td className="p-2">
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => removeFromList(item.id)}
+                          >
+                            {/* <TrashIcon className="w-4 h-4" /> */}
+                            حذف
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <Button
+                onClick={handleMultiplePrint}
+                disabled={selectedBarcodes.length === 0}
+                className="w-full"
+              >
+                {/* <PrinterIcon className="w-5 h-5 ml-2" /> */}
+                طباعة الباركودات المحددة ({selectedBarcodes.length})
+              </Button>
+
+              <div ref={multiplePrintRef} className="hidden">
+                <div className="grid grid-cols-2 gap-4">
+                  {barcodeList
+                    .filter(item => selectedBarcodes.includes(item.id))
+                    .map(item => (
+                      <div key={item.id} className="flex flex-col items-center p-2 border rounded">
+                        <img src={item.image} alt={item.value} className="max-w-full h-auto" />
+                        <p className="mt-2">{item.value}</p>
+                      </div>
+                    ))
+                  }
+                </div>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
