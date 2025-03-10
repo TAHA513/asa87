@@ -246,10 +246,15 @@ export default function Sales() {
       });
     }
     return acc;
-        date,
-        sales: 1,
-        revenue: sale.totalPrice
-      });
+      }, []);
+      
+      if (!existingDate) {
+        chartData.push({
+          date,
+          sales: 1,
+          revenue: sale.totalPrice
+        });
+      }
     }
 
     return acc;
