@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "tsx server/index.ts",
-    "dev:frontend": "cd client && vite",
+    "dev:frontend": "cd client && vite --host 0.0.0.0",
     "dev:both": "concurrently \"npm run dev\" \"npm run dev:frontend\"",
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
