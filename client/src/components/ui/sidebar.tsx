@@ -886,7 +886,5 @@ export {
   SidebarProvider,
   SidebarRail,
   SidebarSeparator,
-  SidebarTrigger,
-  useSidebar,
-  SidebarNav
+  SidebarTrigger
 }
