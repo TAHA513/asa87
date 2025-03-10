@@ -1,7 +1,7 @@
 
 {
   "primary": "hsl(142.1 76.2% 36.3%)",
-  "variant": "neutral",
+  "variant": "default",
   "appearance": "dark",
   "fontStyle": "noto-kufi",
   "fontSize": "medium",
