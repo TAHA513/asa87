@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
-import axios from "axios";
+import { apiRequest } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
@@ -36,7 +36,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
+import { useLocation } from "wouter"; // Importing from wouter
 import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import {
   AlertDialog,
@@ -62,37 +62,26 @@ export default function Sales() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
 
-  const [sales, setSales] = useState([]);
-  const [isLoadingSales, setIsLoadingSales] = useState(true);
 
-  const refetchSales = async () => {
-    setIsLoadingSales(true);
-    try {
-      const response = await axios.get('/api/sales');
-      setSales(response.data);
-    } catch (error) {
-      console.error("Error fetching sales:", error);
-      toast({
-        title: "خطأ",
-        description: "فشل جلب بيانات المبيعات",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoadingSales(false);
+  const { data: sales = [], isLoading: isLoadingSales } = useQuery({
+    queryKey: ['/api/sales'],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', '/api/sales');
+        return response || [];
+      } catch (error) {
+        console.error("Error fetching sales:", error);
+        return [];
+      }
     }
-  };
-
-  useEffect(() => {
-    refetchSales();
-  }, []);
-
+  });
 
   const { data: products = [] } = useQuery({
     queryKey: ['/api/products'],
     queryFn: async () => {
       try {
-        const response = await axios.get('/api/products');
-        return response.data || [];
+        const response = await apiRequest('GET', '/api/products');
+        return response || [];
       } catch (error) {
         console.error("Error fetching products:", error);
         return [];
@@ -104,8 +93,8 @@ export default function Sales() {
     queryKey: ['/api/customers'],
     queryFn: async () => {
       try {
-        const response = await axios.get('/api/customers');
-        return response.data || [];
+        const response = await apiRequest('GET', '/api/customers');
+        return response || [];
       } catch (error) {
         console.error("Error fetching customers:", error);
         return [];
@@ -117,8 +106,8 @@ export default function Sales() {
     queryKey: ["/api/exchange-rate"],
     queryFn: async () => {
       try {
-        const response = await axios.get('/api/exchange-rate');
-        return response.data;
+        const response = await apiRequest('GET', '/api/exchange-rate');
+        return response;
       } catch (error) {
         console.error("Error fetching exchange rate:", error);
         return { usdToIqd: 1500 };
@@ -157,7 +146,7 @@ export default function Sales() {
 
   const addSaleMutation = useMutation({
     mutationFn: async (newSale: any) => {
-      return await axios.post('/api/sales', newSale);
+      return await apiRequest('POST', '/api/sales', newSale);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/sales'] });
@@ -166,7 +155,6 @@ export default function Sales() {
         title: "تمت الإضافة",
         description: "تمت إضافة عملية البيع بنجاح",
       });
-      refetchSales();
     },
     onError: (error) => {
       toast({
@@ -180,7 +168,7 @@ export default function Sales() {
 
   const addCustomerMutation = useMutation({
     mutationFn: async (newCustomer: any) => {
-      return await axios.post('/api/customers', newCustomer);
+      return await apiRequest('POST', '/api/customers', newCustomer);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
@@ -200,22 +188,12 @@ export default function Sales() {
     }
   });
 
-  const handleDeleteSale = async (saleId: number) => {
-    try {
-      await axios.delete(`/api/sales/${saleId}`);
-      toast({
-        title: "تم حذف البيع بنجاح",
-        description: "تم حذف بيانات البيع من النظام",
-      });
-      refetchSales();
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "خطأ في حذف البيع",
-        description: error.message || "حدث خطأ أثناء حذف البيع",
-      });
-      console.error("Error deleting sale:", error);
-    }
+  const handleDeleteSale = (saleId: number) => {
+    // يمكن إضافة منطق الحذف هنا لاحقاً
+    toast({
+      title: "تنبيه",
+      description: "وظيفة حذف المبيعات غير متاحة حالياً",
+    });
   };
 
   // فلترة المبيعات بناءً على نص البحث
@@ -302,13 +280,7 @@ export default function Sales() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoadingSales ? (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center">
-                  جارٍ التحميل...
-                </TableCell>
-              </TableRow>
-            ) : filteredSales.length === 0 ? (
+            {filteredSales.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center">
                   لا توجد بيانات مبيعات
@@ -352,7 +324,7 @@ export default function Sales() {
             <DialogTitle>إضافة عملية بيع جديدة</DialogTitle>
           </DialogHeader>
           <form
-            onSubmit={async (e) => {
+            onSubmit={(e) => {
               e.preventDefault();
               const formData = new FormData(e.currentTarget);
               const productId = Number(formData.get('productId'));
@@ -461,12 +433,12 @@ export default function Sales() {
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>إضافة عميل جديد</DialogTitle>
-                <AlertDialogDescription>
+                <DialogDescription>
                   أدخل معلومات العميل الجديد
-                </AlertDialogDescription>
+                </DialogDescription>
               </DialogHeader>
               <form
-                onSubmit={async (e) => {
+                onSubmit={(e) => {
                   e.preventDefault();
                   const formData = new FormData(e.currentTarget);
                   const newCustomer = {
