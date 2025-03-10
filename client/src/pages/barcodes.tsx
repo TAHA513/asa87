@@ -24,6 +24,46 @@ import { useToast } from "@/hooks/use-toast";
 import Barcode from "react-barcode";
 import QRCode from "react-qr-code";
 
+// أنماط الطباعة
+const printStyles = `
+  @media print {
+    @page {
+      size: A4;
+      margin: 10mm;
+    }
+
+    body * {
+      visibility: hidden;
+    }
+
+    .print-container,
+    .print-container * {
+      visibility: visible;
+    }
+
+    .print-container {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+    }
+
+    .barcode-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10mm;
+      page-break-inside: avoid;
+    }
+
+    .barcode-item {
+      break-inside: avoid;
+      text-align: center;
+      padding: 5mm;
+      border: 1px dashed #ccc;
+    }
+  }
+`;
+
 const BarcodeGenerator = () => {
   const { toast } = useToast();
   const [type, setType] = useState<"barcode" | "qrcode">("barcode");
@@ -37,10 +77,10 @@ const BarcodeGenerator = () => {
     date: string;
     size: string;
   }>>([]);
-  const printRef = useRef<HTMLDivElement>(null);
-  const barcodeGridRef = useRef<HTMLDivElement>(null);
 
-  // Load saved codes from localStorage on component mount
+  const printRef = useRef<HTMLDivElement>(null);
+
+  // تحميل الباركودات المحفوظة عند بدء التطبيق
   useEffect(() => {
     const saved = localStorage.getItem("savedCodes");
     if (saved) {
@@ -48,20 +88,21 @@ const BarcodeGenerator = () => {
     }
   }, []);
 
-  // Save codes to localStorage when they change
+  // حفظ الباركودات عند تغييرها
   useEffect(() => {
     localStorage.setItem("savedCodes", JSON.stringify(savedCodes));
   }, [savedCodes]);
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
-    documentTitle: "Print Barcodes",
+    documentTitle: "باركود",
     onAfterPrint: () => {
       toast({
         title: "تمت الطباعة بنجاح",
         description: "تم إرسال الباركود إلى الطابعة",
       });
     },
+    pageStyle: printStyles,
   });
 
   const saveBarcode = () => {
@@ -102,9 +143,7 @@ const BarcodeGenerator = () => {
       setType(selectedCode.type);
       setContent(selectedCode.content);
       setSize(selectedCode.size as "small" | "medium" | "large");
-      setTimeout(() => {
-        handlePrint();
-      }, 100);
+      setTimeout(handlePrint, 100);
     }
   };
 
@@ -134,36 +173,40 @@ const BarcodeGenerator = () => {
     }
   };
 
-  const getBarcodesForPrinting = () => {
-    const barcodes = [];
-    for (let i = 0; i < quantity; i++) {
-      barcodes.push(
-        <div
-          key={i}
-          className="p-4 flex flex-col items-center border border-dashed border-gray-300 m-2"
-        >
-          {type === "barcode" ? (
-            <Barcode
-              value={content || "123456789012"}
-              width={getBarcodeWidth()}
-              height={getBarcodeWidth() * 40}
-              fontSize={getBarcodeWidth() * 8}
-              margin={10}
-            />
-          ) : (
-            <div className="flex flex-col items-center">
-              <QRCode
-                value={content || "https://example.com"}
-                size={getQRCodeSize()}
-                level="M"
-              />
-              <div className="mt-2 text-center">{content}</div>
-            </div>
-          )}
+  const renderBarcode = () => {
+    if (type === "barcode") {
+      return (
+        <Barcode
+          value={content || "123456789012"}
+          width={getBarcodeWidth()}
+          height={getBarcodeWidth() * 40}
+          fontSize={getBarcodeWidth() * 8}
+          margin={10}
+        />
+      );
+    } else {
+      return (
+        <div className="flex flex-col items-center">
+          <QRCode
+            value={content || "https://example.com"}
+            size={getQRCodeSize()}
+            level="M"
+          />
+          <div className="mt-2 text-center">{content}</div>
         </div>
       );
     }
-    return barcodes;
+  };
+
+  const getBarcodesForPrinting = () => {
+    return Array.from({ length: quantity }, (_, i) => (
+      <div
+        key={i}
+        className="barcode-item"
+      >
+        {renderBarcode()}
+      </div>
+    ));
   };
 
   return (
@@ -177,7 +220,6 @@ const BarcodeGenerator = () => {
           <TabsTrigger value="print">صفحة الطباعة</TabsTrigger>
         </TabsList>
 
-        {/* إنشاء باركود جديد */}
         <TabsContent value="generate">
           <Card>
             <CardHeader>
@@ -256,24 +298,7 @@ const BarcodeGenerator = () => {
                 <div className="flex items-center justify-center p-4 border rounded-md">
                   <div className="text-center">
                     <div className="mb-4">معاينة</div>
-                    {type === "barcode" ? (
-                      <Barcode
-                        value={content || "123456789012"}
-                        width={getBarcodeWidth()}
-                        height={getBarcodeWidth() * 40}
-                        fontSize={getBarcodeWidth() * 8}
-                        margin={10}
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center">
-                        <QRCode
-                          value={content || "https://example.com"}
-                          size={getQRCodeSize()}
-                          level="M"
-                        />
-                        <div className="mt-2 text-center">{content}</div>
-                      </div>
-                    )}
+                    {renderBarcode()}
                   </div>
                 </div>
               </div>
@@ -281,7 +306,6 @@ const BarcodeGenerator = () => {
           </Card>
         </TabsContent>
 
-        {/* الباركودات المحفوظة */}
         <TabsContent value="saved">
           <Card>
             <CardHeader>
@@ -347,7 +371,6 @@ const BarcodeGenerator = () => {
           </Card>
         </TabsContent>
 
-        {/* صفحة الطباعة */}
         <TabsContent value="print">
           <Card>
             <CardHeader>
@@ -358,18 +381,9 @@ const BarcodeGenerator = () => {
                 <Button onClick={handlePrint}>طباعة الباركود</Button>
               </div>
 
-              <div className="border rounded-md p-4">
-                <div
-                  ref={printRef}
-                  className="print-container"
-                  style={{
-                    width: "100%",
-                    minHeight: "200px",
-                  }}
-                >
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 items-center justify-items-center">
-                    {getBarcodesForPrinting()}
-                  </div>
+              <div ref={printRef} className="print-container">
+                <div className="barcode-grid">
+                  {getBarcodesForPrinting()}
                 </div>
               </div>
             </CardContent>
@@ -377,23 +391,9 @@ const BarcodeGenerator = () => {
         </TabsContent>
       </Tabs>
 
-      <style jsx global>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          .print-container,
-          .print-container * {
-            visibility: visible;
-          }
-          .print-container {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-        }
-      `}</style>
+      <style>
+        {printStyles}
+      </style>
     </div>
   );
 };
