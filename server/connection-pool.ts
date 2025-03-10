@@ -5,7 +5,7 @@ import { schema } from '../shared/schema';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { sql } from 'drizzle-orm';
 
-// Connection states tracking
+// تتبع حالة الاتصال
 interface ConnectionState {
   lastUsed: number;
   isHealthy: boolean;
@@ -16,17 +16,17 @@ class EnhancedConnectionPool {
   private pool: Pool;
   private connectionStates: Map<string, ConnectionState> = new Map();
   private healthCheckInterval: NodeJS.Timeout | null = null;
-  private reconnectBackoff = 1000; // Start with 1 second
-  private maxReconnectBackoff = 30000; // Max 30 seconds
+  private reconnectBackoff = 1000; // البدء بثانية واحدة
+  private maxReconnectBackoff = 30000; // الحد الأقصى 30 ثانية
   private _isConnected = false;
 
   constructor() {
-    // Create the pool with optimal settings
+    // إنشاء مجموعة الاتصالات مع إعدادات مثالية
     this.pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       connectionTimeoutMillis: 10000,
-      max: 15, // Increased for better concurrency
-      min: 2,
+      max: 10, // عدد أمثل من العملاء
+      min: 1,
       idleTimeoutMillis: 60000,
       keepAlive: true,
       allowExitOnIdle: false,
@@ -34,19 +34,19 @@ class EnhancedConnectionPool {
       query_timeout: 30000
     });
 
-    // Set up event handlers
+    // إعداد معالجات الأحداث
     this.setupEventHandlers();
     
-    // Start health checks
+    // بدء فحوصات الصحة
     this.startHealthChecks();
   }
 
   private setupEventHandlers() {
-    // Handle pool-level errors
+    // معالجة أخطاء مجموعة الاتصال
     this.pool.on('error', (err, client) => {
-      console.error('Unexpected database pool error:', err);
+      console.error('خطأ غير متوقع في مجموعة قواعد البيانات:', err);
       
-      // Mark connection as unhealthy
+      // تحديد الاتصال كغير صحي
       if (client) {
         const clientId = (client as any).processID;
         if (clientId && this.connectionStates.has(clientId)) {
@@ -57,7 +57,7 @@ class EnhancedConnectionPool {
       }
     });
     
-    // Track new connections
+    // تتبع الاتصالات الجديدة
     this.pool.on('connect', (client) => {
       const clientId = (client as any).processID;
       if (clientId) {
@@ -69,7 +69,7 @@ class EnhancedConnectionPool {
       }
     });
     
-    // Track removed connections
+    // تتبع الاتصالات المزالة
     this.pool.on('remove', (client) => {
       const clientId = (client as any).processID;
       if (clientId) {
@@ -79,7 +79,7 @@ class EnhancedConnectionPool {
   }
 
   private startHealthChecks() {
-    // Check connection health every 15 seconds
+    // فحص صحة الاتصال كل 15 ثانية
     this.healthCheckInterval = setInterval(() => {
       this.checkPoolHealth();
     }, 15000);
@@ -87,75 +87,75 @@ class EnhancedConnectionPool {
 
   private async checkPoolHealth() {
     try {
-      // Quick connection test
+      // اختبار اتصال سريع
       await this.pool.query('SELECT 1');
       this._isConnected = true;
-      this.reconnectBackoff = 1000; // Reset backoff on success
+      this.reconnectBackoff = 1000; // إعادة تعيين التراجع عند النجاح
     } catch (err) {
-      console.warn('Database health check failed:', err);
+      console.warn('فشل فحص صحة قاعدة البيانات:', err);
       this._isConnected = false;
       
-      // If we're disconnected, try to reconnect with exponential backoff
+      // إذا كنا غير متصلين، حاول إعادة الاتصال مع تراجع أسي
       setTimeout(() => {
         this.attemptReconnect();
       }, this.reconnectBackoff);
       
-      // Increase backoff for next attempt
+      // زيادة التراجع للمحاولة التالية
       this.reconnectBackoff = Math.min(this.reconnectBackoff * 2, this.maxReconnectBackoff);
     }
   }
 
   private async attemptReconnect() {
     try {
-      // Get a client and release it immediately as a connection test
+      // الحصول على عميل وتحريره فورًا كاختبار اتصال
       const client = await this.pool.connect();
       client.release();
-      console.log('Successfully reconnected to database');
+      console.log('تم إعادة الاتصال بقاعدة البيانات بنجاح');
       this._isConnected = true;
     } catch (err) {
-      console.error('Database reconnection attempt failed:', err);
+      console.error('فشلت محاولة إعادة الاتصال بقاعدة البيانات:', err);
     }
   }
 
-  // Execute query with retries and error handling
+  // تنفيذ الاستعلام مع إعادة المحاولات والتعامل مع الأخطاء
   async executeQuery(queryFn: Function): Promise<any> {
     const MAX_RETRIES = 3;
     let retries = 0;
     
     while (retries < MAX_RETRIES) {
       try {
-        // Update last used time for this connection
+        // تحديث وقت آخر استخدام لهذا الاتصال
         const result = await queryFn();
         return result;
       } catch (error: any) {
         retries++;
         
-        // These errors might be recoverable with a retry
+        // قد تكون هذه الأخطاء قابلة للاسترداد مع إعادة المحاولة
         if (
-          error.code === '08006' ||   // connection terminated
-          error.code === '08001' ||   // unable to connect
-          error.code === '08004' ||   // rejected connection
+          error.code === '08006' ||   // انقطاع الاتصال
+          error.code === '08001' ||   // غير قادر على الاتصال
+          error.code === '08004' ||   // رفض الاتصال
           error.code === 'ECONNRESET' ||
           error.code === 'EPIPE'
         ) {
-          console.log(`Database connection error (${error.code}), retry attempt ${retries}/${MAX_RETRIES}`);
+          console.log(`خطأ في اتصال قاعدة البيانات (${error.code})، محاولة إعادة ${retries}/${MAX_RETRIES}`);
           
           if (retries < MAX_RETRIES) {
-            // Wait before retrying (exponential backoff)
+            // الانتظار قبل إعادة المحاولة (تراجع أسي)
             await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries - 1)));
             continue;
           }
         }
         
-        // For other errors or if we've exceeded retries
+        // للأخطاء الأخرى أو إذا تجاوزنا عدد المحاولات
         throw error;
       }
     }
     
-    throw new Error(`Failed after ${MAX_RETRIES} attempts`);
+    throw new Error(`فشل بعد ${MAX_RETRIES} محاولات`);
   }
 
-  // Clean up resources
+  // تنظيف الموارد
   async close() {
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
@@ -163,23 +163,23 @@ class EnhancedConnectionPool {
     await this.pool.end();
   }
 
-  // Get the underlying pool
+  // الحصول على المجموعة الأساسية
   getPool() {
     return this.pool;
   }
 
-  // Get drizzle instance
+  // الحصول على مثيل drizzle
   getDrizzle() {
     return drizzle(this.pool, { schema });
   }
 
-  // Get connected status
+  // الحصول على حالة الاتصال
   getConnectionStatus() {
     return this._isConnected;
   }
 }
 
-// Export a singleton instance
+// تصدير مثيل مفرد
 export const connectionPool = new EnhancedConnectionPool();
 export const db = connectionPool.getDrizzle();
 export { sql };
