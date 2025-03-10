@@ -1,4 +1,3 @@
-
 {
   "name": "نظام إدارة المبيعات",
   "primary": "#0284c7",
@@ -21,7 +20,7 @@
   "input": "#e2e8f0",
   "ring": "#94a3b8",
   "radius": 0.5,
-  "variant": "default",
+  "variant": "modern",
   "appearance": "light",
   "fontStyle": "noto-kufi",
   "fontSize": "medium"

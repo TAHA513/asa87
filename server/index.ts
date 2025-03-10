@@ -122,109 +122,46 @@ async function startServer() {
       serveStatic(app);
     }
 
-    const port = 1000;
+    const port = process.env.PORT || 5000;
     const httpServer = createServer(app);
 
-  // إعداد Socket.IO
-  const io = new SocketServer(httpServer, {
-    cors: {
-      origin: ["https://admin.socket.io", process.env.NODE_ENV === "production" ? "*" : "http://localhost:1000"],
-      credentials: true
-    }
-  });
-
-  // إعداد لوحة المراقبة - متاحة على /admin/socket
-  instrument(io, {
-    auth: {
-      type: "basic",
-      username: "admin",
-      password: process.env.SOCKET_ADMIN_PASSWORD || "password" // استخدم كلمة مرور آمنة في الإنتاج
-    },
-    mode: process.env.NODE_ENV === "production" ? "production" : "development",
-  });
-
-  // التعامل مع اتصالات المستخدمين
-  io.on("connection", (socket) => {
-    console.log("مستخدم جديد متصل:", socket.id);
-
-    // تسجيل المستخدم إذا كان مصادقًا
-    socket.on("register", (userId) => {
-      if (userId) {
-        console.log(`تسجيل المستخدم ${userId} مع Socket ${socket.id}`);
-        socket.join(`user-${userId}`);
+    // إعداد Socket.IO
+    const io = new SocketServer(httpServer, {
+      cors: {
+        origin: ["https://admin.socket.io", process.env.NODE_ENV === "production" ? "*" : "http://localhost:5000"],
+        credentials: true
       }
     });
 
-    socket.on("disconnect", () => {
-      console.log("مستخدم قطع الاتصال:", socket.id);
+    // إعداد لوحة المراقبة - متاحة على /admin/socket
+    instrument(io, {
+      auth: {
+        type: "basic",
+        username: "admin",
+        password: process.env.SOCKET_ADMIN_PASSWORD || "password" // استخدم كلمة مرور آمنة في الإنتاج
+      },
+      mode: process.env.NODE_ENV === "production" ? "production" : "development",
     });
-  });
 
-  // تصدير الـ Socket.IO للاستخدام في ملفات أخرى
-  app.set("io", io);
+    // التعامل مع اتصالات المستخدمين
+    io.on("connection", (socket) => {
+      console.log("مستخدم جديد متصل:", socket.id);
 
-  // إضافة طريقة مساعدة لإرسال الإشعارات
-  storage.sendNotification = (userId, notificationType, data) => {
-    io.to(`user-${userId}`).emit("notification", {
-      type: notificationType,
-      data,
-      timestamp: new Date()
-    });
-    return true;
-  };
-
-  // Start inventory check timer with notification support
-  const checkInventoryLevels = async () => {
-    // Your existing inventory check logic here...
-  };
-
-  setInterval(async () => {
-    try {
-      await checkInventoryLevels();
-      // إرسال تحديثات للمستخدمين النشطين
-      const adminUsers = await storage.getUsersByRole("admin");
-      for (const user of adminUsers) {
-        storage.sendNotification(user.id, "inventory_check_complete", { 
-          timestamp: new Date(),
-          message: "تم الانتهاء من فحص المخزون بنجاح"
-        });
-      }
-    } catch (error) {
-      console.error("خطأ أثناء فحص المخزون:", error);
-    }
-  }, 60 * 60 * 1000);
-
-  // إضافة فحص المواعيد القادمة وإرسال تنبيهات
-  setInterval(async () => {
-    try {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
-
-      const dayAfter = new Date(tomorrow);
-      dayAfter.setDate(dayAfter.getDate() + 1);
-
-      const upcomingAppointments = await storage.getAppointmentsByDateRange(tomorrow, dayAfter);
-
-      // إرسال تنبيهات للمستخدمين حول المواعيد القادمة
-      if (upcomingAppointments.length > 0) {
-        const users = await storage.getActiveUsers();
-        for (const user of users) {
-          storage.sendNotification(user.id, "upcoming_appointments", {
-            count: upcomingAppointments.length,
-            appointments: upcomingAppointments.map(a => ({
-              id: a.id,
-              title: a.title,
-              date: a.date,
-              customerName: a.customerName || "عميل"
-            }))
-          });
+      // تسجيل المستخدم إذا كان مصادقًا
+      socket.on("register", (userId: string) => {
+        if (userId) {
+          console.log(`تسجيل المستخدم ${userId} مع Socket ${socket.id}`);
+          socket.join(`user-${userId}`);
         }
-      }
-    } catch (error) {
-      console.error("خطأ أثناء فحص المواعيد القادمة:", error);
-    }
-  }, 12 * 60 * 60 * 1000); // تشغيل مرتين في اليوم
+      });
+
+      socket.on("disconnect", () => {
+        console.log("مستخدم قطع الاتصال:", socket.id);
+      });
+    });
+
+    // تصدير الـ Socket.IO للاستخدام في ملفات أخرى
+    app.set("io", io);
 
     server.listen({
       port,

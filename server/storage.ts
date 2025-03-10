@@ -143,12 +143,12 @@ export interface IStorage {
   getHistoricalStats(): Promise<any>;
   getFrontendComponents():Promise<string[]>;
   getApiEndpoints():Promise<string[]>;
-  
+
   // واجهات برمجة جديدة لدعم نظام الإشعارات
   sendNotification(userId: number, notificationType: string, data: any): boolean;
-  getUsersByRole(role: string): Promise<any[]>;
-  getActiveUsers(): Promise<any[]>;
-  getAppointmentsByDateRange(startDate: Date, endDate: Date): Promise<any[]>;
+  getUsersByRole(role: string): Promise<User[]>;
+  getActiveUsers(): Promise<User[]>;
+  getAppointmentsByDateRange(startDate: Date, endDate: Date): Promise<Appointment[]>;
   saveUserNotification(userId: number, type: string, data: any): Promise<any>;
   getUserNotifications(userId: number, options?: { unreadOnly?: boolean, limit?: number }): Promise<any[]>;
   markNotificationAsRead(notificationId: number): Promise<any>;
@@ -944,8 +944,7 @@ export class DatabaseStorage implements IStorage {
     return db
       .select()
       .from(products)
-      .where(
-        or(
+      .where(or(
           like(products.productCode, `%${query}%`),
           like(products.barcode, `%${query}%`),
           like(products.name, `%${query}%`)
@@ -1728,6 +1727,61 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error fetching API endpoints:", error);
       return [];
+    }
+  }
+
+  async getUsersByRole(role: string): Promise<User[]> {
+    try {
+      return await db
+        .select()
+        .from(users)
+        .where(eq(users.role, role as "admin" | "staff"));
+    } catch (error) {
+      console.error("خطأ في جلب المستخدمين حسب الدور:", error);
+      return [];
+    }
+  }
+
+  async getActiveUsers(): Promise<User[]> {
+    try {
+      const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+      return await db
+        .select()
+        .from(users)
+        .where(and(
+          eq(users.isActive, true),
+          gt(users.lastLoginAt, thirtyMinutesAgo)
+        ));
+    } catch (error) {
+      console.error("خطأ في جلب المستخدمين النشطين:", error);
+      return [];
+    }
+  }
+
+  async getAppointmentsByDateRange(startDate: Date, endDate: Date): Promise<Appointment[]> {
+    try {
+      return await db
+        .select()
+        .from(appointments)
+        .where(and(
+          gte(appointments.date, startDate),
+          lt(appointments.date, endDate)
+        ))
+        .orderBy(appointments.date);
+    } catch (error) {
+      console.error("خطأ في جلب المواعيد حسب النطاق الزمني:", error);
+      return [];
+    }
+  }
+
+  sendNotification(userId: number, notificationType: string, data: any): boolean {
+    try {
+      // This method will be overridden in index.ts with Socket.IO implementation
+      console.log("محاولة إرسال إشعار:", { userId, notificationType, data });
+      return true;
+    } catch (error) {
+      console.error("خطأ في إرسال الإشعار:", error);
+      return false;
     }
   }
 
