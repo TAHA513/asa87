@@ -23,9 +23,28 @@ deploymentTarget = "cloudrun"
 build = ["sh", "-c", "npm run build"]
 run = ["sh", "-c", "npm start"]
 
-# إعدادات تشغيل التطبيق
 [workflows]
-runButton = "Start application"
+runButton = "Run Application"
 
 [[workflows.workflow]]
 name = "Start application"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Run Application"
+author = 39617731
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
