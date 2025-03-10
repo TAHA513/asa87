@@ -461,9 +461,9 @@ export default function Sales() {
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>إضافة عميل جديد</DialogTitle>
-                <DialogDescription>
+                <AlertDialogDescription>
                   أدخل معلومات العميل الجديد
-                </DialogDescription>
+                </AlertDialogDescription>
               </DialogHeader>
               <form
                 onSubmit={async (e) => {
