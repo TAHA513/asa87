@@ -1,15 +1,19 @@
 modules = ["nodejs-20", "web", "postgresql-16"]
 run = "npm run dev"
 
+# تكوين المنافذ بشكل واضح وبدون تكرار
 [[ports]]
 localPort = 5000
 externalPort = 80
 exposeLocalhost = true
+description = "Express Server"
 
 [[ports]]
 localPort = 3000
 externalPort = 3000
 exposeLocalhost = true
+description = "Vite Dev Server"
+
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
@@ -18,35 +22,10 @@ channel = "stable-24_05"
 [deployment]
 deploymentTarget = "cloudrun"
 build = ["sh", "-c", "npm run build"]
-run = ["sh", "-c", "npm run dev"]
-
-[[ports]]
-localPort = 1000
-externalPort = 3002
-
-[[ports]]
-localPort = 3000
-externalPort = 3001
-
-[[ports]]
-localPort = 5000
-externalPort = 80
-
-[[ports]]
-localPort = 5001
-externalPort = 3000
+run = ["sh", "-c", "npm run start"]
 
 [workflows]
 runButton = "Start application"
-
-[[workflows.workflow]]
-name = "Project"
-mode = "parallel"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Start application"
 
 [[workflows.workflow]]
 name = "Start application"

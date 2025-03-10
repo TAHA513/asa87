@@ -24,15 +24,13 @@ export default defineConfig({
   ],
   server: {
     hmr: {
-      overlay: false, // Disable error overlay
-      clientPort: 443, // Use HTTPS port for WebSocket, from edited config
-      port: 5000,     // Internal HMR port
-      host: undefined, // Let Vite auto-detect the host - important for Replit
-      path: '/__vite_hmr' // Use a specific path for WebSocket connections
+      overlay: false, // تعطيل طبقة الخطأ
+      clientPort: 443, // استخدام منفذ HTTPS للـ WebSocket
+      host: 'localhost', // استخدام localhost للـ HMR
     },
-    host: '0.0.0.0', // From edited config
-    port: 3000,       //From edited config
-    strictPort: true
+    host: '0.0.0.0', // استماع على جميع الواجهات
+    port: 3000, // منفذ واضح لخادم التطوير
+    strictPort: true // إيقاف التشغيل إذا كان المنفذ مستخدماً
   },
   resolve: {
     alias: {

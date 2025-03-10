@@ -357,24 +357,19 @@ if (ENABLE_CLUSTERING && cluster.isPrimary) {
       }
 
       const port = process.env.PORT || 5000;
-      // Use a single HTTP server for both apps
+      // استخدام خادم HTTP واحد لكل التطبيقات
       const httpServer = createServer(app);
 
-      // إعداد Socket.IO with optimized settings and error handling
+      // إعداد Socket.IO مع إعدادات محسنة
       const io = new SocketServer(httpServer, {
         cors: {
-          origin: ["https://admin.socket.io", "*"], // Allow all origins
+          origin: "*", // السماح لجميع الأصول
           credentials: true
         },
-        // Optimize performance
-        perMessageDeflate: {
-          threshold: 1024, // Only compress messages larger than 1KB
-        },
-        pingInterval: 25000, // Increase ping interval to reduce traffic
-        pingTimeout: 10000,
-        connectTimeout: 10000,
-        transports: ['websocket', 'polling'], // Prefer WebSocket for better performance
-        maxHttpBufferSize: 1e6 // 1MB max message size
+        // تحسين الأداء
+        transports: ['websocket', 'polling'], // تفضيل WebSocket لأداء أفضل
+        maxHttpBufferSize: 1e6, // 1MB كحد أقصى لحجم الرسائل
+        connectTimeout: 10000, // مهلة الاتصال 10 ثوانٍ
       });
 
       // Socket.IO error handling
