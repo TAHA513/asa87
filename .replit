@@ -1,5 +1,15 @@
 modules = ["nodejs-20", "web", "postgresql-16"]
 run = "npm run dev"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+exposeLocalhost = true
+
+[[ports]]
+localPort = 3000
+externalPort = 3000
+exposeLocalhost = true
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]

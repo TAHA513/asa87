@@ -14,7 +14,7 @@ export default defineConfig({
     runtimeErrorOverlay(),
     themePlugin(),
     ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
+      process.env.REPL_ID !== undefined
       ? [
           await import("@replit/vite-plugin-cartographer").then((m) =>
             m.cartographer(),
@@ -25,13 +25,13 @@ export default defineConfig({
   server: {
     hmr: {
       overlay: false, // Disable error overlay
-      clientPort: 443, // Use HTTPS port for WebSocket
+      clientPort: 443, // Use HTTPS port for WebSocket, from edited config
       port: 5000,     // Internal HMR port
       host: undefined, // Let Vite auto-detect the host - important for Replit
       path: '/__vite_hmr' // Use a specific path for WebSocket connections
     },
-    host: '0.0.0.0',
-    port: 5000,
+    host: '0.0.0.0', // From edited config
+    port: 3000,       //From edited config
     strictPort: true
   },
   resolve: {
