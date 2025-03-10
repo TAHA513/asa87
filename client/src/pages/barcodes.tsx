@@ -80,45 +80,56 @@ export default function BarcodesPage() {
     setIsGenerating(true);
     try {
       // تأكد من وجود باركود واحد على الأقل بنص غير فارغ
-      if (!barcodes.some((b) => b.text)) {
+      if (!barcodes.some(b => b.text)) {
         throw new Error("يرجى إدخال نص للباركود أولاً");
       }
 
-      // تنظيف مراجع الباركود وإعادة إنشائها
+      // مسح المراجع القديمة
+      barcodeRefs.current = {};
+
+      // إنشاء الباركود بعد تأخير قصير للتأكد من وجود العناصر في DOM
       setTimeout(() => {
         barcodes.forEach((barcode) => {
-          if (barcode.text) {
-            // إنشاء مصفوفة فارغة لكل باركود
-            barcodeRefs.current[barcode.id] = [];
+          if (!barcode.text) return;
 
-            // إنشاء الباركود لكل نسخة
-            for (let i = 0; i < barcode.quantity; i++) {
-              const element = document.getElementById(
-                `barcode-${barcode.id}-${i}`
-              ) as SVGSVGElement;
-              if (element) {
-                try {
-                  if (barcode.type === "QR") {
-                    // لاحقًا يمكن تنفيذ منطق QR code هنا
-                    console.log("QR code generation not implemented yet");
-                  } else {
-                    JsBarcode(element, barcode.text, {
-                      format: barcode.type,
-                      displayValue: true,
-                      lineColor: "#000",
-                      width: 2,
-                      height: 80,
-                      margin: 10,
-                    });
-                  }
-                  // حفظ المرجع
-                  barcodeRefs.current[barcode.id][i] = element;
-                } catch (innerError) {
-                  console.error(
-                    "خطأ في إنشاء باركود فردي:",
-                    innerError
-                  );
+          barcodeRefs.current[barcode.id] = [];
+
+          for (let i = 0; i < barcode.quantity; i++) {
+            const element = document.getElementById(`barcode-${barcode.id}-${i}`) as SVGSVGElement;
+
+            if (element) {
+              try {
+                // مسح المحتوى السابق
+                while (element.firstChild) {
+                  element.removeChild(element.firstChild);
                 }
+
+                if (barcode.type === "QR") {
+                  // لاحقًا يمكن تنفيذ منطق QR code هنا
+                  console.log("QR code generation not implemented yet");
+                } else {
+                  JsBarcode(element, barcode.text, {
+                    format: barcode.type,
+                    displayValue: true,
+                    lineColor: "#000",
+                    width: 2,
+                    height: 80,
+                    margin: 10,
+                    valid: (valid) => {
+                      if (!valid) {
+                        throw new Error(`النص "${barcode.text}" غير صالح لنوع الباركود ${barcode.type}`);
+                      }
+                    }
+                  });
+                }
+
+                // حفظ المرجع
+                barcodeRefs.current[barcode.id][i] = element;
+              } catch (innerError) {
+                console.error(
+                  "خطأ في إنشاء باركود فردي:",
+                  innerError
+                );
               }
             }
           }
