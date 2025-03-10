@@ -8,6 +8,7 @@ import { seedData } from "./seed-data";
 import { createServer } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
+import { setupDatabaseHealthRoute, checkDatabaseHealth } from './db-health-check';
 import { Server as SocketServer } from "socket.io";
 import { instrument } from "@socket.io/admin-ui";
 import session from "express-session";
@@ -17,8 +18,8 @@ const MemoryStoreSession = MemoryStore(session);
 
 const app = express();
 
-// تكوين الجلسات مع استخدام مخزن الذاكرة المُحسّن
-app.use(session({
+// تكوين خيارات الجلسات للاستخدام في جميع أنحاء التطبيق
+export const sessionOptions = {
   store: new MemoryStoreSession({
     checkPeriod: 86400000, // تنظيف الجلسات منتهية الصلاحية كل 24 ساعة
     ttl: 24 * 60 * 60 * 1000 // مدة صلاحية الجلسة 24 ساعة
@@ -33,7 +34,10 @@ app.use(session({
     httpOnly: true,
     sameSite: 'lax'
   }
-}));
+};
+
+// تطبيق إعدادات الجلسة على التطبيق
+app.use(session(sessionOptions));
 
 // إعداد البيانات الأساسية للتطبيق
 app.use(express.json());
@@ -111,9 +115,24 @@ async function startServer() {
 
     // إعداد المصادقة
     setupAuth(app);
+    
+    // إضافة مسار لفحص صحة قاعدة البيانات
+    setupDatabaseHealthRoute(app);
 
     const httpServer = await registerRoutes(app);
     app.use(errorHandler);
+    
+    // فحص دوري لصحة قاعدة البيانات
+    setInterval(async () => {
+      try {
+        const health = await checkDatabaseHealth();
+        if (health.status !== 'healthy') {
+          console.warn(`تحذير: حالة قاعدة البيانات: ${health.status}`, health.message);
+        }
+      } catch (error) {
+        console.error('خطأ في الفحص الدوري لصحة قاعدة البيانات:', error);
+      }
+    }, 30 * 60 * 1000); // فحص كل 30 دقيقة
 
     if (app.get("env") === "development") {
       await setupVite(app, httpServer);

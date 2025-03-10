@@ -5,22 +5,49 @@ import * as schema from "@shared/schema";
 import { sql } from 'drizzle-orm';
 
 neonConfig.webSocketConstructor = ws;
-// Remove the unsupported patchWebsocketDanglingTimeout config
-// Add proper connection retry logic instead
+// إعداد منطق إعادة اتصال مناسب
+const MAX_RETRIES = 5;
+const RETRY_DELAY_MS = 2000;
 
-// Validate database URL
+// التحقق من عنوان قاعدة البيانات
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL must be set. Did you forget to provision a database?");
 }
 
-// Create connection pool with proper error handling and retry logic
-const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: 5000, // 5 second timeout
-  max: 20, // Maximum 20 clients in pool
-  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
-  keepAlive: true, // Keep connections alive
-  allowExitOnIdle: false // Prevent pool from ending when idle
+// دالة مساعدة لإعادة المحاولة مع انتظار متزايد
+async function connectWithRetry(retryCount = 0): Promise<Pool> {
+  try {
+    const pool = new Pool({ 
+      connectionString: process.env.DATABASE_URL,
+      connectionTimeoutMillis: 5000, // 5 ثوان كحد أقصى للاتصال
+      max: 20, // أقصى عدد للاتصالات المتزامنة
+      idleTimeoutMillis: 30000, // إغلاق الاتصالات الخاملة بعد 30 ثانية
+      keepAlive: true, // الحفاظ على الاتصالات نشطة
+      allowExitOnIdle: false // منع إنهاء المجمع عند الخمول
+    });
+    
+    // اختبار الاتصال
+    await pool.query('SELECT 1');
+    return pool;
+  } catch (err) {
+    if (retryCount < MAX_RETRIES) {
+      console.log(`فشل الاتصال بقاعدة البيانات. إعادة المحاولة (${retryCount + 1}/${MAX_RETRIES}) بعد ${RETRY_DELAY_MS}ms...`);
+      await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+      return connectWithRetry(retryCount + 1);
+    }
+    console.error('فشل الاتصال بقاعدة البيانات بعد عدة محاولات:', err);
+    throw err;
+  }
+}
+
+// إنشاء مجمع الاتصالات مع معالجة الأخطاء وإعادة المحاولة
+const pool = await connectWithRetry().catch(err => {
+  console.error('لا يمكن إنشاء مجمع اتصالات قاعدة البيانات:', err);
+  // لا نريد إنهاء التطبيق تمامًا، سنستخدم مجمع احتياطي بسيط
+  return new Pool({ 
+    connectionString: process.env.DATABASE_URL,
+    connectionTimeoutMillis: 5000
+  });
 });
 
 // Configure drizzle with proper typing
