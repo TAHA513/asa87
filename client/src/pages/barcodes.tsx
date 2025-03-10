@@ -165,7 +165,7 @@ export default function BarcodesPage() {
     },
     removeAfterPrint: false,
     copyStyles: true,
-    documentTitle: "الباركود",باركود المطبوع",
+    documentTitle: "الباركود المطبوع",
     pageStyle: `
       @page {
         size: auto;
