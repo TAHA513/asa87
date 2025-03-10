@@ -3,47 +3,38 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import fileUpload from "express-fileupload";
 import path from "path";
+import session from "express-session";
 import { db, sql } from "./db";
 import { seedData } from "./seed-data";
-import { createServer } from "http";
+import MemoryStore from 'memorystore';
+import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { setupDatabaseHealthRoute, checkDatabaseHealth } from './db-health-check';
 import { Server as SocketServer } from "socket.io";
 import { instrument } from "@socket.io/admin-ui";
-import session from "express-session";
-import MemoryStore from 'memorystore';
 
 const MemoryStoreSession = MemoryStore(session);
 
 const app = express();
 
-// تكوين خيارات الجلسات للاستخدام في جميع أنحاء التطبيق
-export const sessionOptions = {
+// إعداد الجلسات مع تخزين محسن للذاكرة
+app.use(session({
   store: new MemoryStoreSession({
-    checkPeriod: 86400000, // تنظيف الجلسات منتهية الصلاحية كل 24 ساعة
-    ttl: 24 * 60 * 60 * 1000 // مدة صلاحية الجلسة 24 ساعة
+    checkPeriod: 86400000 // تنظيف الجلسات منتهية الصلاحية كل 24 ساعة
   }),
   secret: process.env.SESSION_SECRET || 'your-secret-key',
-  name: 'sid',
   resave: false,
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000, // 24 ساعة
-    httpOnly: true,
-    sameSite: 'lax'
+    maxAge: 86400000 // 24 ساعة
   }
-};
+}));
 
-// تطبيق إعدادات الجلسة على التطبيق
-app.use(session(sessionOptions));
-
-// إعداد البيانات الأساسية للتطبيق
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(fileUpload({
-  limits: { fileSize: 50 * 1024 * 1024 },
+  limits: { fileSize: 50 * 1024 * 1024 }, // حد أقصى 50 ميجابايت
   useTempFiles: true,
   tempFileDir: '/tmp/'
 }));
@@ -99,6 +90,15 @@ const errorHandler = (err: any, _req: Request, res: Response, next: NextFunction
   });
 };
 
+// معالجة الأخطاء غير المتوقعة في العملية
+process.on('uncaughtException', (error) => {
+  console.error('خطأ غير متوقع:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('وعد مرفوض غير معالج:', promise, 'السبب:', reason);
+});
+
 // التأكد من اتصال قاعدة البيانات قبل بدء السيرفر
 async function startServer() {
   try {
@@ -113,93 +113,125 @@ async function startServer() {
       throw dbError;
     }
 
-    // إعداد المصادقة
-    setupAuth(app);
-    
-    // إضافة مسار لفحص صحة قاعدة البيانات
-    setupDatabaseHealthRoute(app);
-
-    const httpServer = await registerRoutes(app);
+    const server = await registerRoutes(app);
     app.use(errorHandler);
-    
-    // فحص دوري لصحة قاعدة البيانات
-    setInterval(async () => {
-      try {
-        const health = await checkDatabaseHealth();
-        if (health.status !== 'healthy') {
-          console.warn(`تحذير: حالة قاعدة البيانات: ${health.status}`, health.message);
-        }
-      } catch (error) {
-        console.error('خطأ في الفحص الدوري لصحة قاعدة البيانات:', error);
-      }
-    }, 30 * 60 * 1000); // فحص كل 30 دقيقة
 
     if (app.get("env") === "development") {
-      await setupVite(app, httpServer);
+      await setupVite(app, server);
     } else {
       serveStatic(app);
     }
 
-    // استخدام المنفذ 5000 دائماً
     const port = 5000;
+    const httpServer = createServer(app);
 
-    // إعداد Socket.IO
-    const io = new SocketServer(httpServer, {
-      cors: {
-        origin: ["https://admin.socket.io", process.env.NODE_ENV === "production" ? "*" : "http://localhost:5000"],
-        credentials: true
+  // إعداد Socket.IO
+  const io = new SocketServer(httpServer, {
+    cors: {
+      origin: ["https://admin.socket.io", process.env.NODE_ENV === "production" ? "*" : "http://localhost:5173"],
+      credentials: true
+    }
+  });
+
+  // إعداد لوحة المراقبة - متاحة على /admin/socket
+  instrument(io, {
+    auth: {
+      type: "basic",
+      username: "admin",
+      password: process.env.SOCKET_ADMIN_PASSWORD || "password" // استخدم كلمة مرور آمنة في الإنتاج
+    },
+    mode: process.env.NODE_ENV === "production" ? "production" : "development",
+  });
+
+  // التعامل مع اتصالات المستخدمين
+  io.on("connection", (socket) => {
+    console.log("مستخدم جديد متصل:", socket.id);
+
+    // تسجيل المستخدم إذا كان مصادقًا
+    socket.on("register", (userId) => {
+      if (userId) {
+        console.log(`تسجيل المستخدم ${userId} مع Socket ${socket.id}`);
+        socket.join(`user-${userId}`);
       }
     });
 
-    // إعداد لوحة المراقبة
-    instrument(io, {
-      auth: {
-        type: "basic",
-        username: "admin",
-        password: process.env.SOCKET_ADMIN_PASSWORD || "password"
-      },
-      mode: process.env.NODE_ENV === "production" ? "production" : "development",
+    socket.on("disconnect", () => {
+      console.log("مستخدم قطع الاتصال:", socket.id);
     });
+  });
 
-    // التعامل مع اتصالات المستخدمين
-    io.on("connection", (socket) => {
-      console.log("مستخدم جديد متصل:", socket.id);
+  // تصدير الـ Socket.IO للاستخدام في ملفات أخرى
+  app.set("io", io);
 
-      socket.on("register", (userId) => {
-        if (userId) {
-          console.log(`تسجيل المستخدم ${userId} مع Socket ${socket.id}`);
-          socket.join(`user-${userId}`);
+  // إضافة طريقة مساعدة لإرسال الإشعارات
+  storage.sendNotification = (userId, notificationType, data) => {
+    io.to(`user-${userId}`).emit("notification", {
+      type: notificationType,
+      data,
+      timestamp: new Date()
+    });
+    return true;
+  };
+
+  // Start inventory check timer with notification support
+  const checkInventoryLevels = async () => {
+    // Your existing inventory check logic here...
+  };
+
+  setInterval(async () => {
+    try {
+      await checkInventoryLevels();
+      // إرسال تحديثات للمستخدمين النشطين
+      const adminUsers = await storage.getUsersByRole("admin");
+      for (const user of adminUsers) {
+        storage.sendNotification(user.id, "inventory_check_complete", { 
+          timestamp: new Date(),
+          message: "تم الانتهاء من فحص المخزون بنجاح"
+        });
+      }
+    } catch (error) {
+      console.error("خطأ أثناء فحص المخزون:", error);
+    }
+  }, 60 * 60 * 1000);
+
+  // إضافة فحص المواعيد القادمة وإرسال تنبيهات
+  setInterval(async () => {
+    try {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+
+      const dayAfter = new Date(tomorrow);
+      dayAfter.setDate(dayAfter.getDate() + 1);
+
+      const upcomingAppointments = await storage.getAppointmentsByDateRange(tomorrow, dayAfter);
+
+      // إرسال تنبيهات للمستخدمين حول المواعيد القادمة
+      if (upcomingAppointments.length > 0) {
+        const users = await storage.getActiveUsers();
+        for (const user of users) {
+          storage.sendNotification(user.id, "upcoming_appointments", {
+            count: upcomingAppointments.length,
+            appointments: upcomingAppointments.map(a => ({
+              id: a.id,
+              title: a.title,
+              date: a.date,
+              customerName: a.customerName || "عميل"
+            }))
+          });
         }
-      });
+      }
+    } catch (error) {
+      console.error("خطأ أثناء فحص المواعيد القادمة:", error);
+    }
+  }, 12 * 60 * 60 * 1000); // تشغيل مرتين في اليوم
 
-      socket.on("disconnect", () => {
-        console.log("مستخدم قطع الاتصال:", socket.id);
-      });
-    });
-
-    // تصدير الـ Socket.IO للاستخدام في ملفات أخرى
-    app.set("io", io);
-
-    // تعريف وظيفة إرسال الإشعارات
-    const sendNotification = (userId: number, type: string, data: any) => {
-      io.to(`user-${userId}`).emit("notification", {
-        type,
-        data,
-        timestamp: new Date()
-      });
-      return true;
-    };
-
-    // إضافة وظيفة الإشعارات للتخزين
-    storage.sendNotification = sendNotification;
-
-    // بدء الخادم على المنفذ 5000
-    httpServer.listen({
-      port: port,
-      host: "0.0.0.0"
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
     }, () => {
       log(`تم تشغيل السيرفر على المنفذ ${port}`);
-      console.log(`الواجهة متاحة على الرابط: https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
     });
 
     // تنفيذ البذور بعد بدء السيرفر

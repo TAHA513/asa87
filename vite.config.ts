@@ -9,14 +9,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export default defineConfig({
-  server: {
-    hmr: {
-      clientPort: 443,
-      host: 'localhost'
-    },
-    cors: true,
-    allowedHosts: 'all' // السماح لجميع المضيفات بما فيها المضيف الخاص بـ replit
-  },
   plugins: [
     react(),
     runtimeErrorOverlay(),

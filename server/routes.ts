@@ -39,96 +39,54 @@ async function fetchLinkedInStats() { return mockPlatformStats(); }
 // Inventory check function
 async function checkInventoryLevels() {
   try {
-    console.log("بدء فحص مستويات المخزون...");
     const products = await storage.getProducts();
     const alerts = await storage.getInventoryAlerts();
-    
-    if (!products || products.length === 0) {
-      console.log("لا توجد منتجات للفحص");
-      return;
-    }
-    
-    if (!alerts || alerts.length === 0) {
-      console.log("لا توجد تنبيهات مخزون مكونة");
-      return;
-    }
-
-    console.log(`فحص ${products.length} منتج و ${alerts.length} تنبيه`);
-    
-    // تخزين الإشعارات المكتشفة لإرسالها دفعة واحدة
-    const notifications = [];
-
-    // الحصول على تواريخ الفحص مسبقًا للمساعدة في الأداء
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-
-    // إنشاء فهرس للتنبيهات من نفس النوع وحسب معرف المنتج
-    const alertsByTypeAndProduct = {};
-    for (const alert of alerts) {
-      if (!alert.productId || !alert.type || alert.status !== "active") continue;
-      
-      if (!alertsByTypeAndProduct[alert.type]) {
-        alertsByTypeAndProduct[alert.type] = {};
-      }
-      
-      alertsByTypeAndProduct[alert.type][alert.productId] = alert;
-    }
 
     for (const product of products) {
-      // فحص تنبيهات نفاد المخزون
-      const lowStockAlert = alertsByTypeAndProduct.low_stock && 
-                          alertsByTypeAndProduct.low_stock[product.id];
+      // Check low stock alerts
+      const lowStockAlert = alerts.find(
+        a => a.productId === product.id && a.type === "low_stock" && a.status === "active"
+      );
 
       if (lowStockAlert && product.stock <= lowStockAlert.threshold) {
-        notifications.push({
+        await storage.createAlertNotification({
           alertId: lowStockAlert.id,
           message: `المنتج ${product.name} وصل للحد الأدنى (${product.stock} قطعة متبقية)`,
         });
       }
 
-      // فحص المنتجات غير النشطة (لا مبيعات في آخر 30 يوم)
-      const inactiveAlert = alertsByTypeAndProduct.inactive && 
-                          alertsByTypeAndProduct.inactive[product.id];
+      // Check inactive products (no sales in last 30 days)
+      const inactiveAlert = alerts.find(
+        a => a.productId === product.id && a.type === "inactive" && a.status === "active"
+      );
 
       if (inactiveAlert) {
-        // تحسين الأداء: جلب المبيعات فقط إذا كان التنبيه نشط
-        const sales = await storage.getProductSales(product.id, thirtyDaysAgo);
+        const sales = await storage.getProductSales(product.id, new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
         if (sales.length === 0) {
-          notifications.push({
+          await storage.createAlertNotification({
             alertId: inactiveAlert.id,
             message: `المنتج ${product.name} لم يتم بيعه خلال آخر 30 يوم`,
           });
         }
       }
 
-      // فحص المنتجات ذات الطلب المرتفع
-      const highDemandAlert = alertsByTypeAndProduct.high_demand && 
-                            alertsByTypeAndProduct.high_demand[product.id];
+      // Check high demand products
+      const highDemandAlert = alerts.find(
+        a => a.productId === product.id && a.type === "high_demand" && a.status === "active"
+      );
 
       if (highDemandAlert) {
-        // تحسين الأداء: جلب المبيعات فقط إذا كان التنبيه نشط
-        const sales = await storage.getProductSales(product.id, sevenDaysAgo);
+        const sales = await storage.getProductSales(product.id, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000));
         if (sales.length >= highDemandAlert.threshold) {
-          notifications.push({
+          await storage.createAlertNotification({
             alertId: highDemandAlert.id,
             message: `المنتج ${product.name} عليه طلب مرتفع (${sales.length} مبيعات في آخر 7 أيام)`,
           });
         }
       }
     }
-
-    // إنشاء جميع الإشعارات دفعة واحدة
-    if (notifications.length > 0) {
-      console.log(`تم العثور على ${notifications.length} تنبيه جديد`);
-      for (const notification of notifications) {
-        await storage.createAlertNotification(notification);
-      }
-    } else {
-      console.log("لم يتم العثور على تنبيهات جديدة");
-    }
-    
   } catch (error) {
-    console.error("خطأ في فحص مستويات المخزون:", error);
+    console.error("Error checking inventory levels:", error);
   }
 }
 
@@ -1062,6 +1020,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         supplierId: Number(req.params.id),
         userId: req.user!.id,
       });
+
+      // إذا كانت المعاملة من نوع شراء وتوجد تفاصيل منتج، قم بتحديث المخزون
+      if (validatedData.type === "purchase" && req.body.productDetails) {
+        const { name, quantity } = req.body.productDetails;
+        
+        // ابحث عن المنتج باسمه
+        const matchingProducts = await storage.searchProducts(name);
+        
+        if (matchingProducts.length > 0) {
+          // حدّث المخزون للمنتج الأول المطابق
+          const product = matchingProducts[0];
+          await storage.updateProduct(product.id, {
+            ...product,
+            stock: product.stock + Number(quantity)
+          });
+          
+          // سجّل عملية دخول إلى المخزون
+          await storage.createInventoryTransaction({
+            productId: product.id,
+            type: "in",
+            quantity: Number(quantity),
+            reason: "purchase",
+            reference: `SUPPLIER-TRANSACTION-${transaction.id}`,
+            userId: req.user!.id,
+            date: new Date()
+          });
+        }
+      }
+      
       res.status(201).json(transaction);
     } catch (error) {
       console.error("Error creating supplier transaction:", error);
@@ -1114,52 +1101,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      // التحقق من نوع البيانات المرسلة
-      if (!req.body || typeof req.body !== 'object') {
-        return res.status(400).json({ message: "تنسيق البيانات غير صالح" });
-      }
-
-      // تنظيف البيانات المدخلة
-      const sanitizedData = {
-        name: typeof req.body.name === 'string' ? req.body.name.trim() : '',
-        phone: typeof req.body.phone === 'string' ? req.body.phone.trim() : '',
-        email: typeof req.body.email === 'string' ? req.body.email.trim() : null,
-        address: typeof req.body.address === 'string' ? req.body.address.trim() : '',
-        notes: typeof req.body.notes === 'string' ? req.body.notes.trim() : '',
-      };
-
-      // التحقق من صحة البيانات باستخدام Zod
-      const validatedData = insertCustomerSchema.parse(sanitizedData);
-      
-      // إنشاء العميل في قاعدة البيانات
+      const validatedData = insertCustomerSchema.parse(req.body);
       const customer = await storage.createCustomer(validatedData);
-      
-      // تسجيل النشاط في سجل النظام
-      await storage.logSystemActivity({
-        userId: req.user!.id,
-        activityType: "customer_created",
-        entityType: "customers",
-        entityId: customer.id,
-        action: "create",
-        details: {
-          name: customer.name,
-          phone: customer.phone
-        }
-      });
-      
       res.status(201).json(customer);
     } catch (error) {
       console.error("Error creating customer:", error);
-      if (error instanceof z.ZodError) {
-        // أخطاء التحقق من صحة البيانات
-        res.status(400).json({ 
-          message: "البيانات المدخلة غير صالحة", 
-          errors: error.errors.map(e => ({ 
-            field: e.path.join('.'), 
-            message: e.message 
-          }))
-        });
-      } else if (error instanceof Error) {
+      if (error instanceof Error) {
         res.status(400).json({ message: error.message });
       } else {
         res.status(500).json({ message: "فشل في إنشاء العميل" });
@@ -1496,14 +1443,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      // تعريف مخطط إدخال تنبيه المخزون
-      const insertInventoryAlertSchema = z.object({
-        productId: z.number().int().positive(),
-        type: z.enum(["low_stock", "inactive", "high_demand"]),
-        threshold: z.number().int().min(0),
-        status: z.enum(["active", "inactive"]).default("active")
-      });
-
       const validatedData = insertInventoryAlertSchema.parse(req.body);
       const alert = await storage.createInventoryAlert(validatedData);
       res.status(201).json(alert);
@@ -1957,17 +1896,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "الفاتورة غير موجودة" });
       }
 
-      // الحصول على معلومات المنتج لإضافتها إلى تفاصيل الفاتورة
-      let productName = "المنتج";
-      try {
-        const product = await storage.getProduct(sale.productId);
-        if (product) {
-          productName = product.name;
-        }
-      } catch (productError) {
-        console.warn(`لم يمكن الحصول على اسم المنتج للمنتج ${sale.productId}:`, productError);
-      }
-
       // تحويل بيانات البيع إلى تنسيق الفاتورة
       const invoice = {
         id: sale.id,
@@ -1982,20 +1910,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           quantity: sale.quantity,
           unitPrice: Number(sale.priceIqd),
           totalPrice: Number(sale.finalPriceIqd),
-          productName: productName
+          productName: "المنتج" // سيتم إضافة اسم المنتج لاحقاً
         }]
       };
 
       res.json(invoice);
     } catch (error) {
       console.error("Error fetching invoice:", error);
-      // تحسين رسالة الخطأ مع معلومات إضافية
-      const errorMessage = error instanceof Error ? error.message : "خطأ غير معروف";
-      res.status(500).json({ 
-        message: "فشل في جلب تفاصيل الفاتورة", 
-        error: errorMessage,
-        requestId: Date.now().toString() // معرف للخطأ لتتبع المشكلة في السجلات
-      });
+      res.status(500).json({ message: "فشل في جلب تفاصيل الفاتورة" });
     }
   });
 

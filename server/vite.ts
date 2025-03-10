@@ -22,36 +22,28 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-export async function setupVite(
-  app: Express,
-  server: Server
-): Promise<() => void> {
-  process.env.REPLIT_ENVIRONMENT = "development";
+export async function setupVite(app: Express, server: Server) {
+  const serverOptions = {
+    middlewareMode: true,
+    hmr: { server },
+    allowedHosts: true,
+  };
 
-  const viteServer = await createViteServer({
-    server: { 
-      middlewareMode: true,
-      port: 5000,
-      strictPort: true,
-      hmr: {
-        timeout: 60000, // زيادة مهلة HMR إلى 60 ثانية
-        protocol: 'ws',
-        clientPort: 443, // استخدام المنفذ المناسب لـ Replit
-        host: 'localhost',
-        overlay: false, // تعطيل overlay للأخطاء في الواجهة
-        reconnect: 10 // محاولات إعادة الاتصال
+  const vite = await createViteServer({
+    ...viteConfig,
+    configFile: false,
+    customLogger: {
+      ...viteLogger,
+      error: (msg, options) => {
+        viteLogger.error(msg, options);
+        process.exit(1);
       },
-      cors: true,
-      allowedHosts: 'all' // السماح لجميع المضيفات
     },
-    appType: "spa",
-    logLevel: "info",
-    optimizeDeps: {
-      force: true // إجبار التحسين المسبق للتبعيات
-    }
+    server: serverOptions,
+    appType: "custom",
   });
 
-  app.use(viteServer.middlewares);
+  app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
@@ -69,14 +61,13 @@ export async function setupVite(
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
-      const page = await viteServer.transformIndexHtml(url, template);
+      const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
-      viteServer.ssrFixStacktrace(e as Error);
+      vite.ssrFixStacktrace(e as Error);
       next(e);
     }
   });
-  return () => viteServer.close();
 }
 
 export function serveStatic(app: Express) {

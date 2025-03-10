@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -396,7 +395,6 @@ export default function SuppliersPage() {
                   <Plus className="h-4 w-4" />
                   <span>إضافة مورد</span>
                 </Button>
-                
                 <Button
                   onClick={handleAddPurchase}
                   variant="outline"
@@ -404,6 +402,10 @@ export default function SuppliersPage() {
                 >
                   <Package className="h-4 w-4" />
                   <span>إضافة مشتريات</span>
+                </Button>
+                <Button variant="outline" onClick={() => window.location.href = "/supplier-transactions"}>
+                  <Package className="h-4 w-4" />
+                  <span>معاملات الموردين</span>
                 </Button>
               </div>
             </div>
