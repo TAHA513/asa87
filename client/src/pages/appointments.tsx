@@ -1,10 +1,11 @@
+
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, Clock, History } from "lucide-react";
+import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, Clock, Filter, Search } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
@@ -25,6 +27,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -43,18 +46,17 @@ import { type Appointment, type Customer, insertAppointmentSchema } from "@share
 import { queryClient } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip as RechartsTooltip } from "recharts";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+
+type AppointmentStatus = "scheduled" | "completed" | "cancelled";
 
 type NewAppointmentForm = {
   title: string;
-  description: string;
+  description: string | null;
   customerId: number;
   date: Date;
   duration: number;
-  notes: string;
+  notes: string | null;
 };
-
-type AppointmentStatus = "scheduled" | "completed" | "cancelled";
 
 const statusIcons: Record<AppointmentStatus, JSX.Element> = {
   scheduled: <Clock className="h-4 w-4 text-blue-500" />,
@@ -77,9 +79,12 @@ const statusText: Record<AppointmentStatus, string> = {
 export default function AppointmentsPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isNewAppointmentOpen, setIsNewAppointmentOpen] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [statusFilter, setStatusFilter] = useState<AppointmentStatus | "all">("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   const [reportDateRange, setReportDateRange] = useState({
-    startDate: new Date(new Date().setDate(1)), // First day of current month
+    startDate: new Date(new Date().setDate(1)), // أول يوم من الشهر الحالي
     endDate: new Date()
   });
 
@@ -104,90 +109,8 @@ export default function AppointmentsPage() {
 
   const { data: customers = [] } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
+    refetchOnWindowFocus: false,
   });
-
-  const createAppointmentMutation = useMutation({
-    mutationFn: async (data: NewAppointmentForm) => {
-      console.log("Sending appointment data:", data);
-      const res = await fetch("/api/appointments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "فشل في إنشاء الموعد");
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
-      toast({
-        title: "تم إنشاء الموعد بنجاح",
-        description: "تم إضافة الموعد الجديد إلى جدول المواعيد",
-      });
-      setIsNewAppointmentOpen(false);
-      appointmentForm.reset();
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "خطأ",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const updateAppointmentMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: number; status: AppointmentStatus }) => {
-      console.log("Updating appointment status:", { id, status });
-      const res = await fetch(`/api/appointments/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "فشل في تحديث حالة الموعد");
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      // Invalidate relevant queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/activities", "appointments"] });
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/reports/appointments", reportDateRange.startDate, reportDateRange.endDate] 
-      });
-
-      toast({
-        title: "تم تحديث حالة الموعد بنجاح",
-      });
-    },
-    onError: (error: Error) => {
-      console.error("Error updating appointment:", error);
-      toast({
-        title: "خطأ",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const onSubmitAppointment = (data: NewAppointmentForm) => {
-    createAppointmentMutation.mutate(data);
-  };
-
-  const handleStatusChange = (id: number, newStatus: AppointmentStatus) => {
-    console.log("Changing appointment status:", { id, newStatus });
-    updateAppointmentMutation.mutate({ id, status: newStatus });
-  };
-
-  const selectedDateAppointments = appointments.filter(
-    (appointment) =>
-      format(new Date(appointment.date), "yyyy-MM-dd") ===
-      format(selectedDate, "yyyy-MM-dd")
-  );
 
   const { data: appointmentsReport, isLoading: isReportLoading } = useQuery({
     queryKey: [
@@ -207,15 +130,132 @@ export default function AppointmentsPage() {
     enabled: !!reportDateRange.startDate && !!reportDateRange.endDate
   });
 
-  // Add new query for activities
-  const { data: appointmentActivities = [], isLoading: isActivitiesLoading } = useQuery({
-    queryKey: ["/api/activities", "appointments"],
-    queryFn: async () => {
-      const res = await fetch("/api/activities?entityType=appointments");
-      if (!res.ok) throw new Error("فشل في جلب سجل الحركات");
+  const createAppointmentMutation = useMutation({
+    mutationFn: async (data: NewAppointmentForm) => {
+      const res = await fetch("/api/appointments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
       return res.json();
-    }
+    },
+    onSuccess: () => {
+      toast({
+        title: "تم إنشاء الموعد بنجاح",
+        variant: "default",
+      });
+      setIsNewAppointmentOpen(false);
+      appointmentForm.reset();
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "خطأ في إنشاء الموعد",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
+
+  const updateAppointmentMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: AppointmentStatus }) => {
+      const res = await fetch(`/api/appointments/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "تم تحديث حالة الموعد",
+        variant: "default",
+      });
+      setSelectedAppointment(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "خطأ في تحديث حالة الموعد",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteAppointmentMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/appointments/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "تم حذف الموعد بنجاح",
+        variant: "default",
+      });
+      setSelectedAppointment(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "خطأ في حذف الموعد",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmitAppointment = (data: NewAppointmentForm) => {
+    createAppointmentMutation.mutate(data);
+  };
+
+  const handleStatusChange = (id: number, newStatus: AppointmentStatus) => {
+    updateAppointmentMutation.mutate({ id, newStatus });
+  };
+
+  const handleDeleteAppointment = (id: number) => {
+    if (confirm("هل أنت متأكد من حذف هذا الموعد؟")) {
+      deleteAppointmentMutation.mutate(id);
+    }
+  };
+
+  const filteredAppointments = appointments.filter(appointment => {
+    // تصفية حسب الحالة
+    if (statusFilter !== "all" && appointment.status !== statusFilter) {
+      return false;
+    }
+    // تصفية حسب البحث
+    if (searchQuery && !appointment.title.includes(searchQuery)) {
+      return false;
+    }
+    return true;
+  });
+
+  const selectedDateAppointments = filteredAppointments.filter(
+    (appointment) =>
+      format(new Date(appointment.date), "yyyy-MM-dd") ===
+      format(selectedDate, "yyyy-MM-dd")
+  );
+
+  const getCustomerName = (customerId: number) => {
+    const customer = customers.find(c => c.id === customerId);
+    return customer?.name || "عميل غير معروف";
+  };
 
   return (
     <div className="container mx-auto py-6">
@@ -250,13 +290,29 @@ export default function AppointmentsPage() {
                       <FormItem>
                         <FormLabel>عنوان الموعد</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} placeholder="أدخل عنوان الموعد" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
+                  <FormField
+                    control={appointmentForm.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>الوصف</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            value={field.value || ""}
+                            placeholder="أدخل وصف الموعد"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={appointmentForm.control}
                     name="customerId"
@@ -265,7 +321,7 @@ export default function AppointmentsPage() {
                         <FormLabel>العميل</FormLabel>
                         <Select
                           onValueChange={(value) => field.onChange(Number(value))}
-                          defaultValue={field.value?.toString()}
+                          defaultValue={field.value ? String(field.value) : undefined}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -273,12 +329,12 @@ export default function AppointmentsPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {customers.map((customer: Customer) => (
+                            {customers.map((customer) => (
                               <SelectItem
                                 key={customer.id}
-                                value={customer.id.toString()}
+                                value={String(customer.id)}
                               >
-                                {customer.name} - {customer.phone}
+                                {customer.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -287,42 +343,23 @@ export default function AppointmentsPage() {
                       </FormItem>
                     )}
                   />
-
-                  <FormField
-                    control={appointmentForm.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>الوصف</FormLabel>
-                        <FormControl>
-                          <Input {...field} value={field.value || ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
                   <FormField
                     control={appointmentForm.control}
                     name="date"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>التاريخ</FormLabel>
-                        <FormControl>
-                          <div className="border rounded-md p-2">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              className="w-full"
-                            />
-                          </div>
-                        </FormControl>
+                      <FormItem className="flex flex-col">
+                        <FormLabel>تاريخ الموعد</FormLabel>
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          locale={ar}
+                          className="rounded-md border"
+                        />
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={appointmentForm.control}
                     name="duration"
@@ -333,15 +370,15 @@ export default function AppointmentsPage() {
                           <Input
                             {...field}
                             type="number"
-                            min="1"
-                            onChange={(e) => field.onChange(Number(e.target.value))}
+                            onChange={(e) =>
+                              field.onChange(parseInt(e.target.value))
+                            }
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={appointmentForm.control}
                     name="notes"
@@ -349,23 +386,21 @@ export default function AppointmentsPage() {
                       <FormItem>
                         <FormLabel>ملاحظات</FormLabel>
                         <FormControl>
-                          <Input {...field} value={field.value || ""} />
+                          <Textarea
+                            {...field}
+                            value={field.value || ""}
+                            placeholder="أدخل ملاحظات إضافية"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
-                  <Button
-                    type="submit"
-                    className="w-full mt-4"
-                    disabled={createAppointmentMutation.isPending}
-                  >
-                    {createAppointmentMutation.isPending && (
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent ml-2" />
-                    )}
-                    إضافة الموعد
-                  </Button>
+                  <DialogFooter className="mt-4">
+                    <Button type="submit" disabled={createAppointmentMutation.isPending}>
+                      {createAppointmentMutation.isPending ? "جاري الإضافة..." : "إضافة الموعد"}
+                    </Button>
+                  </DialogFooter>
                 </form>
               </Form>
             </DialogContent>
@@ -373,16 +408,16 @@ export default function AppointmentsPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="calendar" className="space-y-4">
-        <TabsList>
+      <Tabs defaultValue="calendar" className="w-full">
+        <TabsList className="mb-4">
           <TabsTrigger value="calendar">التقويم</TabsTrigger>
-          <TabsTrigger value="reports">التقارير والإحصائيات</TabsTrigger>
-          <TabsTrigger value="activities">سجل الحركات</TabsTrigger>
+          <TabsTrigger value="list">قائمة المواعيد</TabsTrigger>
+          <TabsTrigger value="analytics">التحليلات</TabsTrigger>
         </TabsList>
 
         <TabsContent value="calendar" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="md:max-w-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="md:col-span-1">
               <CardHeader>
                 <CardTitle>التقويم</CardTitle>
               </CardHeader>
@@ -395,9 +430,38 @@ export default function AppointmentsPage() {
                   locale={ar}
                 />
               </CardContent>
+              <CardFooter>
+                <div className="flex flex-col gap-2 w-full">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    <span>تصفية حسب الحالة:</span>
+                  </div>
+                  <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as AppointmentStatus | "all")}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="جميع الحالات" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع الحالات</SelectItem>
+                      <SelectItem value="scheduled">قيد الانتظار</SelectItem>
+                      <SelectItem value="completed">مكتمل</SelectItem>
+                      <SelectItem value="cancelled">ملغي</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  <div className="flex items-center gap-2 mt-2">
+                    <Search className="h-4 w-4" />
+                    <span>بحث:</span>
+                  </div>
+                  <Input 
+                    placeholder="ابحث عن موعد..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </CardFooter>
             </Card>
 
-            <Card>
+            <Card className="md:col-span-2">
               <CardHeader>
                 <CardTitle>
                   مواعيد {format(selectedDate, "yyyy/MM/dd", { locale: ar })}
@@ -421,32 +485,33 @@ export default function AppointmentsPage() {
                           <div className="flex items-start gap-2">
                             <TooltipProvider>
                               <Tooltip>
-                                <TooltipTrigger>
-                                  <div className={`p-2 rounded-full ${statusColors[appointment.status as AppointmentStatus]}`}>
+                                <TooltipTrigger asChild>
+                                  <Badge className={statusColors[appointment.status as AppointmentStatus]}>
                                     {statusIcons[appointment.status as AppointmentStatus]}
-                                  </div>
+                                    <span className="ml-1">{statusText[appointment.status as AppointmentStatus]}</span>
+                                  </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>حالة الموعد: {statusText[appointment.status as AppointmentStatus]}</p>
+                                  حالة الموعد: {statusText[appointment.status as AppointmentStatus]}
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                             <div>
-                              <h4 className="font-medium">{appointment.title}</h4>
-                              {appointment.description && (
-                                <p className="text-sm text-muted-foreground mt-1">
-                                  {appointment.description}
-                                </p>
-                              )}
-                              <p className="text-sm mt-1">
-                                {customers.find((c: Customer) => c.id === appointment.customerId)?.name}
+                              <h3 className="font-medium">{appointment.title}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {format(new Date(appointment.date), "hh:mm a", { locale: ar })}
                               </p>
                             </div>
                           </div>
-                          <span className="text-sm text-muted-foreground">
-                            {format(new Date(appointment.date), "p", { locale: ar })}
-                          </span>
+                          <div>
+                            <Badge variant="outline">
+                              {getCustomerName(appointment.customerId)}
+                            </Badge>
+                          </div>
                         </div>
+                        {appointment.description && (
+                          <p className="text-sm mb-3">{appointment.description}</p>
+                        )}
                         <div className="flex justify-between items-center mt-4">
                           <span className="text-sm text-muted-foreground">
                             المدة: {appointment.duration} دقيقة
@@ -474,13 +539,16 @@ export default function AppointmentsPage() {
                                 </Button>
                               </>
                             )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:bg-red-100"
+                              onClick={() => handleDeleteAppointment(appointment.id)}
+                            >
+                              حذف
+                            </Button>
                           </div>
                         </div>
-                        {appointment.notes && (
-                          <p className="text-sm text-muted-foreground mt-2 border-t pt-2">
-                            {appointment.notes}
-                          </p>
-                        )}
                       </div>
                     ))
                   )}
@@ -490,250 +558,145 @@ export default function AppointmentsPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="reports" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>تقرير المواعيد</CardTitle>
-              <div className="flex gap-4 mt-4">
-                <div>
-                  <p className="text-sm font-medium mb-2">من تاريخ</p>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline">
-                        {format(reportDateRange.startDate, "yyyy/MM/dd", { locale: ar })}
-                        <CalendarIcon className="ml-2 h-4 w-4" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent>
-                      <Calendar
-                        mode="single"
-                        selected={reportDateRange.startDate}
-                        onSelect={(date) =>
-                          setReportDateRange((prev) => ({
-                            ...prev,
-                            startDate: date || prev.startDate
-                          }))
-                        }
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div>
-                  <p className="text-sm font-medium mb-2">إلى تاريخ</p>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline">
-                        {format(reportDateRange.endDate, "yyyy/MM/dd", { locale: ar })}
-                        <CalendarIcon className="ml-2 h-4 w-4" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent>
-                      <Calendar
-                        mode="single"
-                        selected={reportDateRange.endDate}
-                        onSelect={(date) =>
-                          setReportDateRange((prev) => ({
-                            ...prev,
-                            endDate: date || prev.endDate
-                          }))
-                        }
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isReportLoading ? (
-                <div className="text-center py-8">جاري تحميل التقرير...</div>
-              ) : appointmentsReport ? (
-                <div className="space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="text-2xl font-bold">
-                          {appointmentsReport.summary.totalAppointments}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          إجمالي المواعيد
-                        </p>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="text-2xl font-bold text-green-600">
-                          {appointmentsReport.summary.completedAppointments}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          المواعيد المكتملة
-                        </p>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="text-2xl font-bold text-red-600">
-                          {appointmentsReport.summary.cancelledAppointments}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          المواعيد الملغاة
-                        </p>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="text-2xl font-bold text-blue-600">
-                          {appointmentsReport.summary.pendingAppointments}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          المواعيد المعلقة
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>توزيع المواعيد حسب الساعة</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={appointmentsReport.timeAnalysis.hourlyDistribution}>
-                            <XAxis dataKey="hour" />
-                            <YAxis />
-                            <RechartsTooltip />
-                            <Bar
-                              dataKey="count"
-                              fill="var(--primary)"
-                              radius={[4, 4, 0, 0]}
-                            />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>التوزيع اليومي للمواعيد</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {appointmentsReport.timeAnalysis.dailyDistribution.map(
-                          (day) => (
-                            <div
-                              key={day.date}
-                              className="flex items-center justify-between"
-                            >
-                              <div>
-                                <p className="font-medium">
-                                  {format(new Date(day.date), "yyyy/MM/dd", {
-                                    locale: ar,
-                                  })}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                  نسبة الإكمال: {day.completionRate}%
-                                </p>
-                              </div>
-                              <div className="flex gap-4 text-sm">
-                                <span className="text-green-600">
-                                  مكتمل: {day.completed}
-                                </span>
-                                <span className="text-red-600">
-                                  ملغي: {day.cancelled}
-                                </span>
-                                <span className="text-blue-600">
-                                  معلق: {day.pending}
-                                </span>
-                              </div>
-                            </div>
-                          )
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>أفضل العملاء</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {appointmentsReport.customerAnalysis.map((customer) => (
-                          <div
-                            key={customer.customerId}
-                            className="flex items-center justify-between"
+        <TabsContent value="list" className="space-y-4">
+          <div className="rounded-md border overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="p-2 text-right">العنوان</th>
+                  <th className="p-2 text-right">العميل</th>
+                  <th className="p-2 text-right">التاريخ</th>
+                  <th className="p-2 text-right">المدة</th>
+                  <th className="p-2 text-right">الحالة</th>
+                  <th className="p-2 text-right">الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAppointments.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-4 text-center text-muted-foreground">
+                      لا توجد مواعيد
+                    </td>
+                  </tr>
+                ) : (
+                  filteredAppointments.map((appointment) => (
+                    <tr key={appointment.id} className="border-b hover:bg-muted/50">
+                      <td className="p-2">{appointment.title}</td>
+                      <td className="p-2">{getCustomerName(appointment.customerId)}</td>
+                      <td className="p-2">
+                        {format(new Date(appointment.date), "yyyy/MM/dd", { locale: ar })}
+                      </td>
+                      <td className="p-2">{appointment.duration} دقيقة</td>
+                      <td className="p-2">
+                        <Badge className={statusColors[appointment.status as AppointmentStatus]}>
+                          {statusText[appointment.status as AppointmentStatus]}
+                        </Badge>
+                      </td>
+                      <td className="p-2">
+                        <div className="flex gap-2 justify-end">
+                          {appointment.status === "scheduled" && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-green-600 hover:text-green-700"
+                                onClick={() => handleStatusChange(appointment.id, "completed")}
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700"
+                                onClick={() => handleStatusChange(appointment.id, "cancelled")}
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-600 hover:bg-red-100"
+                            onClick={() => handleDeleteAppointment(appointment.id)}
                           >
-                            <div>
-                              <p className="font-medium">{customer.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                عدد المواعيد: {customer.totalAppointments}
-                              </p>
-                            </div>
-                            <div className="text-sm">
-                              <span className="text-green-600">
-                                نسبة الإكمال: {customer.loyaltyScore}%
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  لا توجد بيانات متاحة للفترة المحددة
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                            حذف
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </TabsContent>
 
-        <TabsContent value="activities" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <History className="h-5 w-5" />
-                سجل حركات المواعيد
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isActivitiesLoading ? (
-                <div className="text-center py-8">جاري تحميل سجل الحركات...</div>
-              ) : appointmentActivities.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  لا توجد حركات مسجلة
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {appointmentActivities.map((activity) => (
-                    <div
-                      key={activity.id}
-                      className="p-4 border rounded-lg hover:bg-secondary/50 transition-colors"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="font-medium">
-                            {activity.details.title}
-                          </div>
-                          <div className="text-sm text-muted-foreground mt-1">
-                            تغيير الحالة من {activity.details.oldStatus} إلى{" "}
-                            {activity.details.newStatus}
-                          </div>
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {format(new Date(activity.timestamp), "PPpp", {
-                            locale: ar,
-                          })}
-                        </div>
-                      </div>
+        <TabsContent value="analytics" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            {isReportLoading ? (
+              <div className="col-span-3 text-center py-8">جاري تحميل التحليلات...</div>
+            ) : appointmentsReport ? (
+              <>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold">
+                      {appointmentsReport.summary?.totalAppointments || 0}
                     </div>
-                  ))}
+                    <p className="text-sm text-muted-foreground">
+                      إجمالي المواعيد
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-green-600">
+                      {appointmentsReport.summary?.completedAppointments || 0}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      المواعيد المكتملة
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-2xl font-bold text-red-600">
+                      {appointmentsReport.summary?.cancelledAppointments || 0}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      المواعيد الملغاة
+                    </p>
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <div className="col-span-3 text-center py-8">لا توجد بيانات للتحليل</div>
+            )}
+          </div>
+
+          {appointmentsReport?.statusDistribution && (
+            <Card>
+              <CardHeader>
+                <CardTitle>توزيع حالات المواعيد</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={appointmentsReport.statusDistribution}>
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <RechartsTooltip />
+                      <Bar
+                        dataKey="value"
+                        fill="var(--primary)"
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>
