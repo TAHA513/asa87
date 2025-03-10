@@ -26,7 +26,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, or, like, SQL, gte, lte, and, sql, lt, gt } from "drizzle-orm";
-import { caching } from "./cache";
+import { globalCache } from "./cache";
 
 const CACHE_TTL = 5 * 60; // 5 minutes cache
 
@@ -156,10 +156,10 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  private cache: typeof caching;
+  private cache: typeof globalCache;
 
   constructor() {
-    this.cache = caching;
+    this.cache = globalCache;
   }
 
   async getUser(id: number): Promise<User | undefined> {
