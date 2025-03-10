@@ -94,12 +94,33 @@ const BarcodeGenerator = () => {
   }, [savedCodes]);
 
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
+    content: () => {
+      // التحقق من وجود المرجع والمحتوى قبل الطباعة
+      if (!printRef.current) {
+        toast({
+          title: "خطأ في الطباعة",
+          description: "لا يمكن العثور على محتوى للطباعة",
+          variant: "destructive",
+        });
+        return null;
+      }
+      return printRef.current;
+    },
     documentTitle: "باركود",
     onBeforeGetContent: () => {
       return new Promise<void>((resolve) => {
-        // تأكد من أن محتوى الطباعة جاهز
-        resolve();
+        // تأخير قصير للتأكد من تحميل جميع العناصر
+        setTimeout(() => {
+          resolve();
+        }, 250);
+      });
+    },
+    onPrintError: (errorLocation, error) => {
+      console.error(`خطأ في الطباعة (${errorLocation}):`, error);
+      toast({
+        title: "فشل في الطباعة",
+        description: `حدث خطأ أثناء محاولة الطباعة: ${error.message || "خطأ غير معروف"}`,
+        variant: "destructive",
       });
     },
     onAfterPrint: () => {
@@ -167,7 +188,19 @@ const BarcodeGenerator = () => {
       setType(selectedCode.type);
       setContent(selectedCode.content);
       setSize(selectedCode.size as "small" | "medium" | "large");
-      setTimeout(handlePrint, 100);
+      
+      // تأخير أطول للتأكد من تحديث العناصر قبل الطباعة
+      setTimeout(() => {
+        if (printRef.current) {
+          handlePrint();
+        } else {
+          toast({
+            title: "خطأ في الطباعة",
+            description: "لا يمكن العثور على محتوى للطباعة",
+            variant: "destructive",
+          });
+        }
+      }, 300);
     }
   };
 
@@ -242,6 +275,17 @@ const BarcodeGenerator = () => {
   return (
     <div className="container mx-auto py-6">
       <h1 className="text-3xl font-bold mb-6 text-center">نظام الباركود</h1>
+      
+      {/* منطقة الطباعة المخفية - تأكد من وجودها دائمًا */}
+      <div className="hidden">
+        <div ref={printRef} className="print-container p-8">
+          {content && (
+            <div className="flex flex-col items-center justify-center">
+              {getBarcodesForPrinting()}
+            </div>
+          )}
+        </div>
+      </div>
 
       <Tabs defaultValue="generate" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
@@ -322,8 +366,27 @@ const BarcodeGenerator = () => {
                     <Button 
                       variant="outline" 
                       onClick={() => {
-                        // تأخير قصير للتأكد من أن المحتوى جاهز للطباعة
-                        setTimeout(handlePrint, 100);
+                        if (!content) {
+                          toast({
+                            title: "تنبيه",
+                            description: "يرجى إدخال محتوى الباركود أولاً",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        
+                        // تأخير أطول للتأكد من تحديث العناصر قبل الطباعة
+                        setTimeout(() => {
+                          if (printRef.current) {
+                            handlePrint();
+                          } else {
+                            toast({
+                              title: "خطأ في الطباعة",
+                              description: "لا يمكن العثور على محتوى للطباعة",
+                              variant: "destructive",
+                            });
+                          }
+                        }, 300);
                       }}
                     >
                       <span>طباعة</span>
