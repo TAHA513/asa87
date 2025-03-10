@@ -548,3 +548,4 @@ startServer().catch(err => {
   // Wait a moment before exiting to allow logs to be written
   setTimeout(() => process.exit(1), 1000);
 });
+}
