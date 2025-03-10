@@ -1,204 +1,372 @@
-import { connectionPool, db, sql } from './connection-pool';
-import { users, products, productCategories, customers } from '../shared/schema';
-import bcrypt from 'bcryptjs';
+
+import { db } from "./db";
+import { users, products, customers, productCategories, suppliers, expenses, expenseCategories } from "@shared/schema";
+import bcrypt from "bcryptjs";
 import { storage } from "./storage";
-import { users as usersSchema, products as productsSchema, customers as customersSchema, productCategories as productCategoriesSchema, suppliers as suppliersSchema, expenses as expensesSchema, expenseCategories as expenseCategoriesSchema } from "@shared/schema"; // Added import for the schema types
-
-
-/**
- * وظيفة لإضافة بيانات أولية إلى قاعدة البيانات
- */
-async function seedDatabase() {
-  try {
-    console.log('بدء إضافة البيانات الأولية...');
-
-    // إضافة مستخدم افتراضي للنظام (admin)
-    console.log('بدء إضافة بيانات المستخدم الافتراضي');
-
-    // التحقق من وجود المستخدم
-    const existingUsers = await db.select().from(users).where(
-      sql`${users.username} = 'admin'`
-    );
-
-    if (existingUsers.length === 0) {
-      // إنشاء كلمة مرور مشفرة
-      const hashedPassword = await bcrypt.hash('admin123', 10);
-
-      // إضافة المستخدم الافتراضي
-      await db.insert(users).values({
-        username: 'admin',
-        password: hashedPassword,
-        fullName: 'مدير النظام',
-        role: 'admin',
-        email: 'admin@example.com',
-        permissions: ['all'],
-        isActive: true
-      });
-
-      console.log('تم إنشاء المستخدم الافتراضي بنجاح');
-    } else {
-      console.log('المستخدم الافتراضي موجود بالفعل، تخطي إنشاء حساب جديد');
-    }
-
-    // إضافة فئات المنتجات
-    console.log('إضافة فئات المنتجات');
-
-    const categories = [
-      { name: 'إلكترونيات', description: 'أجهزة إلكترونية وكهربائية' },
-      { name: 'ملابس', description: 'ملابس رجالية ونسائية وأطفال' },
-      { name: 'أحذية', description: 'أحذية لجميع الأعمار' },
-      { name: 'أثاث', description: 'أثاث منزلي ومكتبي' },
-      { name: 'مواد غذائية', description: 'مواد غذائية متنوعة' }
-    ];
-
-    // إضافة الفئات إذا لم تكن موجودة
-    const existingCategories = await db.select().from(productCategories);
-
-    if (existingCategories.length === 0) {
-      for (const category of categories) {
-        await db.insert(productCategories).values(category);
-      }
-      console.log(`تم إضافة ${categories.length} فئات للمنتجات`);
-    } else {
-      console.log('فئات المنتجات موجودة بالفعل، تخطي إضافة الفئات');
-    }
-
-    // إضافة منتجات عينة
-    console.log('إضافة منتجات عينة');
-
-    const existingProducts = await db.select().from(products);
-
-    if (existingProducts.length === 0) {
-      // الحصول على معرفات الفئات من قاعدة البيانات
-      const categoriesFromDB = await db.select().from(productCategories);
-      const categoryMap = new Map();
-
-      for (const cat of categoriesFromDB) {
-        categoryMap.set(cat.name, cat.id);
-      }
-
-      // قائمة المنتجات العينة
-      const sampleProducts = [
-        {
-          name: 'تلفاز سامسونج 55 بوصة',
-          description: 'تلفاز ذكي LED بدقة 4K',
-          productCode: 'TV-SAM-55',
-          barcode: '8801234567890',
-          productType: 'إلكترونيات',
-          quantity: 10,
-          minQuantity: 2,
-          costPrice: 450,
-          priceIqd: 550000,
-          categoryId: categoryMap.get('إلكترونيات'),
-          isWeightBased: false,
-          imageUrl: null,
-          thumbnailUrl: null,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          name: 'قميص رجالي',
-          description: 'قميص رجالي قطن 100%',
-          productCode: 'SH-MEN-L',
-          barcode: '5901234567890',
-          productType: 'ملابس',
-          quantity: 50,
-          minQuantity: 10,
-          costPrice: 15,
-          priceIqd: 25000,
-          categoryId: categoryMap.get('ملابس'),
-          isWeightBased: false,
-          imageUrl: null,
-          thumbnailUrl: null,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          name: 'حذاء رياضي',
-          description: 'حذاء رياضي للرجال',
-          productCode: 'SH-SPT-42',
-          barcode: '4801234567890',
-          productType: 'أحذية',
-          quantity: 30,
-          minQuantity: 5,
-          costPrice: 25,
-          priceIqd: 45000,
-          categoryId: categoryMap.get('أحذية'),
-          isWeightBased: false,
-          imageUrl: null,
-          thumbnailUrl: null,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ];
-
-      for (const product of sampleProducts) {
-        await db.insert(products).values(product);
-      }
-
-      console.log(`تم إضافة ${sampleProducts.length} منتجات عينة`);
-    } else {
-      console.log('المنتجات موجودة بالفعل، تخطي إضافة منتجات عينة');
-    }
-
-    // إضافة عملاء عينة
-    console.log('إضافة عملاء عينة');
-
-    const existingCustomers = await db.select().from(customers);
-
-    if (existingCustomers.length === 0) {
-      const sampleCustomers = [
-        {
-          name: 'علي محمد',
-          phone: '07701234567',
-          email: 'ali@example.com',
-          address: 'بغداد - الكرادة',
-          notes: 'عميل دائم',
-          createdAt: new Date()
-        },
-        {
-          name: 'سارة أحمد',
-          phone: '07711234567',
-          email: 'sara@example.com',
-          address: 'بغداد - المنصور',
-          notes: 'تفضل الدفع نقدًا',
-          createdAt: new Date()
-        },
-        {
-          name: 'محمد جاسم',
-          phone: '07721234567',
-          email: 'mohammad@example.com',
-          address: 'أربيل - عنكاوا',
-          notes: '',
-          createdAt: new Date()
-        }
-      ];
-
-      for (const customer of sampleCustomers) {
-        await db.insert(customers).values(customer);
-      }
-
-      console.log(`تم إضافة ${sampleCustomers.length} عملاء عينة`);
-    } else {
-      console.log('العملاء موجودون بالفعل، تخطي إضافة عملاء عينة');
-    }
-
-    console.log('اكتملت عملية بذر البيانات بنجاح');
-
-  } catch (error) {
-    console.error('حدث خطأ أثناء بذر البيانات:', error);
-    throw error;
-  } finally {
-    // لا تغلق الاتصال هنا للسماح بالاستخدام في ملفات أخرى
-  }
-}
-
-// تصدير الوظيفة لاستخدامها من ملفات أخرى
-export { seedDatabase };
 
 async function hashPassword(password: string) {
   const salt = await bcrypt.genSalt(12);
   return bcrypt.hash(password, salt);
+}
+
+export async function seedDatabase() {
+  console.log("بدء زراعة البيانات الاختبارية في قاعدة البيانات...");
+
+  // إضافة فئات المنتجات
+  const categories = await db.insert(productCategories).values([
+    { name: "إلكترونيات", description: "منتجات إلكترونية متنوعة", createdAt: new Date() },
+    { name: "ملابس", description: "ملابس رجالية ونسائية", createdAt: new Date() },
+    { name: "أجهزة منزلية", description: "أجهزة للمنزل", createdAt: new Date() },
+    { name: "أثاث", description: "أثاث منزلي ومكتبي", createdAt: new Date() },
+    { name: "مستلزمات أطفال", description: "منتجات خاصة بالأطفال", createdAt: new Date() }
+  ]).returning();
+
+  console.log(`تم إضافة ${categories.length} فئة للمنتجات`);
+
+  // إضافة منتجات
+  const productsList = await db.insert(products).values([
+    {
+      name: "هاتف ذكي سامسونج A52",
+      description: "هاتف ذكي بشاشة 6.5 بوصة وكاميرا 64 ميجابكسل",
+      productCode: "PHONE-001",
+      barcode: "1234567890123",
+      productType: "إلكترونيات",
+      quantity: 50,
+      minQuantity: 10,
+      productionDate: new Date("2023-01-01"),
+      expiryDate: null,
+      costPrice: 200,
+      priceIqd: 300000,
+      categoryId: categories[0].id,
+      isWeightBased: false,
+      enableDirectWeighing: false,
+      stock: 50,
+      imageUrl: null,
+      thumbnailUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      name: "لابتوب HP Pavilion",
+      description: "لابتوب للاستخدام المكتبي والألعاب بمعالج i5",
+      productCode: "LAPTOP-001",
+      barcode: "9876543210123",
+      productType: "إلكترونيات",
+      quantity: 20,
+      minQuantity: 5,
+      productionDate: new Date("2023-02-15"),
+      expiryDate: null,
+      costPrice: 450,
+      priceIqd: 700000,
+      categoryId: categories[0].id,
+      isWeightBased: false,
+      enableDirectWeighing: false,
+      stock: 20,
+      imageUrl: null,
+      thumbnailUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      name: "قميص رجالي",
+      description: "قميص رجالي بأكمام طويلة قطن 100%",
+      productCode: "SHIRT-001",
+      barcode: "1122334455667",
+      productType: "ملابس",
+      quantity: 100,
+      minQuantity: 20,
+      productionDate: null,
+      expiryDate: null,
+      costPrice: 15,
+      priceIqd: 25000,
+      categoryId: categories[1].id,
+      isWeightBased: false,
+      enableDirectWeighing: false,
+      stock: 100,
+      imageUrl: null,
+      thumbnailUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      name: "فستان نسائي",
+      description: "فستان نسائي مقاس متوسط",
+      productCode: "DRESS-001",
+      barcode: "7788990011223",
+      productType: "ملابس",
+      quantity: 30,
+      minQuantity: 10,
+      productionDate: null,
+      expiryDate: null,
+      costPrice: 25,
+      priceIqd: 45000,
+      categoryId: categories[1].id,
+      isWeightBased: false,
+      enableDirectWeighing: false,
+      stock: 30,
+      imageUrl: null,
+      thumbnailUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      name: "ثلاجة سامسونج",
+      description: "ثلاجة منزلية سعة 500 لتر",
+      productCode: "FRIDGE-001",
+      barcode: "3344556677889",
+      productType: "أجهزة منزلية",
+      quantity: 15,
+      minQuantity: 3,
+      productionDate: new Date("2023-03-10"),
+      expiryDate: null,
+      costPrice: 300,
+      priceIqd: 500000,
+      categoryId: categories[2].id,
+      isWeightBased: false,
+      enableDirectWeighing: false,
+      stock: 15,
+      imageUrl: null,
+      thumbnailUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+  ]).returning();
+
+  console.log(`تم إضافة ${productsList.length} منتج`);
+
+  // إضافة عملاء
+  const customersList = await db.insert(customers).values([
+    {
+      name: "أحمد محمد",
+      phone: "07701234567",
+      email: "ahmed@example.com",
+      address: "بغداد - الكرادة",
+      notes: "عميل منتظم",
+      createdAt: new Date()
+    },
+    {
+      name: "زينب علي",
+      phone: "07709876543",
+      email: "zainab@example.com",
+      address: "بغداد - المنصور",
+      notes: "",
+      createdAt: new Date()
+    },
+    {
+      name: "محمد عبد الله",
+      phone: "07712345678",
+      email: null,
+      address: "بصرة - العشار",
+      notes: "يفضل التواصل عبر الهاتف",
+      createdAt: new Date()
+    },
+    {
+      name: "فاطمة حسين",
+      phone: "07798765432",
+      email: "fatima@example.com",
+      address: "أربيل - عنكاوا",
+      notes: "",
+      createdAt: new Date()
+    },
+    {
+      name: "علي حسن",
+      phone: "07756781234",
+      email: "ali@example.com",
+      address: "النجف",
+      notes: "عميل VIP",
+      createdAt: new Date()
+    }
+  ]).returning();
+
+  console.log(`تم إضافة ${customersList.length} عميل`);
+
+  // إضافة موردين
+  const suppliersList = await db.insert(suppliers).values([
+    {
+      name: "شركة الرافدين للإلكترونيات",
+      contactPerson: "سعد العامري",
+      phone: "07801234567",
+      email: "rafidain@example.com",
+      address: "بغداد - الكرادة",
+      taxNumber: "12345",
+      paymentTerms: "30 يوم",
+      notes: "مورد إلكترونيات رئيسي",
+      status: "active",
+      categories: ["إلكترونيات", "أجهزة منزلية"],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      userId: 1
+    },
+    {
+      name: "شركة الأناقة للملابس",
+      contactPerson: "ليلى محمد",
+      phone: "07809876543",
+      email: "anaqa@example.com",
+      address: "بغداد - المنصور",
+      taxNumber: "54321",
+      paymentTerms: "15 يوم",
+      notes: "مورد ملابس",
+      status: "active",
+      categories: ["ملابس"],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      userId: 1
+    },
+    {
+      name: "مؤسسة الخليج للأثاث",
+      contactPerson: "عمر فاروق",
+      phone: "07712345678",
+      email: "khaleej@example.com",
+      address: "البصرة",
+      taxNumber: "67890",
+      paymentTerms: "cash",
+      notes: "",
+      status: "active",
+      categories: ["أثاث"],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      userId: 1
+    }
+  ]).returning();
+
+  console.log(`تم إضافة ${suppliersList.length} مورد`);
+
+  // إضافة فئات مصروفات
+  const expenseCategoriesList = await db.insert(expenseCategories).values([
+    {
+      name: "إيجار",
+      description: "إيجار المحل والمخزن",
+      parentId: null,
+      budgetAmount: 1000000,
+      createdAt: new Date(),
+      userId: 1
+    },
+    {
+      name: "رواتب",
+      description: "رواتب الموظفين",
+      parentId: null,
+      budgetAmount: 3000000,
+      createdAt: new Date(),
+      userId: 1
+    },
+    {
+      name: "كهرباء",
+      description: "فواتير الكهرباء",
+      parentId: null,
+      budgetAmount: 500000,
+      createdAt: new Date(),
+      userId: 1
+    },
+    {
+      name: "ماء",
+      description: "فواتير الماء",
+      parentId: null,
+      budgetAmount: 200000,
+      createdAt: new Date(),
+      userId: 1
+    },
+    {
+      name: "صيانة",
+      description: "صيانة المحل والأجهزة",
+      parentId: null,
+      budgetAmount: 400000,
+      createdAt: new Date(),
+      userId: 1
+    }
+  ]).returning();
+
+  console.log(`تم إضافة ${expenseCategoriesList.length} فئة مصروفات`);
+
+  // إضافة مصروفات
+  const expensesList = await db.insert(expenses).values([
+    {
+      amount: 1000000,
+      description: "إيجار المحل لشهر نيسان",
+      date: new Date("2023-04-01"),
+      categoryId: expenseCategoriesList[0].id,
+      userId: 1,
+      isRecurring: true,
+      recurringPeriod: "monthly",
+      recurringDay: 1,
+      notes: "",
+      attachments: [],
+      status: "active",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      amount: 2500000,
+      description: "رواتب الموظفين لشهر نيسان",
+      date: new Date("2023-04-05"),
+      categoryId: expenseCategoriesList[1].id,
+      userId: 1,
+      isRecurring: true,
+      recurringPeriod: "monthly",
+      recurringDay: 5,
+      notes: "",
+      attachments: [],
+      status: "active",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      amount: 450000,
+      description: "فاتورة الكهرباء لشهر آذار",
+      date: new Date("2023-04-10"),
+      categoryId: expenseCategoriesList[2].id,
+      userId: 1,
+      isRecurring: true,
+      recurringPeriod: "monthly",
+      recurringDay: 10,
+      notes: "",
+      attachments: [],
+      status: "active",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      amount: 180000,
+      description: "فاتورة الماء لشهر آذار",
+      date: new Date("2023-04-10"),
+      categoryId: expenseCategoriesList[3].id,
+      userId: 1,
+      isRecurring: true,
+      recurringPeriod: "monthly",
+      recurringDay: 10,
+      notes: "",
+      attachments: [],
+      status: "active",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    },
+    {
+      amount: 350000,
+      description: "صيانة مكيف الهواء",
+      date: new Date("2023-04-15"),
+      categoryId: expenseCategoriesList[4].id,
+      userId: 1,
+      isRecurring: false,
+      recurringPeriod: null,
+      recurringDay: null,
+      notes: "صيانة طارئة",
+      attachments: [],
+      status: "active",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+  ]).returning();
+
+  console.log(`تم إضافة ${expensesList.length} مصروف`);
+
+  console.log("تم الانتهاء من زراعة البيانات الاختبارية بنجاح!");
+  return {
+    categories,
+    products: productsList,
+    customers: customersList,
+    suppliers: suppliersList,
+    expenseCategories: expenseCategoriesList,
+    expenses: expensesList
+  };
 }
 
 export async function seedData() {
@@ -231,10 +399,8 @@ export async function seedData() {
   }
 }
 
-
-// تنفيذ الوظيفة مباشرة عند تشغيل السكريبت
-// Using import.meta.url to detect if this is the main module
-if (import.meta.url === import.meta.resolve('./seed-data.ts')) {
+// تشغيل الوظيفة إذا تم استدعاء الملف مباشرة
+if (import.meta.url === `file://${process.argv[1]}`) {
   Promise.all([seedDatabase(), seedData()])
     .then(() => {
       console.log("تمت زراعة البيانات بنجاح!");

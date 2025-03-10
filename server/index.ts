@@ -1,105 +1,185 @@
-import express from "express";
-import compression from "compression";
-import { db, sql } from "./db"; // Assuming 'sql`' is imported from a library like 'pg-sql`
+import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { setupVite, serveStatic, log } from "./vite";
+import fileUpload from "express-fileupload";
+import path from "path";
+import session from "express-session";
+import { db, sql } from "./db";
+import { seedData } from "./seed-data";
+import MemoryStore from 'memorystore';
+import { createServer, type Server } from "http";
+import { setupAuth } from "./auth";
+import { storage } from "./storage";
+import { Server as SocketServer } from "socket.io";
+import { instrument } from "@socket.io/admin-ui";
 
-// إعداد التطبيق
+const MemoryStoreSession = MemoryStore(session);
+
 const app = express();
 
-// الإعدادات الأساسية
-app.use(compression());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// إعداد الجلسات مع تخزين محسن للذاكرة
+app.use(session({
+  store: new MemoryStoreSession({
+    checkPeriod: 86400000 // تنظيف الجلسات منتهية الصلاحية كل 24 ساعة
+  }),
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 86400000 // 24 ساعة
+  }
+}));
 
-// تسجيل الطلبات للتشخيص
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(fileUpload({
+  limits: { fileSize: 50 * 1024 * 1024 }, // حد أقصى 50 ميجابايت
+  useTempFiles: true,
+  tempFileDir: '/tmp/'
+}));
+
+// خدمة الملفات المرفوعة بشكل ثابت
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
+// تسجيل وقت الطلب
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} [${req.method}] ${req.path}`);
+  const start = Date.now();
+  const path = req.path;
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+
+  const originalResJson = res.json;
+  res.json = function (bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
+
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (path.startsWith("/api")) {
+      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      if (capturedJsonResponse) {
+        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      }
+
+      if (logLine.length > 80) {
+        logLine = logLine.slice(0, 79) + "…";
+      }
+
+      log(logLine);
+    }
+  });
+
   next();
 });
 
-// التعامل مع الأخطاء
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('خطأ في الخادم:', err);
-  res.status(500).json({ 
-    error: true, 
-    message: err.message || 'خطأ في الخادم' 
-  });
-});
+// معالجة الأخطاء
+const errorHandler = (err: any, _req: Request, res: Response, next: NextFunction) => {
+  console.error('خطأ في السيرفر:', err);
 
-// فحص حالة الخادم
-app.get('/health', async (req, res) => {
-  try {
-    // اختبار الاتصال بقاعدة البيانات
-    const dbTest = await db.execute(sql`SELECT 1`);
-    if (!dbTest) {
-      throw new Error('فشل الاتصال بقاعدة البيانات');
-    }
-
-    res.json({ 
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      database: 'connected'
-    });
-  } catch (error) {
-    console.error('خطأ في فحص الحالة:', error);
-    res.status(500).json({ 
-      status: 'error',
-      message: error instanceof Error ? error.message : 'خطأ غير معروف',
-      timestamp: new Date().toISOString()
-    });
+  if (res.headersSent) {
+    return next(err);
   }
+
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "خطأ في السيرفر";
+
+  res.status(status).json({ 
+    error: true,
+    message 
+  });
+};
+
+// معالجة الأخطاء غير المتوقعة في العملية
+process.on('uncaughtException', (error) => {
+  console.error('خطأ غير متوقع:', error);
 });
 
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('وعد مرفوض غير معالج:', promise, 'السبب:', reason);
+});
+
+// التأكد من اتصال قاعدة البيانات قبل بدء السيرفر
 async function startServer() {
   try {
-    console.log('بدء تشغيل الخادم...');
-
-    // اختبار الاتصال بقاعدة البيانات
-    console.log('اختبار الاتصال بقاعدة البيانات...');
-    const dbTest = await db.execute(sql`SELECT 1`);
-    if (!dbTest) {
-      throw new Error('فشل الاتصال بقاعدة البيانات');
+    // اختبار اتصال قاعدة البيانات
+    console.log('جاري اختبار الاتصال بقاعدة البيانات...');
+    try {
+      const result = await db.execute(sql`SELECT 1`);
+      console.log('نتيجة اختبار قاعدة البيانات:', result);
+      console.log('تم الاتصال بقاعدة البيانات بنجاح');
+    } catch (dbError) {
+      console.error('خطأ في اتصال قاعدة البيانات:', dbError);
+      throw dbError;
     }
-    console.log('تم الاتصال بقاعدة البيانات بنجاح');
 
-    // تسجيل المسارات
-    console.log('تسجيل المسارات...');
-    registerRoutes(app);
-    console.log('تم تسجيل المسارات بنجاح');
+    const server = await registerRoutes(app);
+    app.use(errorHandler);
 
-    // بدء الخادم
-    const port = Number(process.env.PORT || 5000);
-    app.listen(port, '0.0.0.0', () => {
-      console.log(`الخادم يعمل على المنفذ ${port}`);
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
+    }
+
+    const port = process.env.PORT || 5000;
+    const httpServer = createServer(app);
+
+    // إعداد Socket.IO
+    const io = new SocketServer(httpServer, {
+      cors: {
+        origin: ["https://admin.socket.io", process.env.NODE_ENV === "production" ? "*" : "http://localhost:5000"],
+        credentials: true
+      }
+    });
+
+    // إعداد لوحة المراقبة - متاحة على /admin/socket
+    instrument(io, {
+      auth: {
+        type: "basic",
+        username: "admin",
+        password: process.env.SOCKET_ADMIN_PASSWORD || "password" // استخدم كلمة مرور آمنة في الإنتاج
+      },
+      mode: process.env.NODE_ENV === "production" ? "production" : "development",
+    });
+
+    // التعامل مع اتصالات المستخدمين
+    io.on("connection", (socket) => {
+      console.log("مستخدم جديد متصل:", socket.id);
+
+      // تسجيل المستخدم إذا كان مصادقًا
+      socket.on("register", (userId: string) => {
+        if (userId) {
+          console.log(`تسجيل المستخدم ${userId} مع Socket ${socket.id}`);
+          socket.join(`user-${userId}`);
+        }
+      });
+
+      socket.on("disconnect", () => {
+        console.log("مستخدم قطع الاتصال:", socket.id);
+      });
+    });
+
+    // تصدير الـ Socket.IO للاستخدام في ملفات أخرى
+    app.set("io", io);
+
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`تم تشغيل السيرفر على المنفذ ${port}`);
+    });
+
+    // تنفيذ البذور بعد بدء السيرفر
+    await seedData().catch(err => {
+      console.error("خطأ في تنفيذ البذور:", err);
     });
 
   } catch (error) {
-    console.error('خطأ في بدء الخادم:', error);
-    console.error('تفاصيل الخطأ:', {
-      name: error instanceof Error ? error.name : 'Unknown',
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
-    });
+    console.error('فشل في بدء السيرفر:', error);
     process.exit(1);
   }
 }
 
-// إضافة مسار للصفحة الرئيسية
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'مرحبًا بك في واجهة برمجة التطبيقات (API)',
-    status: 'ok',
-    endpoints: ['/api/users', '/api/products', '/health']
-  });
-});
-
-// تقديم ملفات العميل الثابتة بعد بناء التطبيق
-app.use(express.static('client/dist'));
-
-// معالجة كل المسارات الأخرى للعميل
-app.get('*', (req, res) => {
-  res.sendFile('client/dist/index.html', { root: '.' });
-});
-
-// بدء الخادم
 startServer();

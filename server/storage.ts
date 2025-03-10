@@ -1,7 +1,12 @@
 import {
+  systemActivities, activityReports,
+  type SystemActivity, type ActivityReport,
+  type InsertSystemActivity, type InsertActivityReport
+} from "@shared/schema";
+import {
   users, products, sales, exchangeRates, fileStorage,
   installments, installmentPayments, marketingCampaigns,
-  campaignAnalytics, socialMediaAccounts,
+  campaignAnalytics, socialMediaAccounts, apiKeys,
   inventoryTransactions, expenseCategories, expenses,
   suppliers, supplierTransactions, customers, appointments,
   invoices, invoiceItems, userSettings, reports,
@@ -9,7 +14,7 @@ import {
   type FileStorage, type Installment, type InstallmentPayment,
   type Campaign, type InsertCampaign, type CampaignAnalytics,
   type InsertCampaignAnalytics, type SocialMediaAccount,
-  type InventoryTransaction,
+  type ApiKey, type InsertApiKey, type InventoryTransaction,
   type InsertInventoryTransaction, type ExpenseCategory,
   type InsertExpenseCategory, type Expense, type InsertExpense,
   type Supplier, type InsertSupplier, type SupplierTransaction,
@@ -17,45 +22,35 @@ import {
   type Appointment, type InsertAppointment, type Invoice,
   type InsertInvoice, type UserSettings, type InsertUserSettings,
   type InsertUser, type InsertFileStorage,
-  type Report, type InsertReport, type InvoiceItem,
-  type InsertSale, type InsertSaleItem, type SaleItem,
-  categories, type Category, type InsertCategory
+  type Report, type InsertReport, type InvoiceItem
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, or, like, SQL, gte, lte, and, sql, lt, gt } from "drizzle-orm";
-import { globalCache } from "./cache";
+import { caching } from "./cache";
 
 const CACHE_TTL = 5 * 60; // 5 minutes cache
 
 export interface IStorage {
-  // المستخدمين
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  updateUser(id: number, user: Partial<User>): Promise<User>;
-
-  // المنتجات
+  createUser(insertUser: InsertUser): Promise<User>;
+  updateUser(id: number, update: Partial<User>): Promise<User>;
   getProducts(): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
-  createProduct(product: InsertProduct): Promise<Product>;
-  updateProduct(id: number, product: Partial<Product>): Promise<Product>;
-
-  // الفئات
-  getCategories(): Promise<Category[]>;
-  getCategory(id: number): Promise<Category | undefined>;
-  createCategory(category: InsertCategory): Promise<Category>;
-
-  // العملاء
-  getCustomers(): Promise<Customer[]>;
-  getCustomer(id: number): Promise<Customer | undefined>;
-  createCustomer(customer: InsertCustomer): Promise<Customer>;
-
-  // المبيعات
+  createProduct(product: Product): Promise<Product>;
+  updateProduct(id: number, update: Partial<Product>): Promise<Product>;
+  deleteProduct(id: number): Promise<void>;
   getSales(): Promise<Sale[]>;
-  getSale(id: number): Promise<Sale | undefined>;
-  createSale(sale: InsertSale): Promise<Sale>;
-  getSaleItems(saleId: number): Promise<SaleItem[]>;
-
+  createSale(sale: {
+    productId: number;
+    quantity: number;
+    priceIqd: string;
+    discount: string;
+    userId: number;
+    isInstallment: boolean;
+    date: Date;
+    customerName?: string;
+  }): Promise<Sale>;
   getCurrentExchangeRate(): Promise<ExchangeRate>;
   setExchangeRate(rate: number): Promise<ExchangeRate>;
   getInstallments(): Promise<Installment[]>;
@@ -96,7 +91,9 @@ export interface IStorage {
   getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]>;
   createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction>;
   searchCustomers(search?: string): Promise<Customer[]>;
+  getCustomer(id: number): Promise<Customer | undefined>;
   getCustomerSales(customerId: number): Promise<Sale[]>;
+  createCustomer(customer: InsertCustomer): Promise<Customer>;
   getCustomerAppointments(customerId: number): Promise<Appointment[]>;
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
   updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment>;
@@ -113,7 +110,15 @@ export interface IStorage {
   getUserSettings(userId: number): Promise<UserSettings | undefined>;
   saveUserSettings(userId: number, settings: InsertUserSettings): Promise<UserSettings>;
   getAppointments(): Promise<Appointment[]>;
-  getAppointmentsByDateRange(startDate: Date, endDate: Date): Promise<Appointment[]>;
+  logSystemActivity(activity: InsertSystemActivity): Promise<SystemActivity>;
+  getSystemActivities(filters: {
+    startDate?: Date;
+    endDate?: Date;
+    activityType?: string;
+    entityType?: string;
+  }): Promise<SystemActivity[]>;
+  getAppointmentActivities(appointmentId: number): Promise<SystemActivity[]>;
+  generateActivityReport(report: InsertActivityReport): Promise<ActivityReport>;
   getInventoryReport(dateRange: { start: Date; end: Date }, page?: number, pageSize?: number): Promise<any>;
   getFinancialReport(dateRange: { start: Date; end: Date }): Promise<any>;
   getUserActivityReport(dateRange: { start: Date; end: Date }): Promise<any>;
@@ -138,9 +143,12 @@ export interface IStorage {
   getHistoricalStats(): Promise<any>;
   getFrontendComponents():Promise<string[]>;
   getApiEndpoints():Promise<string[]>;
+
+  // واجهات برمجة جديدة لدعم نظام الإشعارات
   sendNotification(userId: number, notificationType: string, data: any): boolean;
   getUsersByRole(role: string): Promise<User[]>;
   getActiveUsers(): Promise<User[]>;
+  getAppointmentsByDateRange(startDate: Date, endDate: Date): Promise<Appointment[]>;
   saveUserNotification(userId: number, type: string, data: any): Promise<any>;
   getUserNotifications(userId: number, options?: { unreadOnly?: boolean, limit?: number }): Promise<any[]>;
   markNotificationAsRead(notificationId: number): Promise<any>;
@@ -148,43 +156,45 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  private cache: typeof globalCache;
+  private cache: typeof caching;
 
   constructor() {
-    this.cache = globalCache;
+    this.cache = caching;
   }
 
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...insertUser,
+        role: insertUser.role as "admin" | "staff",
+        permissions: insertUser.permissions || [],
+      })
+      .returning();
     return user;
   }
 
-  async createUser(user: InsertUser): Promise<User> {
-    try {
-      const [newUser] = await db.insert(users).values(user).returning();
-      return newUser;
-    } catch (error) {
-      console.error('خطأ في إنشاء المستخدم:', error);
-      throw new Error('فشل في إنشاء المستخدم');
-    }
-  }
-
   async updateUser(id: number, update: Partial<User>): Promise<User> {
-    try {
-      const [user] = await db.update(users)
-        .set(update)
-        .where(eq(users.id, id))
-        .returning();
-      return user;
-    } catch (error) {
-      console.error('خطأ في تحديث المستخدم:', error);
-      throw new Error('فشل في تحديث المستخدم');
-    }
+    const [user] = await db
+      .update(users)
+      .set({
+        ...update,
+        role: update.role as "admin" | "staff",
+        permissions: update.permissions || [],
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
   }
 
   async getProducts(): Promise<Product[]> {
@@ -196,92 +206,172 @@ export class DatabaseStorage implements IStorage {
     return product;
   }
 
-  async createProduct(product: InsertProduct): Promise<Product> {
+  async createProduct(product: Product): Promise<Product> {
     try {
-      const [newProduct] = await db.insert(products).values(product).returning();
+      const [newProduct] = await db
+        .insert(products)
+        .values({
+          name: product.name,
+          description: product.description,
+          productCode: product.productCode,
+          barcode: product.barcode,
+          productType: product.productType,
+          quantity: product.quantity,
+          minQuantity: product.minQuantity,
+          productionDate: product.productionDate,
+          expiryDate: product.expiryDate,
+          costPrice: product.costPrice.toString(),
+          priceIqd: product.priceIqd.toString(),
+          categoryId: product.categoryId,
+          isWeightBased: product.isWeightBased,
+          enableDirectWeighing: product.enableDirectWeighing,
+          stock: product.stock,
+          imageUrl: product.imageUrl,
+          thumbnailUrl: product.thumbnailUrl
+        })
+        .returning();
       return newProduct;
     } catch (error) {
-      console.error('خطأ في إنشاء المنتج:', error);
-      throw new Error('فشل في إنشاء المنتج');
+      console.error("خطأ في إنشاء المنتج:", error);
+      throw new Error("فشل في إنشاء المنتج. تأكد من صحة البيانات المدخلة وعدم تكرار رمز المنتج أو الباركود");
     }
   }
 
   async updateProduct(id: number, update: Partial<Product>): Promise<Product> {
     try {
-      const [product] = await db.update(products)
-        .set(update)
+      if (update.stock !== undefined && update.stock < 0) {
+        throw new Error("لا يمكن أن يكون المخزون أقل من صفر");
+      }
+
+      const [product] = await db
+        .update(products)
+        .set({
+          ...update,
+          priceIqd: update.priceIqd?.toString(),
+          updatedAt: new Date()
+        })
         .where(eq(products.id, id))
         .returning();
+
+      // تسجيل تغيير المخزون إذا تم تحديثه
+      if (update.stock !== undefined) {
+        await db.insert(inventoryTransactions).values({
+          productId: id,
+          type: "adjustment",
+          quantity: update.stock,
+          reason: "تحديث يدوي",
+          userId: 1, // يجب تحديث هذا ليأخذ معرف المستخدم الحالي
+          date: new Date()
+        });
+      }
+
       return product;
     } catch (error) {
-      console.error('خطأ في تحديث المنتج:', error);
-      throw new Error('فشل في تحديث المنتج');
+      console.error("خطأ في تحديث المنتج:", error);
+      throw new Error("فشل في تحديث المنتج. تأكد من صحة البيانات وتوفر المخزون الكافي");
     }
   }
 
-  async getCategories(): Promise<Category[]> {
-    return db.select().from(categories);
-  }
-
-  async getCategory(id: number): Promise<Category | undefined> {
-    const [category] = await db.select().from(categories).where(eq(categories.id, id));
-    return category;
-  }
-
-  async createCategory(category: InsertCategory): Promise<Category> {
-    try {
-      const [newCategory] = await db.insert(categories).values(category).returning();
-      return newCategory;
-    } catch (error) {
-      console.error('خطأ في إنشاء الفئة:', error);
-      throw new Error('فشل في إنشاء الفئة');
-    }
-  }
-
-  async getCustomers(): Promise<Customer[]> {
-    return db.select().from(customers);
-  }
-
-  async getCustomer(id: number): Promise<Customer | undefined> {
-    const [customer] = await db.select().from(customers).where(eq(customers.id, id));
-    return customer;
-  }
-
-  async createCustomer(customer: InsertCustomer): Promise<Customer> {
-    try {
-      const [newCustomer] = await db.insert(customers).values(customer).returning();
-      return newCustomer;
-    } catch (error) {
-      console.error('خطأ في إنشاء العميل:', error);
-      throw new Error('فشل في إنشاء العميل');
-    }
+  async deleteProduct(id: number): Promise<void> {
+    await db.delete(products).where(eq(products.id, id));
   }
 
   async getSales(): Promise<Sale[]> {
     return db.select().from(sales);
   }
 
-  async getSale(id: number): Promise<Sale | undefined> {
-    const [sale] = await db.select().from(sales).where(eq(sales.id, id));
-    return sale;
-  }
-
-  async createSale(sale: InsertSale): Promise<Sale> {
+  async createSale(sale: {
+    productId: number;
+    quantity: number;
+    priceIqd: string;
+    discount: string;
+    userId: number;
+    isInstallment: boolean;
+    date: Date;
+    customerName?: string;
+  }): Promise<Sale> {
     try {
-      const [newSale] = await db.insert(sales).values(sale).returning();
+      const [product] = await db
+        .select()
+        .from(products)
+        .where(eq(products.id, sale.productId));
+
+      if (!product) {
+        throw new Error("المنتج غير موجود");
+      }
+
+      if (product.stock < sale.quantity) {
+        throw new Error(`المخزون غير كافٍ. المتوفر: ${product.stock}`);
+      }
+
+      let customerId: number;
+      if (sale.customerName) {
+        const [customer] = await db
+          .insert(customers)
+          .values({
+            name: sale.customerName,
+            createdAt: new Date()
+          })
+          .returning();
+        customerId = customer.id;
+      } else {
+        const [defaultCustomer] = await db
+          .select()
+          .from(customers)
+          .where(eq(customers.name, "عميل نقدي"));
+
+        if (defaultCustomer) {
+          customerId = defaultCustomer.id;
+        } else {
+          const [newDefaultCustomer] = await db
+            .insert(customers)
+            .values({
+              name: "عميل نقدي",
+              createdAt: new Date()
+            })
+            .returning();
+          customerId = newDefaultCustomer.id;
+        }
+      }
+
+      const [updatedProduct] = await db
+        .update(products)
+        .set({ stock: product.stock - sale.quantity })
+        .where(eq(products.id, sale.productId))
+        .returning();
+
+      const [newSale] = await db
+        .insert(sales)
+        .values({
+          productId: sale.productId,
+          customerId,
+          quantity: sale.quantity,
+          priceIqd: sale.priceIqd,
+          discount: sale.discount,
+          finalPriceIqd: (Number(sale.priceIqd) - Number(sale.discount)).toString(),
+          userId: sale.userId,
+          isInstallment: sale.isInstallment,
+          date: sale.date
+        })
+        .returning();
+
+      await db.insert(inventoryTransactions).values({
+        productId: sale.productId,
+        type: "out",
+        quantity: sale.quantity,
+        reason: "sale",
+        reference: `SALE-${newSale.id}`,
+        userId: sale.userId,
+        date: new Date()
+      });
+
       return newSale;
     } catch (error) {
-      console.error('خطأ في إنشاء عملية البيع:', error);
-      throw new Error('فشل في إنشاء عملية البيع');
+      console.error("خطأ في إنشاء عملية البيع:", error);
+      throw new Error("فشل في إنشاء عملية البيع. " + (error as Error).message);
     }
   }
 
-  async getSaleItems(saleId: number): Promise<SaleItem[]> {
-    return db
-      .select()
-      .from(saleItems)
-      .where(eq(saleItems.saleId, saleId));
-  }
   async getCurrentExchangeRate(): Promise<ExchangeRate> {
     const [rate] = await db
       .select()
@@ -751,22 +841,22 @@ export class DatabaseStorage implements IStorage {
         });
 
         try {
-          //await this.logSystemActivity({ //removed
-          //  userId: 1, // Will be updated with actual user ID from context
-          //  activityType: "appointment_status_change",
-          //  entityType: "appointments",
-          //  entityId: id,
-          //  action: "update",
-          //  details: {
-          //    oldStatus: oldAppointment.status,
-          //    newStatus: update.status,
-          //    title: updatedAppointment.title,
-          //    date: updatedAppointment.date
-          //  }
-          //});
-          console.log("Successfully logged status change activity"); //removed
+          await this.logSystemActivity({
+            userId: 1, // Will be updated with actual user ID from context
+            activityType: "appointment_status_change",
+            entityType: "appointments",
+            entityId: id,
+            action: "update",
+            details: {
+              oldStatus: oldAppointment.status,
+              newStatus: update.status,
+              title: updatedAppointment.title,
+              date: updatedAppointment.date
+            }
+          });
+          console.log("Successfully logged status change activity");
         } catch (error) {
-          console.error("Failed to log status change activity:", error); //removed
+          console.error("Failed to log status change activity:", error);
         }
       }
 
@@ -879,7 +969,7 @@ export class DatabaseStorage implements IStorage {
 
       // Ensure userId is a number
       const userIdNum = Number(userId);
-
+      
       // Process colors to ensure they are stored as a valid JSONB object
       const processedColors = typeof settings.colors === 'string' 
         ? JSON.parse(settings.colors)
@@ -910,7 +1000,7 @@ export class DatabaseStorage implements IStorage {
   async getAppointments(): Promise<Appointment[]> {
     try {
       console.log("Fetching all appointments from database");
-            const results = await db
+      const results = await db
         .select()
         .from(appointments)
         .orderBy(desc(appointments.date));
@@ -924,21 +1014,155 @@ export class DatabaseStorage implements IStorage {
   }
 
 
-  async getAppointmentsByDateRange(startDate: Date, endDate: Date): Promise<Appointment[]> {    try {
-      return await db
-        .select()
-        .from(appointments)
-        .where(and(
-          gte(appointments.date, startDate),
-          lt(appointments.date, endDate)
-        ))
-        .orderBy(appointments.date);
+  async logSystemActivity(activity: InsertSystemActivity): Promise<SystemActivity> {
+    try {
+      console.log("Attempting to log system activity:", activity);
+      const [newActivity] = await db
+        .insert(systemActivities)
+        .values({
+          ...activity,
+          timestamp: new Date()
+        })
+        .returning();
+
+      console.log("Successfully created activity record:", newActivity);
+      return newActivity;
     } catch (error) {
-      console.error("خطأ في جلب المواعيد حسب النطاق الزمني:", error);
-      return [];
+      console.error("Error in logSystemActivity:", error);
+      throw new Error("فشل في تسجيل النشاط");
     }
   }
 
+  async getSystemActivities(filters: {
+    startDate?: Date;
+    endDate?: Date;
+    activityType?: string;
+    entityType?: string;
+  }): Promise<SystemActivity[]> {
+    try {
+      console.log("Getting system activities with filters:", filters);
+      let query = db.select().from(systemActivities);
+
+      if (filters.startDate) {
+        query = query.where(gte(systemActivities.timestamp, filters.startDate));
+      }
+      if (filters.endDate) {
+        query = query.where(lte(systemActivities.timestamp, filters.endDate));
+      }
+      if (filters.activityType) {
+        query = query.where(eq(systemActivities.activityType, filters.activityType));
+      }
+      if (filters.entityType) {
+        query = query.where(eq(systemActivities.entityType, filters.entityType));
+      }
+
+      const activities = await query.orderBy(desc(systemActivities.timestamp));
+      console.log(`Retrieved ${activities.length} activities`);
+      return activities;
+    } catch (error) {
+      console.error("Error fetching system activities:", error);
+      throw new Error("فشل في جلب سجل الحركات");
+    }
+  }
+
+  async getAppointmentActivities(appointmentId: number): Promise<SystemActivity[]> {
+    try {
+      const activities = await db
+        .select()
+        .from(systemActivities)
+        .where(
+          and(
+            eq(systemActivities.entityType, "appointments"),
+            eq(systemActivities.entityId, appointmentId)
+          )
+        )
+        .orderBy(desc(systemActivities.timestamp));
+
+      return activities;
+    } catch (error) {
+      console.error("Error fetching appointment activities:", error);
+      throw new Error("فشل في جلب سجل حركات الموعد");
+    }
+  }
+
+  async generateActivityReport(report: InsertActivityReport): Promise<ActivityReport> {
+    const activities = await this.getSystemActivities({
+      startDate: report.dateRange.startDate,
+      endDate: report.dateRange.endDate,
+      ...(report.filters || {})
+    });
+
+    // Process activities based on report type
+    let processedData: any = {};
+    switch (report.reportType) {
+      case "daily":
+        processedData = this.processDailyReport(activities);
+        break;
+      case "weekly":
+        processedData = this.processWeeklyReport(activities);
+        break;
+      case "monthly":
+        processedData = this.processMonthlyReport(activities);
+        break;
+    }
+
+    const [newReport] = await db
+      .insert(activityReports)
+      .values({
+        ...report,
+        data: processedData,
+      })
+      .returning();
+
+    return newReport;
+  }
+
+  private processDailyReport(activities: SystemActivity[]) {
+    const dailyActivities = activities.reduce((acc: any, activity) => {
+      const date = new Date(activity.timestamp).toISOString().split('T')[0];
+      if (!acc[date]) {
+        acc[date] = {
+          total: 0,
+          byType: {},
+          byUser: {},
+        };
+      }
+      acc[date].total++;
+      acc[date].byType[activity.activityType] = (acc[date].byType[activity.activityType] || 0) + 1;
+      acc[date].byUser[activity.userId] = (acc[date].byUser[activity.userId] || 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      type: 'daily',
+      data: dailyActivities,
+    };
+  }
+
+  private processWeeklyReport(activities: SystemActivity[]) {
+    const weeklyActivities = activities.reduce((acc: any, activity) => {
+      const date = new Date(activity.timestamp);
+      const weekStart = new Date(date.setDate(date.getDate() - date.getDay())).toISOString().split('T')[0];
+      if (!acc[weekStart]) {
+        acc[weekStart] = {
+          total: 0,
+          byType: {},
+          byUser: {},
+        };
+      }
+      acc[weekStart].total++;
+      acc[weekStart].byType[activity.activityType] = (acc[weekStart].byType[activity.activityType] || 0) + 1;
+      acc[weekStart].byUser[activity.userId] = (acc[weekStart].byUser[activity.userId] || 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      type: 'weekly',
+      data: weeklyActivities,
+    };
+  }
+
+  // Remove duplicate getInventoryReport implementation and keep the paginated version
   async getInventoryReport(dateRange: { start: Date; end: Date }, page = 1, pageSize = 50) {
     const cacheKey = `inventory_report:${dateRange.start.toISOString()}_${dateRange.end.toISOString()}_${page}`;
     const cached = await this.cache.get(cacheKey);
@@ -1213,8 +1437,7 @@ export class DatabaseStorage implements IStorage {
         console.error("Invalid report ID:", id);
         throw new Error("معرف التقرير غير صالح");
       }
-
-
+      
       const [report] = await db
         .select()
         .from(reports)
@@ -1443,7 +1666,7 @@ export class DatabaseStorage implements IStorage {
             acc[curr.status] = curr.count;
             return acc;
           }, {} as Record<string, number>);
-
+          
         return {
           ...day,
           byStatus: statusCounts
@@ -1535,42 +1758,22 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async saveUserNotification(userId: number, type: string, data: any): Promise<any> {
+  async getAppointmentsByDateRange(startDate: Date, endDate: Date): Promise<Appointment[]> {
     try {
-      //Implementation for saving user notification
-      return true;
+      return await db
+        .select()
+        .from(appointments)
+        .where(and(
+          gte(appointments.date, startDate),
+          lt(appointments.date, endDate)
+        ))
+        .orderBy(appointments.date);
     } catch (error) {
-      console.error("Error saving user notification:", error);
-      return false;
-    }
-  }
-  async getUserNotifications(userId: number, options?: { unreadOnly?: boolean, limit?: number }): Promise<any[]> {
-    try {
-      //Implementation for getting user notifications
-      return [];
-    } catch (error) {
-      console.error("Error fetching user notifications:", error);
+      console.error("خطأ في جلب المواعيد حسب النطاق الزمني:", error);
       return [];
     }
   }
-  async markNotificationAsRead(notificationId: number): Promise<any> {
-    try {
-      //Implementation for marking notification as read
-      return true;
-    } catch (error) {
-      console.error("Error marking notification as read:", error);
-      return false;
-    }
-  }
-  async deleteNotification(notificationId: number): Promise<boolean> {
-    try {
-      //Implementation for deleting notification
-      return true;
-    } catch (error) {
-      console.error("Error deleting notification:", error);
-      return false;
-    }
-  }
+
   sendNotification(userId: number, notificationType: string, data: any): boolean {
     try {
       // This method will be overridden in index.ts with Socket.IO implementation

@@ -1,27 +1,42 @@
 modules = ["nodejs-20", "web", "postgresql-16"]
 run = "npm run dev"
-
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
-channel = "stable-23_11"
+channel = "stable-24_05"
+
+[deployment]
+deploymentTarget = "cloudrun"
+build = ["npm", "run", "build"]
+run = ["npm", "run", "start"]
+
+[[ports]]
+localPort = 1000
+externalPort = 3002
 
 [[ports]]
 localPort = 3000
-externalPort = 3000
+externalPort = 3001
 
 [[ports]]
 localPort = 5000
 externalPort = 80
 
-# إعدادات النشر
-[deployment]
-deploymentTarget = "cloudrun"
-build = ["sh", "-c", "npm run build"]
-run = ["sh", "-c", "npm start"]
+[[ports]]
+localPort = 5001
+externalPort = 3000
 
 [workflows]
 runButton = "Start application"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
 
 [[workflows.workflow]]
 name = "Start application"
@@ -35,13 +50,5 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev:both"
-waitForPort = 5000
-
-[[workflows.workflow]]
-name = "Run Application"
-author = 39617731
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
 args = "npm run dev"
+waitForPort = 5000

@@ -25,14 +25,7 @@ export function log(message: string, source = "express") {
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
-    hmr: { 
-      server,
-      clientPort: 443,
-      port: 5000,
-      protocol: 'wss',
-      path: '/__vite_hmr', // Match the path in vite.config.ts
-      host: undefined // Let Vite auto-detect the host
-    },
+    hmr: { server },
     allowedHosts: true,
   };
 
