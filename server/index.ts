@@ -122,8 +122,8 @@ async function startServer() {
       serveStatic(app);
     }
 
-    // تعريف المنفذ من البيئة أو استخدام منفذ عشوائي إذا كان المنفذ الافتراضي مشغولاً
-    const port = process.env.PORT || 3000;
+    // تعريف المنفذ ليكون 5000 كما هو محدد في ملف .replit
+    const port = process.env.PORT || 5000;
     const httpServer = createServer(app);
     
     // معالج لإغلاق السيرفر بشكل صحيح عند توقف التطبيق

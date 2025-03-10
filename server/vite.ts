@@ -34,7 +34,7 @@ export async function setupVite(
       hmr: {
         timeout: 60000, // زيادة مهلة HMR إلى 60 ثانية
         protocol: 'ws',
-        clientPort: 3000, // استخدام نفس المنفذ الافتراضي
+        clientPort: 5000, // استخدام المنفذ المحدد في الإعدادات
         overlay: false, // تعطيل overlay للأخطاء في الواجهة
         reconnect: 10 // محاولات إعادة الاتصال
       }
