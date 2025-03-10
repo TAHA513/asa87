@@ -22,7 +22,9 @@ import {
   type Appointment, type InsertAppointment, type Invoice,
   type InsertInvoice, type UserSettings, type InsertUserSettings,
   type InsertUser, type InsertFileStorage,
-  type Report, type InsertReport, type InvoiceItem
+  type Report, type InsertReport, type InvoiceItem,
+  type InsertSale, type InsertSaleItem, type SaleItem,
+  categories, type Category, type InsertCategory
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, or, like, SQL, gte, lte, and, sql, lt, gt } from "drizzle-orm";
@@ -31,26 +33,34 @@ import { globalCache } from "./cache";
 const CACHE_TTL = 5 * 60; // 5 minutes cache
 
 export interface IStorage {
+  // المستخدمين
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(insertUser: InsertUser): Promise<User>;
-  updateUser(id: number, update: Partial<User>): Promise<User>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<User>): Promise<User>;
+
+  // المنتجات
   getProducts(): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
-  createProduct(product: Product): Promise<Product>;
-  updateProduct(id: number, update: Partial<Product>): Promise<Product>;
-  deleteProduct(id: number): Promise<void>;
+  createProduct(product: InsertProduct): Promise<Product>;
+  updateProduct(id: number, product: Partial<Product>): Promise<Product>;
+
+  // الفئات
+  getCategories(): Promise<Category[]>;
+  getCategory(id: number): Promise<Category | undefined>;
+  createCategory(category: InsertCategory): Promise<Category>;
+
+  // العملاء
+  getCustomers(): Promise<Customer[]>;
+  getCustomer(id: number): Promise<Customer | undefined>;
+  createCustomer(customer: InsertCustomer): Promise<Customer>;
+
+  // المبيعات
   getSales(): Promise<Sale[]>;
-  createSale(sale: {
-    productId: number;
-    quantity: number;
-    priceIqd: string;
-    discount: string;
-    userId: number;
-    isInstallment: boolean;
-    date: Date;
-    customerName?: string;
-  }): Promise<Sale>;
+  getSale(id: number): Promise<Sale | undefined>;
+  createSale(sale: InsertSale): Promise<Sale>;
+  getSaleItems(saleId: number): Promise<SaleItem[]>;
+
   getCurrentExchangeRate(): Promise<ExchangeRate>;
   setExchangeRate(rate: number): Promise<ExchangeRate>;
   getInstallments(): Promise<Installment[]>;
@@ -91,9 +101,7 @@ export interface IStorage {
   getSupplierTransactions(supplierId: number): Promise<SupplierTransaction[]>;
   createSupplierTransaction(transaction: InsertSupplierTransaction): Promise<SupplierTransaction>;
   searchCustomers(search?: string): Promise<Customer[]>;
-  getCustomer(id: number): Promise<Customer | undefined>;
   getCustomerSales(customerId: number): Promise<Sale[]>;
-  createCustomer(customer: InsertCustomer): Promise<Customer>;
   getCustomerAppointments(customerId: number): Promise<Appointment[]>;
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
   updateAppointment(id: number, update: Partial<Appointment>): Promise<Appointment>;
@@ -143,8 +151,6 @@ export interface IStorage {
   getHistoricalStats(): Promise<any>;
   getFrontendComponents():Promise<string[]>;
   getApiEndpoints():Promise<string[]>;
-
-  // واجهات برمجة جديدة لدعم نظام الإشعارات
   sendNotification(userId: number, notificationType: string, data: any): boolean;
   getUsersByRole(role: string): Promise<User[]>;
   getActiveUsers(): Promise<User[]>;
@@ -164,37 +170,35 @@ export class DatabaseStorage implements IStorage {
 
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user || undefined;
+    return user;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values({
-        ...insertUser,
-        role: insertUser.role as "admin" | "staff",
-        permissions: insertUser.permissions || [],
-      })
-      .returning();
-    return user;
+  async createUser(user: InsertUser): Promise<User> {
+    try {
+      const [newUser] = await db.insert(users).values(user).returning();
+      return newUser;
+    } catch (error) {
+      console.error('خطأ في إنشاء المستخدم:', error);
+      throw new Error('فشل في إنشاء المستخدم');
+    }
   }
 
   async updateUser(id: number, update: Partial<User>): Promise<User> {
-    const [user] = await db
-      .update(users)
-      .set({
-        ...update,
-        role: update.role as "admin" | "staff",
-        permissions: update.permissions || [],
-      })
-      .where(eq(users.id, id))
-      .returning();
-    return user;
+    try {
+      const [user] = await db.update(users)
+        .set(update)
+        .where(eq(users.id, id))
+        .returning();
+      return user;
+    } catch (error) {
+      console.error('خطأ في تحديث المستخدم:', error);
+      throw new Error('فشل في تحديث المستخدم');
+    }
   }
 
   async getProducts(): Promise<Product[]> {
@@ -206,172 +210,91 @@ export class DatabaseStorage implements IStorage {
     return product;
   }
 
-  async createProduct(product: Product): Promise<Product> {
+  async createProduct(product: InsertProduct): Promise<Product> {
     try {
-      const [newProduct] = await db
-        .insert(products)
-        .values({
-          name: product.name,
-          description: product.description,
-          productCode: product.productCode,
-          barcode: product.barcode,
-          productType: product.productType,
-          quantity: product.quantity,
-          minQuantity: product.minQuantity,
-          productionDate: product.productionDate,
-          expiryDate: product.expiryDate,
-          costPrice: product.costPrice.toString(),
-          priceIqd: product.priceIqd.toString(),
-          categoryId: product.categoryId,
-          isWeightBased: product.isWeightBased,
-          enableDirectWeighing: product.enableDirectWeighing,
-          stock: product.stock,
-          imageUrl: product.imageUrl,
-          thumbnailUrl: product.thumbnailUrl
-        })
-        .returning();
+      const [newProduct] = await db.insert(products).values(product).returning();
       return newProduct;
     } catch (error) {
-      console.error("خطأ في إنشاء المنتج:", error);
-      throw new Error("فشل في إنشاء المنتج. تأكد من صحة البيانات المدخلة وعدم تكرار رمز المنتج أو الباركود");
+      console.error('خطأ في إنشاء المنتج:', error);
+      throw new Error('فشل في إنشاء المنتج');
     }
   }
 
   async updateProduct(id: number, update: Partial<Product>): Promise<Product> {
     try {
-      if (update.stock !== undefined && update.stock < 0) {
-        throw new Error("لا يمكن أن يكون المخزون أقل من صفر");
-      }
-
-      const [product] = await db
-        .update(products)
-        .set({
-          ...update,
-          priceIqd: update.priceIqd?.toString(),
-          updatedAt: new Date()
-        })
+      const [product] = await db.update(products)
+        .set(update)
         .where(eq(products.id, id))
         .returning();
-
-      // تسجيل تغيير المخزون إذا تم تحديثه
-      if (update.stock !== undefined) {
-        await db.insert(inventoryTransactions).values({
-          productId: id,
-          type: "adjustment",
-          quantity: update.stock,
-          reason: "تحديث يدوي",
-          userId: 1, // يجب تحديث هذا ليأخذ معرف المستخدم الحالي
-          date: new Date()
-        });
-      }
-
       return product;
     } catch (error) {
-      console.error("خطأ في تحديث المنتج:", error);
-      throw new Error("فشل في تحديث المنتج. تأكد من صحة البيانات وتوفر المخزون الكافي");
+      console.error('خطأ في تحديث المنتج:', error);
+      throw new Error('فشل في تحديث المنتج');
     }
   }
 
-  async deleteProduct(id: number): Promise<void> {
-    await db.delete(products).where(eq(products.id, id));
+  async getCategories(): Promise<Category[]> {
+    return db.select().from(categories);
+  }
+
+  async getCategory(id: number): Promise<Category | undefined> {
+    const [category] = await db.select().from(categories).where(eq(categories.id, id));
+    return category;
+  }
+
+  async createCategory(category: InsertCategory): Promise<Category> {
+    try {
+      const [newCategory] = await db.insert(categories).values(category).returning();
+      return newCategory;
+    } catch (error) {
+      console.error('خطأ في إنشاء الفئة:', error);
+      throw new Error('فشل في إنشاء الفئة');
+    }
+  }
+
+  async getCustomers(): Promise<Customer[]> {
+    return db.select().from(customers);
+  }
+
+  async getCustomer(id: number): Promise<Customer | undefined> {
+    const [customer] = await db.select().from(customers).where(eq(customers.id, id));
+    return customer;
+  }
+
+  async createCustomer(customer: InsertCustomer): Promise<Customer> {
+    try {
+      const [newCustomer] = await db.insert(customers).values(customer).returning();
+      return newCustomer;
+    } catch (error) {
+      console.error('خطأ في إنشاء العميل:', error);
+      throw new Error('فشل في إنشاء العميل');
+    }
   }
 
   async getSales(): Promise<Sale[]> {
     return db.select().from(sales);
   }
 
-  async createSale(sale: {
-    productId: number;
-    quantity: number;
-    priceIqd: string;
-    discount: string;
-    userId: number;
-    isInstallment: boolean;
-    date: Date;
-    customerName?: string;
-  }): Promise<Sale> {
+  async getSale(id: number): Promise<Sale | undefined> {
+    const [sale] = await db.select().from(sales).where(eq(sales.id, id));
+    return sale;
+  }
+
+  async createSale(sale: InsertSale): Promise<Sale> {
     try {
-      const [product] = await db
-        .select()
-        .from(products)
-        .where(eq(products.id, sale.productId));
-
-      if (!product) {
-        throw new Error("المنتج غير موجود");
-      }
-
-      if (product.stock < sale.quantity) {
-        throw new Error(`المخزون غير كافٍ. المتوفر: ${product.stock}`);
-      }
-
-      let customerId: number;
-      if (sale.customerName) {
-        const [customer] = await db
-          .insert(customers)
-          .values({
-            name: sale.customerName,
-            createdAt: new Date()
-          })
-          .returning();
-        customerId = customer.id;
-      } else {
-        const [defaultCustomer] = await db
-          .select()
-          .from(customers)
-          .where(eq(customers.name, "عميل نقدي"));
-
-        if (defaultCustomer) {
-          customerId = defaultCustomer.id;
-        } else {
-          const [newDefaultCustomer] = await db
-            .insert(customers)
-            .values({
-              name: "عميل نقدي",
-              createdAt: new Date()
-            })
-            .returning();
-          customerId = newDefaultCustomer.id;
-        }
-      }
-
-      const [updatedProduct] = await db
-        .update(products)
-        .set({ stock: product.stock - sale.quantity })
-        .where(eq(products.id, sale.productId))
-        .returning();
-
-      const [newSale] = await db
-        .insert(sales)
-        .values({
-          productId: sale.productId,
-          customerId,
-          quantity: sale.quantity,
-          priceIqd: sale.priceIqd,
-          discount: sale.discount,
-          finalPriceIqd: (Number(sale.priceIqd) - Number(sale.discount)).toString(),
-          userId: sale.userId,
-          isInstallment: sale.isInstallment,
-          date: sale.date
-        })
-        .returning();
-
-      await db.insert(inventoryTransactions).values({
-        productId: sale.productId,
-        type: "out",
-        quantity: sale.quantity,
-        reason: "sale",
-        reference: `SALE-${newSale.id}`,
-        userId: sale.userId,
-        date: new Date()
-      });
-
+      const [newSale] = await db.insert(sales).values(sale).returning();
       return newSale;
     } catch (error) {
-      console.error("خطأ في إنشاء عملية البيع:", error);
-      throw new Error("فشل في إنشاء عملية البيع. " + (error as Error).message);
+      console.error('خطأ في إنشاء عملية البيع:', error);
+      throw new Error('فشل في إنشاء عملية البيع');
     }
   }
 
+  async getSaleItems(saleId: number): Promise<SaleItem[]> {
+    return db.select()
+      .from(saleItems)
+      .where(eq(saleItems.saleId, saleId));
+  }
   async getCurrentExchangeRate(): Promise<ExchangeRate> {
     const [rate] = await db
       .select()
@@ -1000,7 +923,7 @@ export class DatabaseStorage implements IStorage {
   async getAppointments(): Promise<Appointment[]> {
     try {
       console.log("Fetching all appointments from database");
-      const results = await db
+            const results = await db
         .select()
         .from(appointments)
         .orderBy(desc(appointments.date));
@@ -1438,6 +1361,7 @@ export class DatabaseStorage implements IStorage {
         throw new Error("معرف التقرير غير صالح");
       }
       
+
       const [report] = await db
         .select()
         .from(reports)
