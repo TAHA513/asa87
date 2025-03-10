@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
-import axios from "axios"; // Replaced "@/lib/api" import
+import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
@@ -36,7 +36,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter"; // Importing from wouter
+import { useLocation } from "wouter";
 import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import {
   AlertDialog,
@@ -166,7 +166,7 @@ export default function Sales() {
         title: "تمت الإضافة",
         description: "تمت إضافة عملية البيع بنجاح",
       });
-      refetchSales(); //Added to refresh sales data after successful addition.
+      refetchSales();
     },
     onError: (error) => {
       toast({
