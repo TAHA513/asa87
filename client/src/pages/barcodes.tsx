@@ -149,7 +149,26 @@ export default function BarcodesPage() {
         setTimeout(resolve, 500);
       });
     },
-    removeAfterPrint: true,
+    removeAfterPrint: false,
+    copyStyles: true,
+    documentTitle: "الباركود المطبوع",
+    pageStyle: `
+      @page {
+        size: auto;
+        margin: 10mm;
+      }
+      @media print {
+        html, body {
+          height: 100%;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        .print-container {
+          break-inside: avoid;
+          page-break-inside: avoid;
+        }
+      }
+    `,
   });
 
   return (
@@ -267,7 +286,18 @@ export default function BarcodesPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={handlePrint}
+                  onClick={() => {
+                    // أولاً قم بتوليد الباركود
+                    generateBarcodes();
+                    // ثم بعد فترة زمنية قصيرة قم بفتح نافذة الطباعة
+                    setTimeout(() => {
+                      if (printRef.current) {
+                        handlePrint();
+                      } else {
+                        console.log("مرجع الطباعة غير موجود");
+                      }
+                    }, 800);
+                  }}
                   disabled={
                     barcodes.length === 0 ||
                     isGenerating ||
@@ -279,7 +309,7 @@ export default function BarcodesPage() {
                 </Button>
               </div>
 
-              <div ref={printRef} className="mt-6 p-4 border rounded-lg print-container">
+              <div id="print-content" ref={printRef} className="mt-6 p-4 border rounded-lg print-container">
                 <h3 className="text-lg font-bold mb-4 text-center print:block">الباركود المطبوع</h3>
                 {barcodes.map((barcode) => (
                   barcode.text ? (
@@ -315,6 +345,18 @@ export default function BarcodesPage() {
           .print-container,
           .print-container * {
             visibility: visible;
+            position: relative;
+          }
+          .print-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: auto;
+          }
+          .no-print {
+            display: none !important;
+          }ibility: visible;
           }
           .print-container {
             position: absolute;
