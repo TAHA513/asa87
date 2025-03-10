@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export default defineConfig(() => {
+export default defineConfig(async () => {
   const plugins = [
     react(),
     runtimeErrorOverlay(),
@@ -16,22 +16,21 @@ export default defineConfig(() => {
   ];
 
   if (process.env.NODE_ENV !== "production" && process.env.REPL_ID !== undefined) {
-    import("@replit/vite-plugin-cartographer").then(({ cartographer }) => {
-      plugins.push(cartographer());
-    });
+    const { cartographer } = await import("@replit/vite-plugin-cartographer");
+    plugins.push(cartographer());
   }
 
   return {
     plugins,
     resolve: {
-      alias: [
-        { find: '@', replacement: path.resolve(__dirname, 'client/src') },
-        { find: '@shared', replacement: path.resolve(__dirname, 'shared') }
-      ],
+      alias: {
+        "@": path.resolve(__dirname, "client", "src"),
+        "@shared": path.resolve(__dirname, "shared"),
+      },
     },
-    root: path.resolve(__dirname), // جعل root هو المجلد الرئيسي للمشروع
+    root: path.resolve(__dirname, "client"),
     build: {
-      outDir: path.resolve(__dirname, "dist"),
+      outDir: path.resolve(__dirname, "dist/public"),
       emptyOutDir: true,
     },
   };

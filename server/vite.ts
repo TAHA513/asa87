@@ -59,13 +59,7 @@ export async function setupVite(app: Express, server: Server) {
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
-        `src="/client/src/main.tsx?v=${nanoid()}"`,
-      );
-      
-      // Add base path to make aliases work correctly
-      template = template.replace(
-        `<head>`,
-        `<head>\n    <base href="/" />`,
+        `src="/src/main.tsx?v=${nanoid()}"`,
       );
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
