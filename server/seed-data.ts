@@ -233,7 +233,8 @@ export async function seedData() {
 
 
 // تنفيذ الوظيفة مباشرة عند تشغيل السكريبت
-if (require.main === module) {
+// Using import.meta.url to detect if this is the main module
+if (import.meta.url === import.meta.resolve('./seed-data.ts')) {
   Promise.all([seedDatabase(), seedData()])
     .then(() => {
       console.log("تمت زراعة البيانات بنجاح!");
