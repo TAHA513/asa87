@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { apiRequest } from "@/lib/queryClient";
 import { motion } from "framer-motion";
 
 const themes = [
@@ -185,24 +184,27 @@ const ThemeSettings = () => {
   }, [appearance]);
 
   useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const response = await apiRequest("GET", "/api/settings");
-        if (response) {
-          const theme = themes.find(t => t.id === response.variant) || themes[0];
-          const font = fonts.find(f => f.id === response.fontStyle) || fonts[0];
-          setSelectedTheme(theme);
-          setSelectedFont(font);
-          setFontSize(response.fontSize || "medium");
-          setAppearance(response.appearance || "system");
-          applyAppearance(response.appearance || "system");
-        }
-      } catch (error) {
-        console.error("Error loading settings:", error);
-      }
-    };
+    try {
+      const savedSettings = localStorage.getItem('theme-settings');
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        const theme = themes.find(t => t.id === settings.variant) || themes[0];
+        const font = fonts.find(f => f.id === settings.fontStyle) || fonts[0];
+        setSelectedTheme(theme);
+        setSelectedFont(font);
+        setFontSize(settings.fontSize || "medium");
+        setAppearance(settings.appearance || "system");
+        applyAppearance(settings.appearance || "system");
 
-    loadSettings();
+        document.documentElement.style.setProperty("--primary-color", theme.colors.primary);
+        document.documentElement.style.setProperty("--secondary-color", theme.colors.secondary);
+        document.documentElement.style.setProperty("--accent-color", theme.colors.accent);
+        document.documentElement.style.setProperty("--font-family", font.family);
+        document.documentElement.style.setProperty("--font-size-base", `${fontSizes[settings.fontSize || "medium"].base}px`);
+      }
+    } catch (error) {
+      console.error("Error loading settings from localStorage:", error);
+    }
   }, []);
 
   const saveSettings = async () => {
@@ -217,26 +219,24 @@ const ThemeSettings = () => {
         radius: 0.5,
       };
 
-      const response = await apiRequest("POST", "/api/settings", settings);
+      localStorage.setItem('theme-settings', JSON.stringify(settings));
 
-      if (response) {
-        document.documentElement.style.setProperty("--primary-color", selectedTheme.colors.primary);
-        document.documentElement.style.setProperty("--secondary-color", selectedTheme.colors.secondary);
-        document.documentElement.style.setProperty("--accent-color", selectedTheme.colors.accent);
-        document.documentElement.style.setProperty("--font-family", selectedFont.family);
-        document.documentElement.style.setProperty("--font-size-base", `${fontSizes[fontSize].base}px`);
-        applyAppearance(appearance);
+      document.documentElement.style.setProperty("--primary-color", selectedTheme.colors.primary);
+      document.documentElement.style.setProperty("--secondary-color", selectedTheme.colors.secondary);
+      document.documentElement.style.setProperty("--accent-color", selectedTheme.colors.accent);
+      document.documentElement.style.setProperty("--font-family", selectedFont.family);
+      document.documentElement.style.setProperty("--font-size-base", `${fontSizes[fontSize].base}px`);
+      applyAppearance(appearance);
 
-        toast({
-          title: "تم الحفظ",
-          description: "تم حفظ إعدادات المظهر بنجاح",
-        });
-      }
+      toast({
+        title: "تم الحفظ في المتصفح",
+        description: "تم حفظ إعدادات المظهر في متصفحك بنجاح",
+      });
     } catch (error) {
       console.error("Error saving settings:", error);
       toast({
         title: "خطأ",
-        description: "فشل في حفظ التغييرات",
+        description: "فشل في حفظ التغييرات في المتصفح",
         variant: "destructive",
       });
     } finally {
@@ -412,7 +412,7 @@ const ThemeSettings = () => {
                             }}
                           >
                             <div className="text-center">
-                              <div 
+                              <div
                                 className="mb-2 font-medium"
                                 style={{ fontSize: `${config.base}px` }}
                               >
@@ -432,7 +432,7 @@ const ThemeSettings = () => {
 
                     <div className="space-y-4">
                       <Label className="text-lg font-medium">معاينة الحجم</Label>
-                      <div 
+                      <div
                         className="space-y-4 p-6 bg-card rounded-lg"
                         style={{
                           fontSize: `${fontSizes[fontSize as keyof typeof fontSizes].base}px`,
