@@ -795,6 +795,5 @@ export default function SuppliersPage() {
           </DialogContent>
         </Dialog>
       </div>
-    </div>
   );
 }
