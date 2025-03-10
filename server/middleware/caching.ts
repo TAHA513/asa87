@@ -58,7 +58,7 @@ export const cacheMiddleware = (options: {
         }
       }
 
-      // Call the original method
+      // Call the original json method
       return originalJson.call(this, body);
     };
 
@@ -66,29 +66,26 @@ export const cacheMiddleware = (options: {
   };
 };
 
-// Function to invalidate all cache entries in a group
-export const invalidateCacheGroup = (group: string): void => {
+// Helper function to invalidate a specific cache group
+export const invalidateCache = (group: string) => {
   const keys = cacheGroups.get(group);
   if (keys) {
-    cache.del(Array.from(keys));
-    cacheGroups.delete(group);
+    keys.forEach(key => cache.del(key));
+    keys.clear();
   }
 };
 
-// Function to invalidate a specific cache entry
-export const invalidateCache = (url: string, queryParams: Record<string, any> = {}): void => {
-  const key = `${url}:${JSON.stringify(queryParams)}`;
-  cache.del(key);
+// Helper function to invalidate a specific cache key
+export const invalidateCacheKey = (keyPattern: string) => {
+  const keys = cache.keys();
+  const matchingKeys = keys.filter(key => key.includes(keyPattern));
+  matchingKeys.forEach(key => cache.del(key));
+};
 
-  // Also remove from any groups
-  for (const [group, keys] of cacheGroups.entries()) {
-    if (keys.has(key)) {
-      keys.delete(key);
-      if (keys.size === 0) {
-        cacheGroups.delete(group);
-      }
-    }
-  }
+// Helper to clear the entire cache
+export const clearCache = () => {
+  cache.flushAll();
+  cacheGroups.clear();
 };
 
 // Get cache statistics for monitoring
