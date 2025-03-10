@@ -8,7 +8,6 @@ import { Barcode, Printer } from "lucide-react";
 import JsBarcode from "jsbarcode";
 import { printBarcode } from "@/lib/api";
 import { Checkbox } from "@/components/ui/checkbox"; // Added import for Checkbox
-import { useReactToPrint } from "react-to-print";
 
 
 export default function Barcodes() {
@@ -140,63 +139,20 @@ export default function Barcodes() {
     setSelectedBarcodes(prev => [...prev, newItem.id]);
   };
 
-  const handleMultiplePrint = useReactToPrint({
-    content: () => multiplePrintRef.current,
-    onBeforeGetContent: () => {
-      return new Promise((resolve) => {
-        if (!multiplePrintRef.current || selectedBarcodes.length === 0) {
+  const handleMultiplePrint = () => {
+    //This function needs implementation for printing multiple barcodes.  This is a placeholder.
+      if (!multiplePrintRef.current) {
           toast({
-            title: "خطأ في الطباعة",
-            description: "لم يتم تحديد أي باركود للطباعة",
-            variant: "destructive",
+              title: "خطأ في الطباعة",
+              description: "لم يتم العثور على المحتوى للطباعة",
+              variant: "destructive",
           });
-          resolve(false);
           return;
-        }
+      }
+      //Add implementation to print the selected barcodes here.
+      console.log("Printing multiple barcodes:", selectedBarcodes); // Placeholder - replace with actual printing logic.
 
-        // تهيئة الباركودات للطباعة
-        setTimeout(() => {
-          const barcodeElements = multiplePrintRef.current?.querySelectorAll('svg');
-          barcodeElements?.forEach((svg, index) => {
-            const item = barcodeList.find(item => selectedBarcodes.includes(item.id));
-            if (item && svg instanceof SVGElement) {
-              JsBarcode(svg, item.value, {
-                format: barcodeFormat,
-                width: barcodeWidth,
-                height: barcodeHeight,
-                displayValue: true,
-                font: "monospace",
-                fontSize: 12,
-                margin: 5,
-              });
-            }
-          });
-          resolve(true);
-        }, 100);
-      });
-    },
-    onAfterPrint: () => {
-      toast({
-        title: "تمت الطباعة",
-        description: `تمت طباعة ${selectedBarcodes.length} باركود بنجاح`,
-      });
-    },
-    pageStyle: `
-      @page {
-        margin: 10mm;
-      }
-      @media print {
-        body {
-          margin: 0;
-          padding: 0;
-        }
-        .barcode-item {
-          page-break-inside: avoid;
-          margin-bottom: 10mm;
-        }
-      }
-    `,
-  });
+  };
 
 
   const removeFromList = (id: string) => {
@@ -374,19 +330,17 @@ export default function Barcodes() {
                 طباعة الباركودات المحددة ({selectedBarcodes.length})
               </Button>
 
-              <div style={{ display: 'none' }}>
-                <div ref={multiplePrintRef} className="print-container">
-                  <div className="grid grid-cols-2 gap-4">
-                    {barcodeList
-                      .filter(item => selectedBarcodes.includes(item.id))
-                      .map(item => (
-                        <div key={item.id} className="barcode-item flex flex-col items-center p-2 border rounded">
-                          <p className="mb-2 font-bold">{item.value}</p>
-                          <svg className="w-full h-auto" data-value={item.value}></svg>
-                        </div>
-                      ))
-                    }
-                  </div>
+              <div ref={multiplePrintRef} className="hidden">
+                <div className="grid grid-cols-2 gap-4">
+                  {barcodeList
+                    .filter(item => selectedBarcodes.includes(item.id))
+                    .map(item => (
+                      <div key={item.id} className="flex flex-col items-center p-2 border rounded">
+                        <img src={item.image} alt={item.value} className="max-w-full h-auto" />
+                        <p className="mt-2">{item.value}</p>
+                      </div>
+                    ))
+                  }
                 </div>
               </div>
             </>
