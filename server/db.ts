@@ -23,23 +23,6 @@ const pool = new Pool({
   keepAlive: true, // Keep connections alive
   allowExitOnIdle: false, // Prevent pool from ending when idle
   statement_timeout: 30000, // Timeout long-running queries after 30 seconds
-  query_timeout: 30000, // Timeout long-running queries
-  // Add automatic connection retries
-  max_retries: 3,
-  retry_as_transaction: false
-});
-</old_str>
-<new_str>
-// Create optimized connection pool with proper error handling and retry logic
-const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: 10000, // 10 second timeout for better reliability
-  max: 10, // Optimal number of clients in pool
-  min: 2, // Keep minimum 2 connections ready
-  idleTimeoutMillis: 60000, // Keep connections longer (1 minute)
-  keepAlive: true, // Keep connections alive
-  allowExitOnIdle: false, // Prevent pool from ending when idle
-  statement_timeout: 30000, // Timeout long-running queries after 30 seconds
   query_timeout: 30000 // Timeout long-running queries
 });
 
@@ -66,7 +49,7 @@ pool.on('error', (err) => {
 const executeQuery = async (queryFn) => {
   const MAX_RETRIES = 3;
   let retries = 0;
-  
+
   while (retries < MAX_RETRIES) {
     try {
       return await queryFn();
@@ -81,7 +64,7 @@ const executeQuery = async (queryFn) => {
         error.code === '08004'    // rejected connection
       ) {
         console.log(`Database connection error (${error.code}), retry attempt ${retries}/${MAX_RETRIES}`);
-        
+
         if (retries < MAX_RETRIES) {
           // Wait before retrying (exponential backoff)
           await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries - 1)));
