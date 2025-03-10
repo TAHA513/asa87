@@ -157,22 +157,31 @@ export default function Barcodes() {
         // تهيئة الباركودات للطباعة
         setTimeout(() => {
           const barcodeElements = multiplePrintRef.current?.querySelectorAll('svg');
-          barcodeElements?.forEach((svg, index) => {
-            const item = barcodeList.find(item => selectedBarcodes.includes(item.id));
-            if (item && svg instanceof SVGElement) {
-              JsBarcode(svg, item.value, {
-                format: barcodeFormat,
-                width: barcodeWidth,
-                height: barcodeHeight,
-                displayValue: true,
-                font: "monospace",
-                fontSize: 12,
-                margin: 5,
-              });
-            }
-          });
+          if (barcodeElements) {
+            barcodeElements.forEach((svg, index) => {
+              // الحصول على الباركود المناسب من القائمة المحددة
+              const selectedBarcodeId = selectedBarcodes[index];
+              const item = barcodeList.find(item => item.id === selectedBarcodeId);
+              
+              if (item && svg instanceof SVGElement) {
+                try {
+                  JsBarcode(svg, item.value, {
+                    format: barcodeFormat,
+                    width: barcodeWidth,
+                    height: barcodeHeight,
+                    displayValue: true,
+                    font: "monospace",
+                    fontSize: 12,
+                    margin: 5,
+                  });
+                } catch (error) {
+                  console.error(`خطأ في إنشاء الباركود: ${error}`);
+                }
+              }
+            });
+          }
           resolve(true);
-        }, 100);
+        }, 300); // زيادة التأخير لإعطاء وقت كافي لتهيئة العناصر
       });
     },
     onAfterPrint: () => {
@@ -193,6 +202,9 @@ export default function Barcodes() {
         .barcode-item {
           page-break-inside: avoid;
           margin-bottom: 10mm;
+        }
+        .print-container {
+          display: block !important;
         }
       }
     `,
@@ -376,16 +388,17 @@ export default function Barcodes() {
 
               <div style={{ display: 'none' }}>
                 <div ref={multiplePrintRef} className="print-container">
-                  <div className="grid grid-cols-2 gap-4">
-                    {barcodeList
-                      .filter(item => selectedBarcodes.includes(item.id))
-                      .map(item => (
-                        <div key={item.id} className="barcode-item flex flex-col items-center p-2 border rounded">
-                          <p className="mb-2 font-bold">{item.value}</p>
-                          <svg className="w-full h-auto" data-value={item.value}></svg>
+                  <div className="grid grid-cols-2 gap-8">
+                    {selectedBarcodes.map((barcodeId) => {
+                      const item = barcodeList.find(item => item.id === barcodeId);
+                      return item ? (
+                        <div key={item.id} className="barcode-item flex flex-col items-center p-4 border rounded">
+                          <p className="mb-2 font-bold text-lg">{item.value}</p>
+                          <svg className="w-full h-auto" id={`print-barcode-${item.id}`}></svg>
+                          <p className="mt-2 text-sm text-muted-foreground">{item.description || ""}</p>
                         </div>
-                      ))
-                    }
+                      ) : null;
+                    })}
                   </div>
                 </div>
               </div>
