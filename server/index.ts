@@ -122,8 +122,8 @@ async function startServer() {
       serveStatic(app);
     }
 
-    // تعريف المنفذ ليكون 5000 كما هو محدد في ملف .replit
-    const port = process.env.PORT || 5000;
+    // استخدام المنفذ 5000 فقط
+    const port = 5000;
     const httpServer = createServer(app);
     
     // معالج لإغلاق السيرفر بشكل صحيح عند توقف التطبيق
@@ -240,12 +240,20 @@ async function startServer() {
     }
   }, 12 * 60 * 60 * 1000); // تشغيل مرتين في اليوم
 
+    // محاولة الاستماع على المنفذ مع معالجة الأخطاء
     server.listen({
       port,
       host: "0.0.0.0",
       reusePort: true,
     }, () => {
       log(`تم تشغيل السيرفر على المنفذ ${port}`);
+    }).on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`المنفذ ${port} قيد الاستخدام. جاري إيقاف العمليات السابقة...`);
+        // يمكن إضافة معالجة إضافية هنا إذا لزم الأمر
+      } else {
+        console.error('خطأ في تشغيل السيرفر:', error);
+      }
     });
 
     // تنفيذ البذور بعد بدء السيرفر

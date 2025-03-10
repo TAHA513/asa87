@@ -31,6 +31,8 @@ export async function setupVite(
   const viteServer = await createViteServer({
     server: { 
       middlewareMode: true,
+      port: 5000,
+      strictPort: true,
       hmr: {
         timeout: 60000, // زيادة مهلة HMR إلى 60 ثانية
         protocol: 'ws',
