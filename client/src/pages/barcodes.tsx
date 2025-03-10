@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Sidebar, SidebarProvider } from "@/components/ui/sidebar";
@@ -132,42 +131,62 @@ export default function BarcodesPage() {
   const generateBarcodes = () => {
     setIsGenerating(true);
     try {
-      barcodes.forEach(barcode => {
-        if (!barcode.text) return;
-        
-        const refs = barcodeRefs.current[barcode.id] || [];
-        refs.forEach(ref => {
-          if (ref && barcode.text) {
-            try {
-              JsBarcode(ref, barcode.text, {
-                format: barcode.type,
-                width: 2,
-                height: 80,
-                displayValue: true,
-                font: "monospace",
-                fontSize: 14,
-                margin: 10,
-              });
-            } catch (error) {
-              console.error("خطأ في إنشاء الباركود:", error);
-              toast({
-                title: "خطأ في إنشاء الباركود",
-                description: "تأكد من صحة النص المدخل ونوع الباركود",
-                variant: "destructive",
-              });
-            }
+      // تأكد من وجود باركود واحد على الأقل
+      if (!barcodes.some(b => b.text)) {
+        throw new Error("يرجى إدخال نص للباركود أولاً");
+      }
+
+      // إعادة تعيين مراجع الباركود
+      barcodeRefs.current = {};
+
+      barcodes.forEach((barcode) => {
+        if (barcode.text) {
+          barcodeRefs.current[barcode.id] = [];
+
+          for (let i = 0; i < barcode.quantity; i++) {
+            setTimeout(() => {
+              const element = barcodeRefs.current[barcode.id]?.[i];
+              if (element) {
+                try {
+                  if (barcode.type === "QR") {
+                    // لاحقًا يمكن تنفيذ منطق QR code هنا
+                    console.log("QR code generation not implemented yet");
+                  } else {
+                    JsBarcode(element, barcode.text, {
+                      format: barcode.type,
+                      displayValue: false,
+                      lineColor: "#000",
+                      width: 2,
+                      height: 80,
+                      margin: 10,
+                    });
+                  }
+                } catch (innerError) {
+                  console.error("خطأ في إنشاء باركود فردي:", innerError);
+                }
+              }
+            }, 100); // تأخير صغير لضمان تحميل العنصر
           }
-        });
+        }
       });
+
+      // تأخير قبل إظهار رسالة النجاح للسماح للباركود بالتحميل
+      setTimeout(() => {
+        setIsGenerating(false);
+        toast({
+          title: "تم إنشاء الباركود",
+          description: "تم إنشاء الباركود بنجاح",
+        });
+      }, 500);
     } catch (error) {
-      console.error("خطأ في إنشاء الباركود:", error);
+      setIsGenerating(false);
       toast({
-        title: "خطأ في إنشاء الباركود",
-        description: "تأكد من صحة البيانات المدخلة",
+        title: "خطأ",
+        description: error instanceof Error ? error.message : "حدث خطأ أثناء إنشاء الباركود",
         variant: "destructive",
       });
+      console.error("خطأ في إنشاء الباركود:", error);
     }
-    setIsGenerating(false);
   };
 
   return (
