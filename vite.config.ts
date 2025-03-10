@@ -6,9 +6,9 @@ import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const dirname = path.dirname(filename);
 
-export default defineConfig(async () => {
+export default defineConfig(() => {
   const plugins = [
     react(),
     runtimeErrorOverlay(),
@@ -16,21 +16,22 @@ export default defineConfig(async () => {
   ];
 
   if (process.env.NODE_ENV !== "production" && process.env.REPL_ID !== undefined) {
-    const { cartographer } = await import("@replit/vite-plugin-cartographer");
-    plugins.push(cartographer());
+    import("@replit/vite-plugin-cartographer").then(({ cartographer }) => {
+      plugins.push(cartographer());
+    });
   }
 
   return {
     plugins,
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "client", "src"),
+        "@": path.resolve(__dirname, "src"),  // تعديل المسار ليشير إلى src/
         "@shared": path.resolve(__dirname, "shared"),
       },
     },
-    root: path.resolve(__dirname, "client"),
+    root: path.resolve(__dirname), // جعل root هو المجلد الرئيسي للمشروع
     build: {
-      outDir: path.resolve(__dirname, "dist/public"),
+      outDir: path.resolve(__dirname, "dist"),
       emptyOutDir: true,
     },
   };
