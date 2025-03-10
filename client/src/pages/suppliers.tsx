@@ -798,6 +798,6 @@ export default function SuppliersPage() {
           </DialogContent>
         </Dialog>
       </div>
-    </SidebarProvider> {/* Added SidebarProvider */}
+    </SidebarProvider>
   );
 }
