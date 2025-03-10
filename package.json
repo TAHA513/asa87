@@ -11,7 +11,6 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
-    "@babel/plugin-syntax-decorators": "^7.25.9",
     "@fontsource/amiri": "^5.1.1",
     "@fontsource/aref-ruqaa": "^5.1.1",
     "@fontsource/cairo": "^5.1.1",

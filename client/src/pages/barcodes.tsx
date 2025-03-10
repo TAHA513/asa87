@@ -9,7 +9,6 @@ import JsBarcode from "jsbarcode";
 import { printBarcode } from "@/lib/api";
 import { Checkbox } from "@/components/ui/checkbox"; // Added import for Checkbox
 import { useReactToPrint } from "react-to-print";
-import './print-styles.css'; // Import for print styles
 
 
 export default function Barcodes() {
@@ -29,7 +28,6 @@ export default function Barcodes() {
     value: string;
     image: string;
   }
-
 
   // توليد الباركود عند تغيير أي من الخيارات
   useEffect(() => {
@@ -158,32 +156,23 @@ export default function Barcodes() {
 
         // تهيئة الباركودات للطباعة
         setTimeout(() => {
-          // إنشاء باركود لكل عنصر محدد
-          selectedBarcodes.forEach(barcodeId => {
-            const svg = document.getElementById(`printBarcode-${barcodeId}`);
-            const item = barcodeList.find(item => item.id === barcodeId);
-
+          const barcodeElements = multiplePrintRef.current?.querySelectorAll('svg');
+          barcodeElements?.forEach((svg, index) => {
+            const item = barcodeList.find(item => selectedBarcodes.includes(item.id));
             if (item && svg instanceof SVGElement) {
-              try {
-                JsBarcode(svg, item.value, {
-                  format: barcodeFormat,
-                  width: barcodeWidth,
-                  height: barcodeHeight,
-                  displayValue: true,
-                  font: "monospace",
-                  fontSize: 12,
-                  margin: 5,
-                });
-              } catch (error) {
-                console.error(`خطأ في إنشاء الباركود: ${error}`);
-              }
+              JsBarcode(svg, item.value, {
+                format: barcodeFormat,
+                width: barcodeWidth,
+                height: barcodeHeight,
+                displayValue: true,
+                font: "monospace",
+                fontSize: 12,
+                margin: 5,
+              });
             }
           });
-              }
-            });
-          }
           resolve(true);
-        }, 300); // زيادة التأخير لإعطاء وقت كافي لتهيئة العناصر
+        }, 100);
       });
     },
     onAfterPrint: () => {
@@ -200,6 +189,10 @@ export default function Barcodes() {
         body {
           margin: 0;
           padding: 0;
+        }
+        .barcode-item {
+          page-break-inside: avoid;
+          margin-bottom: 10mm;
         }
       }
     `,
@@ -383,16 +376,17 @@ export default function Barcodes() {
 
               <div style={{ display: 'none' }}>
                 <div ref={multiplePrintRef} className="print-container">
-                  {selectedBarcodes.map((id) => {
-                    const barcode = barcodeList.find((item) => item.id === id);
-                    return barcode ? (
-                      <div key={id} className="barcode-item my-8 text-center">
-                        <div className="text-center mb-4">طباعة الباركود</div>
-                        <div className="value mb-2">{barcode.value}</div>
-                        <svg id={`printBarcode-${id}`} className="w-full h-auto"></svg>
-                      </div>
-                    ) : null;
-                  })}
+                  <div className="grid grid-cols-2 gap-4">
+                    {barcodeList
+                      .filter(item => selectedBarcodes.includes(item.id))
+                      .map(item => (
+                        <div key={item.id} className="barcode-item flex flex-col items-center p-2 border rounded">
+                          <p className="mb-2 font-bold">{item.value}</p>
+                          <svg className="w-full h-auto" data-value={item.value}></svg>
+                        </div>
+                      ))
+                    }
+                  </div>
                 </div>
               </div>
             </>
