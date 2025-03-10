@@ -122,7 +122,7 @@ async function startServer() {
       serveStatic(app);
     }
 
-    const port = 5000;
+    const port = process.env.PORT || 5173;
     const httpServer = createServer(app);
 
   // إعداد Socket.IO
