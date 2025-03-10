@@ -24,10 +24,10 @@ export default defineConfig(() => {
   return {
     plugins,
     resolve: {
-      alias: {
-        "@": path.resolve(__dirname, "client/src"),  // تعديل المسار ليشير إلى client/src/
-        "@shared": path.resolve(__dirname, "shared"),
-      },
+      alias: [
+        { find: '@', replacement: path.resolve(__dirname, 'client/src') },
+        { find: '@shared', replacement: path.resolve(__dirname, 'shared') }
+      ],
     },
     root: path.resolve(__dirname), // جعل root هو المجلد الرئيسي للمشروع
     build: {
