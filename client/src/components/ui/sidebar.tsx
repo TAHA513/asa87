@@ -114,6 +114,11 @@ export function SidebarNav() {
       icon: Truck,
     },
     {
+      title: "مشتريات الموردين",
+      href: "/supplier-transactions",
+      icon: Package,
+    },
+    {
       title: "المصروفات",
       href: "/expenses",
       icon: Wallet,

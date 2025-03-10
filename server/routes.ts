@@ -1020,6 +1020,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         supplierId: Number(req.params.id),
         userId: req.user!.id,
       });
+
+      // إذا كانت المعاملة من نوع شراء وتوجد تفاصيل منتج، قم بتحديث المخزون
+      if (validatedData.type === "purchase" && req.body.productDetails) {
+        const { name, quantity } = req.body.productDetails;
+        
+        // ابحث عن المنتج باسمه
+        const matchingProducts = await storage.searchProducts(name);
+        
+        if (matchingProducts.length > 0) {
+          // حدّث المخزون للمنتج الأول المطابق
+          const product = matchingProducts[0];
+          await storage.updateProduct(product.id, {
+            ...product,
+            stock: product.stock + Number(quantity)
+          });
+          
+          // سجّل عملية دخول إلى المخزون
+          await storage.createInventoryTransaction({
+            productId: product.id,
+            type: "in",
+            quantity: Number(quantity),
+            reason: "purchase",
+            reference: `SUPPLIER-TRANSACTION-${transaction.id}`,
+            userId: req.user!.id,
+            date: new Date()
+          });
+        }
+      }
+      
       res.status(201).json(transaction);
     } catch (error) {
       console.error("Error creating supplier transaction:", error);
