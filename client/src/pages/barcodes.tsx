@@ -20,7 +20,7 @@ import {
 import { Loader2, Printer, QrCode, Plus, Trash2, RefreshCw } from "lucide-react";
 import { useReactToPrint } from 'react-to-print';
 import JsBarcode from 'jsbarcode';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const BARCODE_TYPES = [
   { value: "CODE128", label: "Code 128" },
