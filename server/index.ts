@@ -126,6 +126,15 @@ async function startServer() {
     const port = 5000;
     const httpServer = createServer(app);
     
+    // إيقاف أي عملية تستخدم نفس المنفذ قبل البدء
+    try {
+        const { execSync } = require('child_process');
+        execSync(`lsof -t -i:${port} | xargs -r kill -9`);
+        console.log(`تم إيقاف أي عمليات سابقة على المنفذ ${port}`);
+    } catch (error) {
+        console.log('لا توجد عمليات سابقة على هذا المنفذ');
+    }
+    
     // معالج لإغلاق السيرفر بشكل صحيح عند توقف التطبيق
     const shutdownGracefully = () => {
       console.log('إغلاق السيرفر بشكل آمن...');
@@ -240,21 +249,37 @@ async function startServer() {
     }
   }, 12 * 60 * 60 * 1000); // تشغيل مرتين في اليوم
 
-    // محاولة الاستماع على المنفذ مع معالجة الأخطاء
-    server.listen({
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
-      log(`تم تشغيل السيرفر على المنفذ ${port}`);
-    }).on('error', (error) => {
-      if (error.code === 'EADDRINUSE') {
-        console.error(`المنفذ ${port} قيد الاستخدام. جاري إيقاف العمليات السابقة...`);
-        // يمكن إضافة معالجة إضافية هنا إذا لزم الأمر
-      } else {
-        console.error('خطأ في تشغيل السيرفر:', error);
-      }
-    });
+    // تعريف دالة لبدء الخادم مع محاولات إعادة المحاولة
+    const startServer = () => {
+      server.listen({
+        port,
+        host: "0.0.0.0",
+        reusePort: true,
+      }, () => {
+        log(`تم تشغيل السيرفر على المنفذ ${port}`);
+      }).on('error', (error) => {
+        if (error.code === 'EADDRINUSE') {
+          console.error(`المنفذ ${port} قيد الاستخدام. جاري إيقاف العمليات السابقة...`);
+          
+          // محاولة إيقاف العمليات التي تستخدم المنفذ
+          try {
+            const { execSync } = require('child_process');
+            execSync(`lsof -t -i:${port} | xargs -r kill -9`);
+            console.log(`تم إيقاف العمليات على المنفذ ${port}، إعادة المحاولة خلال 2 ثانية...`);
+            
+            // إعادة المحاولة بعد ثانيتين
+            setTimeout(startServer, 2000);
+          } catch (killError) {
+            console.error('فشل في إيقاف العمليات:', killError);
+          }
+        } else {
+          console.error('خطأ في تشغيل السيرفر:', error);
+        }
+      });
+    };
+    
+    // بدء الخادم
+    startServer();
 
     // تنفيذ البذور بعد بدء السيرفر
     await seedData().catch(err => {
