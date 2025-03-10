@@ -1,0 +1,22 @@
+
+@media print {
+  .barcode-item {
+    page-break-inside: avoid;
+    margin: 20mm 0;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white;
+  }
+  
+  .print-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+}
