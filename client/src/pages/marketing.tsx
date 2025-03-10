@@ -29,7 +29,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Sidebar } from "@/components/sidebar";
+import { Sidebar } from "@/components/ui/sidebar";
 import { useLocation } from "wouter";
 
 const formSchema = z.object({
