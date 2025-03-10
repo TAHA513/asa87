@@ -29,6 +29,25 @@ export default function Barcodes() {
     image: string;
   }
 
+
+/* أنماط للطباعة */
+@media print {
+  .barcode-item {
+    page-break-inside: avoid;
+    margin: 20mm 0;
+    text-align: center;
+  }
+  
+  .print-container {
+    display: block !important;
+  }
+  
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+}
+
   // توليد الباركود عند تغيير أي من الخيارات
   useEffect(() => {
     renderBarcode();
@@ -156,27 +175,27 @@ export default function Barcodes() {
 
         // تهيئة الباركودات للطباعة
         setTimeout(() => {
-          const barcodeElements = multiplePrintRef.current?.querySelectorAll('svg');
-          if (barcodeElements) {
-            barcodeElements.forEach((svg, index) => {
-              // الحصول على الباركود المناسب من القائمة المحددة
-              const selectedBarcodeId = selectedBarcodes[index];
-              const item = barcodeList.find(item => item.id === selectedBarcodeId);
-              
-              if (item && svg instanceof SVGElement) {
-                try {
-                  JsBarcode(svg, item.value, {
-                    format: barcodeFormat,
-                    width: barcodeWidth,
-                    height: barcodeHeight,
-                    displayValue: true,
-                    font: "monospace",
-                    fontSize: 12,
-                    margin: 5,
-                  });
-                } catch (error) {
-                  console.error(`خطأ في إنشاء الباركود: ${error}`);
-                }
+          // إنشاء باركود لكل عنصر محدد
+          selectedBarcodes.forEach(barcodeId => {
+            const svg = document.getElementById(`printBarcode-${barcodeId}`);
+            const item = barcodeList.find(item => item.id === barcodeId);
+            
+            if (item && svg instanceof SVGElement) {
+              try {
+                JsBarcode(svg, item.value, {
+                  format: barcodeFormat,
+                  width: barcodeWidth,
+                  height: barcodeHeight,
+                  displayValue: true,
+                  font: "monospace",
+                  fontSize: 12,
+                  margin: 5,
+                });
+              } catch (error) {
+                console.error(`خطأ في إنشاء الباركود: ${error}`);
+              }
+            }
+          });
               }
             });
           }
@@ -388,7 +407,17 @@ export default function Barcodes() {
 
               <div style={{ display: 'none' }}>
                 <div ref={multiplePrintRef} className="print-container">
-                  <div className="grid grid-cols-2 gap-8">
+                  {selectedBarcodes.map((id) => {
+                    const barcode = barcodeList.find((item) => item.id === id);
+                    return barcode ? (
+                      <div key={id} className="barcode-item my-8 text-center">
+                        <div className="text-center mb-4">طباعة الباركود</div>
+                        <div className="value mb-2">{barcode.value}</div>
+                        <svg id={`printBarcode-${id}`} className="w-full h-auto"></svg>
+                      </div>
+                    ) : null;
+                  })}
+                </div>ssName="grid grid-cols-2 gap-8">
                     {selectedBarcodes.map((barcodeId) => {
                       const item = barcodeList.find(item => item.id === barcodeId);
                       return item ? (
