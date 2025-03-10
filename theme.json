@@ -4,5 +4,6 @@
   "radius": 0.5,
   "appearance": "dark",
   "fontStyle": "noto-kufi",
-  "fontSize": "medium"
+  "fontSize": "medium",
+  "variant": "default"
 }
