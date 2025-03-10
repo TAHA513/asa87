@@ -1414,6 +1414,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      // تعريف مخطط إدخال تنبيه المخزون
+      const insertInventoryAlertSchema = z.object({
+        productId: z.number().int().positive(),
+        type: z.enum(["low_stock", "inactive", "high_demand"]),
+        threshold: z.number().int().min(0),
+        status: z.enum(["active", "inactive"]).default("active")
+      });
+
       const validatedData = insertInventoryAlertSchema.parse(req.body);
       const alert = await storage.createInventoryAlert(validatedData);
       res.status(201).json(alert);

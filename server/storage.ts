@@ -10,6 +10,7 @@ import {
   inventoryTransactions, expenseCategories, expenses,
   suppliers, supplierTransactions, customers, appointments,
   invoices, invoiceItems, userSettings, reports,
+  inventoryAlerts, alertNotifications,
   type User, type Product, type Sale, type ExchangeRate,
   type FileStorage, type Installment, type InstallmentPayment,
   type Campaign, type InsertCampaign, type CampaignAnalytics,
@@ -153,6 +154,17 @@ export interface IStorage {
   getUserNotifications(userId: number, options?: { unreadOnly?: boolean, limit?: number }): Promise<any[]>;
   markNotificationAsRead(notificationId: number): Promise<any>;
   deleteNotification(notificationId: number): Promise<boolean>;
+  
+  // دوال نظام تنبيهات المخزون المفقودة
+  getInventoryAlerts(): Promise<any[]>;
+  createAlertNotification(notification: { alertId: number; message: string }): Promise<any>;
+  getProductSales(productId: number, startDate?: Date): Promise<Sale[]>;
+  getInventoryAlert(id: number): Promise<any>;
+  createInventoryAlert(alert: any): Promise<any>;
+  updateInventoryAlert(id: number, update: any): Promise<any>;
+  deleteInventoryAlert(id: number): Promise<void>;
+  getAlertNotifications(): Promise<any[]>;
+  markNotificationAsRead(notificationId: number): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1731,6 +1743,134 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // دوال تنبيهات المخزون
+  async getInventoryAlerts(): Promise<any[]> {
+    try {
+      const alerts = await db.select().from(inventoryAlerts);
+      return alerts;
+    } catch (error) {
+      console.error("Error fetching inventory alerts:", error);
+      return [];
+    }
+  }
+
+  async createAlertNotification(notification: { alertId: number; message: string }): Promise<any> {
+    try {
+      const [newNotification] = await db
+        .insert(alertNotifications)
+        .values({
+          ...notification,
+          read: false,
+          createdAt: new Date()
+        })
+        .returning();
+      return newNotification;
+    } catch (error) {
+      console.error("Error creating alert notification:", error);
+      throw new Error("فشل في إنشاء إشعار التنبيه");
+    }
+  }
+
+  async getProductSales(productId: number, startDate?: Date): Promise<Sale[]> {
+    try {
+      let query = db
+        .select()
+        .from(sales)
+        .where(eq(sales.productId, productId));
+
+      if (startDate) {
+        query = query.where(gte(sales.date, startDate));
+      }
+
+      return await query;
+    } catch (error) {
+      console.error("Error fetching product sales:", error);
+      return [];
+    }
+  }
+
+  async getInventoryAlert(id: number): Promise<any> {
+    try {
+      const [alert] = await db
+        .select()
+        .from(inventoryAlerts)
+        .where(eq(inventoryAlerts.id, id));
+      return alert;
+    } catch (error) {
+      console.error("Error fetching inventory alert:", error);
+      return null;
+    }
+  }
+
+  async createInventoryAlert(alert: any): Promise<any> {
+    try {
+      const [newAlert] = await db
+        .insert(inventoryAlerts)
+        .values({
+          ...alert,
+          status: "active",
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+      return newAlert;
+    } catch (error) {
+      console.error("Error creating inventory alert:", error);
+      throw new Error("فشل في إنشاء تنبيه المخزون");
+    }
+  }
+
+  async updateInventoryAlert(id: number, update: any): Promise<any> {
+    try {
+      const [alert] = await db
+        .update(inventoryAlerts)
+        .set({
+          ...update,
+          updatedAt: new Date()
+        })
+        .where(eq(inventoryAlerts.id, id))
+        .returning();
+      return alert;
+    } catch (error) {
+      console.error("Error updating inventory alert:", error);
+      throw new Error("فشل في تحديث تنبيه المخزون");
+    }
+  }
+
+  async deleteInventoryAlert(id: number): Promise<void> {
+    try {
+      await db.delete(inventoryAlerts).where(eq(inventoryAlerts.id, id));
+    } catch (error) {
+      console.error("Error deleting inventory alert:", error);
+      throw new Error("فشل في حذف تنبيه المخزون");
+    }
+  }
+
+  async getAlertNotifications(): Promise<any[]> {
+    try {
+      return await db
+        .select()
+        .from(alertNotifications)
+        .orderBy(desc(alertNotifications.createdAt));
+    } catch (error) {
+      console.error("Error fetching alert notifications:", error);
+      return [];
+    }
+  }
+
+  async markNotificationAsRead(notificationId: number): Promise<any> {
+    try {
+      const [notification] = await db
+        .update(alertNotifications)
+        .set({ read: true })
+        .where(eq(alertNotifications.id, notificationId))
+        .returning();
+      return notification;
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      throw new Error("فشل في تحديث حالة الإشعار");
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();
