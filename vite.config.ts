@@ -24,7 +24,9 @@ export default defineConfig({
   ],
   server: {
     hmr: {
-      overlay: false // Disable error overlay
+      overlay: false, // Disable error overlay
+      clientPort: 443, // Use HTTPS port for WebSocket
+      port: 5000      // Internal HMR port
     },
     host: '0.0.0.0',
     port: 5000,
