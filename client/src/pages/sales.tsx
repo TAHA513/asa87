@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
-// إضافة المكونات المفقودة بشكل يدوي
+// إضافة مكونات الحوار المفقودة يدويًا
 const DialogDescription = ({ children, className }) => (
   <div className={`text-sm text-muted-foreground ${className || ''}`}>{children}</div>
 );
