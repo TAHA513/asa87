@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient"; //Corrected import statement
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2, Plus, Phone, Mail, MapPin, Tag, Building, User, Landmark, FileText, Trash, Edit, Package } from "lucide-react";
@@ -54,7 +54,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { SidebarNav } from "@/components/ui/sidebar";
+import { SidebarNav } from "@/components/ui/sidebar"; //Import SidebarNav
+import { SidebarProvider } from "@/components/ui/sidebar"; //Import SidebarProvider
+
 
 // تعريف أنواع البيانات
 type Supplier = {
@@ -312,486 +314,490 @@ export default function SuppliersPage() {
   // إذا كان هناك تحميل
   if (isLoadingSuppliers) {
     return (
-      <div className="flex h-screen">
-        <div className="w-64 h-full">
-          <SidebarNav />
-        </div>
-        <main className="flex-1 p-8">
-          <div className="h-[400px] flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin" />
+      <SidebarProvider> {/* Added SidebarProvider */}
+        <div className="flex h-screen">
+          <div className="w-64 h-full">
+            <SidebarNav />
           </div>
-        </main>
-      </div>
+          <main className="flex-1 p-8">
+            <div className="h-[400px] flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          </main>
+        </div>
+      </SidebarProvider> {/* Added SidebarProvider */}
     );
   }
 
   // عرض الصفحة الرئيسية
   return (
-    <div className="flex h-screen">
-      <div className="w-64 h-full">
-        <SidebarNav />
-      </div>
-      <main className="flex-1 p-8 overflow-y-auto">
-        <div className="max-w-7xl mx-auto space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-3xl font-bold">الموردين</h2>
-              <p className="text-muted-foreground">
-                إدارة الموردين والمعاملات
-              </p>
-            </div>
-            <Sheet open={supplierSheetOpen} onOpenChange={(open) => {
-              setSupplierSheetOpen(open);
-              if (!open) {
-                form.reset();
-                setEditMode(false);
-              }
-            }}>
-              <SheetTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 ml-2" />
-                  إضافة مورد
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="overflow-y-auto">
-                <SheetHeader>
-                  <SheetTitle>{editMode ? "تعديل بيانات المورد" : "إضافة مورد جديد"}</SheetTitle>
-                </SheetHeader>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit((data) => {
-                    if (editMode && selectedSupplierId) {
-                      updateSupplierMutation.mutate({ ...data, id: selectedSupplierId });
-                    } else {
-                      createSupplierMutation.mutate(data);
-                    }
-                  })} className="space-y-3 mt-4">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>اسم المورد</FormLabel>
-                          <FormControl>
-                            <Input placeholder="اسم الشركة أو المؤسسة" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="contactPerson"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>اسم الشخص المسؤول</FormLabel>
-                          <FormControl>
-                            <Input placeholder="المدير أو المسؤول المباشر" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>رقم الهاتف</FormLabel>
-                          <FormControl>
-                            <Input type="tel" placeholder="078xxxxxxxx" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>البريد الإلكتروني</FormLabel>
-                          <FormControl>
-                            <Input type="email" placeholder="example@company.com" {...field} value={field.value || ""} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>العنوان</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="عنوان المقر الرئيسي" {...field} value={field.value || ""} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="taxNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>الرقم الضريبي</FormLabel>
-                          <FormControl>
-                            <Input placeholder="اختياري" {...field} value={field.value || ""} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="paymentTerms"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>شروط الدفع</FormLabel>
-                          <FormControl>
-                            <Input placeholder="مثال: 30 يوم" {...field} value={field.value || ""} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="categories"
-                      render={() => (
-                        <FormItem>
-                          <div className="mb-4">
-                            <FormLabel>فئات المنتجات</FormLabel>
-                            <FormDescription>
-                              اختر الفئات التي يوفرها هذا المورد
-                            </FormDescription>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            {DEFAULT_CATEGORIES.map((category) => (
-                              <FormField
-                                key={category}
-                                control={form.control}
-                                name="categories"
-                                render={({ field }) => {
-                                  return (
-                                    <FormItem
-                                      key={category}
-                                      className="flex flex-row items-start space-x-3 space-y-0 space-x-reverse"
-                                    >
-                                      <FormControl>
-                                        <Checkbox
-                                          checked={field.value?.includes(category)}
-                                          onCheckedChange={(checked) => {
-                                            return checked
-                                              ? field.onChange([...field.value, category])
-                                              : field.onChange(
-                                                  field.value?.filter(
-                                                    (value) => value !== category
-                                                  )
-                                                );
-                                          }}
-                                        />
-                                      </FormControl>
-                                      <FormLabel className="font-normal">
-                                        {category}
-                                      </FormLabel>
-                                    </FormItem>
-                                  );
-                                }}
-                              />
-                            ))}
-                          </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="notes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>ملاحظات</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="ملاحظات إضافية حول المورد" {...field} value={field.value || ""} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" className="w-full" disabled={createSupplierMutation.isPending || updateSupplierMutation.isPending}>
-                      {(createSupplierMutation.isPending || updateSupplierMutation.isPending) ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : editMode ? (
-                        <>
-                          <Edit className="h-4 w-4 ml-2" />
-                          تحديث بيانات المورد
-                        </>
-                      ) : (
-                        <>
-                          <Plus className="h-4 w-4 ml-2" />
-                          إضافة مورد جديد
-                        </>
-                      )}
-                    </Button>
-                  </form>
-                </Form>
-              </SheetContent>
-            </Sheet>
-          </div>
-
-          {/* فلاتر البحث */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <Label htmlFor="searchSupplier">بحث</Label>
-              <Input
-                id="searchSupplier"
-                placeholder="ابحث بالاسم أو رقم الهاتف"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="w-full sm:w-64">
-              <Label htmlFor="filterCategory">تصفية حسب الفئة</Label>
-              <Select value={filterCategory || ""} onValueChange={(value) => setFilterCategory(value || null)}>
-                <SelectTrigger id="filterCategory">
-                  <SelectValue placeholder="جميع الفئات" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">جميع الفئات</SelectItem>
-                  {DEFAULT_CATEGORIES.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>قائمة الموردين</CardTitle>
-              <CardDescription>
-                {filteredSuppliers.length === 0
-                  ? "لم تتم إضافة أي موردين بعد"
-                  : `${filteredSuppliers.length} موردين مسجلين${
-                      searchTerm || filterCategory ? " (مفلترة)" : ""
-                    }`}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {suppliers.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground flex flex-col items-center">
-                  <Building className="h-16 w-16 text-muted-foreground/20 mb-4" />
-                  <p>لا يوجد موردين مسجلين حالياً</p>
-                  <p className="text-sm">قم بإضافة مورد جديد باستخدام الزر أعلاه</p>
-                </div>
-              ) : filteredSuppliers.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  لا توجد نتائج مطابقة لمعايير البحث
-                </div>
-              ) : (
-                <Tabs defaultValue="cards" className="w-full">
-                  <TabsList className="mb-4">
-                    <TabsTrigger value="cards">بطاقات</TabsTrigger>
-                    <TabsTrigger value="table">جدول</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="cards">
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                      {filteredSuppliers.map((supplier) => (
-                        <div
-                          key={supplier.id}
-                          className="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden"
-                        >
-                          <div className="flex flex-col p-6">
-                            <div className="flex items-center gap-4">
-                              <Avatar className="h-12 w-12 bg-primary/10">
-                                <AvatarFallback className="text-primary">
-                                  {supplier.name.slice(0, 2)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <h3 className="font-medium">{supplier.name}</h3>
-                                <p className="text-sm text-muted-foreground">
-                                  <User className="h-3 w-3 inline ml-1" />
-                                  {supplier.contactPerson}
-                                </p>
-                              </div>
+    <SidebarProvider> {/* Added SidebarProvider */}
+      <div className="flex h-screen">
+        <div className="w-64 h-full">
+          <SidebarNav />
+        </div>
+        <main className="flex-1 p-8 overflow-y-auto">
+          <div className="max-w-7xl mx-auto space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-3xl font-bold">الموردين</h2>
+                <p className="text-muted-foreground">
+                  إدارة الموردين والمعاملات
+                </p>
+              </div>
+              <Sheet open={supplierSheetOpen} onOpenChange={(open) => {
+                setSupplierSheetOpen(open);
+                if (!open) {
+                  form.reset();
+                  setEditMode(false);
+                }
+              }}>
+                <SheetTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 ml-2" />
+                    إضافة مورد
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="overflow-y-auto">
+                  <SheetHeader>
+                    <SheetTitle>{editMode ? "تعديل بيانات المورد" : "إضافة مورد جديد"}</SheetTitle>
+                  </SheetHeader>
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit((data) => {
+                      if (editMode && selectedSupplierId) {
+                        updateSupplierMutation.mutate({ ...data, id: selectedSupplierId });
+                      } else {
+                        createSupplierMutation.mutate(data);
+                      }
+                    })} className="space-y-3 mt-4">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>اسم المورد</FormLabel>
+                            <FormControl>
+                              <Input placeholder="اسم الشركة أو المؤسسة" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="contactPerson"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>اسم الشخص المسؤول</FormLabel>
+                            <FormControl>
+                              <Input placeholder="المدير أو المسؤول المباشر" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>رقم الهاتف</FormLabel>
+                            <FormControl>
+                              <Input type="tel" placeholder="078xxxxxxxx" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>البريد الإلكتروني</FormLabel>
+                            <FormControl>
+                              <Input type="email" placeholder="example@company.com" {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="address"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>العنوان</FormLabel>
+                            <FormControl>
+                              <Textarea placeholder="عنوان المقر الرئيسي" {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="taxNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>الرقم الضريبي</FormLabel>
+                            <FormControl>
+                              <Input placeholder="اختياري" {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="paymentTerms"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>شروط الدفع</FormLabel>
+                            <FormControl>
+                              <Input placeholder="مثال: 30 يوم" {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="categories"
+                        render={() => (
+                          <FormItem>
+                            <div className="mb-4">
+                              <FormLabel>فئات المنتجات</FormLabel>
+                              <FormDescription>
+                                اختر الفئات التي يوفرها هذا المورد
+                              </FormDescription>
                             </div>
-
-                            <div className="mt-4 space-y-2">
-                              <div className="flex items-center text-sm">
-                                <Phone className="h-4 w-4 mr-2" />
-                                <span>{supplier.phone}</span>
-                              </div>
-                              {supplier.email && (
-                                <div className="flex items-center text-sm">
-                                  <Mail className="h-4 w-4 mr-2" />
-                                  <span>{supplier.email}</span>
-                                </div>
-                              )}
-                              {supplier.address && (
-                                <div className="flex items-center text-sm">
-                                  <MapPin className="h-4 w-4 mr-2" />
-                                  <span>{supplier.address}</span>
-                                </div>
-                              )}
-                              {supplier.taxNumber && (
-                                <div className="flex items-center text-sm">
-                                  <Landmark className="h-4 w-4 mr-2" />
-                                  <span>الرقم الضريبي: {supplier.taxNumber}</span>
-                                </div>
-                              )}
-                              {supplier.paymentTerms && (
-                                <div className="flex items-center text-sm">
-                                  <FileText className="h-4 w-4 mr-2" />
-                                  <span>شروط الدفع: {supplier.paymentTerms}</span>
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="mt-4 flex flex-wrap gap-2">
-                              {supplier.categories.map((category) => (
-                                <Badge key={category} variant="secondary">
-                                  <Tag className="h-3 w-3 ml-1" />
-                                  {category}
-                                </Badge>
+                            <div className="grid grid-cols-2 gap-2">
+                              {DEFAULT_CATEGORIES.map((category) => (
+                                <FormField
+                                  key={category}
+                                  control={form.control}
+                                  name="categories"
+                                  render={({ field }) => {
+                                    return (
+                                      <FormItem
+                                        key={category}
+                                        className="flex flex-row items-start space-x-3 space-y-0 space-x-reverse"
+                                      >
+                                        <FormControl>
+                                          <Checkbox
+                                            checked={field.value?.includes(category)}
+                                            onCheckedChange={(checked) => {
+                                              return checked
+                                                ? field.onChange([...field.value, category])
+                                                : field.onChange(
+                                                    field.value?.filter(
+                                                      (value) => value !== category
+                                                    )
+                                                  );
+                                            }}
+                                          />
+                                        </FormControl>
+                                        <FormLabel className="font-normal">
+                                          {category}
+                                        </FormLabel>
+                                      </FormItem>
+                                    );
+                                  }}
+                                />
                               ))}
                             </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="notes"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>ملاحظات</FormLabel>
+                            <FormControl>
+                              <Textarea placeholder="ملاحظات إضافية حول المورد" {...field} value={field.value || ""} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" className="w-full" disabled={createSupplierMutation.isPending || updateSupplierMutation.isPending}>
+                        {(createSupplierMutation.isPending || updateSupplierMutation.isPending) ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : editMode ? (
+                          <>
+                            <Edit className="h-4 w-4 ml-2" />
+                            تحديث بيانات المورد
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="h-4 w-4 ml-2" />
+                            إضافة مورد جديد
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </Form>
+                </SheetContent>
+              </Sheet>
+            </div>
 
-                            {supplier.notes && (
-                              <div className="mt-4 text-sm text-muted-foreground">
-                                <p>ملاحظات: {supplier.notes}</p>
+            {/* فلاتر البحث */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              <div className="flex-1">
+                <Label htmlFor="searchSupplier">بحث</Label>
+                <Input
+                  id="searchSupplier"
+                  placeholder="ابحث بالاسم أو رقم الهاتف"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="w-full sm:w-64">
+                <Label htmlFor="filterCategory">تصفية حسب الفئة</Label>
+                <Select value={filterCategory || ""} onValueChange={(value) => setFilterCategory(value || null)}>
+                  <SelectTrigger id="filterCategory">
+                    <SelectValue placeholder="جميع الفئات" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">جميع الفئات</SelectItem>
+                    {DEFAULT_CATEGORIES.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>قائمة الموردين</CardTitle>
+                <CardDescription>
+                  {filteredSuppliers.length === 0
+                    ? "لم تتم إضافة أي موردين بعد"
+                    : `${filteredSuppliers.length} موردين مسجلين${
+                        searchTerm || filterCategory ? " (مفلترة)" : ""
+                      }`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {suppliers.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground flex flex-col items-center">
+                    <Building className="h-16 w-16 text-muted-foreground/20 mb-4" />
+                    <p>لا يوجد موردين مسجلين حالياً</p>
+                    <p className="text-sm">قم بإضافة مورد جديد باستخدام الزر أعلاه</p>
+                  </div>
+                ) : filteredSuppliers.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    لا توجد نتائج مطابقة لمعايير البحث
+                  </div>
+                ) : (
+                  <Tabs defaultValue="cards" className="w-full">
+                    <TabsList className="mb-4">
+                      <TabsTrigger value="cards">بطاقات</TabsTrigger>
+                      <TabsTrigger value="table">جدول</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="cards">
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        {filteredSuppliers.map((supplier) => (
+                          <div
+                            key={supplier.id}
+                            className="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden"
+                          >
+                            <div className="flex flex-col p-6">
+                              <div className="flex items-center gap-4">
+                                <Avatar className="h-12 w-12 bg-primary/10">
+                                  <AvatarFallback className="text-primary">
+                                    {supplier.name.slice(0, 2)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <h3 className="font-medium">{supplier.name}</h3>
+                                  <p className="text-sm text-muted-foreground">
+                                    <User className="h-3 w-3 inline ml-1" />
+                                    {supplier.contactPerson}
+                                  </p>
+                                </div>
                               </div>
-                            )}
 
-                            <div className="mt-4 pt-4 border-t flex justify-between">
-                              <Button variant="outline" size="sm" onClick={() => handleEditSupplier(supplier)}>
-                                <Edit className="h-4 w-4 ml-2" />
-                                تعديل
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedSupplierId(supplier.id);
-                                  setDeleteConfirmOpen(true);
-                                }}
-                              >
-                                <Trash className="h-4 w-4 ml-2" />
-                                حذف
-                              </Button>
+                              <div className="mt-4 space-y-2">
+                                <div className="flex items-center text-sm">
+                                  <Phone className="h-4 w-4 mr-2" />
+                                  <span>{supplier.phone}</span>
+                                </div>
+                                {supplier.email && (
+                                  <div className="flex items-center text-sm">
+                                    <Mail className="h-4 w-4 mr-2" />
+                                    <span>{supplier.email}</span>
+                                  </div>
+                                )}
+                                {supplier.address && (
+                                  <div className="flex items-center text-sm">
+                                    <MapPin className="h-4 w-4 mr-2" />
+                                    <span>{supplier.address}</span>
+                                  </div>
+                                )}
+                                {supplier.taxNumber && (
+                                  <div className="flex items-center text-sm">
+                                    <Landmark className="h-4 w-4 mr-2" />
+                                    <span>الرقم الضريبي: {supplier.taxNumber}</span>
+                                  </div>
+                                )}
+                                {supplier.paymentTerms && (
+                                  <div className="flex items-center text-sm">
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    <span>شروط الدفع: {supplier.paymentTerms}</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="mt-4 flex flex-wrap gap-2">
+                                {supplier.categories.map((category) => (
+                                  <Badge key={category} variant="secondary">
+                                    <Tag className="h-3 w-3 ml-1" />
+                                    {category}
+                                  </Badge>
+                                ))}
+                              </div>
+
+                              {supplier.notes && (
+                                <div className="mt-4 text-sm text-muted-foreground">
+                                  <p>ملاحظات: {supplier.notes}</p>
+                                </div>
+                              )}
+
+                              <div className="mt-4 pt-4 border-t flex justify-between">
+                                <Button variant="outline" size="sm" onClick={() => handleEditSupplier(supplier)}>
+                                  <Edit className="h-4 w-4 ml-2" />
+                                  تعديل
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedSupplierId(supplier.id);
+                                    setDeleteConfirmOpen(true);
+                                  }}
+                                >
+                                  <Trash className="h-4 w-4 ml-2" />
+                                  حذف
+                                </Button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="table">
-                    <div className="rounded-md border overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="bg-muted/50">
-                              <th className="py-3 px-4 text-right font-medium">اسم المورد</th>
-                              <th className="py-3 px-4 text-right font-medium">الشخص المسؤول</th>
-                              <th className="py-3 px-4 text-right font-medium">الهاتف</th>
-                              <th className="py-3 px-4 text-right font-medium">البريد الإلكتروني</th>
-                              <th className="py-3 px-4 text-right font-medium">الفئات</th>
-                              <th className="py-3 px-4 text-right font-medium">الإجراءات</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {filteredSuppliers.map((supplier, index) => (
-                              <tr key={supplier.id} className={index % 2 === 0 ? "bg-white" : "bg-muted/20"}>
-                                <td className="py-3 px-4">{supplier.name}</td>
-                                <td className="py-3 px-4">{supplier.contactPerson}</td>
-                                <td className="py-3 px-4 whitespace-nowrap">{supplier.phone}</td>
-                                <td className="py-3 px-4">{supplier.email || "-"}</td>
-                                <td className="py-3 px-4">
-                                  <div className="flex flex-wrap gap-1">
-                                    {supplier.categories.slice(0, 2).map((category) => (
-                                      <Badge key={category} variant="outline" className="text-xs py-0">
-                                        {category}
-                                      </Badge>
-                                    ))}
-                                    {supplier.categories.length > 2 && (
-                                      <Badge variant="outline" className="text-xs py-0">
-                                        +{supplier.categories.length - 2}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="py-3 px-4">
-                                  <div className="flex items-center gap-2">
-                                    <Button variant="ghost" size="icon" onClick={() => handleEditSupplier(supplier)}>
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="text-destructive"
-                                      onClick={() => {
-                                        setSelectedSupplierId(supplier.id);
-                                        setDeleteConfirmOpen(true);
-                                      }}
-                                    >
-                                      <Trash className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                        ))}
                       </div>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </main>
+                    </TabsContent>
 
-      {/* مربع حوار تأكيد الحذف */}
-      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>تأكيد حذف المورد</DialogTitle>
-            <DialogDescription>
-              هل أنت متأكد من رغبتك في حذف هذا المورد؟ هذا الإجراء لا يمكن التراجع عنه.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteConfirmOpen(false)}
-            >
-              إلغاء
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                if (selectedSupplierId) {
-                  deleteSupplierMutation.mutate(selectedSupplierId);
-                }
-              }}
-              disabled={deleteSupplierMutation.isPending}
-            >
-              {deleteSupplierMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin ml-2" />
-              ) : (
-                <Trash className="h-4 w-4 ml-2" />
-              )}
-              حذف المورد
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+                    <TabsContent value="table">
+                      <div className="rounded-md border overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-muted/50">
+                                <th className="py-3 px-4 text-right font-medium">اسم المورد</th>
+                                <th className="py-3 px-4 text-right font-medium">الشخص المسؤول</th>
+                                <th className="py-3 px-4 text-right font-medium">الهاتف</th>
+                                <th className="py-3 px-4 text-right font-medium">البريد الإلكتروني</th>
+                                <th className="py-3 px-4 text-right font-medium">الفئات</th>
+                                <th className="py-3 px-4 text-right font-medium">الإجراءات</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {filteredSuppliers.map((supplier, index) => (
+                                <tr key={supplier.id} className={index % 2 === 0 ? "bg-white" : "bg-muted/20"}>
+                                  <td className="py-3 px-4">{supplier.name}</td>
+                                  <td className="py-3 px-4">{supplier.contactPerson}</td>
+                                  <td className="py-3 px-4 whitespace-nowrap">{supplier.phone}</td>
+                                  <td className="py-3 px-4">{supplier.email || "-"}</td>
+                                  <td className="py-3 px-4">
+                                    <div className="flex flex-wrap gap-1">
+                                      {supplier.categories.slice(0, 2).map((category) => (
+                                        <Badge key={category} variant="outline" className="text-xs py-0">
+                                          {category}
+                                        </Badge>
+                                      ))}
+                                      {supplier.categories.length > 2 && (
+                                        <Badge variant="outline" className="text-xs py-0">
+                                          +{supplier.categories.length - 2}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-4">
+                                    <div className="flex items-center gap-2">
+                                      <Button variant="ghost" size="icon" onClick={() => handleEditSupplier(supplier)}>
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="text-destructive"
+                                        onClick={() => {
+                                          setSelectedSupplierId(supplier.id);
+                                          setDeleteConfirmOpen(true);
+                                        }}
+                                      >
+                                        <Trash className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+
+        {/* مربع حوار تأكيد الحذف */}
+        <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>تأكيد حذف المورد</DialogTitle>
+              <DialogDescription>
+                هل أنت متأكد من رغبتك في حذف هذا المورد؟ هذا الإجراء لا يمكن التراجع عنه.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteConfirmOpen(false)}
+              >
+                إلغاء
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (selectedSupplierId) {
+                    deleteSupplierMutation.mutate(selectedSupplierId);
+                  }
+                }}
+                disabled={deleteSupplierMutation.isPending}
+              >
+                {deleteSupplierMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                ) : (
+                  <Trash className="h-4 w-4 ml-2" />
+                )}
+                حذف المورد
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </SidebarProvider> {/* Added SidebarProvider */}
   );
 }
