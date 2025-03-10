@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { useReactToPrint } from "react-to-print";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import Barcode from "react-barcode";
 import QRCode from "react-qr-code";
 
