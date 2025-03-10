@@ -1,241 +1,310 @@
-import React, { useState, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useReactToPrint } from "react-to-print";
-import JsBarcode from "jsbarcode";
+
+import { useEffect, useRef, useState } from "react";
 import Sidebar from "@/components/layout/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Printer, DownloadCloud, BarcodeScan } from "lucide-react";
+import { useReactToPrint } from "react-to-print";
+import JsBarcode from "jsbarcode";
+
+interface Product {
+  id: number;
+  name: string;
+  sku: string;
+  price: number;
+}
 
 export default function Barcodes() {
-  const [barcode, setBarcode] = useState("");
-  const [barcodeSize, setBarcodeSize] = useState("medium");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
+  const [search, setSearch] = useState("");
+  const [currentBarcode, setCurrentBarcode] = useState("");
   const [quantity, setQuantity] = useState(1);
-  const [label, setLabel] = useState("");
-  const [barcodeType, setBarcodeType] = useState("CODE128");
+  const [generatedBarcodes, setGeneratedBarcodes] = useState<string[]>([]);
+  const printRef = useRef<HTMLDivElement>(null);
+  const barcodeCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  const printRef = useRef(null);
-  const barcodeRef = useRef(null);
+  useEffect(() => {
+    // استدعاء API للحصول على المنتجات
+    const fetchProducts = async () => {
+      try {
+        const data = await api.getProducts();
+        if (Array.isArray(data)) {
+          setProducts(data);
+          setFilteredProducts(data);
+        } else {
+          console.error("بيانات المنتجات ليست مصفوفة:", data);
+          // إذا لم تكن البيانات متاحة، استخدم بيانات تجريبية
+          const demoProducts = [
+            { id: 1, name: "منتج 1", sku: "SKU001", price: 100 },
+            { id: 2, name: "منتج 2", sku: "SKU002", price: 150 },
+            { id: 3, name: "منتج 3", sku: "SKU003", price: 200 },
+          ];
+          setProducts(demoProducts);
+          setFilteredProducts(demoProducts);
+        }
+      } catch (error) {
+        console.error("خطأ في جلب المنتجات:", error);
+        // استخدام بيانات تجريبية في حالة الخطأ
+        const demoProducts = [
+          { id: 1, name: "منتج 1", sku: "SKU001", price: 100 },
+          { id: 2, name: "منتج 2", sku: "SKU002", price: 150 },
+          { id: 3, name: "منتج 3", sku: "SKU003", price: 200 },
+        ];
+        setProducts(demoProducts);
+        setFilteredProducts(demoProducts);
+      }
+    };
 
-  const { data: products } = useQuery({
-    queryKey: ["products"],
-    queryFn: () => api.get("/products").then((res) => res.data),
-  });
+    fetchProducts();
+  }, []);
+
+  useEffect(() => {
+    // تطبيق البحث على المنتجات
+    if (search.trim() === "") {
+      setFilteredProducts(products);
+    } else {
+      const filtered = products.filter((product) =>
+        product.name.toLowerCase().includes(search.toLowerCase()) ||
+        product.sku.toLowerCase().includes(search.toLowerCase())
+      );
+      setFilteredProducts(filtered);
+    }
+  }, [search, products]);
+
+  const handleGenerateBarcode = () => {
+    if (!currentBarcode) return;
+    
+    try {
+      // إنشاء باركود جديد باستخدام JsBarcode
+      if (barcodeCanvasRef.current) {
+        JsBarcode(barcodeCanvasRef.current, currentBarcode, {
+          format: "CODE128",
+          width: 2,
+          height: 100,
+          displayValue: true,
+          fontOptions: "bold",
+          fontSize: 16,
+          margin: 10
+        });
+        
+        const newBarcodes = Array(quantity).fill(currentBarcode);
+        setGeneratedBarcodes([...generatedBarcodes, ...newBarcodes]);
+      }
+    } catch (error) {
+      console.error("خطأ في إنشاء الباركود:", error);
+      alert("حدث خطأ في إنشاء الباركود. تأكد من إدخال قيمة صحيحة.");
+    }
+  };
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
+    onBeforeGetContent: () => {
+      // ضمان أن كل الباركودات موجودة في العنصر قبل الطباعة
+      if (generatedBarcodes.length === 0) {
+        alert("لا توجد باركودات لطباعتها. قم بتوليد الباركودات أولاً.");
+        return false;
+      }
+      return Promise.resolve();
+    },
+    onAfterPrint: () => {
+      console.log("تمت الطباعة بنجاح!");
+    },
+    removeAfterPrint: false
   });
 
-  const generateBarcode = () => {
-    if (!barcode) return;
-
-    if (barcodeRef.current) {
-      try {
-        JsBarcode(barcodeRef.current, barcode, {
-          format: barcodeType,
-          width: barcodeSize === "small" ? 1 : barcodeSize === "medium" ? 2 : 3,
-          height: barcodeSize === "small" ? 30 : barcodeSize === "medium" ? 50 : 70,
-          displayValue: true,
-          text: label || barcode,
-          font: "monospace",
-          fontSize: 14,
-          margin: 10
-        });
-      } catch (err) {
-        console.error("خطأ في إنشاء الباركود:", err);
-        alert("خطأ في إنشاء الباركود، تأكد من صحة القيمة المدخلة والنوع المختار.");
-      }
-    }
+  const handleSelectProduct = (product: Product) => {
+    setCurrentBarcode(product.sku);
+    setSelectedProducts([...selectedProducts, product]);
   };
 
-  const handleProductSelect = (productId) => {
-    if (!productId) return;
-
-    const selectedProduct = products.find(p => p.id.toString() === productId);
-    if (selectedProduct) {
-      setBarcode(selectedProduct.barcode || "");
-      setLabel(selectedProduct.name || "");
-    }
+  const clearBarcodes = () => {
+    setGeneratedBarcodes([]);
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-14 flex items-center px-4 border-b bg-white">
-          <h1 className="text-lg font-semibold">إنشاء وطباعة الباركود</h1>
-        </header>
-
-        <main className="flex-1 overflow-y-auto p-4">
-          <Tabs defaultValue="create">
-            <TabsList className="mb-4">
-              <TabsTrigger value="create">إنشاء باركود</TabsTrigger>
-              <TabsTrigger value="print">طباعة باركود</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="create">
-              <Card>
-                <CardHeader>
-                  <CardTitle>إنشاء باركود جديد</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="barcode_type">نوع الباركود</Label>
-                    <Select value={barcodeType} onValueChange={setBarcodeType}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر نوع الباركود" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="CODE128">CODE128</SelectItem>
-                        <SelectItem value="CODE39">CODE39</SelectItem>
-                        <SelectItem value="EAN13">EAN13</SelectItem>
-                        <SelectItem value="EAN8">EAN8</SelectItem>
-                        <SelectItem value="UPC">UPC</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="barcode">قيمة الباركود</Label>
-                    <Input
-                      id="barcode"
-                      value={barcode}
-                      onChange={(e) => setBarcode(e.target.value)}
-                      placeholder="أدخل قيمة الباركود"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="label">النص</Label>
-                    <Input
-                      id="label"
-                      value={label}
-                      onChange={(e) => setLabel(e.target.value)}
-                      placeholder="أدخل النص الذي سيظهر تحت الباركود (اختياري)"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="size">الحجم</Label>
-                    <Select value={barcodeSize} onValueChange={setBarcodeSize}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر حجم الباركود" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="small">صغير</SelectItem>
-                        <SelectItem value="medium">متوسط</SelectItem>
-                        <SelectItem value="large">كبير</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <Button onClick={generateBarcode} className="w-full">
-                    إنشاء الباركود
-                  </Button>
-                </CardContent>
-                <CardFooter className="flex flex-col items-center">
-                  <div className="mb-4 p-4 border rounded-md" id="barcode-preview">
-                    <svg ref={barcodeRef}></svg>
-                  </div>
-                </CardFooter>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="print">
-              <Card>
-                <CardHeader>
-                  <CardTitle>طباعة الباركود</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {products && products.length > 0 ? (
-                    <>
-                      <div className="space-y-2">
-                        <Label htmlFor="product">المنتج</Label>
-                        <Select onValueChange={handleProductSelect}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر منتج" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {products.map((product) => (
-                              <SelectItem key={product.id} value={product.id.toString()}>
-                                {product.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="quantity">الكمية</Label>
-                        <Input
-                          id="quantity"
-                          type="number"
-                          min="1"
-                          value={quantity}
-                          onChange={(e) => setQuantity(parseInt(e.target.value))}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="barcode_size">حجم الباركود</Label>
-                        <Select value={barcodeSize} onValueChange={setBarcodeSize}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر حجم الباركود" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="small">صغير</SelectItem>
-                            <SelectItem value="medium">متوسط</SelectItem>
-                            <SelectItem value="large">كبير</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <Button onClick={handlePrint} className="w-full">
-                        طباعة الباركود
-                      </Button>
-                    </>
-                  ) : (
-                    <p>لا توجد منتجات متاحة. يرجى إضافة منتجات أولاً.</p>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* مكون الطباعة (مخفي) */}
-              <div className="hidden">
-                <div ref={printRef} className="p-4">
-                  {Array.from({ length: quantity }).map((_, index) => (
-                    <div key={index} className="m-2 p-2 border rounded-md text-center">
-                      <p>{label}</p>
-                      <svg className="mx-auto my-2" ref={(el) => {
-                        if (el && barcode) {
-                          try {
-                            JsBarcode(el, barcode, {
-                              format: barcodeType,
-                              width: barcodeSize === "small" ? 1 : barcodeSize === "medium" ? 2 : 3,
-                              height: barcodeSize === "small" ? 30 : barcodeSize === "medium" ? 50 : 70,
-                              displayValue: true,
-                              text: label || barcode,
-                              font: "monospace",
-                              fontSize: 14,
-                              margin: 10
-                            });
-                          } catch (err) {
-                            console.error("خطأ في إنشاء الباركود للطباعة:", err);
-                          }
-                        }
-                      }}></svg>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </main>
+    <div className="flex h-screen">
+      <div className="w-64 h-full">
+        <Sidebar />
       </div>
+      <main className="flex-1 p-8 overflow-auto">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center gap-4 mb-8">
+            <BarcodeScan className="h-6 w-6" />
+            <h1 className="text-3xl font-bold">إدارة الباركود</h1>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <Card>
+              <CardHeader>
+                <CardTitle>توليد الباركود</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block mb-2 text-sm font-medium">
+                      رقم الباركود
+                    </label>
+                    <Input
+                      type="text"
+                      value={currentBarcode}
+                      onChange={(e) => setCurrentBarcode(e.target.value)}
+                      placeholder="أدخل رقم الباركود"
+                      className="mb-4"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block mb-2 text-sm font-medium">
+                      عدد النسخ
+                    </label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={quantity}
+                      onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                      className="mb-4"
+                    />
+                  </div>
+
+                  <Button 
+                    onClick={handleGenerateBarcode} 
+                    className="w-full"
+                  >
+                    توليد الباركود
+                  </Button>
+
+                  <div className="mt-4 flex justify-center">
+                    <canvas ref={barcodeCanvasRef} className="max-w-full"></canvas>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>المنتجات</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Input
+                  type="text"
+                  placeholder="بحث عن منتج..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="mb-4"
+                />
+
+                <div className="h-64 overflow-y-auto border rounded-md">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          اسم المنتج
+                        </th>
+                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          SKU
+                        </th>
+                        <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          إجراء
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredProducts.map((product) => (
+                        <tr key={product.id}>
+                          <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-medium">
+                            {product.name}
+                          </td>
+                          <td className="px-4 py-2 whitespace-nowrap text-right text-sm text-gray-500">
+                            {product.sku}
+                          </td>
+                          <td className="px-4 py-2 whitespace-nowrap text-center text-sm">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleSelectProduct(product)}
+                            >
+                              استخدام
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="mt-8">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>الباركودات المولدة</CardTitle>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={clearBarcodes}>
+                  مسح الكل
+                </Button>
+                <Button onClick={handlePrint} className="flex items-center gap-2">
+                  <Printer className="h-4 w-4" />
+                  طباعة
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div 
+                ref={printRef} 
+                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4"
+              >
+                {generatedBarcodes.map((barcode, index) => (
+                  <div 
+                    key={index} 
+                    className="border rounded-md p-3 flex flex-col items-center justify-center"
+                    style={{ minHeight: "150px" }}
+                  >
+                    <div className="canvas-container">
+                      <canvas className="barcode-canvas" data-value={barcode}></canvas>
+                    </div>
+                    <div className="mt-2 text-sm text-center">{barcode}</div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+
+      {/* اسكريبت لتطبيق الباركود على كل العناصر بعد التحديث */}
+      <script type="text/javascript" dangerouslySetInnerHTML={{
+        __html: `
+          document.addEventListener('DOMContentLoaded', function() {
+            const applyBarcodes = () => {
+              document.querySelectorAll('.barcode-canvas').forEach(canvas => {
+                const value = canvas.getAttribute('data-value');
+                if (value) {
+                  JsBarcode(canvas, value, {
+                    format: "CODE128",
+                    width: 2,
+                    height: 100,
+                    displayValue: true,
+                    fontOptions: "bold",
+                    fontSize: 14,
+                    margin: 10
+                  });
+                }
+              });
+            };
+            
+            // تطبيق الباركود عند تحميل الصفحة
+            applyBarcodes();
+            
+            // تطبيق الباركود عند تحديث DOM
+            const observer = new MutationObserver(applyBarcodes);
+            observer.observe(document.body, { childList: true, subtree: true });
+          });
+        `
+      }} />
     </div>
   );
 }
