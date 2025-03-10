@@ -883,7 +883,6 @@ export {
   SidebarMenuSubButton,
   SidebarContainer,
   SidebarMenuSubItem,
-  SidebarProvider,
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger

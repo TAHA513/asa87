@@ -55,7 +55,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { SidebarNav } from "@/components/ui/sidebar"; //Import SidebarNav
+//import { SidebarNav } from "@/components/ui/sidebar"; //Import SidebarNav
 import { SidebarProvider } from "@/components/ui/sidebar"; //Import SidebarProvider
 
 
@@ -317,7 +317,7 @@ export default function SuppliersPage() {
     return (
       <div className="flex h-screen">
         <div className="w-64 h-full">
-          <SidebarNav />
+          <Sidebar />
         </div>
         <main className="flex-1 p-8">
           <div className="h-[400px] flex items-center justify-center">
@@ -332,7 +332,7 @@ export default function SuppliersPage() {
   return (
     <div className="flex h-screen">
       <div className="w-64 h-full">
-        <SidebarNav />
+        <Sidebar />
       </div>
       <main className="flex-1 p-8 overflow-y-auto">
         <div className="max-w-7xl mx-auto space-y-6">
