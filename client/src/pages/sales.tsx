@@ -35,7 +35,7 @@ import {
 import { CalendarIcon, ChevronDownIcon, PlusIcon, PrinterIcon, SearchIcon } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/apiRequest";
+import { apiRequest } from "@/lib/queryClient";
 import { useReactToPrint } from "react-to-print";
 import { Calendar } from "@/components/ui/calendar";
 import {
