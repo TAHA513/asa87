@@ -1,6 +1,6 @@
 import { connectionPool, db } from './connection-pool';
 import { users, products, productCategories, customers } from '../shared/schema';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { storage } from "./storage";
 import { users as usersSchema, products as productsSchema, customers as customersSchema, productCategories as productCategoriesSchema, suppliers as suppliersSchema, expenses as expensesSchema, expenseCategories as expenseCategoriesSchema } from "@shared/schema"; // Added import for the schema types
 
