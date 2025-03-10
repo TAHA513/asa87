@@ -1,3 +1,4 @@
+
 import { db } from "./db";
 import { users, products, customers, productCategories, suppliers, expenses, expenseCategories } from "@shared/schema";
 import bcrypt from "bcryptjs";
@@ -399,7 +400,6 @@ export async function seedData() {
 }
 
 // تشغيل الوظيفة إذا تم استدعاء الملف مباشرة
-// استخدام import.meta.url بدلاً من require.main === module في ESM
 if (import.meta.url === `file://${process.argv[1]}`) {
   Promise.all([seedDatabase(), seedData()])
     .then(() => {
