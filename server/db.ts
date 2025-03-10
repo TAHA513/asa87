@@ -1,5 +1,6 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
+import { sql } from 'drizzle-orm';
 import ws from "ws";
 import * as schema from "@shared/schema";
 
@@ -21,6 +22,9 @@ export const pool = new Pool({
 
 // تصدير كائن قاعدة البيانات مع المخطط
 export const db = drizzle(pool, { schema });
+
+// تصدير كائن sql لاستخدامه في الاستعلامات
+export { sql };
 
 // التحقق من الاتصال عند بدء التشغيل
 pool.connect()
