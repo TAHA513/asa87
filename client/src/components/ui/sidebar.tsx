@@ -177,7 +177,7 @@ export function SidebarNav() {
 }
 
 
-const SidebarProvider = React.forwardRef<
+const SidebarContainer = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
     defaultOpen?: boolean
@@ -280,7 +280,7 @@ const SidebarProvider = React.forwardRef<
     )
   }
 )
-SidebarProvider.displayName = "SidebarProvider"
+SidebarContainer.displayName = "SidebarContainer"
 
 const Sidebar = React.forwardRef<
   HTMLDivElement,

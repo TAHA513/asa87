@@ -317,13 +317,12 @@ export default function SuppliersPage() {
       <div className="flex h-screen">
         <div className="w-64 h-full">
           <SidebarNav />
-          </div>
-          <main className="flex-1 p-8">
-            <div className="h-[400px] flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-          </main>
         </div>
+        <main className="flex-1 p-8">
+          <div className="h-[400px] flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        </main>
       </div>
     );
   }
