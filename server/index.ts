@@ -122,13 +122,13 @@ async function startServer() {
       serveStatic(app);
     }
 
-    const port = 3000;
+    const port = 1000;
     const httpServer = createServer(app);
 
   // إعداد Socket.IO
   const io = new SocketServer(httpServer, {
     cors: {
-      origin: ["https://admin.socket.io", process.env.NODE_ENV === "production" ? "*" : "http://localhost:5173"],
+      origin: ["https://admin.socket.io", process.env.NODE_ENV === "production" ? "*" : "http://localhost:1000"],
       credentials: true
     }
   });
