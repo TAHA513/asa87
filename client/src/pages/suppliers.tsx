@@ -6,6 +6,7 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2, Plus, Phone, Mail, MapPin, Tag, Building, User, Landmark, FileText, Trash, Edit, Package } from "lucide-react";
+import { Sidebar, SidebarContent, SidebarMenu } from "@/components/ui/sidebar";
 
 import {
   Card,

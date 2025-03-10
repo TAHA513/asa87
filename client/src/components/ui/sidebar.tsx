@@ -881,6 +881,7 @@ export {
   SidebarMenuSkeleton,
   SidebarMenuSub,
   SidebarMenuSubButton,
+  SidebarContainer,ton,
   SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
