@@ -6,7 +6,7 @@ import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
-const dirname = path.dirname(filename);
+const __dirname = path.dirname(__filename);
 
 export default defineConfig(() => {
   const plugins = [
@@ -25,7 +25,7 @@ export default defineConfig(() => {
     plugins,
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "src"),  // تعديل المسار ليشير إلى src/
+        "@": path.resolve(__dirname, "client/src"),  // تعديل المسار ليشير إلى client/src/
         "@shared": path.resolve(__dirname, "shared"),
       },
     },
