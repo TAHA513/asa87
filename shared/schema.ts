@@ -728,3 +728,36 @@ export type InvoiceItem = typeof invoiceItems.$inferSelect;
 export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
 export type InvoiceHistory = typeof invoiceHistory.$inferSelect;
 export type InsertInvoiceHistory = z.infer<typeof insertInvoiceHistorySchema>;
+
+// Export the schema as a collective object for Drizzle
+export const schema = {
+  users,
+  products,
+  productCategories,
+  customers,
+  sales,
+  invoices,
+  invoiceItems,
+  invoiceHistory,
+  installments,
+  installmentPayments,
+  exchangeRates,
+  marketingCampaigns,
+  campaignAnalytics,
+  socialMediaAccounts,
+  apiKeys,
+  inventoryTransactions,
+  inventoryAdjustments,
+  inventoryAlerts,
+  alertNotifications,
+  reports,
+  expenseCategories,
+  expenses,
+  suppliers,
+  supplierTransactions,
+  appointments,
+  fileStorage,
+  userSettings,
+  systemActivities,
+  activityReports
+};
