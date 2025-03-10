@@ -1,34 +1,15 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import Sidebar from "@/components/layout/sidebar";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DatePicker } from "@/components/ui/date-picker";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import { useToast } from "@/hooks/use-toast";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Calendar, Package, Users, Clock, FileDown, BarChart2, Printer, Trash } from "lucide-react";
-import { useReactToPrint } from 'react-to-print';
-import { useRef } from "react";
-import type { Sale, Product, InsertInvoice, InsertInstallment } from "@shared/schema";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/components/ui/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -38,23 +19,52 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
+import { useLocation } from "wouter"; // Importing from wouter
 import { ResponsiveContainer, ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { CalendarIcon, ChevronDownIcon, PlusIcon, PrinterIcon, SearchIcon } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/apiRequest";
+import { useReactToPrint } from "react-to-print";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-
-interface NewSaleFormData {
+interface Sale {
+  id: number;
   productId: number;
+  customerId: number;
   quantity: number;
-  customerName: string;
-  date: Date;
-  time: string;
-  discount: number;
-  isInstallment: boolean;
-  customerPhone: string;
-  identityNumber: string;
-  downPayment: number;
-  numberOfPayments: number;
-  startDate: Date;
+  unitPrice: number;
+  totalPrice: number;
+  paymentStatus: string;
+  paymentMethod: string;
+  saleDate: string;
+  notes?: string;
+  product: {
+    name: string;
+    sku: string;
+  };
+  customer: {
+    name: string;
+    phone: string;
+    email: string;
+  };
   guarantorName?: string;
   guarantorPhone?: string;
 }
@@ -62,803 +72,780 @@ interface NewSaleFormData {
 export default function Sales() {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const printRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
+  const [isInstallmentDialogOpen, setIsInstallmentDialogOpen] = useState(false);
+  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [filterText, setFilterText] = useState("");
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
-  const location = useLocation(); //Using useLocation
+  const [location, setLocation] = useLocation(); // Using useLocation from wouter
 
   const { data: sales = [] } = useQuery<Sale[]>({
     queryKey: ["/api/sales"],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', '/api/sales');
+        console.log("Fetched sales:", response);
+        return response;
+      } catch (error) {
+        console.error("Error fetching sales:", error);
+        return [];
+      }
+    }
   });
 
-  const { data: searchResults = [] } = useQuery<Product[]>({
-    queryKey: ["/api/products", searchQuery],
-    enabled: searchQuery.length > 0,
+  const { data: products = [] } = useQuery({
+    queryKey: ["/api/products"],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', '/api/products');
+        console.log("Fetched products:", response);
+        return response;
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        return [];
+      }
+    }
   });
 
-  const form = useForm<NewSaleFormData>({
-    defaultValues: {
-      quantity: 1,
-      date: new Date(),
-      time: format(new Date(), 'HH:mm'),
-      discount: 0,
-      isInstallment: false,
-      customerName: "",
-      customerPhone: "",
-      identityNumber: "",
-      downPayment: 0,
-      numberOfPayments: 1,
-      startDate: new Date(),
-      guarantorName: "",
-      guarantorPhone: "",
+  const { data: customers = [] } = useQuery({
+    queryKey: ["/api/customers"],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', '/api/customers');
+        console.log("Fetched customers:", response);
+        return response;
+      } catch (error) {
+        console.error("Error fetching customers:", error);
+        return [];
+      }
+    }
+  });
+
+  const { data: exchangeRate } = useQuery({
+    queryKey: ["/api/exchange-rate"],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', '/api/exchange-rate');
+        console.log("Fetched exchange rate:", response);
+        return response;
+      } catch (error) {
+        console.error("Error fetching exchange rate:", error);
+        return { usdToIqd: 1500 };
+      }
+    }
+  });
+
+  // You can access URL search params if needed, using Wouter
+  useEffect(() => {
+    // Parse current location to extract any search parameters
+    const params = new URLSearchParams(window.location.search);
+    const searchParam = params.get('search');
+    if (searchParam) {
+      setFilterText(searchParam);
+    }
+  }, [location]);
+
+  const addSaleMutation = useMutation({
+    mutationFn: async (newSale: any) => {
+      return await apiRequest('POST', '/api/sales', newSale);
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/sales'] });
+      setIsAddDialogOpen(false);
+      toast({
+        title: "تمت الإضافة",
+        description: "تمت إضافة عملية البيع بنجاح",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "خطأ",
+        description: "فشلت إضافة عملية البيع",
+        variant: "destructive",
+      });
+      console.error("Error adding sale:", error);
+    }
   });
+
+  const addCustomerMutation = useMutation({
+    mutationFn: async (newCustomer: any) => {
+      return await apiRequest('POST', '/api/customers', newCustomer);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
+      setIsCustomerDialogOpen(false);
+      toast({
+        title: "تمت الإضافة",
+        description: "تمت إضافة العميل بنجاح",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "خطأ",
+        description: "فشلت إضافة العميل",
+        variant: "destructive",
+      });
+      console.error("Error adding customer:", error);
+    }
+  });
+
+  const filteredSales = sales.filter(sale => {
+    const searchTerm = filterText.toLowerCase();
+    return (
+      sale.product.name.toLowerCase().includes(searchTerm) ||
+      sale.customer.name.toLowerCase().includes(searchTerm) ||
+      sale.paymentStatus.toLowerCase().includes(searchTerm) ||
+      sale.paymentMethod.toLowerCase().includes(searchTerm) ||
+      (sale.notes && sale.notes.toLowerCase().includes(searchTerm))
+    );
+  });
+
+  const invoiceTemplateRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
+    content: () => invoiceTemplateRef.current,
     onBeforeGetContent: () => {
       setIsPrinting(true);
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          resolve();
+        }, 100);
+      });
     },
     onAfterPrint: () => {
       setIsPrinting(false);
-      form.reset();
-      setSelectedProduct(null);
-      setSearchQuery("");
-    },
-    onPrintError: (error) => {
-      console.error('Print failed:', error);
-      toast({
-        title: "خطأ في الطباعة",
-        description: "حدث خطأ أثناء محاولة الطباعة. يرجى المحاولة مرة أخرى.",
-        variant: "destructive",
-      });
-      setIsPrinting(false);
+      setSelectedSale(null);
     },
   });
 
-  const handleSaleSubmit = async (data: NewSaleFormData, withPrint: boolean = false) => {
-    try {
-      if (!selectedProduct) {
-        toast({
-          title: "خطأ",
-          description: "الرجاء اختيار منتج",
-          variant: "destructive",
-        });
-        return;
-      }
+  // Analytics data transformation
+  const analyticsData = sales.reduce((acc: any[], sale) => {
+    const date = new Date(sale.saleDate).toLocaleDateString();
+    const existingDate = acc.find(item => item.date === date);
 
-      // التحقق من المخزون
-      if (selectedProduct.stock < data.quantity) {
-        toast({
-          title: "خطأ في المخزون",
-          description: `المخزون غير كافٍ. المتوفر: ${selectedProduct.stock} قطعة`,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const [hours, minutes] = data.time.split(':');
-      const saleDate = new Date(data.date);
-      saleDate.setHours(parseInt(hours), parseInt(minutes));
-
-      const totalPrice = Number(selectedProduct.priceIqd) * data.quantity;
-      const finalPrice = totalPrice - data.discount;
-
-      const sale = await apiRequest("POST", "/api/sales", {
-        productId: selectedProduct.id,
-        quantity: data.quantity,
-        date: saleDate,
-        isInstallment: data.isInstallment,
-        priceIqd: selectedProduct.priceIqd,
-        discount: data.discount.toString(),
-        userId: user?.id,
-        customerName: data.customerName || undefined,
-      });
-
-      if (!sale.ok) {
-        const errorData = await sale.json();
-        throw new Error(errorData.message || "فشل في إنشاء عملية البيع");
-      }
-
-      const saleData = await sale.json();
-
-      if (data.isInstallment) {
-        const installment: InsertInstallment = {
-          saleId: saleData.id,
-          customerName: data.customerName,
-          customerPhone: data.customerPhone,
-          identityNumber: data.identityNumber,
-          totalAmount: finalPrice.toString(),
-          downPayment: data.downPayment.toString(),
-          numberOfPayments: data.numberOfPayments,
-          remainingAmount: (finalPrice - data.downPayment).toString(),
-          startDate: data.startDate,
-          nextPaymentDate: data.startDate,
-          guarantorName: data.guarantorName || undefined,
-          guarantorPhone: data.guarantorPhone || undefined,
-        };
-
-        const savedInstallment = await apiRequest("POST", "/api/installments", installment);
-        if (!savedInstallment.ok) {
-          throw new Error("فشل في إنشاء التقسيط");
-        }
-      }
-
-      const invoice: InsertInvoice = {
-        saleId: saleData.id,
-        customerName: data.customerName || "عميل نقدي",
-        totalAmount: totalPrice,
-        discountAmount: data.discount,
-        finalAmount: finalPrice.toString(),
-        invoiceNumber: `INV-${Date.now()}`,
-        invoiceDate: saleDate,
-      };
-
-      const savedInvoice = await apiRequest("POST", "/api/invoices", invoice);
-      if (!savedInvoice.ok) {
-        throw new Error("فشل في إنشاء الفاتورة");
-      }
-
-      if (withPrint) {
-        setSelectedSale({
-          ...saleData,
-          customerName: data.customerName || "عميل نقدي",
-        });
-        setTimeout(handlePrint, 100);
-      } else {
-        form.reset();
-        setSelectedProduct(null);
-        setSearchQuery("");
-      }
-
-      queryClient.invalidateQueries({ queryKey: ["/api/sales"] });
-
-      toast({
-        title: "تم بنجاح",
-        description: `تم إنشاء ${data.isInstallment ? 'البيع بالتقسيط' : 'البيع'} والفاتورة بنجاح`,
-      });
-    } catch (error) {
-      console.error('Error creating sale:', error);
-      toast({
-        title: "خطأ",
-        description: error instanceof Error ? error.message : "حدث خطأ أثناء إنشاء البيع",
-        variant: "destructive",
+    if (existingDate) {
+      existingDate.sales += 1;
+      existingDate.revenue += sale.totalPrice;
+    } else {
+      acc.push({
+        date,
+        sales: 1,
+        revenue: sale.totalPrice
       });
     }
+
+    return acc;
+  }, []);
+
+  const handleDeleteSale = (saleId: number) => {
+    // Implementation for deleting a sale
+    apiRequest('DELETE', `/api/sales/${saleId}`)
+      .then(response => {
+        queryClient.invalidateQueries({ queryKey: ['/api/sales'] });
+        toast({
+          title: "تم الحذف",
+          description: "تم حذف عملية البيع بنجاح",
+        });
+      })
+      .catch(error => {
+        toast({
+          title: "خطأ",
+          description: "فشل حذف عملية البيع",
+          variant: "destructive",
+        });
+        console.error("Error deleting sale:", error);
+      });
   };
 
-  const exportToCSV = () => {
-    // Add your CSV export logic here
-    console.log("Exporting to CSV");
-    toast({title: "تصدير", description: "جارى تصدير البيانات"})
+  const goToInstallments = (saleId: number) => {
+    // Navigate to installments page with the sale ID
+    setLocation(`/installments?saleId=${saleId}`);
   };
-
-  const salesChartData = [
-    // Sample data, replace with your actual data
-    { date: '2024-03-01', amount: 1000, count: 5 },
-    { date: '2024-03-02', amount: 1500, count: 8 },
-    { date: '2024-03-03', amount: 1200, count: 6 },
-    { date: '2024-03-04', amount: 800, count: 3 },
-    { date: '2024-03-05', amount: 2000, count: 10 },
-    { date: '2024-03-06', amount: 1800, count: 9 },
-    { date: '2024-03-07', amount: 1600, count: 7 },
-  ];
-
 
   return (
-    <div className="flex h-screen bg-background">
-      <div className="w-64 h-full">
-        <Sidebar />
-      </div>
-      <main className="flex-1 p-8 overflow-auto">
-        <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-8">
-          <div className="md:col-span-2">
-            <Card className="shadow-lg transition-all duration-300 hover:shadow-xl bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-              <CardHeader className="space-y-1 border-b pb-7 mb-2">
-                <CardTitle className="text-2xl font-bold tracking-tight">المبيعات الأخيرة</CardTitle>
-                <CardDescription className="text-sm text-muted-foreground">
-                  قائمة بجميع عمليات البيع
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg overflow-hidden border bg-card">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead>المنتج</TableHead>
-                        <TableHead>الكمية</TableHead>
-                        <TableHead>السعر</TableHead>
-                        <TableHead>الخصم</TableHead>
-                        <TableHead>السعر النهائي</TableHead>
-                        <TableHead>العميل</TableHead>
-                        <TableHead>التاريخ</TableHead>
-                        <TableHead>الخيارات</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sales.map((sale) => {
-                        const product = searchResults.find((p) => p.id === sale.productId);
-                        const finalPrice = Number(sale.priceIqd) * sale.quantity - Number(sale.discount);
-                        return (
-                          <TableRow key={sale.id} className="hover:bg-muted/30 transition-colors duration-200">
-                            <TableCell className="font-medium">{product?.name}</TableCell>
-                            <TableCell>{sale.quantity}</TableCell>
-                            <TableCell>
-                              {Number(sale.priceIqd).toLocaleString()} د.ع
-                            </TableCell>
-                            <TableCell className="text-red-500">
-                              {Number(sale.discount).toLocaleString()} د.ع
-                            </TableCell>
-                            <TableCell className="font-semibold">
-                              {finalPrice.toLocaleString()} د.ع
-                            </TableCell>
-                            <TableCell>{sale.customerName || "عميل نقدي"}</TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {new Date(sale.date).toLocaleDateString('ar-IQ')}
-                            </TableCell>
-                            <TableCell className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteSale(sale.id)}
-                              >
-                                <Trash className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  // طباعة الفاتورة
-                                  const product = searchResults.find(p => p.id === sale.productId);
-                                  // Assuming you have a way to fetch customer details based on sale.customerId
-                                  const customer = {name: "test", phone: "1234567890"}; // Replace with actual customer fetch
-
-                                  const printWindow = window.open('', '_blank');
-                                  if (printWindow) {
-                                    printWindow.document.write(`
-                                      <html dir="rtl">
-                                        <head>
-                                          <title>فاتورة مبيعات</title>
-                                          <style>
-                                            body { font-family: Arial, sans-serif; padding: 20px; }
-                                            .header { text-align: center; margin-bottom: 20px; }
-                                            .details { margin-bottom: 20px; }
-                                            .total { font-weight: bold; margin-top: 20px; text-align: left; }
-                                            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                                            th, td { padding: 8px; text-align: right; border-bottom: 1px solid #ddd; }
-                                            th { background-color: #f2f2f2; }
-                                            @media print { 
-                                              button { display: none; }
-                                              body { margin: 0; padding: 0 10px; }
-                                            }
-                                          </style>
-                                        </head>
-                                        <body>
-                                          <div class="header">
-                                            <h1>فاتورة مبيعات</h1>
-                                            <p>رقم الفاتورة: ${sale.id}</p>
-                                            <p>التاريخ: ${new Date(sale.date).toLocaleDateString('ar-IQ')}</p>
-                                          </div>
-                                          <div class="details">
-                                            <h2>تفاصيل العميل:</h2>
-                                            <p>الاسم: ${customer.name || 'عميل نقدي'}</p>
-                                            <p>الهاتف: ${customer.phone || '-'}</p>
-                                          </div>
-                                          <table>
-                                            <thead>
-                                              <tr>
-                                                <th>المنتج</th>
-                                                <th>الكمية</th>
-                                                <th>السعر</th>
-                                                <th>الإجمالي</th>
-                                              </tr>
-                                            </thead>
-                                            <tbody>
-                                              <tr>
-                                                <td>${product?.name || 'منتج غير معروف'}</td>
-                                                <td>${sale.quantity}</td>
-                                                <td>${Number(sale.priceIqd).toFixed(2)} د.ع</td>
-                                                <td>${(Number(sale.priceIqd) * sale.quantity).toFixed(2)} د.ع</td>
-                                              </tr>
-                                            </tbody>
-                                          </table>
-                                          <div class="total">
-                                            <p>المجموع الإجمالي: ${(Number(sale.priceIqd) * sale.quantity).toFixed(2)} د.ع</p>
-                                          </div>
-                                          <button onclick="window.print();" style="display: block; margin: 20px auto; padding: 10px 20px;">
-                                            طباعة الفاتورة
-                                          </button>
-                                        </body>
-                                      </html>
-                                    `);
-                                    printWindow.document.close();
-                                  }
-                                }}
-                              >
-                                <Printer className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+    <div className="flex flex-col min-h-screen p-4 md:p-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">المبيعات</h1>
+          <p className="text-muted-foreground">
+            إدارة وتتبع عمليات البيع والفواتير
+          </p>
+        </div>
+        <div className="mt-4 md:mt-0 flex flex-col sm:flex-row gap-2">
+          <Button
+            variant="outline"
+            className="gap-1"
+            onClick={() => setShowAnalytics(!showAnalytics)}
+          >
+            <ChevronDownIcon className="h-4 w-4" />
+            {showAnalytics ? "إخفاء التحليلات" : "عرض التحليلات"}
+          </Button>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gap-1">
+                <PlusIcon className="h-4 w-4" />
+                إضافة عملية بيع
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>إضافة عملية بيع جديدة</DialogTitle>
+                <DialogDescription>
+                  قم بإدخال تفاصيل عملية البيع الجديدة
+                </DialogDescription>
+              </DialogHeader>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  const productId = Number(formData.get('productId'));
+                  const customerId = Number(formData.get('customerId'));
+                  const quantity = Number(formData.get('quantity'));
+                  
+                  // Find the product to get its price
+                  const product = products.find(p => p.id === productId);
+                  const unitPrice = product ? product.price : 0;
+                  const totalPrice = unitPrice * quantity;
+                  
+                  const newSale = {
+                    productId,
+                    customerId,
+                    quantity,
+                    unitPrice,
+                    totalPrice,
+                    paymentStatus: formData.get('paymentStatus'),
+                    paymentMethod: formData.get('paymentMethod'),
+                    saleDate: date?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+                    notes: formData.get('notes'),
+                    guarantorName: formData.get('guarantorName'),
+                    guarantorPhone: formData.get('guarantorPhone'),
+                  };
+                  
+                  addSaleMutation.mutate(newSale);
+                }}
+                className="space-y-4"
+              >
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="productId">المنتج</Label>
+                    <Select name="productId" required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر منتج" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products.map(product => (
+                          <SelectItem key={product.id} value={product.id.toString()}>
+                            {product.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="customerId">العميل</Label>
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setIsCustomerDialogOpen(true)}
+                      >
+                        + جديد
+                      </Button>
+                    </div>
+                    <Select name="customerId" required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر عميل" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {customers.map(customer => (
+                          <SelectItem key={customer.id} value={customer.id.toString()}>
+                            {customer.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card className="shadow-lg transition-all duration-300 hover:shadow-xl bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <CardHeader className="space-y-1 border-b pb-7 mb-2">
-              <CardTitle className="text-2xl font-bold tracking-tight">بيع جديد</CardTitle>
-              <CardDescription className="text-sm text-muted-foreground">
-                إنشاء عملية بيع جديدة
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit((data) => handleSaleSubmit(data, false))} className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="date"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium">التاريخ</FormLabel>
-                          <FormControl>
-                            <DatePicker
-                              date={field.value}
-                              onSelect={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="time"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-sm font-medium">الوقت</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Clock className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                              <Input
-                                type="time"
-                                className="pl-8 w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                                {...field}
-                              />
-                            </div>
-                          </FormControl>
-                        </FormItem>
-                      )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="quantity">الكمية</Label>
+                    <Input
+                      id="quantity"
+                      name="quantity"
+                      type="number"
+                      min="1"
+                      defaultValue="1"
+                      required
                     />
                   </div>
-
-                  <FormField
-                    control={form.control}
-                    name="customerName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium">اسم العميل</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Users className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              className="pl-8 w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                              placeholder="ادخل اسم العميل"
-                              {...field}
-                            />
-                          </div>
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="customerPhone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium">رقم الهاتف</FormLabel>
-                        <FormControl>
-                          <Input
-                            className="w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                            placeholder="ادخل رقم الهاتف"
-                            {...field}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">بحث عن المنتج</Label>
-                    <div className="relative">
-                      <Package className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Label htmlFor="saleDate">تاريخ البيع</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full flex justify-between"
+                        >
+                          {date ? format(date, 'P') : <span>اختر تاريخ</span>}
+                          <CalendarIcon className="ml-auto h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={date}
+                          onSelect={setDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="paymentStatus">حالة الدفع</Label>
+                    <Select name="paymentStatus" defaultValue="paid" required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر حالة الدفع" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="paid">مدفوع</SelectItem>
+                        <SelectItem value="pending">قيد الانتظار</SelectItem>
+                        <SelectItem value="installment">تقسيط</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="paymentMethod">طريقة الدفع</Label>
+                    <Select name="paymentMethod" defaultValue="cash" required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="اختر طريقة الدفع" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">نقدي</SelectItem>
+                        <SelectItem value="card">بطاقة ائتمان</SelectItem>
+                        <SelectItem value="bank">تحويل بنكي</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="notes">ملاحظات</Label>
+                  <Input
+                    id="notes"
+                    name="notes"
+                    placeholder="أي ملاحظات إضافية..."
+                  />
+                </div>
+                <div className="space-y-4" id="guarantorInfo">
+                  <h4 className="text-sm font-medium">معلومات الضامن (للتقسيط فقط)</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="guarantorName">اسم الضامن</Label>
                       <Input
-                        className="pl-8 w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                        placeholder="ابحث بالاسم أو الرمز أو الباركود"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        id="guarantorName"
+                        name="guarantorName"
+                        placeholder="اسم الضامن"
                       />
                     </div>
-                    {searchResults.length > 0 && (
-                      <Select
-                        value={selectedProduct?.id.toString()}
-                        onValueChange={(value) => {
-                          const product = searchResults.find(p => p.id === parseInt(value));
-                          setSelectedProduct(product || null);
-                        }}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="اختر المنتج" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {searchResults.map((product) => (
-                            <SelectItem
-                              key={product.id}
-                              value={product.id.toString()}
-                              className="cursor-pointer transition-colors duration-200 hover:bg-muted"
-                            >
-                              {product.name} - {product.productCode}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                    {selectedProduct && (
-                      <div className="text-sm text-muted-foreground bg-muted/30 p-3 rounded-lg space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">السعر:</span>
-                          <span>{Number(selectedProduct.priceIqd).toLocaleString()} د.ع</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">المخزون الحالي:</span>
-                          <div className="flex items-center gap-2">
-                            <span className={selectedProduct.stock < 10 ? "text-red-500" : ""}>
-                              {selectedProduct.stock} قطعة
-                            </span>
-                            <Button
-                              variant="outline"
-                              size="sm"
+                    <div className="space-y-2">
+                      <Label htmlFor="guarantorPhone">هاتف الضامن</Label>
+                      <Input
+                        id="guarantorPhone"
+                        name="guarantorPhone"
+                        placeholder="رقم هاتف الضامن"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit">إضافة</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+          
+          <Dialog open={isCustomerDialogOpen} onOpenChange={setIsCustomerDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>إضافة عميل جديد</DialogTitle>
+                <DialogDescription>
+                  أدخل معلومات العميل الجديد
+                </DialogDescription>
+              </DialogHeader>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  const newCustomer = {
+                    name: formData.get('name'),
+                    phone: formData.get('phone'),
+                    email: formData.get('email'),
+                    address: formData.get('address'),
+                    notes: formData.get('notes'),
+                  };
+                  
+                  addCustomerMutation.mutate(newCustomer);
+                }}
+                className="space-y-4"
+              >
+                <div className="space-y-2">
+                  <Label htmlFor="name">اسم العميل</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    placeholder="اسم العميل"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">رقم الهاتف</Label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      placeholder="رقم الهاتف"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">البريد الإلكتروني</Label>
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="البريد الإلكتروني"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address">العنوان</Label>
+                  <Input
+                    id="address"
+                    name="address"
+                    placeholder="عنوان العميل"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="customerNotes">ملاحظات</Label>
+                  <Input
+                    id="customerNotes"
+                    name="notes"
+                    placeholder="ملاحظات إضافية..."
+                  />
+                </div>
+                <DialogFooter>
+                  <Button type="submit">إضافة</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {showAnalytics && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>تحليلات المبيعات</CardTitle>
+            <CardDescription>
+              نظرة عامة على أداء المبيعات
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={analyticsData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis yAxisId="left" orientation="left" />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip formatter={(value: any) => 
+                    typeof value === 'number' ? value.toLocaleString() : value
+                  } />
+                  <Legend />
+                  <Bar yAxisId="left" dataKey="sales" fill="#8884d8" name="عدد المبيعات" />
+                  <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#ff7300" name="الإيرادات" />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-2xl font-bold">
+                    {sales.length.toLocaleString()}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    إجمالي عمليات البيع
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-2xl font-bold">
+                    {sales.reduce((sum, sale) => sum + sale.totalPrice, 0).toLocaleString()} $
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    إجمالي الإيرادات بالدولار
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-2xl font-bold">
+                    {(sales.reduce((sum, sale) => sum + sale.totalPrice, 0) * (exchangeRate?.usdToIqd || 1500)).toLocaleString()} د.ع
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    إجمالي الإيرادات بالدينار العراقي
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="flex items-center mb-4">
+        <div className="relative flex-1 max-w-sm">
+          <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="البحث في المبيعات..."
+            className="pl-8"
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <Card className="flex-1">
+        <CardHeader className="p-4">
+          <CardTitle>قائمة المبيعات</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>رقم الفاتورة</TableHead>
+                  <TableHead>المنتج</TableHead>
+                  <TableHead>العميل</TableHead>
+                  <TableHead>الكمية</TableHead>
+                  <TableHead>السعر</TableHead>
+                  <TableHead>الإجمالي</TableHead>
+                  <TableHead>حالة الدفع</TableHead>
+                  <TableHead>طريقة الدفع</TableHead>
+                  <TableHead>التاريخ</TableHead>
+                  <TableHead>الإجراءات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredSales.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center">
+                      لا توجد بيانات مبيعات
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredSales.map((sale) => (
+                    <TableRow key={sale.id}>
+                      <TableCell>{sale.id}</TableCell>
+                      <TableCell>{sale.product.name}</TableCell>
+                      <TableCell>{sale.customer.name}</TableCell>
+                      <TableCell>{sale.quantity}</TableCell>
+                      <TableCell>${sale.unitPrice.toLocaleString()}</TableCell>
+                      <TableCell>${sale.totalPrice.toLocaleString()}</TableCell>
+                      <TableCell>
+                        <Badge variant={
+                          sale.paymentStatus === 'paid' ? 'default' :
+                          sale.paymentStatus === 'pending' ? 'outline' : 
+                          'secondary'
+                        }>
+                          {sale.paymentStatus === 'paid' ? 'مدفوع' :
+                          sale.paymentStatus === 'pending' ? 'قيد الانتظار' : 
+                          'تقسيط'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {sale.paymentMethod === 'cash' ? 'نقدي' :
+                        sale.paymentMethod === 'card' ? 'بطاقة ائتمان' : 
+                        'تحويل بنكي'}
+                      </TableCell>
+                      <TableCell>{new Date(sale.saleDate).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <ChevronDownIcon className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem 
                               onClick={() => {
-                                const newStock = window.prompt("أدخل الكمية الجديدة:", selectedProduct.stock.toString());
-                                if (newStock && !isNaN(Number(newStock))) {
-                                  apiRequest("PATCH", `/api/products/${selectedProduct.id}`, {
-                                    stock: Number(newStock)
-                                  }).then((response) => {
-                                    if (response.ok) {
-                                      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
-                                      toast({
-                                        title: "تم التحديث",
-                                        description: "تم تحديث المخزون بنجاح",
-                                      });
-                                    } else {
-                                      toast({
-                                        title: "خطأ",
-                                        description: "فشل تحديث المخزون",
-                                        variant: "destructive",
-                                      });
-                                    }
-                                  });
-                                }
+                                setSelectedSale(sale);
+                                setTimeout(() => {
+                                  handlePrint();
+                                }, 100);
                               }}
                             >
-                              تعديل المخزون
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                              طباعة الفاتورة
+                            </DropdownMenuItem>
+                            {sale.paymentStatus === 'installment' && (
+                              <DropdownMenuItem onClick={() => goToInstallments(sale.id)}>
+                                عرض الأقساط
+                              </DropdownMenuItem>
+                            )}
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                  حذف
+                                </DropdownMenuItem>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>هل أنت متأكد من الحذف؟</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    سيؤدي هذا إلى حذف عملية البيع بشكل نهائي. هذا الإجراء لا يمكن التراجع عنه.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteSale(sale.id)}
+                                  >
+                                    حذف
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
-                  <FormField
-                    control={form.control}
-                    name="quantity"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium">الكمية</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="1"
-                            className="w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                            {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value))}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="discount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-medium">الخصم (د.ع)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="0"
-                            className="w-full transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-                            {...field}
-                            onChange={(e) => field.onChange(parseInt(e.target.value))}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="isInstallment"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <input
-                            type="checkbox"
-                            checked={field.value}
-                            onChange={(e) => field.onChange(e.target.checked)}
-                            className="rounded border-input"
-                          />
-                        </FormControl>
-                        <FormLabel className="text-sm font-medium mr-2">بيع بالتقسيط</FormLabel>
-                      </FormItem>
-                    )}
-                  />
-
-                  {form.watch("isInstallment") && (
-                    <div className="space-y-4 bg-muted/30 p-4 rounded-lg">
-                      <FormField
-                        control={form.control}
-                        name="identityNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-medium">رقم الهوية</FormLabel>
-                            <FormControl>
-                              <Input
-                                className="w-full"
-                                placeholder="ادخل رقم الهوية"
-                                {...field}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="downPayment"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-medium">الدفعة الأولى</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                className="w-full"
-                                {...field}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="numberOfPayments"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-medium">عدد الأقساط</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                min="1"
-                                className="w-full"
-                                {...field}
-                                onChange={(e) => field.onChange(parseInt(e.target.value))}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="startDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-sm font-medium">تاريخ بداية التقسيط</FormLabel>
-                            <FormControl>
-                              <DatePicker
-                                date={field.value}
-                                onSelect={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="space-y-4 border-t pt-4 mt-4">
-                        <h4 className="text-sm font-medium text-muted-foreground">معلومات الكفيل (اختياري)</h4>
-
-                        <FormField
-                          control={form.control}
-                          name="guarantorName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-medium">اسم الكفيل</FormLabel>
-                              <FormControl>
-                                <Input
-                                  className="w-full"
-                                  placeholder="ادخل اسم الكفيل"
-                                  {...field}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="guarantorPhone"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-sm font-medium">رقم هاتف الكفيل</FormLabel>
-                              <FormControl>
-                                <Input
-                                  className="w-full"
-                                  placeholder="ادخل رقم هاتف الكفيل"
-                                  {...field}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedProduct && form.watch("quantity") > 0 && (
-                    <div className="space-y-2 bg-muted/30 p-4 rounded-lg">
-                      <div className="flex justify-between text-sm">
-                        <span>السعر الإجمالي:</span>
-                        <span>{(Number(selectedProduct.priceIqd) * form.watch("quantity")).toLocaleString()} د.ع</span>
-                      </div>
-                      <div className="flex justify-between text-sm text-red-500">
-                        <span>الخصم:</span>
-                        <span>- {Number(form.watch("discount")).toLocaleString()} د.ع</span>
-                      </div>
-                      <div className="flex justify-between font-bold border-t pt-2">
-                        <span>السعر النهائي:</span>
-                        <span>
-                          {(Number(selectedProduct.priceIqd) * form.watch("quantity") - Number(form.watch("discount"))).toLocaleString()} د.ع
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex gap-4 mt-6">
-                    <Button
-                      type="submit"
-                      className="flex-1 bg-primary hover:bg-primary/90 text-white transition-all duration-200"
-                      disabled={isPrinting}
-                    >
-                      إتمام البيع
-                    </Button>
-                    <Button
-                      type="button"
-                      className="flex-1 bg-primary hover:bg-primary/90 text-white transition-all duration-200"
-                      disabled={isPrinting}
-                      onClick={() => {
-                        form.handleSubmit((data) => handleSaleSubmit(data, true))();
-                      }}
-                    >
-                      {isPrinting ? "جاري الطباعة..." : "البيع مع طباعة الفاتورة"}
-                    </Button>
-                  </div>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </div>
-
-        {showAnalytics && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>تحليل المبيعات - آخر 7 أيام</CardTitle>
-              <CardDescription>عرض رسم بياني بإجمالي المبيعات اليومية</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={salesChartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis yAxisId="left" orientation="left" />
-                    <YAxis yAxisId="right" orientation="right" />
-                    <Tooltip formatter={(value) => `${Number(value).toLocaleString()} د.ع`} />
-                    <Legend />
-                    <Bar yAxisId="left" dataKey="amount" name="إجمالي المبيعات" fill="hsl(var(--primary))" />
-                    <Line yAxisId="right" type="monotone" dataKey="count" name="عدد المبيعات" stroke="#82ca9d" strokeWidth={2} />
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="hidden">
-          <div ref={printRef} className="p-8">
-            {selectedSale && (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <h1 className="text-3xl font-bold mb-2">فاتورة بيع</h1>
+      {/* Invoice Print Template */}
+      <div className="hidden">
+        <div ref={invoiceTemplateRef} className="p-8 bg-white">
+          {selectedSale && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h1 className="text-3xl font-bold">فاتورة</h1>
                   <p className="text-muted-foreground">رقم الفاتورة: {selectedSale.id}</p>
-                  <p className="text-muted-foreground">
-                    التاريخ: {new Date(selectedSale.date).toLocaleDateString('ar-IQ')}
-                  </p>
-                  <p className="text-muted-foreground">
-                    الوقت: {format(new Date(selectedSale.date), 'HH:mm')}
-                  </p>
                 </div>
-                <div className="border-t border-b py-4">
-                  <p>العميل: {selectedSale.customerName}</p>
-                  <p className="font-semibold">
-                    المبلغ الإجمالي: {Number(selectedSale.priceIqd).toLocaleString()} د.ع
-                  </p>
-                  {Number(selectedSale.discount) > 0 && (
-                    <p className="text-red-500">
-                      الخصم: {Number(selectedSale.discount).toLocaleString()} د.ع
-                    </p>
-                  )}
-                  <p className="font-bold mt-2">
-                    المبلغ النهائي: {(Number(selectedSale.priceIqd) * selectedSale.quantity - Number(selectedSale.discount)).toLocaleString()} د.ع
-                  </p>
+                <div className="text-right">
+                  <h2 className="text-xl font-bold">شركتك</h2>
+                  <p>العنوان: شارع الرئيسي، المدينة</p>
+                  <p>الهاتف: 123-456-789</p>
+                  <p>البريد الإلكتروني: info@yourcompany.com</p>
                 </div>
-                <table className="w-full border-collapse">
-                  <thead>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-lg font-bold mb-2">العميل</h3>
+                  <p className="font-bold">{selectedSale.customer.name}</p>
+                  <p>{selectedSale.customer.phone}</p>
+                  <p>{selectedSale.customer.email}</p>
+                </div>
+                <div className="text-right">
+                  <h3 className="text-lg font-bold mb-2">تفاصيل الفاتورة</h3>
+                  <p>تاريخ البيع: {new Date(selectedSale.saleDate).toLocaleDateString()}</p>
+                  <p>حالة الدفع: {
+                    selectedSale.paymentStatus === 'paid' ? 'مدفوع' :
+                    selectedSale.paymentStatus === 'pending' ? 'قيد الانتظار' : 
+                    'تقسيط'
+                  }</p>
+                  <p>طريقة الدفع: {
+                    selectedSale.paymentMethod === 'cash' ? 'نقدي' :
+                    selectedSale.paymentMethod === 'card' ? 'بطاقة ائتمان' : 
+                    'تحويل بنكي'
+                  }</p>
+                </div>
+              </div>
+
+              <div className="border rounded-md overflow-hidden">
+                <table className="w-full text-left">
+                  <thead className="border-b">
                     <tr className="border-b">
                       <th className="py-2 text-right">المنتج</th>
                       <th className="py-2 text-right">الكمية</th>
-                      <th className="py-2 text-right">السعر</th>
-                      <th className="py-2 text-right">المجموع</th>
+                      <th className="py-2 text-right">سعر الوحدة</th>
+                      <th className="py-2 text-right">الإجمالي</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td className="py-2">
-                        {searchResults.find(p => p.id === selectedSale.productId)?.name}
-                      </td>
+                      <td className="py-2">{selectedSale.product.name}</td>
                       <td className="py-2">{selectedSale.quantity}</td>
-                      <td className="py-2">
-                        {Number(selectedSale.priceIqd).toLocaleString()} د.ع
-                      </td>
-                      <td className="py-2 font-semibold">
-                        {(Number(selectedSale.priceIqd) * selectedSale.quantity).toLocaleString()} د.ع
-                      </td>
+                      <td className="py-2">${selectedSale.unitPrice.toLocaleString()}</td>
+                      <td className="py-2">${selectedSale.totalPrice.toLocaleString()}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-            )}
-          </div>
+
+              <div className="flex justify-end">
+                <div className="border rounded-md p-4 w-72">
+                  <div className="flex justify-between mb-2">
+                    <span>المجموع:</span>
+                    <span>${selectedSale.totalPrice.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between mb-2">
+                    <span>الضريبة (0%):</span>
+                    <span>$0.00</span>
+                  </div>
+                  <div className="flex justify-between font-bold pt-2 border-t">
+                    <span>الإجمالي:</span>
+                    <span>${selectedSale.totalPrice.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between mt-2 text-muted-foreground text-sm">
+                    <span>بالدينار العراقي:</span>
+                    <span>
+                      {(selectedSale.totalPrice * (exchangeRate?.usdToIqd || 1500)).toLocaleString()} د.ع
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {selectedSale.notes && (
+                <div>
+                  <h3 className="text-lg font-bold mb-2">ملاحظات</h3>
+                  <p>{selectedSale.notes}</p>
+                </div>
+              )}
+
+              {selectedSale.paymentStatus === 'installment' && (
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-bold mb-2">معلومات التقسيط</h3>
+                  {selectedSale.guarantorName && (
+                    <p>الضامن: {selectedSale.guarantorName} {selectedSale.guarantorPhone ? `- ${selectedSale.guarantorPhone}` : ''}</p>
+                  )}
+                  <p className="text-sm text-muted-foreground mt-2">
+                    * يرجى مراجعة جدول الأقساط المرفق للاطلاع على مواعيد السداد.
+                  </p>
+                </div>
+              )}
+
+              <div className="text-center mt-8 pt-8 border-t text-sm text-muted-foreground">
+                <p>شكراً لتعاملكم معنا!</p>
+                <p>هذه الفاتورة أنشئت بواسطة نظام إدارة المبيعات</p>
+                <p>طبعت بواسطة: {user?.fullName || 'مدير النظام'}</p>
+              </div>
+            </div>
+          )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }
-
-//  Assuming setLocation is a custom function or hook.  Replace with your actual implementation.
-//const setLocation = (path: string) => {
-//  // Your logic to update the location here
-//  console.log("Setting location to:", path)
-//}
