@@ -22,28 +22,31 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-export async function setupVite(app: Express, server: Server) {
-  const serverOptions = {
-    middlewareMode: true,
-    hmr: { server },
-    allowedHosts: true,
-  };
+export async function setupVite(
+  app: Express,
+  server: Server
+): Promise<() => void> {
+  process.env.REPLIT_ENVIRONMENT = "development";
 
-  const vite = await createViteServer({
-    ...viteConfig,
-    configFile: false,
-    customLogger: {
-      ...viteLogger,
-      error: (msg, options) => {
-        viteLogger.error(msg, options);
-        process.exit(1);
-      },
+  const viteServer = await createViteServer({
+    server: { 
+      middlewareMode: true,
+      hmr: {
+        timeout: 60000, // زيادة مهلة HMR إلى 60 ثانية
+        protocol: 'ws',
+        clientPort: 3000, // استخدام نفس المنفذ الافتراضي
+        overlay: false, // تعطيل overlay للأخطاء في الواجهة
+        reconnect: 10 // محاولات إعادة الاتصال
+      }
     },
-    server: serverOptions,
-    appType: "custom",
+    appType: "spa",
+    logLevel: "info",
+    optimizeDeps: {
+      force: true // إجبار التحسين المسبق للتبعيات
+    }
   });
 
-  app.use(vite.middlewares);
+  app.use(viteServer.middlewares);
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
@@ -61,13 +64,14 @@ export async function setupVite(app: Express, server: Server) {
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
-      const page = await vite.transformIndexHtml(url, template);
+      const page = await viteServer.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
-      vite.ssrFixStacktrace(e as Error);
+      viteServer.ssrFixStacktrace(e as Error);
       next(e);
     }
   });
+  return () => viteServer.close();
 }
 
 export function serveStatic(app: Express) {

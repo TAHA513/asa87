@@ -122,8 +122,22 @@ async function startServer() {
       serveStatic(app);
     }
 
-    const port = process.env.PORT || 5173;
+    // تعريف المنفذ من البيئة أو استخدام منفذ عشوائي إذا كان المنفذ الافتراضي مشغولاً
+    const port = process.env.PORT || 3000;
     const httpServer = createServer(app);
+    
+    // معالج لإغلاق السيرفر بشكل صحيح عند توقف التطبيق
+    const shutdownGracefully = () => {
+      console.log('إغلاق السيرفر بشكل آمن...');
+      httpServer.close(() => {
+        console.log('تم إغلاق السيرفر بنجاح');
+        process.exit(0);
+      });
+    };
+    
+    // تسجيل معالجي الإغلاق
+    process.on('SIGINT', shutdownGracefully);
+    process.on('SIGTERM', shutdownGracefully);
 
   // إعداد Socket.IO
   const io = new SocketServer(httpServer, {
