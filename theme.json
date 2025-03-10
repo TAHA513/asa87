@@ -2,7 +2,7 @@
 {
   "name": "نظام إدارة المبيعات",
   "primary": "#0284c7",
-  "variant": "branded",
+  "variant": "default",
   "appearance": "light",
   "fontStyle": "noto-kufi",
   "fontSize": "medium",
