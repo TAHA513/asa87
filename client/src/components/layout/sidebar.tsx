@@ -33,7 +33,7 @@ const navigation = [
   { name: "التقارير", href: "/reports", icon: MdBarChart, color: "#FBBC05" },
   { name: "المصروفات", href: "/expenses", icon: MdAccountBalance, color: "#4285F4" },
   { name: "الموردين", href: "/suppliers", icon: MdLocalShipping, color: "#34A853" },
-  { name: "الباركود", href: "/barcodes", icon: MdQrCode2, color: "#EA4335" }, // Added barcodes
+  { name: "الباركود", href: "/barcodes", icon: MdQrCode2, color: "#EA4335" },
   { name: "أكواد الخصم", href: "/discount-codes", icon: MdLocalOffer, color: "#FBBC05" },
   { name: "الموظفين", href: "/staff", icon: MdSupervisorAccount, color: "#4285F4" },
   { name: "الإعدادات", href: "/settings", icon: MdSettings, color: "#34A853" },
