@@ -25,7 +25,10 @@ export default defineConfig({
   server: {
     hmr: {
       overlay: false // Disable error overlay
-    }
+    },
+    host: '0.0.0.0',
+    port: 5000,
+    strictPort: true
   },
   resolve: {
     alias: {
