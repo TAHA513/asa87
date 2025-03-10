@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Sidebar, SidebarProvider } from "@/components/ui/sidebar";
+import Sidebar from "@/components/layout/sidebar";
 import {
   Card,
   CardContent,
@@ -16,19 +16,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Printer, QrCode, Plus, Trash2, RefreshCw } from "lucide-react";
+import { Loader2, Printer, QrCode, Plus, Trash2 } from "lucide-react";
 import { useReactToPrint } from 'react-to-print';
 import JsBarcode from 'jsbarcode';
-import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@headlessui/react'
-
 
 const BARCODE_TYPES = [
   { value: "CODE128", label: "Code 128" },
   { value: "EAN13", label: "EAN-13" },
   { value: "UPC", label: "UPC" },
   { value: "CODE39", label: "Code 39" },
-  { value: "QR", label: "QR Code" },
 ];
 
 interface BarcodeItem {
@@ -40,198 +36,92 @@ interface BarcodeItem {
 
 export default function BarcodesPage() {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [barcodes, setBarcodes] = useState<BarcodeItem[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isPrinting, setIsPrinting] = useState(false);
-  const [selectedBarcode, setSelectedBarcode] = useState<BarcodeItem | null>(null);
-  const printRef = useRef(null);
+  const printRef = useRef<HTMLDivElement>(null);
   const barcodeRefs = useRef<{ [key: string]: (SVGSVGElement | null)[] }>({});
 
-  useEffect(() => {
-    // إضافة باركود افتراضي عند تحميل الصفحة إذا لم يكن هناك أي باركود
-    if (barcodes.length === 0) {
-      addBarcodeItem();
-    }
-  }, []);
-
-  const addBarcodeItem = () => {
-    const newBarcode: BarcodeItem = {
-      id: crypto.randomUUID(),
-      text: "",
-      type: "CODE128",
-      quantity: 1,
-    };
-    setBarcodes((prev) => [...prev, newBarcode]);
-  };
-
-  const updateBarcodeItem = (id: string, updates: Partial<BarcodeItem>) => {
-    setBarcodes((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
-    );
-  };
-
-  const removeBarcodeItem = (id: string) => {
-    setBarcodes((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const clearAllBarcodes = () => {
-    setBarcodes([]);
-    setTimeout(addBarcodeItem, 10);
-  };
-
-  const generateBarcodes = () => {
-    setIsGenerating(true);
-    try {
-      // تأكد من وجود باركود واحد على الأقل بنص غير فارغ
-      if (!barcodes.some(b => b.text)) {
-        throw new Error("يرجى إدخال نص للباركود أولاً");
-      }
-
-      // مسح المراجع القديمة
-      barcodeRefs.current = {};
-
-      // إنشاء الباركود بعد تأخير قصير للتأكد من وجود العناصر في DOM
-      setTimeout(() => {
-        barcodes.forEach((barcode) => {
-          if (!barcode.text) return;
-
-          barcodeRefs.current[barcode.id] = [];
-
-          for (let i = 0; i < barcode.quantity; i++) {
-            const element = document.getElementById(`barcode-${barcode.id}-${i}`) as SVGSVGElement;
-
-            if (element) {
-              try {
-                // مسح المحتوى السابق
-                while (element.firstChild) {
-                  element.removeChild(element.firstChild);
-                }
-
-                if (barcode.type === "QR") {
-                  // لاحقًا يمكن تنفيذ منطق QR code هنا
-                  console.log("QR code generation not implemented yet");
-                } else {
-                  JsBarcode(element, barcode.text, {
-                    format: barcode.type,
-                    displayValue: true,
-                    lineColor: "#000",
-                    width: 2,
-                    height: 80,
-                    margin: 10,
-                    valid: (valid) => {
-                      if (!valid) {
-                        throw new Error(`النص "${barcode.text}" غير صالح لنوع الباركود ${barcode.type}`);
-                      }
-                    }
-                  });
-                }
-
-                // حفظ المرجع
-                barcodeRefs.current[barcode.id][i] = element;
-              } catch (innerError) {
-                console.error(
-                  "خطأ في إنشاء باركود فردي:",
-                  innerError
-                );
-              }
-            }
-          }
-        });
-
-        setIsGenerating(false);
-        toast({
-          title: "تم إنشاء الباركود",
-          description: "تم إنشاء الباركود بنجاح",
-        });
-      }, 100);
-    } catch (error) {
-      setIsGenerating(false);
-      toast({
-        title: "خطأ",
-        description: error instanceof Error ? error.message : "حدث خطأ أثناء إنشاء الباركود",
-        variant: "destructive",
-      });
-      console.error("خطأ في إنشاء الباركود:", error);
-    }
-  };
-
-  const printRef2 = useRef(null);
-
-  const { handlePrint } = useReactToPrint({
-    content: () => printRef2.current,
-    onBeforePrint: () => setIsPrinting(true),
-    onAfterPrint: () => {
-      setIsPrinting(false);
-      setSelectedBarcode(null);
-    },
-    onPrintError: () => {
-      setIsPrinting(false);
-      toast({
-        title: "خطأ في الطباعة",
-        description: "حدث خطأ أثناء محاولة الطباعة، يرجى المحاولة مرة أخرى",
-        variant: "destructive",
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+    onBeforeGetContent: () => {
+      return new Promise((resolve) => {
+        generateBarcodes();
+        resolve();
       });
     },
-    removeAfterPrint: false,
-    copyStyles: true,
-    documentTitle: "الباركود المطبوع",
     pageStyle: `
       @page {
-        size: auto;
+        size: A4;
         margin: 10mm;
       }
       @media print {
-        html, body {
-          height: 100%;
-          margin: 0 !important;
-          padding: 0 !important;
+        body {
+          margin: 0;
+          padding: 0;
         }
-        .print-container {
-          break-inside: avoid;
+        .print-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 5mm;
           page-break-inside: avoid;
+        }
+        .print-item {
+          padding: 2mm;
+          text-align: center;
         }
       }
     `,
   });
 
-  // وظيفة لتحديد باركود للطباعة
-  const handlePrintBarcode = (barcode: BarcodeItem) => {
-    setSelectedBarcode(barcode);
+  const addBarcodeItem = () => {
+    const newBarcode: BarcodeItem = {
+      id: Date.now().toString(),
+      text: "",
+      type: "CODE128",
+      quantity: 1,
+    };
+    setBarcodes([...barcodes, newBarcode]);
+  };
 
-    // إنشاء الباركود في نافذة الطباعة بعد فتح النافذة
-    setTimeout(() => {
-      const element = document.getElementById(`print-barcode-${barcode.id}`) as SVGSVGElement;
-      if (element && barcode.text) {
-        if (barcode.type === "QR") {
-          // لاحقًا يمكن تنفيذ منطق QR code هنا
-          console.log("QR code generation not implemented yet");
-        } else {
-          try {
-            JsBarcode(element, barcode.text, {
+  const removeBarcodeItem = (id: string) => {
+    setBarcodes(barcodes.filter(b => b.id !== id));
+  };
+
+  const updateBarcodeItem = (id: string, updates: Partial<BarcodeItem>) => {
+    setBarcodes(barcodes.map(b => b.id === id ? { ...b, ...updates } : b));
+  };
+
+  const generateBarcodes = () => {
+    setIsGenerating(true);
+    try {
+      barcodes.forEach(barcode => {
+        const refs = barcodeRefs.current[barcode.id] || [];
+        refs.forEach(ref => {
+          if (ref && barcode.text) {
+            JsBarcode(ref, barcode.text, {
               format: barcode.type,
-              displayValue: true,
-              lineColor: "#000",
               width: 2,
               height: 80,
+              displayValue: true,
+              font: "monospace",
+              fontSize: 14,
               margin: 10,
             });
-          } catch (error) {
-            console.error("خطأ في إنشاء باركود الطباعة:", error);
           }
-        }
-      }
-    }, 300);
+        });
+      });
+    } catch (error) {
+      console.error("خطأ في إنشاء الباركود:", error);
+    }
+    setIsGenerating(false);
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      <div className="flex-none border-r border-border">
-        <SidebarProvider>
-          <Sidebar />
-        </SidebarProvider>
+    <div className="flex h-screen">
+      <div className="w-64 h-full">
+        <Sidebar />
       </div>
-      <main className="flex-1 p-8 overflow-auto">
+      <main className="flex-1 p-8">
         <div className="max-w-4xl mx-auto space-y-6">
           <div>
             <h2 className="text-3xl font-bold">إنشاء الباركود</h2>
@@ -241,30 +131,23 @@ export default function BarcodesPage() {
           </div>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
               <CardTitle>إنشاء باركود جديد</CardTitle>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={clearAllBarcodes}>
-                  <RefreshCw className="h-4 w-4 ml-2" />
-                  مسح الكل
-                </Button>
-                <Button onClick={addBarcodeItem}>
-                  <Plus className="h-4 w-4 ml-2" />
-                  إضافة باركود
-                </Button>
-              </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              <Button onClick={addBarcodeItem}>
+                <Plus className="h-4 w-4 ml-2" />
+                إضافة باركود جديد
+              </Button>
+
               <div className="space-y-4">
                 {barcodes.map((barcode) => (
-                  <div key={barcode.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-card">
+                  <div key={barcode.id} className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-lg">
                     <div>
                       <label className="text-sm font-medium">نوع الباركود</label>
                       <Select
                         value={barcode.type}
-                        onValueChange={(value) =>
-                          updateBarcodeItem(barcode.id, { type: value })
-                        }
+                        onValueChange={(value) => updateBarcodeItem(barcode.id, { type: value })}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="اختر نوع الباركود" />
@@ -283,11 +166,7 @@ export default function BarcodesPage() {
                       <label className="text-sm font-medium">النص</label>
                       <Input
                         value={barcode.text}
-                        onChange={(e) =>
-                          updateBarcodeItem(barcode.id, {
-                            text: e.target.value,
-                          })
-                        }
+                        onChange={(e) => updateBarcodeItem(barcode.id, { text: e.target.value })}
                         placeholder="أدخل النص أو الرقم"
                         dir="ltr"
                       />
@@ -300,11 +179,7 @@ export default function BarcodesPage() {
                         min="1"
                         max="100"
                         value={barcode.quantity}
-                        onChange={(e) =>
-                          updateBarcodeItem(barcode.id, {
-                            quantity: Number(e.target.value),
-                          })
-                        }
+                        onChange={(e) => updateBarcodeItem(barcode.id, { quantity: Number(e.target.value) })}
                         placeholder="عدد النسخ المطلوبة"
                       />
                     </div>
@@ -322,164 +197,49 @@ export default function BarcodesPage() {
                 ))}
               </div>
 
-              <div className="flex gap-4 mt-4 justify-end">
-                <Button
-                  onClick={generateBarcodes}
-                  disabled={
-                    barcodes.length === 0 ||
-                    isGenerating ||
-                    !barcodes.some((b) => b.text)
-                  }
-                  className="flex-1 md:flex-none"
+              <div className="flex gap-2">
+                <Button 
+                  onClick={generateBarcodes} 
+                  disabled={barcodes.length === 0 || isGenerating || !barcodes.some(b => b.text)}
                 >
-                  {isGenerating ? (
-                    <Loader2 className="h-4 w-4 animate-spin ml-2" />
-                  ) : (
-                    <QrCode className="h-4 w-4 ml-2" />
-                  )}
+                  {isGenerating && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
+                  <QrCode className="h-4 w-4 ml-2" />
                   إنشاء الباركود
                 </Button>
-
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    if (barcodes.length > 0 && barcodes[0].text) {
-                      handlePrintBarcode(barcodes[0]);
-                    }
-                  }}
-                  disabled={
-                    barcodes.length === 0 ||
-                    isGenerating ||
-                    !barcodes.some((b) => b.text)
-                  }
-                  className="flex-1 md:flex-none"
-                >
+                <Button variant="outline" onClick={() => {
+                  generateBarcodes();
+                  setTimeout(handlePrint, 100);
+                }}>
                   <Printer className="h-4 w-4 ml-2" />
                   طباعة
                 </Button>
               </div>
 
-              <div id="print-content" ref={printRef2} className="mt-6 p-4 border rounded-lg print-container">
-                <h3 className="text-lg font-bold mb-4 text-center print:block">الباركود المطبوع</h3>
+              <div ref={printRef} className="mt-6 p-4 border rounded-lg">
                 {barcodes.map((barcode) => (
-                  barcode.text ? (
-                    <div key={barcode.id} className="mb-6">
-                      <div className="mb-2 font-medium">{barcode.text}</div>
-                      <div className="print-grid grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {Array.from({ length: barcode.quantity }).map((_, index) => (
-                          <div key={index} className="print-item border p-4 rounded print:border-none text-center">
-                            <svg
-                              id={`barcode-${barcode.id}-${index}`}
-                              className="w-full mx-auto"
-                            ></svg>
-                          </div>
-                        ))}
-                      </div>
+                  <div key={barcode.id} className="mb-6">
+                    <div className="print-grid grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {Array.from({ length: barcode.quantity }).map((_, index) => (
+                        <div key={index} className="print-item border p-2 rounded print:border-none">
+                          <svg
+                            ref={(el) => {
+                              if (!barcodeRefs.current[barcode.id]) {
+                                barcodeRefs.current[barcode.id] = [];
+                              }
+                              barcodeRefs.current[barcode.id][index] = el;
+                            }}
+                            className="w-full"
+                          ></svg>
+                        </div>
+                      ))}
                     </div>
-                  ) : null
+                  </div>
                 ))}
               </div>
             </CardContent>
           </Card>
         </div>
       </main>
-      {/* نافذة حوار طباعة باركود */}
-      <Dialog open={!!selectedBarcode} onOpenChange={(open) => !open && setSelectedBarcode(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>طباعة الباركود</DialogTitle>
-            <DialogDescription>معاينة وطباعة الباركود المحدد</DialogDescription>
-          </DialogHeader>
-
-          {selectedBarcode && (
-            <div className="flex flex-col gap-4">
-              <div className="flex justify-between items-center">
-                <span className="font-bold">النوع: {selectedBarcode?.type}</span>
-                <span className="font-bold">النص: {selectedBarcode?.text}</span>
-              </div>
-
-              <div className="print-container" ref={printRef}>
-                <div className="text-center">
-                  {selectedBarcode.type === "QR" ? (
-                    <div className="qr-code-placeholder h-64 w-64 mx-auto border border-dashed border-gray-300 flex items-center justify-center">
-                      <span className="text-gray-500">محتوى QR (قيد التطوير)</span>
-                    </div>
-                  ) : (
-                    <div className="barcode-container">
-                      <svg id={`print-barcode-${selectedBarcode.id}`} className="w-full"></svg>
-                    </div>
-                  )}
-                  <div className="mt-2">{selectedBarcode.text}</div>
-                </div>
-              </div>
-
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={() => setSelectedBarcode(null)}>
-                  إلغاء
-                </Button>
-                <Button onClick={handlePrint} disabled={isPrinting}>
-                  {isPrinting ? "جاري الطباعة..." : "طباعة"}
-                </Button>
-              </div>
-            </div>
-          )}
-
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
-
-<style jsx global>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          .print-container,
-          .print-container * {
-            visibility: visible;
-          }
-          .print-container {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            border: none !important;
-          }
-          .print-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-          }
-          .print-item {
-            break-inside: avoid;
-            page-break-inside: avoid;
-          }
-        }e;
-            position: relative;
-          }
-          .print-container {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: auto;
-          }
-          .no-print {
-            display: none !important;
-          }
-          }
-        }
-
-        .barcode-container {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-        }
-
-        .barcode-item {
-          padding: 15px;
-          border: 1px solid #ddd;
-          border-radius: 5px;
-        }
-      `}</style>

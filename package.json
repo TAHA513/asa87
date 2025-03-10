@@ -19,7 +19,6 @@
     "@fontsource/noto-kufi-arabic": "^5.1.1",
     "@fontsource/reem-kufi": "^5.1.1",
     "@fontsource/tajawal": "^5.1.1",
-    "@headlessui/react": "^2.2.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@neondatabase/serverless": "^0.10.4",
