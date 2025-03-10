@@ -1,8 +1,7 @@
+
 {
-  "primary": "hsl(142.1 76.2% 36.3%)",
-  "variant": "modern",
-  "appearance": "dark",
-  "fontStyle": "noto-kufi",
-  "fontSize": "medium",
-  "radius": 0.5
+  "name": "default",
+  "variant": "default",
+  "radius": "0.5rem",
+  "accentColor": "indigo"
 }
