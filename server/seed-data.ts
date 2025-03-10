@@ -1,4 +1,4 @@
-import { connectionPool, db } from './connection-pool';
+import { connectionPool, db, sql } from './connection-pool';
 import { users, products, productCategories, customers } from '../shared/schema';
 import bcrypt from 'bcryptjs';
 import { storage } from "./storage";
