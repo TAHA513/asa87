@@ -256,7 +256,6 @@ export default function Sales() {
         });
       }
     }
-
     return acc;
   }, []);
 
