@@ -1,9 +1,8 @@
-
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { queryClient } from "@/lib/query-client";
+import { queryClient } from "@/lib/queryClient"; //Corrected import statement
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2, Plus, Phone, Mail, MapPin, Tag, Building, User, Landmark, FileText, Trash, Edit, Package } from "lucide-react";
@@ -303,10 +302,10 @@ export default function SuppliersPage() {
       supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       supplier.contactPerson.toLowerCase().includes(searchTerm.toLowerCase()) ||
       supplier.phone.includes(searchTerm);
-    
+
     const matchesCategory = !filterCategory || 
       supplier.categories.includes(filterCategory);
-    
+
     return matchesSearch && matchesCategory;
   });
 
@@ -598,7 +597,7 @@ export default function SuppliersPage() {
                     <TabsTrigger value="cards">بطاقات</TabsTrigger>
                     <TabsTrigger value="table">جدول</TabsTrigger>
                   </TabsList>
-                  
+
                   <TabsContent value="cards">
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                       {filteredSuppliers.map((supplier) => (
@@ -621,7 +620,7 @@ export default function SuppliersPage() {
                                 </p>
                               </div>
                             </div>
-                            
+
                             <div className="mt-4 space-y-2">
                               <div className="flex items-center text-sm">
                                 <Phone className="h-4 w-4 mr-2" />
@@ -652,7 +651,7 @@ export default function SuppliersPage() {
                                 </div>
                               )}
                             </div>
-                            
+
                             <div className="mt-4 flex flex-wrap gap-2">
                               {supplier.categories.map((category) => (
                                 <Badge key={category} variant="secondary">
@@ -661,13 +660,13 @@ export default function SuppliersPage() {
                                 </Badge>
                               ))}
                             </div>
-                            
+
                             {supplier.notes && (
                               <div className="mt-4 text-sm text-muted-foreground">
                                 <p>ملاحظات: {supplier.notes}</p>
                               </div>
                             )}
-                            
+
                             <div className="mt-4 pt-4 border-t flex justify-between">
                               <Button variant="outline" size="sm" onClick={() => handleEditSupplier(supplier)}>
                                 <Edit className="h-4 w-4 ml-2" />
@@ -690,7 +689,7 @@ export default function SuppliersPage() {
                       ))}
                     </div>
                   </TabsContent>
-                  
+
                   <TabsContent value="table">
                     <div className="rounded-md border overflow-hidden">
                       <div className="overflow-x-auto">
