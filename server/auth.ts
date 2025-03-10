@@ -10,7 +10,7 @@ import MemoryStore from "memorystore";
 const MemoryStoreSession = MemoryStore(session);
 
 async function hashPassword(password: string) {
-  const salt = await bcrypt.genSalt(12); // زيادة قوة التشفير
+  const salt = await bcrypt.genSalt(12);
   return bcrypt.hash(password, salt);
 }
 
@@ -19,21 +19,22 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
+  // تكوين الجلسات بشكل آمن
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || "dev_secret_key",
+    secret: process.env.SESSION_SECRET || "your-secret-key",
     resave: false,
     saveUninitialized: false,
     store: new MemoryStoreSession({
-      checkPeriod: 86400000 // prune expired entries every 24h
+      checkPeriod: 86400000, // تنظيف الجلسات منتهية الصلاحية كل 24 ساعة
+      ttl: 24 * 60 * 60 * 1000 // مدة صلاحية الجلسة 24 ساعة
     }),
+    name: 'sid', // تغيير اسم ملف تعريف الارتباط الافتراضي
     cookie: {
-      secure: process.env.NODE_ENV === "production",
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'strict',
-      path: '/'
-    },
-    name: 'sid'
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000,
+      sameSite: 'lax'
+    }
   };
 
   if (process.env.NODE_ENV === 'production') {
@@ -44,7 +45,7 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // تحسين أمان استراتيجية تسجيل الدخول
+  // تحسين استراتيجية تسجيل الدخول
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
@@ -64,17 +65,19 @@ export function setupAuth(app: Express) {
 
         // تحديث وقت آخر تسجيل دخول
         await storage.updateUser(user.id, {
+          ...user,
           lastLoginAt: new Date()
         });
 
         return done(null, user);
       } catch (err) {
+        console.error("خطأ في عملية تسجيل الدخول:", err);
         return done(err);
       }
     })
   );
 
-  passport.serializeUser((req: any, user: User, done: (err: any, id?: unknown) => void) => {
+  passport.serializeUser((user: User, done) => {
     done(null, user.id);
   });
 
@@ -89,6 +92,7 @@ export function setupAuth(app: Express) {
       }
       done(null, user);
     } catch (err) {
+      console.error("خطأ في استعادة بيانات المستخدم:", err);
       done(err);
     }
   });
@@ -106,21 +110,22 @@ export function setupAuth(app: Express) {
       const user = await storage.createUser({
         ...validatedData,
         password: hashedPassword,
+        isActive: true,
+        lastLoginAt: new Date()
       });
 
       req.login(user, (err) => {
         if (err) {
-          console.error("Login error after registration:", err);
+          console.error("خطأ في تسجيل الدخول بعد التسجيل:", err);
           return res.status(500).json({
             message: "فشل في تسجيل الدخول بعد إنشاء الحساب",
           });
         }
-        // عدم إرجاع كلمة المرور في الاستجابة
         const { password, ...userWithoutPassword } = user;
         res.status(201).json(userWithoutPassword);
       });
     } catch (err) {
-      console.error("Registration error:", err);
+      console.error("خطأ في التسجيل:", err);
       if (err instanceof Error) {
         res.status(400).json({ message: err.message });
       } else {
@@ -132,7 +137,7 @@ export function setupAuth(app: Express) {
   app.post("/api/auth/login", (req, res, next) => {
     passport.authenticate("local", (err: Error | null, user: User | false, info: { message: string } | undefined) => {
       if (err) {
-        console.error("Login error:", err);
+        console.error("خطأ في تسجيل الدخول:", err);
         return res.status(500).json({ message: "حدث خطأ أثناء تسجيل الدخول" });
       }
 
@@ -144,12 +149,11 @@ export function setupAuth(app: Express) {
 
       req.login(user, (err) => {
         if (err) {
-          console.error("Session error:", err);
+          console.error("خطأ في إنشاء الجلسة:", err);
           return res.status(500).json({
             message: "فشل في إنشاء جلسة المستخدم",
           });
         }
-        // عدم إرجاع كلمة المرور في الاستجابة
         const { password, ...userWithoutPassword } = user;
         res.json(userWithoutPassword);
       });
@@ -157,11 +161,12 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/auth/logout", (req, res) => {
-    const sessionId = req.sessionID;
+    const sessionID = req.sessionID;
+    console.log(`تسجيل خروج المستخدم للجلسة: ${sessionID}`);
 
     req.logout((err) => {
       if (err) {
-        console.error("Logout error:", err);
+        console.error("خطأ في تسجيل الخروج:", err);
         return res.status(500).json({
           message: "حدث خطأ أثناء تسجيل الخروج",
         });
@@ -169,7 +174,7 @@ export function setupAuth(app: Express) {
 
       req.session.destroy((err) => {
         if (err) {
-          console.error("Session destruction error:", err);
+          console.error("خطأ في إنهاء الجلسة:", err);
           return res.status(500).json({
             message: "حدث خطأ أثناء إنهاء الجلسة",
           });
@@ -187,7 +192,6 @@ export function setupAuth(app: Express) {
         message: "يجب تسجيل الدخول أولاً",
       });
     }
-    // عدم إرجاع كلمة المرور في الاستجابة
     const { password, ...userWithoutPassword } = req.user as User;
     res.json(userWithoutPassword);
   });
