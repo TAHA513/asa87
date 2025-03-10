@@ -30,23 +30,35 @@ export default function Barcodes() {
   }
 
 
-/* أنماط للطباعة */
-@media print {
-  .barcode-item {
-    page-break-inside: avoid;
-    margin: 20mm 0;
-    text-align: center;
-  }
-  
-  .print-container {
-    display: block !important;
-  }
-  
-  @page {
-    size: A4;
-    margin: 10mm;
-  }
-}
+// أنماط الطباعة
+  useEffect(() => {
+    // إضافة أنماط الطباعة كعنصر style
+    const printStyles = document.createElement('style');
+    printStyles.innerHTML = `
+      @media print {
+        .barcode-item {
+          page-break-inside: avoid;
+          margin: 20mm 0;
+          text-align: center;
+        }
+        
+        .print-container {
+          display: block !important;
+        }
+        
+        @page {
+          size: A4;
+          margin: 10mm;
+        }
+      }
+    `;
+    document.head.appendChild(printStyles);
+    
+    // تنظيف عند إزالة المكون
+    return () => {
+      document.head.removeChild(printStyles);
+    };
+  }, []);
 
   // توليد الباركود عند تغيير أي من الخيارات
   useEffect(() => {
