@@ -360,16 +360,19 @@ if (ENABLE_CLUSTERING && cluster.isPrimary) {
       // استخدام خادم HTTP واحد لكل التطبيقات
       const httpServer = createServer(app);
 
-      // إعداد Socket.IO مع إعدادات محسنة
+      // إعداد Socket.IO مع إعدادات مُحسّنة ومُبسّطة
       const io = new SocketServer(httpServer, {
         cors: {
-          origin: "*", // السماح لجميع الأصول
+          origin: "*",
+          methods: ["GET", "POST"],
           credentials: true
         },
-        // تحسين الأداء
-        transports: ['websocket', 'polling'], // تفضيل WebSocket لأداء أفضل
-        maxHttpBufferSize: 1e6, // 1MB كحد أقصى لحجم الرسائل
-        connectTimeout: 10000, // مهلة الاتصال 10 ثوانٍ
+        transports: ['websocket', 'polling'],
+        connectTimeout: 30000, // زيادة مهلة الاتصال
+        pingTimeout: 30000, // زيادة مهلة الـ ping
+        upgradeTimeout: 30000, // زيادة مهلة الترقية
+        pingInterval: 25000, // تحديد فاصل الـ ping
+        cookie: false // تعطيل ملفات تعريف الارتباط لتبسيط الاتصال
       });
 
       // Socket.IO error handling

@@ -24,13 +24,28 @@ export default defineConfig({
   ],
   server: {
     hmr: {
-      overlay: false, // تعطيل طبقة الخطأ
-      clientPort: 443, // استخدام منفذ HTTPS للـ WebSocket
-      host: 'localhost', // استخدام localhost للـ HMR
+      overlay: false,
+      protocol: 'wss',
+      host: 'localhost',
+      port: 443,
+      timeout: 30000, // زيادة مهلة الاتصال
+      clientPort: 443,
     },
-    host: '0.0.0.0', // استماع على جميع الواجهات
-    port: 3000, // منفذ واضح لخادم التطوير
-    strictPort: true // إيقاف التشغيل إذا كان المنفذ مستخدماً
+    host: '0.0.0.0',
+    port: 3000,
+    strictPort: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false
+      },
+      '/socket.io': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        ws: true
+      }
+    }
   },
   resolve: {
     alias: {
