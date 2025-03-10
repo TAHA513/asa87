@@ -1,11 +1,7 @@
 
 {
   "name": "default",
-  "primary": "hsl(142.1 76.2% 36.3%)",
   "variant": "default",
   "radius": "0.5rem",
-  "accentColor": "indigo",
-  "appearance": "dark",
-  "fontStyle": "noto-kufi",
-  "fontSize": "medium"
+  "accentColor": "indigo"
 }
