@@ -36,10 +36,13 @@ export async function setupVite(
       hmr: {
         timeout: 60000, // زيادة مهلة HMR إلى 60 ثانية
         protocol: 'ws',
-        clientPort: 5000, // استخدام المنفذ المحدد في الإعدادات
+        clientPort: 443, // استخدام المنفذ المناسب لـ Replit
+        host: 'localhost',
         overlay: false, // تعطيل overlay للأخطاء في الواجهة
         reconnect: 10 // محاولات إعادة الاتصال
-      }
+      },
+      cors: true,
+      allowedHosts: 'all' // السماح لجميع المضيفات
     },
     appType: "spa",
     logLevel: "info",
