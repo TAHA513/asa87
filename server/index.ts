@@ -1,42 +1,34 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import fileUpload from "express-fileupload";
 import path from "path";
 import session from "express-session";
 import MemoryStore from 'memorystore';
-import { createServer, type Server } from "http";
+import { createServer } from "http";
 import { setupAuth } from "./auth";
 import compression from 'compression';
-import cluster from 'cluster';
-import http from 'http';
-import { cpus } from 'os';
-import { seedDatabase } from './seed-data';
 import { testDatabaseConnection } from './test-db-connection';
-import { connectionPool, db as databaseConnection } from "./connection-pool";
-import { sql } from "./db";
+import { connectionPool } from "./connection-pool";
+import { cpus } from 'os';
+import cluster from 'cluster';
 
-
-// Only use clustering in production, use single process in development for easier debugging
-const ENABLE_CLUSTERING = process.env.NODE_ENV === 'production' && process.env.DISABLE_CLUSTERING !== 'true';
-const numCPUs = Math.min(cpus().length, 2); // Limit to 2 workers in Replit environment
-
-// Improved error handling
+// تحسين معالجة الأخطاء العامة
 process.on('uncaughtException', (error) => {
-  console.error('Uncaught exception:', error);
-  // Give time for logs to be written
+  console.error('خطأ غير متوقع:', error);
   setTimeout(() => process.exit(1), 1000);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled rejection:', promise, 'Reason:', reason);
+  console.error('وعد مرفوض غير معالج:', promise, 'السبب:', reason);
 });
 
-// Cluster primary process
+// Only use clustering in production
+const ENABLE_CLUSTERING = process.env.NODE_ENV === 'production' && process.env.DISABLE_CLUSTERING !== 'true';
+const numCPUs = Math.min(cpus().length, 2); // Limit to 2 workers in Replit environment
+
 if (ENABLE_CLUSTERING && cluster.isPrimary) {
   console.log(`Master process ${process.pid} is running`);
 
-  // Fork workers
   for (let i = 0; i < numCPUs; i++) {
     cluster.fork();
   }
@@ -46,20 +38,17 @@ if (ENABLE_CLUSTERING && cluster.isPrimary) {
     cluster.fork();
   });
 } else {
-  // This code will be executed by each worker process or by the main process if clustering is disabled
-  const MemoryStoreSession = MemoryStore(session);
-
-  // Create Express app
+  // إنشاء تطبيق Express
   const app = express();
 
-  // Apply basic middleware
+  // الإعدادات الأساسية
+  app.use(compression());
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: false, limit: '1mb' }));
-  app.use(compression());
 
-  // Session configuration
-  const sessionStore = new MemoryStoreSession({
-    checkPeriod: 86400000, // 24 hours
+  // إعداد الجلسات
+  const sessionStore = new (MemoryStore(session))({
+    checkPeriod: 86400000,
     ttl: 86400,
     noDisposeOnSet: true
   });
@@ -80,7 +69,7 @@ if (ENABLE_CLUSTERING && cluster.isPrimary) {
 
   app.use(sessionMiddleware);
 
-  // Request logging for debugging
+  // تسجيل الطلبات للتشخيص
   app.use((req, res, next) => {
     if (!req.path.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg)$/)) {
       console.log(`${new Date().toISOString()} [${req.method}] ${req.path}`);
@@ -88,25 +77,17 @@ if (ENABLE_CLUSTERING && cluster.isPrimary) {
     next();
   });
 
-  // Error handling middleware
+  // معالجة الأخطاء
   const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
-    console.error('Server error:', err);
-
-    if (res.headersSent) {
-      return next(err);
-    }
-
+    console.error('خطأ في الخادم:', err);
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Server error";
-
-    res.status(status).json({ 
-      error: true,
-      message,
-      code: err.code || 'SERVER_ERROR'
-    });
+    const message = err.message || "خطأ في الخادم";
+    res.status(status).json({ error: true, message, code: err.code || 'SERVER_ERROR' });
   };
 
-  // Advanced health check endpoint
+  app.use(errorHandler);
+
+  // فحص الصحة
   app.get('/health', (req, res) => {
     const health = {
       status: 'ok',
@@ -117,60 +98,46 @@ if (ENABLE_CLUSTERING && cluster.isPrimary) {
     res.json(health);
   });
 
-  // Setup routes
+  // إعداد المسارات
   try {
-    console.log('Starting to register routes...');
+    console.log('بدء تسجيل المسارات...');
     registerRoutes(app);
-    console.log('Routes registered successfully');
+    console.log('تم تسجيل المسارات بنجاح');
 
-    app.use(errorHandler);
-
-    // Create HTTP server
+    // إنشاء خادم HTTP
     const server = createServer(app);
+    const port = process.env.PORT || 5000;
 
-    // Setup development environment
+    // إعداد بيئة التطوير
     if (process.env.NODE_ENV !== 'production') {
-      console.log('Setting up development environment with Vite...');
+      console.log('إعداد بيئة التطوير مع Vite...');
       try {
-        await setupVite(app, server);
-        console.log('Vite setup completed successfully');
+        setupVite(app, server);
+        console.log('تم إعداد Vite بنجاح');
       } catch (error) {
-        console.error('Error setting up Vite:', error);
-        console.log('Falling back to static serving...');
+        console.error('خطأ في إعداد Vite:', error);
+        console.log('الرجوع إلى الخدمة الثابتة...');
         serveStatic(app);
       }
     } else {
       serveStatic(app);
     }
 
-    // Start server with improved error handling
-    const port = process.env.PORT || 5000;
+    // بدء الخادم
     server.listen(port, '0.0.0.0', () => {
-      console.log(`Server is running on port ${port} (${process.env.NODE_ENV} mode)`);
-      console.log(`Worker ${process.pid} started`);
+      console.log(`الخادم يعمل على المنفذ ${port} (وضع ${process.env.NODE_ENV})`);
+      console.log(`العامل ${process.pid} بدأ`);
     });
 
-    server.on('error', (error: any) => {
-      if (error.syscall !== 'listen') {
-        throw error;
-      }
-
-      switch (error.code) {
-        case 'EACCES':
-          console.error(`Port ${port} requires elevated privileges`);
-          process.exit(1);
-          break;
-        case 'EADDRINUSE':
-          console.error(`Port ${port} is already in use`);
-          process.exit(1);
-          break;
-        default:
-          throw error;
-      }
+    // اختبار اتصال قاعدة البيانات
+    testDatabaseConnection().then(() => {
+      console.log('تم الاتصال بقاعدة البيانات بنجاح');
+    }).catch(error => {
+      console.error('فشل الاتصال بقاعدة البيانات:', error);
     });
 
   } catch (error) {
-    console.error('Fatal error during server startup:', error);
+    console.error('خطأ فادح أثناء بدء تشغيل الخادم:', error);
     process.exit(1);
   }
 }

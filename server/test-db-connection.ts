@@ -30,16 +30,14 @@ async function testDatabaseConnection() {
   } catch (error) {
     console.error('فشل الاتصال بقاعدة البيانات:', error);
     return false;
-  } finally {
-    // يمكن ترك الاتصال مفتوحًا هنا للاستخدام اللاحق
   }
 }
 
 // تصدير الوظيفة لاستخدامها في ملفات أخرى
 export { testDatabaseConnection };
 
-// تنفيذ السكريبت مباشرة عند تشغيله
-if (require.main === module) {
+// استدعاء الوظيفة مباشرة إذا تم تشغيل الملف بشكل مباشر
+if (import.meta.url === import.meta.url) {
   testDatabaseConnection().then(success => {
     if (!success) {
       process.exit(1);
