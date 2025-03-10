@@ -6,7 +6,7 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2, Plus, Phone, Mail, MapPin, Tag, Building, User, Landmark, FileText, Trash, Edit, Package } from "lucide-react";
-import { Sidebar, SidebarContent, SidebarMenu } from "@/components/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarMenu, SidebarProvider } from "@/components/ui/sidebar";
 
 import {
   Card,
@@ -55,9 +55,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-//import { SidebarNav } from "@/components/ui/sidebar"; //Import SidebarNav
-import { SidebarProvider } from "@/components/ui/sidebar"; //Import SidebarProvider
-
 
 // تعريف أنواع البيانات
 type Supplier = {
@@ -330,6 +327,7 @@ export default function SuppliersPage() {
 
   // عرض الصفحة الرئيسية
   return (
+    <SidebarProvider>
     <div className="flex h-screen">
       <div className="w-64 h-full">
         <Sidebar />
@@ -796,5 +794,6 @@ export default function SuppliersPage() {
           </DialogContent>
         </Dialog>
       </div>
+    </SidebarProvider>
   );
 }
