@@ -143,16 +143,13 @@ export default function BarcodesPage() {
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
-    documentTitle: "الباركود المطبوع",
-    onBeforePrint: () => {
-      console.log("جاري الطباعة...", printRef.current);
-    },
-    onAfterPrint: () => {
-      toast({
-        title: "تمت الطباعة بنجاح",
-        description: "تم طباعة الباركود بنجاح",
+    onBeforeGetContent: () => {
+      return new Promise((resolve) => {
+        generateBarcodes();
+        setTimeout(resolve, 500);
       });
     },
+    removeAfterPrint: true,
   });
 
   return (
@@ -270,14 +267,7 @@ export default function BarcodesPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    generateBarcodes();
-                    setTimeout(() => {
-                      if (printRef.current) {
-                        handlePrint();
-                      }
-                    }, 500);
-                  }}
+                  onClick={handlePrint}
                   disabled={
                     barcodes.length === 0 ||
                     isGenerating ||
@@ -316,3 +306,36 @@ export default function BarcodesPage() {
     </div>
   );
 }
+
+<style jsx>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .print-container,
+          .print-container * {
+            visibility: visible;
+          }
+          .print-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+          .no-print {
+            display: none !important;
+          }
+        }
+
+        .barcode-container {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .barcode-item {
+          padding: 15px;
+          border: 1px solid #ddd;
+          border-radius: 5px;
+        }
+      `}</style>
