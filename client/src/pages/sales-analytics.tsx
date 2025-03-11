@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-export default function SalesAnalytics() {
+export function SalesAnalytics() {
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
