@@ -903,8 +903,8 @@ export class DatabaseStorage {
   // وظائف إعدادات المتجر
   async getStoreSettings(): Promise<any> {
     try {
-      // استخدام db مباشرة بدلا من this.db
-      const tableExists = await db.execute(sql`
+      // التحقق من وجود جدول إعدادات المتجر
+      const tableExists = await this.db.execute(sql`
         SELECT EXISTS (
           SELECT FROM information_schema.tables 
           WHERE table_schema = 'public' 
@@ -913,7 +913,7 @@ export class DatabaseStorage {
       `);
 
       if (!tableExists?.rows?.[0]?.exists) {
-        await db.execute(sql`
+        await this.db.execute(sql`
           CREATE TABLE store_settings (
             id SERIAL PRIMARY KEY,
             name VARCHAR(255) NOT NULL,
@@ -930,13 +930,13 @@ export class DatabaseStorage {
         `);
 
         // إنشاء سجل افتراضي
-        await db.execute(sql`
+        await this.db.execute(sql`
           INSERT INTO store_settings (name, address, phone) 
           VALUES ('متجري', 'العراق', '07xxxxxxxxx');
         `);
       }
 
-      const result = await db.execute(sql`
+      const result = await this.db.execute(sql`
         SELECT * FROM store_settings ORDER BY id DESC LIMIT 1;
       `);
 
@@ -969,7 +969,7 @@ export class DatabaseStorage {
       await this.getStoreSettings();
 
       // تحديث الإعدادات
-      const result = await db.execute(sql`
+      const result = await this.db.execute(sql`
         UPDATE store_settings
         SET 
           name = ${settings.name || ''},

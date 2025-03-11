@@ -1338,41 +1338,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/store-settings", async (req, res) => {
     try {
       console.log("جاري جلب إعدادات المتجر...");
-      let settings;
+      
+      // تحقق من وجود جدول إعدادات المتجر
       try {
-        settings = await storage.getStoreSettings();
-        console.log("تم جلب إعدادات المتجر من قاعدة البيانات:", settings);
-      } catch (dbError) {
-        console.error("خطأ في جلب إعدادات المتجر من قاعدة البيانات:", dbError);
-        settings = null;
+        const tableExists = await db.execute(sql`
+          SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'store_settings'
+          );
+        `);
+        
+        if (!tableExists.rows?.[0]?.exists) {
+          console.log("جدول إعدادات المتجر غير موجود، سيتم إنشاؤه");
+          await db.execute(sql`
+            CREATE TABLE IF NOT EXISTS store_settings (
+              id SERIAL PRIMARY KEY,
+              store_name VARCHAR(255) NOT NULL,
+              store_address TEXT,
+              store_phone VARCHAR(255),
+              store_email VARCHAR(255),
+              tax_number VARCHAR(255),
+              logo_url TEXT,
+              receipt_notes TEXT,
+              enable_logo BOOLEAN NOT NULL DEFAULT true,
+              created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+          `);
+          
+          // إضافة بيانات افتراضية
+          await db.execute(sql`
+            INSERT INTO store_settings 
+            (store_name, store_address, store_phone, receipt_notes, enable_logo) 
+            VALUES ('نظام SAS للإدارة', 'العراق', '07xxxxxxxxx', 'شكراً لتعاملكم معنا', true);
+          `);
+          console.log("تم إنشاء جدول إعدادات المتجر وإضافة البيانات الافتراضية");
+        }
+      } catch (tableError) {
+        console.error("خطأ أثناء التحقق من جدول إعدادات المتجر:", tableError);
       }
       
-      // إرجاع الإعدادات الافتراضية إذا لم تكن موجودة
-      const defaultSettings = {
-        storeName: "نظام SAS للإدارة",
-        storeAddress: "",
-        storePhone: "",
-        storeEmail: "",
-        taxNumber: "",
-        logoUrl: "",
-        receiptNotes: "شكراً لتعاملكم معنا",
-        enableLogo: true
-      };
+      // جلب إعدادات المتجر
+      const result = await db.execute(sql`
+        SELECT * FROM store_settings ORDER BY id DESC LIMIT 1;
+      `);
       
-      res.json(settings || defaultSettings);
+      if (result.rows && result.rows.length > 0) {
+        const settings = {
+          id: result.rows[0].id,
+          storeName: result.rows[0].store_name,
+          storeAddress: result.rows[0].store_address,
+          storePhone: result.rows[0].store_phone,
+          storeEmail: result.rows[0].store_email,
+          taxNumber: result.rows[0].tax_number,
+          logoUrl: result.rows[0].logo_url,
+          receiptNotes: result.rows[0].receipt_notes,
+          enableLogo: result.rows[0].enable_logo,
+          createdAt: result.rows[0].created_at,
+          updatedAt: result.rows[0].updated_at
+        };
+        console.log("تم جلب إعدادات المتجر بنجاح:", settings);
+        return res.json(settings);
+      } else {
+        // إرجاع قيم افتراضية إذا لم يتم العثور على إعدادات
+        console.log("لم يتم العثور على إعدادات المتجر، إرجاع القيم الافتراضية");
+        return res.json({
+          storeName: "نظام SAS للإدارة",
+          storeAddress: "العراق",
+          storePhone: "07xxxxxxxxx",
+          storeEmail: "",
+          taxNumber: "",
+          logoUrl: "",
+          receiptNotes: "شكراً لتعاملكم معنا",
+          enableLogo: true
+        });
+      }
     } catch (error) {
-      console.error("Error fetching store settings:", error);
-      // إرجاع الإعدادات الافتراضية في حالة الخطأ
-      res.json({
-        storeName: "نظام SAS للإدارة",
-        storeAddress: "",
-        storePhone: "",
-        storeEmail: "",
-        taxNumber: "",
-        logoUrl: "",
-        receiptNotes: "شكراً لتعاملكم معنا",
-        enableLogo: true
-      });
+      console.error("خطأ في جلب إعدادات المتجر:", error);
+      res.status(500).json({ message: "فشل في جلب إعدادات المتجر" });
     }
   });
 
@@ -1388,58 +1432,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let logoUrl = req.body.logoUrl;
 
       if (req.files && req.files.logo) {
-        try {
-          const file = req.files.logo;
-          const fileName = `store-logo-${Date.now()}-${file.name}`;
-          const filePath = path.join(process.cwd(), "uploads", fileName);
+        const file = req.files.logo;
+        const fileName = `store-logo-${Date.now()}-${file.name}`;
+        const filePath = path.join(process.cwd(), "uploads", fileName);
 
-          // إنشاء مجلد التحميلات إذا لم يكن موجوداً
-          await fs.mkdir(path.join(process.cwd(), "uploads"), { recursive: true });
+        // إنشاء مجلد التحميلات إذا لم يكن موجوداً
+        await fs.mkdir(path.join(process.cwd(), "uploads"), { recursive: true });
 
-          // حفظ الملف
-          await fs.writeFile(filePath, file.data);
+        // حفظ الملف
+        await fs.writeFile(filePath, file.data);
 
-          // تعيين رابط الشعار
-          logoUrl = `/uploads/${fileName}`;
-          console.log("تم رفع الشعار:", logoUrl);
-        } catch (fileError) {
-          console.error("خطأ في رفع الشعار:", fileError);
-          // استمر بدون تغيير الشعار في حالة الخطأ
-        }
+        // تعيين رابط الشعار
+        logoUrl = `/uploads/${fileName}`;
+        console.log("تم رفع الشعار:", logoUrl);
       }
 
-      // تجهيز بيانات الإعدادات للحفظ
-      const settingsData = {
-        storeName: req.body.storeName || "نظام SAS للإدارة",
-        storeAddress: req.body.storeAddress || "",
-        storePhone: req.body.storePhone || "",
-        storeEmail: req.body.storeEmail || "",
-        taxNumber: req.body.taxNumber || "",
-        receiptNotes: req.body.receiptNotes || "شكراً لتعاملكم معنا",
-        enableLogo: req.body.enableLogo === "true" || req.body.enableLogo === true,
-        logoUrl: logoUrl || ""
-      };
-
-      console.log("البيانات المجهزة للحفظ:", settingsData);
-
-      // حفظ الإعدادات في قاعدة البيانات
-      let settings;
-      try {
-        settings = await storage.updateStoreSettings(settingsData);
-        console.log("تم تحديث إعدادات المتجر:", settings);
-      } catch (dbError) {
-        console.error("خطأ في تحديث إعدادات المتجر في قاعدة البيانات:", dbError);
-        // إرجاع البيانات المرسلة على الأقل
-        settings = settingsData;
+      // التحقق من وجود إعدادات سابقة
+      const existingSettings = await db.execute(sql`
+        SELECT id FROM store_settings ORDER BY id DESC LIMIT 1;
+      `);
+      
+      let result;
+      if (existingSettings.rows && existingSettings.rows.length > 0) {
+        // تحديث الإعدادات الموجودة
+        result = await db.execute(sql`
+          UPDATE store_settings
+          SET 
+            store_name = ${req.body.storeName || 'نظام SAS للإدارة'},
+            store_address = ${req.body.storeAddress || ''},
+            store_phone = ${req.body.storePhone || ''},
+            store_email = ${req.body.storeEmail || null},
+            tax_number = ${req.body.taxNumber || null},
+            logo_url = ${logoUrl || null},
+            receipt_notes = ${req.body.receiptNotes || 'شكراً لتعاملكم معنا'},
+            enable_logo = ${req.body.enableLogo === false ? false : true},
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = ${existingSettings.rows[0].id}
+          RETURNING *;
+        `);
+      } else {
+        // إنشاء إعدادات جديدة
+        result = await db.execute(sql`
+          INSERT INTO store_settings
+          (store_name, store_address, store_phone, store_email, tax_number, logo_url, receipt_notes, enable_logo)
+          VALUES (
+            ${req.body.storeName || 'نظام SAS للإدارة'},
+            ${req.body.storeAddress || ''},
+            ${req.body.storePhone || ''},
+            ${req.body.storeEmail || null},
+            ${req.body.taxNumber || null},
+            ${logoUrl || null},
+            ${req.body.receiptNotes || 'شكراً لتعاملكم معنا'},
+            ${req.body.enableLogo === false ? false : true}
+          )
+          RETURNING *;
+        `);
       }
-
-      res.json(settings || settingsData);
+      
+      if (result.rows && result.rows.length > 0) {
+        const settings = {
+          id: result.rows[0].id,
+          storeName: result.rows[0].store_name,
+          storeAddress: result.rows[0].store_address,
+          storePhone: result.rows[0].store_phone,
+          storeEmail: result.rows[0].store_email,
+          taxNumber: result.rows[0].tax_number,
+          logoUrl: result.rows[0].logo_url,
+          receiptNotes: result.rows[0].receipt_notes,
+          enableLogo: result.rows[0].enable_logo,
+          createdAt: result.rows[0].created_at,
+          updatedAt: result.rows[0].updated_at
+        };
+        console.log("تم تحديث إعدادات المتجر بنجاح:", settings);
+        res.json(settings);
+      } else {
+        throw new Error("فشل في تحديث إعدادات المتجر");
+      }
     } catch (error) {
-      console.error("Error updating store settings:", error);
-      res.status(500).json({ 
-        message: "فشل في تحديث إعدادات المتجر",
-        error: error instanceof Error ? error.message : "خطأ غير معروف"
-      });
+      console.error("خطأ في تحديث إعدادات المتجر:", error);
+      res.status(500).json({ message: "فشل في تحديث إعدادات المتجر" });
     }
   });
 

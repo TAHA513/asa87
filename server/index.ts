@@ -123,24 +123,6 @@ async function startServer() {
     }
 
     const port = process.env.PORT || 5000;
-    
-    // محاولة إيقاف أي عمليات سابقة على نفس المنفذ
-    try {
-      // استخدام طريقة بديلة للتحقق من المنفذ
-      console.log(`محاولة بدء السيرفر على المنفذ ${port}...`);
-      // نختار منفذًا عشوائيًا إذا كان المنفذ الحالي مشغولاً
-      process.on('uncaughtException', (e) => {
-        if (e.code === 'EADDRINUSE') {
-          console.log(`المنفذ ${port} مشغول، سنحاول استخدام منفذ آخر...`);
-          const newPort = Math.floor(Math.random() * 1000) + 3000; // منفذ عشوائي بين 3000 و 4000
-          console.log(`استخدام المنفذ ${newPort} بدلاً...`);
-          process.env.PORT = newPort.toString();
-        }
-      });
-    } catch (err) {
-      console.error('لم نتمكن من تحرير المنفذ:', err);
-    }
-    
     const httpServer = createServer(app);
 
     // إعداد Socket.IO
