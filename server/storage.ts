@@ -14,7 +14,8 @@ export const storage = {
       return results.length > 0 ? results[0] : null;
     } catch (error) {
       console.error("Error getting user by username:", error);
-      throw new Error("حدث خطأ في قاعدة البيانات");
+      //More specific error handling could be added here, like checking for connection errors.
+      throw new Error("Database error retrieving user."); 
     }
   },
 
@@ -26,7 +27,8 @@ export const storage = {
       return results.length > 0 ? results[0] : null;
     } catch (error) {
       console.error("Error getting user by id:", error);
-      throw new Error("حدث خطأ في قاعدة البيانات");
+      //More specific error handling could be added here, like checking for connection errors.
+      throw new Error("Database error retrieving user.");
     }
   },
 
@@ -38,7 +40,8 @@ export const storage = {
       return user;
     } catch (error) {
       console.error("Error creating user:", error);
-      throw new Error("حدث خطأ في قاعدة البيانات");
+      //More specific error handling could be added here, like checking for unique constraint violations.
+      throw new Error("Database error creating user.");
     }
   },
 
@@ -54,27 +57,48 @@ export const storage = {
       return sales;
     } catch (error) {
       console.error("Error getting product sales:", error);
+      // Return an empty array instead of throwing an error, to prevent the application from crashing.
       return [];
     }
   },
 
   // Make sure other methods are properly implemented...
   async getProducts() {
-    return await db.select().from(schema.products);
+    try{
+      return await db.select().from(schema.products);
+    } catch (error) {
+      console.error("Error getting products:", error);
+      return [];
+    }
   },
 
   async getProduct(id: number) {
-    const results = await db.select().from(schema.products).where(eq(schema.products.id, id));
-    return results.length > 0 ? results[0] : null;
+    try {
+      const results = await db.select().from(schema.products).where(eq(schema.products.id, id));
+      return results.length > 0 ? results[0] : null;
+    } catch (error) {
+      console.error("Error getting product:", error);
+      return null;
+    }
   },
 
   async getInventoryAlerts() {
-    return await db.select().from(schema.inventoryAlerts);
+    try {
+      return await db.select().from(schema.inventoryAlerts);
+    } catch (error) {
+      console.error("Error getting inventory alerts:", error);
+      return [];
+    }
   },
 
   async createAlertNotification(data: schema.InsertAlertNotification) {
-    const result = await db.insert(schema.alertNotifications).values(data).returning();
-    return result[0];
+    try {
+      const result = await db.insert(schema.alertNotifications).values(data).returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error creating alert notification:", error);
+      throw new Error("Database error creating alert notification.");
+    }
   },
 
   // Add other necessary methods...

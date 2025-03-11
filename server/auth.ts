@@ -1,200 +1,235 @@
+import express from "express";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
-import session from "express-session";
 import * as bcrypt from "@node-rs/bcrypt";
+import session from "express-session";
+import createMemoryStore from "memorystore";
+import { db } from "./db";
+import { users } from "@shared/schema";
 import { storage } from "./storage";
-import { type User } from "@shared/schema";
-import MemoryStore from "memorystore";
+import { eq } from "drizzle-orm";
 
-const MemoryStoreSession = MemoryStore(session);
-
-async function hashPassword(password: string) {
-  return bcrypt.hash(password, 12);
+export interface User {
+  id: number;
+  username: string;
+  password: string;
+  fullName: string;
+  role: string;
+  isActive: boolean;
+  permissions: string[];
 }
 
-async function comparePasswords(supplied: string, stored: string) {
-  return bcrypt.compare(supplied, stored);
-}
-
-export function setupAuth(app: Express) {
-  // تكوين إعدادات الجلسة
-  const sessionStore = new MemoryStoreSession({
-    checkPeriod: 86400000 // تنظيف الجلسات المنتهية كل 24 ساعة
-  });
-
-  // إعداد الجلسات
-  app.use(session({
-    secret: process.env.SESSION_SECRET || 'default-secret-key',
-    resave: false,
-    saveUninitialized: false,
-    store: sessionStore,
-    cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000, // 24 ساعة
-      sameSite: 'lax'
-    }
-  }));
-
-  // تهيئة Passport
-  app.use(passport.initialize());
-  app.use(passport.session());
-
-  // إعداد استراتيجية تسجيل الدخول
-  passport.use(new LocalStrategy(async (username, password, done) => {
-    try {
-      console.log(`محاولة تسجيل دخول للمستخدم: ${username}`);
-      
-      // Add more error handling for getUserByUsername
-      let user;
-      try {
-        user = await storage.getUserByUsername(username);
-      } catch (dbError) {
-        console.error("خطأ في قاعدة البيانات عند البحث عن المستخدم:", dbError);
-        console.error("Error details:", dbError);
-        return done(null, false, { message: "حدث خطأ في قاعدة البيانات" });
-      }
-
-      if (!user) {
-        console.log(`لم يتم العثور على المستخدم: ${username}`);
-        return done(null, false, { message: "اسم المستخدم غير موجود" });
-      }
-
-      if (!user.isActive) {
-        console.log(`حساب المستخدم غير نشط: ${username}`);
-        return done(null, false, { message: "الحساب غير نشط" });
-      }
-
-      let isValidPassword = false;
-      try {
-        isValidPassword = await comparePasswords(password, user.password);
-      } catch (passwordError) {
-        console.error("خطأ في التحقق من كلمة المرور:", passwordError);
-        return done(null, false, { message: "حدث خطأ أثناء التحقق من كلمة المرور" });
-      }
-
-      if (!isValidPassword) {
-        console.log(`كلمة المرور غير صحيحة للمستخدم: ${username}`);
-        return done(null, false, { message: "كلمة المرور غير صحيحة" });
-      }
-
-      console.log(`تم تسجيل دخول المستخدم بنجاح: ${username}`);
-      return done(null, user);
-    } catch (error) {
-      console.error("خطأ في عملية المصادقة:", error);
-      return done(null, false, { message: "حدث خطأ أثناء تسجيل الدخول" });
-    }
-  }));
-
-  // تسجيل وفك تشفير معرف المستخدم في الجلسة
-  passport.serializeUser((user: User, done) => {
-    done(null, user.id);
-  });
-
-  passport.deserializeUser(async (id: number, done) => {
-    try {
-      const user = await storage.getUser(id);
-      if (!user || !user.isActive) {
-        return done(null, false);
-      }
-      done(null, user);
-    } catch (error) {
-      done(error);
-    }
-  });
-
-  // نقاط النهاية للمصادقة
-  app.post("/api/auth/login", (req, res, next) => {
-    // Log the incoming login request
-    console.log("طلب تسجيل الدخول:", { username: req.body.username });
-    
-    if (!req.body.username || !req.body.password) {
-      return res.status(400).json({ message: "اسم المستخدم وكلمة المرور مطلوبان" });
-    }
-
-    passport.authenticate("local", (err: Error | null, user: User | false, info: { message: string } | undefined) => {
-      if (err) {
-        console.error("خطأ في تسجيل الدخول:", err);
-        return res.status(500).json({ message: "حدث خطأ أثناء تسجيل الدخول" });
-      }
-
-      if (!user) {
-        console.log("فشل تسجيل الدخول:", info?.message);
-        return res.status(401).json({ message: info?.message || "فشل تسجيل الدخول" });
-      }
-
-      req.login(user, (loginErr) => {
-        if (loginErr) {
-          console.error("خطأ في إنشاء الجلسة:", loginErr);
-          return res.status(500).json({ message: "فشل في إنشاء جلسة المستخدم" });
-        }
-
+export async function setupAuth(app: express.Application) {
+  try {
+    // إعداد استراتيجية المصادقة المحلية
+    passport.use(
+      new LocalStrategy(async (username, password, done) => {
         try {
-          // عدم إرسال كلمة المرور في الاستجابة
+          console.log(`محاولة تسجيل دخول للمستخدم: ${username}`);
+          const user = await storage.getUser(username);
+
+          if (!user) {
+            console.log(`المستخدم غير موجود: ${username}`);
+            return done(null, false, { message: "اسم المستخدم غير صحيح" });
+          }
+
+          if (!user.isActive) {
+            console.log(`حساب غير نشط للمستخدم: ${username}`);
+            return done(null, false, { message: "الحساب غير نشط" });
+          }
+
+          const passwordMatch = await bcrypt.compare(password, user.password);
+          if (!passwordMatch) {
+            console.log(`كلمة مرور غير صحيحة للمستخدم: ${username}`);
+            return done(null, false, { message: "كلمة المرور غير صحيحة" });
+          }
+
+          console.log(`تم التحقق بنجاح للمستخدم: ${username}`);
+          return done(null, user);
+        } catch (error) {
+          console.error("خطأ في المصادقة:", error);
+          return done(error);
+        }
+      })
+    );
+
+    // تسلسل وإلغاء تسلسل المستخدم
+    passport.serializeUser((user: any, done) => {
+      console.log(`تسلسل المستخدم بالمعرف: ${user.id}`);
+      done(null, user.id);
+    });
+
+    passport.deserializeUser(async (id: number, done) => {
+      try {
+        console.log(`استرجاع بيانات المستخدم بالمعرف: ${id}`);
+        const user = await storage.getUserById(id);
+        if (!user) {
+          console.log(`لم يتم العثور على مستخدم بالمعرف: ${id}`);
+          return done(null, false);
+        }
+        done(null, user);
+      } catch (error) {
+        console.error("خطأ في استرجاع بيانات المستخدم:", error);
+        done(error);
+      }
+    });
+
+    // إعداد مخزن الجلسات
+    const MemoryStore = createMemoryStore(session);
+    const sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // تنظيف الجلسات المنتهية كل 24 ساعة
+    });
+
+    // إعداد الجلسات
+    app.use(session({
+      secret: process.env.SESSION_SECRET || 'HGtsdcMKdhZP4HX6WLMnK4TbdZQcP2Gm',
+      resave: true, // حفظ الجلسة حتى لو لم تتغير
+      saveUninitialized: false,
+      store: sessionStore,
+      rolling: true, // تجديد وقت انتهاء الصلاحية مع كل طلب
+      cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 أيام
+        sameSite: 'lax',
+        httpOnly: true
+      }
+    }));
+
+    // إعداد Passport.js
+    app.use(passport.initialize());
+    app.use(passport.session());
+
+    // مسارات المصادقة
+    app.post("/api/auth/login", (req, res, next) => {
+      console.log("محاولة تسجيل الدخول...");
+
+      passport.authenticate("local", (err, user, info) => {
+        if (err) {
+          console.error("خطأ في تسجيل الدخول:", err);
+          return res.status(500).json({ message: "حدث خطأ أثناء تسجيل الدخول" });
+        }
+        if (!user) {
+          console.log("فشل تسجيل الدخول:", info?.message);
+          return res.status(401).json({ message: info?.message || "فشل تسجيل الدخول" });
+        }
+
+        console.log("بدء جلسة تسجيل الدخول...");
+        req.logIn(user, async (err) => {
+          if (err) {
+            console.error("خطأ في تسجيل الدخول بعد المصادقة:", err);
+            return res.status(500).json({ message: "حدث خطأ أثناء تسجيل الدخول" });
+          }
+
+          console.log("تسجيل الدخول ناجح، تحديث وقت آخر تسجيل دخول...");
+
+          // تحديث وقت آخر تسجيل دخول
+          try {
+            await db.update(users)
+              .set({ lastLoginAt: new Date() })
+              .where(eq(users.id, user.id));
+
+            console.log("تم تحديث وقت آخر تسجيل دخول بنجاح.");
+          } catch (error) {
+            console.error("خطأ في تحديث وقت آخر تسجيل دخول:", error);
+            // نستمر حتى لو فشل تحديث وقت آخر تسجيل دخول
+          }
+
+          // إنشاء جلسة نشطة
+          req.session.touch();
+
+          // إرجاع بيانات المستخدم بدون كلمة المرور
           const { password, ...userWithoutPassword } = user;
-          console.log("تم تسجيل الدخول بنجاح:", userWithoutPassword.username);
+          console.log("إرسال بيانات المستخدم للعميل.");
           return res.json(userWithoutPassword);
-        } catch (responseErr) {
-          console.error("خطأ في إعداد استجابة تسجيل الدخول:", responseErr);
-          return res.status(500).json({ message: "حدث خطأ أثناء إكمال عملية تسجيل الدخول" });
-        }
-      });
-    })(req, res, next);
-  });
+        });
+      })(req, res, next);
+    });
 
-  app.post("/api/auth/register", async (req, res) => {
-    try {
-      const existingUser = await storage.getUserByUsername(req.body.username);
-      if (existingUser) {
-        return res.status(400).json({ message: "اسم المستخدم موجود بالفعل" });
-      }
-
-      const hashedPassword = await hashPassword(req.body.password);
-      const user = await storage.createUser({
-        ...req.body,
-        password: hashedPassword,
-        isActive: true,
-        role: "staff"
-      });
-
-      req.login(user, (err) => {
+    app.post("/api/auth/logout", (req, res) => {
+      console.log("طلب تسجيل الخروج...");
+      req.logout((err) => {
         if (err) {
-          console.error("خطأ في تسجيل الدخول بعد التسجيل:", err);
-          return res.status(500).json({ message: "فشل في تسجيل الدخول بعد إنشاء الحساب" });
+          console.error("خطأ في تسجيل الخروج:", err);
+          return res.status(500).json({ message: "حدث خطأ أثناء تسجيل الخروج" });
         }
-        const { password, ...userWithoutPassword } = user;
-        res.status(201).json(userWithoutPassword);
-      });
-    } catch (error) {
-      console.error("خطأ في التسجيل:", error);
-      res.status(500).json({ message: "حدث خطأ أثناء إنشاء الحساب" });
-    }
-  });
-
-  app.post("/api/auth/logout", (req, res) => {
-    req.logout((err) => {
-      if (err) {
-        console.error("خطأ في تسجيل الخروج:", err);
-        return res.status(500).json({ message: "حدث خطأ أثناء تسجيل الخروج" });
-      }
-
-      req.session.destroy((err) => {
-        if (err) {
-          console.error("خطأ في إنهاء الجلسة:", err);
-          return res.status(500).json({ message: "حدث خطأ أثناء إنهاء الجلسة" });
-        }
-
-        res.clearCookie("connect.sid");
-        res.json({ success: true });
+        req.session.destroy((err) => {
+          if (err) {
+            console.error("خطأ في حذف الجلسة:", err);
+            return res.status(500).json({ message: "حدث خطأ أثناء تسجيل الخروج" });
+          }
+          res.clearCookie("connect.sid");
+          console.log("تم تسجيل الخروج وحذف الجلسة بنجاح.");
+          res.json({ message: "تم تسجيل الخروج بنجاح" });
+        });
       });
     });
-  });
 
-  app.get("/api/auth/user", (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-    const { password, ...userWithoutPassword } = req.user as User;
-    res.json(userWithoutPassword);
-  });
+    app.get("/api/auth/user", (req, res) => {
+      console.log("طلب بيانات المستخدم الحالي...");
+      if (!req.isAuthenticated()) {
+        console.log("طلب غير مصرح به - المستخدم غير مسجل الدخول.");
+        return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+      }
+
+      // تجديد الجلسة
+      if (req.session) {
+        req.session.touch();
+      }
+
+      const { password, ...userWithoutPassword } = req.user as User;
+      console.log(`إرسال بيانات المستخدم: ${userWithoutPassword.username}`);
+      res.json(userWithoutPassword);
+    });
+
+    // التحقق من المصادقة
+    app.get("/api/auth/check", (req, res) => {
+      console.log(`التحقق من حالة المصادقة: ${req.isAuthenticated()}`);
+      // تجديد الجلسة
+      if (req.isAuthenticated() && req.session) {
+        req.session.touch();
+      }
+      res.json({ authenticated: req.isAuthenticated() });
+    });
+
+    // ميدلوير للتحقق من المصادقة
+    app.use("/api/protected", (req, res, next) => {
+      if (req.isAuthenticated()) {
+        // تجديد الجلسة
+        if (req.session) {
+          req.session.touch();
+        }
+        return next();
+      }
+      res.status(401).json({ message: "يجب تسجيل الدخول للوصول إلى هذا المسار" });
+    });
+
+    // ميدلوير للتحقق من دور المستخدم
+    const checkRole = (role: string) => {
+      return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+        if (!req.isAuthenticated()) {
+          return res.status(401).json({ message: "يجب تسجيل الدخول للوصول إلى هذا المسار" });
+        }
+
+        const user = req.user as User;
+        if (user.role !== role && user.role !== "admin") {
+          return res.status(403).json({ message: "ليس لديك صلاحية للوصول إلى هذا المسار" });
+        }
+
+        // تجديد الجلسة
+        if (req.session) {
+          req.session.touch();
+        }
+
+        next();
+      };
+    };
+
+    // تصدير ميدلوير التحقق من الأدوار
+    app.locals.checkRole = checkRole;
+
+    console.log("✅ تم إعداد المصادقة بنجاح");
+  } catch (error) {
+    console.error("❌ فشل في إعداد المصادقة:", error);
+    throw error;
+  }
 }

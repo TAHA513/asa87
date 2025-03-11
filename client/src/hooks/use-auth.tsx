@@ -35,12 +35,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
       const res = await apiRequest("POST", "/api/auth/login", credentials);
-      return await res.json();
+      const data = await res.json();
+      console.log("Login response:", data); //added logging
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(`Login failed: ${errorData.message || res.statusText}`);
+      }
+      return data;
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/auth/user"], user);
     },
     onError: (error: Error) => {
+      console.error("Login error:", error); //added logging
       toast({
         title: "فشل تسجيل الدخول",
         description: error.message,
@@ -52,12 +59,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const registerMutation = useMutation({
     mutationFn: async (credentials: InsertUser) => {
       const res = await apiRequest("POST", "/api/auth/register", credentials);
-      return await res.json();
+      const data = await res.json();
+      console.log("Register response:", data); //added logging
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(`Registration failed: ${errorData.message || res.statusText}`);
+      }
+      return data;
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/auth/user"], user);
     },
     onError: (error: Error) => {
+      console.error("Register error:", error); //added logging
       toast({
         title: "فشل إنشاء الحساب",
         description: error.message,

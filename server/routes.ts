@@ -93,7 +93,7 @@ async function checkInventoryLevels() {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   console.log("Starting to register routes...");
-  
+
   // setupAuth is already called in index.ts, remove this call to avoid duplicate setup
 
   // Products routes
@@ -1339,7 +1339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/store-settings", async (req, res) => {
     try {
       console.log("جاري جلب إعدادات المتجر...");
-      
+
       // تحقق من وجود جدول إعدادات المتجر
       try {
         const tableExists = await db.execute(sql`
@@ -1349,7 +1349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             AND table_name = 'store_settings'
           );
         `);
-        
+
         if (!tableExists.rows?.[0]?.exists) {
           console.log("جدول إعدادات المتجر غير موجود، سيتم إنشاؤه");
           await db.execute(sql`
@@ -1367,7 +1367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
           `);
-          
+
           // إضافة بيانات افتراضية
           await db.execute(sql`
             INSERT INTO store_settings 
@@ -1379,12 +1379,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (tableError) {
         console.error("خطأ أثناء التحقق من جدول إعدادات المتجر:", tableError);
       }
-      
+
       // جلب إعدادات المتجر
       const result = await db.execute(sql`
         SELECT * FROM store_settings ORDER BY id DESC LIMIT 1;
       `);
-      
+
       if (result.rows && result.rows.length > 0) {
         const settings = {
           id: result.rows[0].id,
@@ -1428,7 +1428,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       console.log("جاري تحديث إعدادات المتجر...", req.body);
-      
+
       // معالجة رفع الشعار إذا كان موجوداً
       let logoUrl = req.body.logoUrl;
 
@@ -1452,7 +1452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const existingSettings = await db.execute(sql`
         SELECT id FROM store_settings ORDER BY id DESC LIMIT 1;
       `);
-      
+
       let result;
       if (existingSettings.rows && existingSettings.rows.length > 0) {
         // تحديث الإعدادات الموجودة
@@ -1489,7 +1489,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           RETURNING *;
         `);
       }
-      
+
       if (result.rows && result.rows.length > 0) {
         const settings = {
           id: result.rows[0].id,
@@ -2288,11 +2288,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // إضافة طريقة للتحقق من حالة قاعدة البيانات
+  app.get("/api/system/db-status", async (req, res) => {
+    try {
+      // تنفيذ استعلام بسيط للتحقق من اتصال قاعدة البيانات
+      const result = await db.execute(sql`SELECT 1 as connected`);
+      if (result && result.rows && result.rows.length > 0) {
+        // التحقق من وجود جداول مهمة
+        const tablesResult = await db.execute(sql`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_schema = 'public'
+          ORDER BY table_name;
+        `);
+
+        res.json({ 
+          status: "متصل", 
+          tables: tablesResult.rows.map((row: any) => row.table_name),
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(500).json({ status: "غير متصل", message: "فشل الاستعلام البسيط" });
+      }
+    } catch (error) {
+      console.error("خطأ في التحقق من حالة قاعدة البيانات:", error);
+      res.status(500).json({ status: "غير متصل", message: "حدث خطأ أثناء الاتصال بقاعدة البيانات" });
+    }
+  });
+
+  // إضافة مسار لاختبار جلسة المستخدم
+  app.get("/api/system/session-test", (req, res) => {
+    if (!req.session) {
+      return res.status(500).json({ status: "فشل", message: "الجلسة غير موجودة" });
+    }
+
+    // إنشاء أو تحديث قيمة في الجلسة
+    if (!req.session.visits) {
+      req.session.visits = 0;
+    }
+
+    req.session.visits++;
+    req.session.lastVisit = new Date().toISOString();
+
+    res.json({ 
+      status: "نجاح", 
+      authenticated: req.isAuthenticated(),
+      session: {
+        id: req.sessionID,
+        visits: req.session.visits,
+        lastVisit: req.session.lastVisit,
+        cookie: req.session.cookie
+      }
+    });
+  });
+
+  // مسار الخطأ 404
+  app.use((req, res) => {
+    console.log(`مسار غير موجود: ${req.method} ${req.originalUrl}`);
+    res.status(404).json({ message: "المسار غير موجود" });
+  });
+
+  // معالجة الأخطاء العامة
+  app.use((err: any, req: any, res: any, next: any) => {
+    console.error("خطأ غير معالج:", err);
+    res.status(500).json({ message: "حدث خطأ في الخادم", error: process.env.NODE_ENV === 'development' ? err.message : undefined });
+  });
+
   const httpServer = createServer(app);
 
   // Start inventory check timer
   setInterval(checkInventoryLevels, 60 * 60 * 1000);
 
-  console.log("All routes registered successfully");
+  console.log("✅ تم تسجيل جميع المسارات بنجاح");
   return httpServer;
 }
