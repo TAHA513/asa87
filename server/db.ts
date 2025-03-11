@@ -4,60 +4,76 @@ import ws from "ws";
 import * as schema from "@shared/schema";
 import { sql } from 'drizzle-orm';
 
+// تكوين WebSocket للاتصال بـ Neon
 neonConfig.webSocketConstructor = ws;
-// Remove the unsupported patchWebsocketDanglingTimeout config
-// Add proper connection retry logic instead
 
-// Validate database URL
+// التحقق من وجود رابط قاعدة البيانات
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL must be set. Did you forget to provision a database?");
+  throw new Error("يجب تعيين DATABASE_URL في متغيرات البيئة");
 }
 
-// Create connection pool with proper error handling and retry logic
+// إعداد تجمع الاتصالات مع إعدادات محسنة
 const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: 5000, // 5 second timeout
-  max: 20, // Maximum 20 clients in pool
-  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
-  keepAlive: true, // Keep connections alive
-  allowExitOnIdle: false // Prevent pool from ending when idle
+  connectionTimeoutMillis: 10000, // 10 ثوانٍ للاتصال
+  max: 10, // عدد العملاء الأقصى
+  idleTimeoutMillis: 60000, // إغلاق الاتصالات الخاملة بعد دقيقة
+  keepAlive: true,
+  allowExitOnIdle: false
 });
 
-// Configure drizzle with proper typing
+// إعداد Drizzle ORM
 export const db = drizzle(pool, { schema });
 
-// Test connection on startup and handle errors gracefully
-pool.connect()
-  .then(() => {
-    console.log("Successfully connected to database");
-  })
-  .catch(err => {
-    console.error("Initial database connection failed:", err);
-    // Don't exit process, let it retry
-  });
+// وظيفة إعادة الاتصال بقاعدة البيانات
+async function connectWithRetry(maxRetries = 5, delay = 5000) {
+  let retries = 0;
+  
+  while (retries < maxRetries) {
+    try {
+      await pool.query('SELECT 1');
+      console.log("✅ تم الاتصال بقاعدة البيانات بنجاح");
+      return;
+    } catch (err) {
+      retries++;
+      console.error(`❌ فشل الاتصال بقاعدة البيانات (محاولة ${retries}/${maxRetries}):`, err);
+      
+      if (retries >= maxRetries) {
+        console.error("⚠️ فشلت جميع محاولات الاتصال بقاعدة البيانات");
+        return;
+      }
+      
+      console.log(`⏱️ الانتظار ${delay}ms قبل إعادة المحاولة...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+}
 
-// Handle pool errors without crashing
+// بدء الاتصال عند تحميل الملف
+connectWithRetry();
+
+// التعامل مع أخطاء تجمع الاتصالات
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle client:', err);
-  // Don't exit, let the pool handle reconnection
+  console.error('خطأ في اتصال قاعدة البيانات:', err);
+  connectWithRetry(3, 2000); // محاولة إعادة الاتصال
 });
 
-// Keep connection alive with periodic ping
-setInterval(() => {
+// الحفاظ على نشاط الاتصال
+const pingInterval = setInterval(() => {
   pool.query('SELECT 1')
     .catch(err => {
-      console.warn('Keep-alive ping failed:', err);
+      console.warn('فشل ping للحفاظ على الاتصال:', err);
+      connectWithRetry(2, 1000);
     });
-}, 60000); // Ping every minute
+}, 30000); // كل 30 ثانية
 
-// Handle cleanup on application shutdown
-process.on('SIGTERM', () => {
-  console.log('Closing database pool...');
-  pool.end().then(() => {
-    console.log('Database pool closed.');
-    process.exit(0);
-  });
+// التنظيف عند إغلاق التطبيق
+process.on('SIGTERM', async () => {
+  clearInterval(pingInterval);
+  console.log('إغلاق اتصالات قاعدة البيانات...');
+  await pool.end();
+  console.log('تم إغلاق اتصالات قاعدة البيانات');
 });
 
-// Export sql for use in other files
+// تصدير sql للاستخدام في ملفات أخرى
 export { sql };

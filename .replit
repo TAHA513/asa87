@@ -1,33 +1,10 @@
-modules = ["nodejs-20", "web", "postgresql-16"]
-run = "npm run dev"
-hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
-
-[nix]
-channel = "stable-24_05"
-
-[deployment]
-deploymentTarget = "cloudrun"
-build = ["npm", "run", "build"]
-run = ["npm", "run", "start"]
-
-[[ports]]
-localPort = 5000
-externalPort = 80
-
 [workflows]
 runButton = "Start application"
 
 [[workflows.workflow]]
 name = "Start application"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
+author = 39617731
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node -e \"try { require('child_process').execSync('pkill -f server/index.ts', { stdio: 'ignore' }); } catch (e) {}\" && npm run dev"
-waitForPort = 5000
+args = "npm run dev"
