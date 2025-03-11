@@ -122,13 +122,13 @@ async function startServer() {
       serveStatic(app);
     }
 
-    const port = process.env.PORT || 5000;
+    const port = 5000;
     const httpServer = createServer(app);
 
     // إعداد Socket.IO
     const io = new SocketServer(httpServer, {
       cors: {
-        origin: ["https://admin.socket.io", process.env.NODE_ENV === "production" ? "*" : "http://localhost:5000"],
+        origin: ["https://admin.socket.io", process.env.NODE_ENV === "production" ? "*" : "http://0.0.0.0:5000"],
         credentials: true
       }
     });
@@ -163,11 +163,7 @@ async function startServer() {
     // تصدير الـ Socket.IO للاستخدام في ملفات أخرى
     app.set("io", io);
 
-    server.listen({
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
+    httpServer.listen(port, "0.0.0.0", () => {
       log(`تم تشغيل السيرفر على المنفذ ${port}`);
     });
 
