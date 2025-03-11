@@ -54,6 +54,45 @@ export async function initializeDatabase() {
       console.log("تم إضافة فئات المنتجات الافتراضية بنجاح");
     }
 
+    // Check if inventory_alerts table exists
+    try {
+      await db.select().from(schema.inventoryAlerts).limit(1);
+    } catch (error) {
+      console.log("إنشاء جدول تنبيهات المخزون...");
+      // Create the inventory_alerts table
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS inventory_alerts (
+          id SERIAL PRIMARY KEY,
+          product_id INTEGER NOT NULL REFERENCES products(id),
+          type TEXT NOT NULL,
+          threshold INTEGER NOT NULL,
+          status TEXT NOT NULL DEFAULT 'active',
+          last_triggered TIMESTAMP,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      console.log("تم إنشاء جدول تنبيهات المخزون بنجاح");
+    }
+
+    // Check if alert_notifications table exists
+    try {
+      await db.select().from(schema.alertNotifications).limit(1);
+    } catch (error) {
+      console.log("إنشاء جدول إشعارات التنبيهات...");
+      // Create the alert_notifications table
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS alert_notifications (
+          id SERIAL PRIMARY KEY,
+          alert_id INTEGER NOT NULL REFERENCES inventory_alerts(id),
+          message TEXT NOT NULL,
+          read BOOLEAN NOT NULL DEFAULT false,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      console.log("تم إنشاء جدول إشعارات التنبيهات بنجاح");
+    }
+
     console.log("اكتملت عملية تهيئة قاعدة البيانات بنجاح");
 
   } catch (error) {
