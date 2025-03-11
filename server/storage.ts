@@ -5,7 +5,42 @@ import { eq, and, gt, lt, desc, gte, lte, asc } from 'drizzle-orm';
 
 // Implement storage methods
 export const storage = {
-  // Other methods...
+  // User authentication methods
+  async getUserByUsername(username: string) {
+    try {
+      const results = await db.select()
+        .from(schema.users)
+        .where(eq(schema.users.username, username));
+      return results.length > 0 ? results[0] : null;
+    } catch (error) {
+      console.error("Error getting user by username:", error);
+      throw new Error("حدث خطأ في قاعدة البيانات");
+    }
+  },
+
+  async getUser(id: number) {
+    try {
+      const results = await db.select()
+        .from(schema.users)
+        .where(eq(schema.users.id, id));
+      return results.length > 0 ? results[0] : null;
+    } catch (error) {
+      console.error("Error getting user by id:", error);
+      throw new Error("حدث خطأ في قاعدة البيانات");
+    }
+  },
+
+  async createUser(userData) {
+    try {
+      const [user] = await db.insert(schema.users)
+        .values(userData)
+        .returning();
+      return user;
+    } catch (error) {
+      console.error("Error creating user:", error);
+      throw new Error("حدث خطأ في قاعدة البيانات");
+    }
+  },
 
   // Fix the getProductSales method to use the correct column name
   async getProductSales(productId: number, since: Date) {

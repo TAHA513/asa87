@@ -51,6 +51,7 @@ export function setupAuth(app: Express) {
         user = await storage.getUserByUsername(username);
       } catch (dbError) {
         console.error("خطأ في قاعدة البيانات عند البحث عن المستخدم:", dbError);
+        console.error("Error details:", dbError);
         return done(null, false, { message: "حدث خطأ في قاعدة البيانات" });
       }
 
