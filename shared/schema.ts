@@ -58,6 +58,38 @@ export const selectActivityReportSchema = createSelectSchema(activityReports);
 export type ActivityReport = z.infer<typeof selectActivityReportSchema>;
 export type InsertActivityReport = z.infer<typeof insertActivityReportSchema>;
 
+// Social Media Accounts
+export const socialMediaAccounts = pgTable("social_media_accounts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  platform: text("platform").notNull(),
+  accountName: text("account_name").notNull(),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertSocialMediaAccountSchema = createInsertSchema(socialMediaAccounts);
+export const selectSocialMediaAccountSchema = createSelectSchema(socialMediaAccounts);
+export type SocialMediaAccount = z.infer<typeof selectSocialMediaAccountSchema>;
+export type InsertSocialMediaAccount = z.infer<typeof insertSocialMediaAccountSchema>;
+
+// API Keys
+export const apiKeys = pgTable("api_keys", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  platform: text("platform").notNull(),
+  keyType: text("key_type").notNull(),
+  keyValue: text("key_value").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertApiKeySchema = createInsertSchema(apiKeys);
+export const selectApiKeySchema = createSelectSchema(apiKeys);
+export type ApiKey = z.infer<typeof selectApiKeySchema>;
+export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
+
 // Store Settings
 export const storeSettings = pgTable("store_settings", {
   id: serial("id").primaryKey(),
