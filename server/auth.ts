@@ -2,16 +2,15 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import session from "express-session";
-import bcrypt from "bcryptjs";
+import * as bcrypt from "@node-rs/bcrypt";
 import { storage } from "./storage";
-import { insertUserSchema, type User } from "@shared/schema";
+import { type User } from "@shared/schema";
 import MemoryStore from "memorystore";
 
 const MemoryStoreSession = MemoryStore(session);
 
 async function hashPassword(password: string) {
-  const salt = await bcrypt.genSalt(12); // زيادة قوة التشفير
-  return bcrypt.hash(password, salt);
+  return bcrypt.hash(password, 12); // Increased rounds for better security
 }
 
 async function comparePasswords(supplied: string, stored: string) {
@@ -44,12 +43,13 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // تحسين أمان استراتيجية تسجيل الدخول
+  // Configure passport
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
         console.log(`محاولة تسجيل دخول للمستخدم: ${username}`);
         const user = await storage.getUserByUsername(username);
+
         if (!user) {
           console.log(`المستخدم غير موجود: ${username}`);
           return done(null, false, { message: "اسم المستخدم غير موجود" });
@@ -66,17 +66,7 @@ export function setupAuth(app: Express) {
           return done(null, false, { message: "كلمة المرور غير صحيحة" });
         }
 
-        // تحديث وقت آخر تسجيل دخول
-        try {
-          await storage.updateUser(user.id, {
-            lastLoginAt: new Date()
-          });
-          console.log(`تم تسجيل دخول المستخدم بنجاح: ${username}`);
-        } catch (updateErr) {
-          console.error(`خطأ في تحديث وقت تسجيل الدخول: ${updateErr}`);
-          // استمر حتى لو فشل تحديث وقت تسجيل الدخول
-        }
-
+        console.log(`تم تسجيل دخول المستخدم بنجاح: ${username}`);
         return done(null, user);
       } catch (err) {
         console.error(`خطأ غير متوقع في عملية المصادقة:`, err);
@@ -85,23 +75,81 @@ export function setupAuth(app: Express) {
     })
   );
 
-  passport.serializeUser((req: any, user: User, done: (err: any, id?: unknown) => void) => {
+  passport.serializeUser((user: User, done) => {
     done(null, user.id);
   });
 
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
-      if (!user) {
-        return done(null, false);
-      }
-      if (!user.isActive) {
+      if (!user || !user.isActive) {
         return done(null, false);
       }
       done(null, user);
     } catch (err) {
       done(err);
     }
+  });
+
+  // Authentication routes
+  app.post("/api/auth/login", (req, res, next) => {
+    passport.authenticate("local", (err: Error | null, user: User | false, info: { message: string } | undefined) => {
+      if (err) {
+        console.error("Login error:", err);
+        return res.status(500).json({ message: "حدث خطأ أثناء تسجيل الدخول" });
+      }
+
+      if (!user) {
+        return res.status(401).json({
+          message: info?.message || "فشل تسجيل الدخول",
+        });
+      }
+
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Session error:", err);
+          return res.status(500).json({
+            message: "فشل في إنشاء جلسة المستخدم",
+          });
+        }
+
+        const { password, ...userWithoutPassword } = user;
+        res.json(userWithoutPassword);
+      });
+    })(req, res, next);
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        console.error("Logout error:", err);
+        return res.status(500).json({
+          message: "حدث خطأ أثناء تسجيل الخروج",
+        });
+      }
+
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Session destruction error:", err);
+          return res.status(500).json({
+            message: "حدث خطأ أثناء إنهاء الجلسة",
+          });
+        }
+
+        res.clearCookie("connect.sid");
+        res.json({ success: true });
+      });
+    });
+  });
+
+  app.get("/api/auth/user", (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({
+        message: "يجب تسجيل الدخول أولاً",
+      });
+    }
+    const { password, ...userWithoutPassword } = req.user as User;
+    res.json(userWithoutPassword);
   });
 
   app.post("/api/auth/register", async (req, res) => {
@@ -138,84 +186,5 @@ export function setupAuth(app: Express) {
         res.status(500).json({ message: "حدث خطأ أثناء إنشاء الحساب" });
       }
     }
-  });
-
-  app.post("/api/auth/login", (req, res, next) => {
-    console.log("طلب تسجيل دخول جديد:", req.body.username);
-    
-    passport.authenticate("local", (err: Error | null, user: User | false, info: { message: string } | undefined) => {
-      if (err) {
-        console.error("Login error:", err);
-        return res.status(500).json({ message: "حدث خطأ أثناء تسجيل الدخول" });
-      }
-
-      if (!user) {
-        console.log(`فشل تسجيل الدخول: ${info?.message || "سبب غير معروف"}`);
-        return res.status(401).json({
-          message: info?.message || "فشل تسجيل الدخول",
-        });
-      }
-
-      req.login(user, (err) => {
-        if (err) {
-          console.error("Session error:", err);
-          return res.status(500).json({
-            message: "فشل في إنشاء جلسة المستخدم",
-          });
-        }
-        
-        // تأكد من تعيين معلومات الجلسة بشكل صحيح
-        req.session.save((err) => {
-          if (err) {
-            console.error("Error saving session:", err);
-            return res.status(500).json({
-              message: "فشل في حفظ جلسة المستخدم",
-            });
-          }
-          
-          console.log(`تم تسجيل دخول المستخدم بنجاح: ${user.username}, معرف الجلسة: ${req.sessionID}`);
-          
-          // عدم إرجاع كلمة المرور في الاستجابة
-          const { password, ...userWithoutPassword } = user;
-          res.json(userWithoutPassword);
-        });
-      });
-    })(req, res, next);
-  });
-
-  app.post("/api/auth/logout", (req, res) => {
-    const sessionId = req.sessionID;
-
-    req.logout((err) => {
-      if (err) {
-        console.error("Logout error:", err);
-        return res.status(500).json({
-          message: "حدث خطأ أثناء تسجيل الخروج",
-        });
-      }
-
-      req.session.destroy((err) => {
-        if (err) {
-          console.error("Session destruction error:", err);
-          return res.status(500).json({
-            message: "حدث خطأ أثناء إنهاء الجلسة",
-          });
-        }
-
-        res.clearCookie('sid');
-        res.json({ success: true });
-      });
-    });
-  });
-
-  app.get("/api/auth/user", (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({
-        message: "يجب تسجيل الدخول أولاً",
-      });
-    }
-    // عدم إرجاع كلمة المرور في الاستجابة
-    const { password, ...userWithoutPassword } = req.user as User;
-    res.json(userWithoutPassword);
   });
 }
