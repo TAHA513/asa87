@@ -1,11 +1,10 @@
-
 import express from "express";
 import { createServer } from "http";
 import dotenv from "dotenv";
 import fileUpload from "express-fileupload";
 import path from "path";
 import { fileURLToPath } from "url";
-import { nanoid } from "nanoid";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { setupAuth } from "./auth";
 import { setupVite, log } from "./vite";
@@ -16,19 +15,20 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const isDev = process.env.NODE_ENV !== "production";
-const PORT = process.env.PORT || 3000;
+const PORT = 5000; // Always use port 5000 as per requirements
 
 async function startServer() {
   try {
     // Initialize database
     await initializeDatabase();
-    log("Database initialized successfully");
+    log("قاعدة البيانات تم تهيئتها بنجاح");
 
     // Create Express app and HTTP server
     const app = express();
     const server = createServer(app);
 
     // Middleware
+    app.use(cors());
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
     app.use(fileUpload({
@@ -38,7 +38,7 @@ async function startServer() {
 
     // Setup authentication
     await setupAuth(app);
-    
+
     // API routes
     await registerRoutes(app);
 
@@ -52,11 +52,11 @@ async function startServer() {
 
     // Start server
     server.listen(PORT, "0.0.0.0", () => {
-      log(`Server running on port ${PORT} in ${isDev ? "development" : "production"} mode`);
+      log(`الخادم يعمل على المنفذ ${PORT} في وضع ${isDev ? "التطوير" : "الإنتاج"}`);
     });
 
   } catch (error) {
-    console.error("Failed to start server:", error);
+    console.error("فشل بدء تشغيل الخادم:", error);
     process.exit(1);
   }
 }

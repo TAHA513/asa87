@@ -1,8 +1,6 @@
-import { pgTable, text, serial, timestamp, boolean, decimal, integer, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, decimal, integer, varchar, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import type { Infer } from "zod";
-import { jsonb } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 // نموذج إعدادات المتجر
@@ -91,6 +89,7 @@ export const sales = pgTable("sales", {
   isInstallment: boolean("is_installment").notNull().default(false),
 });
 
+// Add proper type annotation for invoices table
 export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
   saleId: integer("sale_id").notNull(),
@@ -99,7 +98,7 @@ export const invoices = pgTable("invoices", {
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).notNull().default("0"),
   finalAmount: decimal("final_amount", { precision: 10, scale: 2 }).notNull(),
-  status: text("status").notNull().default("active"), // active, modified, cancelled
+  status: text("status").notNull().default("active"),
   paymentMethod: text("payment_method").notNull().default("cash"),
   notes: text("notes"),
   printed: boolean("printed").notNull().default(false),
@@ -123,9 +122,9 @@ export const invoiceItems = pgTable("invoice_items", {
 export const invoiceHistory = pgTable("invoice_history", {
   id: serial("id").primaryKey(),
   invoiceId: integer("invoice_id").notNull().references(() => invoices.id),
-  action: text("action").notNull(), // create, modify, cancel
+  action: text("action").notNull(),
   userId: integer("user_id").notNull().references(() => users.id),
-  changes: jsonb("changes").notNull(),
+  changes: json("changes").notNull(),
   reason: text("reason"),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 });
@@ -171,7 +170,7 @@ export const marketingCampaigns = pgTable("marketing_campaigns", {
   endDate: timestamp("end_date"),
   status: text("status").notNull().default("draft"),
   userId: integer("user_id").notNull(),
-  metrics: jsonb("metrics"),
+  metrics: json("metrics"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -253,9 +252,9 @@ export const reports = pgTable("reports", {
   id: serial("id").primaryKey(),
   type: text("type").notNull(),
   title: text("title").notNull(),
-  dateRange: jsonb("date_range").notNull(),
-  filters: jsonb("filters"),
-  data: jsonb("data").notNull(),
+  dateRange: json("date_range").notNull(),
+  filters: json("filters"),
+  data: json("data").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   userId: integer("user_id").notNull(),
   status: text("status").notNull().default("active"),
@@ -351,7 +350,7 @@ export const userSettings = pgTable("user_settings", {
   fontName: text("font_name").notNull(),
   fontSize: text("font_size").notNull(),
   appearance: text("appearance").notNull(),
-  colors: jsonb("colors").notNull(),
+  colors: json("colors").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -373,11 +372,11 @@ export const storeSettings = pgTable("store_settings", {
 export const systemActivities = pgTable("system_activities", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
-  activityType: text("activity_type").notNull(), // login, product_create, sale, etc.
-  entityType: text("entity_type").notNull(), // products, sales, expenses, etc.
+  activityType: text("activity_type").notNull(),
+  entityType: text("entity_type").notNull(),
   entityId: integer("entity_id").notNull(),
-  action: text("action").notNull(), // create, update, delete, view
-  details: jsonb("details").notNull(),
+  action: text("action").notNull(),
+  details: json("details").notNull(),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
@@ -387,11 +386,11 @@ export const activityReports = pgTable("activity_reports", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
-  dateRange: jsonb("date_range").notNull(),
-  filters: jsonb("filters"),
-  reportType: text("report_type").notNull(), // daily, weekly, monthly
+  dateRange: json("date_range").notNull(),
+  filters: json("filters"),
+  reportType: text("report_type").notNull(),
   generatedBy: integer("generated_by").notNull().references(() => users.id),
-  data: jsonb("data").notNull(),
+  data: json("data").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -461,7 +460,6 @@ export const insertExchangeRateSchema = createInsertSchema(exchangeRates).pick({
 });
 
 export const insertInstallmentSchema = createInsertSchema(installments)
-  .omit({ id: true })
   .extend({
     customerName: z.string().min(1, "اسم العميل مطلوب"),
     customerPhone: z.string().min(1, "رقم الهاتف مطلوب"),
@@ -475,14 +473,12 @@ export const insertInstallmentSchema = createInsertSchema(installments)
   });
 
 export const insertInstallmentPaymentSchema = createInsertSchema(installmentPayments)
-  .omit({ id: true })
   .extend({
     amount: z.number().min(0, "مبلغ الدفعة يجب أن يكون أكبر من 0"),
     notes: z.string().optional(),
   });
 
 export const insertCampaignSchema = createInsertSchema(marketingCampaigns)
-  .omit({ id: true, createdAt: true, metrics: true })
   .extend({
     platforms: z.array(z.string()).min(1, "يجب اختيار منصة واحدة على الأقل"),
     budget: z.number().min(0, "الميزانية يجب أن تكون أكبر من 0"),
@@ -491,7 +487,6 @@ export const insertCampaignSchema = createInsertSchema(marketingCampaigns)
   });
 
 export const insertAnalyticsSchema = createInsertSchema(campaignAnalytics)
-  .omit({ id: true })
   .extend({
     date: z.date(),
     platform: z.string(),
@@ -502,7 +497,6 @@ export const insertAnalyticsSchema = createInsertSchema(campaignAnalytics)
   });
 
 export const insertSocialMediaAccountSchema = createInsertSchema(socialMediaAccounts)
-  .omit({ id: true, createdAt: true })
   .extend({
     platform: z.enum(["facebook", "instagram", "twitter", "linkedin", "snapchat", "tiktok"]),
     accountName: z.string().min(1, "اسم الحساب مطلوب"),
@@ -511,14 +505,9 @@ export const insertSocialMediaAccountSchema = createInsertSchema(socialMediaAcco
     expiresAt: z.date().optional(),
   });
 
-export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertApiKeySchema = createInsertSchema(apiKeys);
 
 export const insertInventoryTransactionSchema = createInsertSchema(inventoryTransactions)
-  .omit({ id: true })
   .extend({
     type: z.enum(["in", "out"]),
     quantity: z.number().min(1, "الكمية يجب أن تكون 1 على الأقل"),
@@ -528,7 +517,6 @@ export const insertInventoryTransactionSchema = createInsertSchema(inventoryTran
   });
 
 export const insertInventoryAdjustmentSchema = createInsertSchema(inventoryAdjustments)
-  .omit({ id: true })
   .extend({
     oldQuantity: z.number().min(0, "الكمية القديمة يجب أن تكون 0 على الأقل"),
     newQuantity: z.number().min(0, "الكمية الجديدة يجب أن تكون 0 على الأقل"),
@@ -537,7 +525,6 @@ export const insertInventoryAdjustmentSchema = createInsertSchema(inventoryAdjus
   });
 
 export const insertInventoryAlertSchema = createInsertSchema(inventoryAlerts)
-  .omit({ id: true, createdAt: true, updatedAt: true, lastTriggered: true })
   .extend({
     type: z.enum(["low_stock", "inactive", "high_demand"]),
     threshold: z.number().min(0, "قيمة الحد يجب أن تكون 0 أو أكثر"),
@@ -545,27 +532,23 @@ export const insertInventoryAlertSchema = createInsertSchema(inventoryAlerts)
   });
 
 export const insertAlertNotificationSchema = createInsertSchema(alertNotifications)
-  .omit({ id: true, createdAt: true })
   .extend({
     message: z.string().min(1, "الرسالة مطلوبة"),
   });
 
-export const insertReportSchema = createInsertSchema(reports)
-  .omit({ id: true, createdAt: true })
-  .extend({
-    type: z.enum(["sales", "inventory", "marketing", "financial"]),
-    title: z.string().min(1, "عنوان التقرير مطلوب"),
-    dateRange: z.object({
-      start: z.date(),
-      end: z.date(),
-    }),
-    filters: z.record(z.unknown()).optional(),
-    data: z.record(z.unknown()),
-    format: z.enum(["json", "csv", "pdf"]).default("json"),
-  });
+export const insertReportSchema = createInsertSchema(reports).extend({
+  type: z.enum(["sales", "inventory", "marketing", "financial"]),
+  title: z.string().min(1, "عنوان التقرير مطلوب"),
+  dateRange: z.object({
+    start: z.date(),
+    end: z.date(),
+  }),
+  filters: z.record(z.unknown()).optional(),
+  data: z.record(z.unknown()),
+  format: z.enum(["json", "csv", "pdf"]).default("json"),
+});
 
 export const insertSupplierSchema = createInsertSchema(suppliers)
-  .omit({ id: true, createdAt: true, updatedAt: true })
   .extend({
     name: z.string().min(1, "اسم المورد مطلوب"),
     contactPerson: z.string().min(1, "اسم الشخص المسؤول مطلوب"),
@@ -575,7 +558,6 @@ export const insertSupplierSchema = createInsertSchema(suppliers)
   });
 
 export const insertSupplierTransactionSchema = createInsertSchema(supplierTransactions)
-  .omit({ id: true, createdAt: true })
   .extend({
     amount: z.number().min(0, "المبلغ يجب أن يكون أكبر من 0"),
     date: z.date(),
@@ -585,7 +567,6 @@ export const insertSupplierTransactionSchema = createInsertSchema(supplierTransa
   });
 
 export const insertCustomerSchema = createInsertSchema(customers)
-  .omit({ id: true, createdAt: true })
   .extend({
     name: z.string().min(1, "اسم العميل مطلوب"),
     phone: z.string().optional(),
@@ -593,7 +574,6 @@ export const insertCustomerSchema = createInsertSchema(customers)
   });
 
 export const insertAppointmentSchema = createInsertSchema(appointments)
-  .omit({ id: true, createdAt: true, updatedAt: true })
   .extend({
     title: z.string().min(1, "عنوان الموعد مطلوب"),
     description: z.string().optional().nullable(),
@@ -605,7 +585,6 @@ export const insertAppointmentSchema = createInsertSchema(appointments)
   });
 
 export const insertFileStorageSchema = createInsertSchema(fileStorage)
-  .omit({ id: true, createdAt: true, updatedAt: true })
   .extend({
     filename: z.string().min(1, "اسم الملف مطلوب"),
     contentType: z.string().min(1, "نوع المحتوى مطلوب"),
@@ -615,7 +594,6 @@ export const insertFileStorageSchema = createInsertSchema(fileStorage)
   });
 
 export const insertInvoiceSchema = createInsertSchema(invoices)
-  .omit({ id: true, createdAt: true, updatedAt: true })
   .extend({
     saleId: z.number().min(1, "معرف البيع مطلوب"),
     invoiceNumber: z.string().min(1, "رقم الفاتورة مطلوب"),
@@ -631,7 +609,6 @@ export const insertInvoiceSchema = createInsertSchema(invoices)
   });
 
 export const insertInvoiceItemSchema = createInsertSchema(invoiceItems)
-  .omit({ id: true, createdAt: true })
   .extend({
     invoiceId: z.number().min(1, "معرف الفاتورة مطلوب"),
     productId: z.number().min(1, "معرف المنتج مطلوب"),
@@ -641,37 +618,30 @@ export const insertInvoiceItemSchema = createInsertSchema(invoiceItems)
     totalPrice: z.coerce.number().min(0, "السعر الإجمالي يجب أن يكون أكبر من 0"),
   });
 
-export const insertInvoiceHistorySchema = createInsertSchema(invoiceHistory)
-  .omit({ id: true, timestamp: true })
-  .extend({
-    invoiceId: z.number().min(1, "معرف الفاتورة مطلوب"),
-    action: z.enum(["create", "modify", "cancel"]),
-    changes: z.record(z.unknown()),
-    reason: z.string().optional(),
-  });
+export const insertInvoiceHistorySchema = createInsertSchema(invoiceHistory).extend({
+  invoiceId: z.number().min(1, "معرف الفاتورة مطلوب"),
+  action: z.enum(["create", "modify", "cancel"]),
+  changes: z.record(z.unknown()),
+  reason: z.string().optional(),
+});
 
-export const insertSystemActivitySchema = createInsertSchema(systemActivities)
-  .omit({ id: true, timestamp: true })
-  .extend({
-    details: z.record(z.unknown()),
-    ipAddress: z.string().optional(),
-    userAgent: z.string().optional(),
-  });
+export const insertSystemActivitySchema = createInsertSchema(systemActivities).extend({
+  details: z.record(z.unknown()),
+  ipAddress: z.string().optional(),
+  userAgent: z.string().optional(),
+});
 
-export const insertActivityReportSchema = createInsertSchema(activityReports)
-  .omit({ id: true, createdAt: true, updatedAt: true })
-  .extend({
-    dateRange: z.object({
-      startDate: z.date(),
-      endDate: z.date(),
-    }),
-    filters: z.record(z.unknown()).optional(),
-    reportType: z.enum(["daily", "weekly", "monthly"]),
-    data: z.record(z.unknown()),
-  });
+export const insertActivityReportSchema = createInsertSchema(activityReports).extend({
+  dateRange: z.object({
+    startDate: z.date(),
+    endDate: z.date(),
+  }),
+  filters: z.record(z.unknown()).optional(),
+  reportType: z.enum(["daily", "weekly", "monthly"]),
+  data: z.record(z.unknown()),
+});
 
 export const insertExpenseCategorySchema = createInsertSchema(expenseCategories)
-  .omit({ id: true, createdAt: true })
   .extend({
     name: z.string().min(1, "اسم الفئة مطلوب"),
     description: z.string().optional().nullable(),
@@ -679,9 +649,8 @@ export const insertExpenseCategorySchema = createInsertSchema(expenseCategories)
   });
 
 export const insertExpenseSchema = createInsertSchema(expenses)
-  .omit({ id: true, createdAt: true, updatedAt: true })
   .extend({
-    amount: z.coerce.number().min(0, "المبلغ يجب أن يكون أكبر من 0"),
+    amount: z.coerce.number().min(0, "المبلغيجب أن يكونأكبر من 0"),
     description: z.string().min(1, "الوصف مطلوب"),
     date: z.coerce.date(),
     categoryId: z.coerce.number().min(1, "يجب اختيار فئة"),
@@ -692,7 +661,6 @@ export const insertExpenseSchema = createInsertSchema(expenses)
   });
 
 export const insertUserSettingsSchema = createInsertSchema(userSettings)
-  .omit({ id: true, createdAt: true, updatedAt: true })
   .extend({
     themeName: z.string().min(1, "اسم الثيم مطلوب"),
     fontName: z.string().min(1, "اسم الخط مطلوب"),
@@ -764,7 +732,6 @@ export type InsertInvoiceHistory = z.infer<typeof insertInvoiceHistorySchema>;
 export type StoreSettings = typeof storeSettings.$inferSelect;
 
 export const insertStoreSettingsSchema = createInsertSchema(storeSettings)
-  .omit({ id: true, createdAt: true, updatedAt: true })
   .extend({
     storeName: z.string().min(1, "اسم المتجر مطلوب"),
     storeAddress: z.string().optional(),

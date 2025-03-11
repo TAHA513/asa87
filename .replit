@@ -1,3 +1,4 @@
+modules = ["nodejs-20"]
 [workflows]
 runButton = "Start application"
 
@@ -8,3 +9,6 @@ author = 39617731
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
+
+[nix]
+channel = "stable-24_05"
