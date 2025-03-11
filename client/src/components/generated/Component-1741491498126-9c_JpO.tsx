@@ -83,8 +83,8 @@ app.post('/api/users', async (req, res) => {
   res.json(user);
 });
 
-app.listen(3001, () => {
-  console.log('Server started on port 3001');
+app.listen(5000, () => {
+  console.log('Server started on port 5000');
 });
 ```
 
