@@ -186,6 +186,38 @@ export const selectStoreSettingsSchema = createSelectSchema(storeSettings);
 export type StoreSettings = z.infer<typeof selectStoreSettingsSchema>;
 export type InsertStoreSettings = z.infer<typeof insertStoreSettingsSchema>;
 
+// Exchange Rates
+export const exchangeRates = pgTable("exchange_rates", {
+  id: serial("id").primaryKey(),
+  usdToIqd: text("usd_to_iqd").notNull(),
+  date: timestamp("date").notNull().defaultNow(),
+});
+
+export const insertExchangeRateSchema = createInsertSchema(exchangeRates);
+export const selectExchangeRateSchema = createSelectSchema(exchangeRates);
+export type ExchangeRate = z.infer<typeof selectExchangeRateSchema>;
+export type InsertExchangeRate = z.infer<typeof insertExchangeRateSchema>;
+
+// Sales
+export const sales = pgTable("sales", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull().references(() => products.id),
+  customerId: integer("customer_id"),
+  quantity: integer("quantity").notNull(),
+  priceIqd: text("price_iqd").notNull(),
+  discount: text("discount").default("0"),
+  finalPriceIqd: text("final_price_iqd").notNull(),
+  userId: integer("user_id").notNull(),
+  isInstallment: boolean("is_installment").default(false),
+  date: timestamp("date").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertSaleSchema = createInsertSchema(sales);
+export const selectSaleSchema = createSelectSchema(sales);
+export type Sale = z.infer<typeof selectSaleSchema>;
+export type InsertSale = z.infer<typeof insertSaleSchema>;
+
 // Products
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
