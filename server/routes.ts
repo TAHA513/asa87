@@ -1368,11 +1368,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(defaultSettings);
       } catch (tableError) {
         console.error("خطأ أثناء التحقق من جدول إعدادات المتجر:", tableError);
-      
-      // جلب إعدادات المتجر
-      const result = await db.execute(sql`
-        SELECT * FROM store_settings ORDER BY id DESC LIMIT 1;
-      `);
+        
+        // جلب إعدادات المتجر
+        const result = await db.execute(sql`
+          SELECT * FROM store_settings ORDER BY id DESC LIMIT 1;
+        `);
       
       if (result.rows && result.rows.length > 0) {
         const settings = {
