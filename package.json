@@ -54,6 +54,7 @@
     "@socket.io/admin-ui": "^0.5.1",
     "@tanstack/react-query": "^5.60.5",
     "@tanstack/react-table": "^8.21.2",
+    "@tensorflow/tfjs": "^4.22.0",
     "@types/express-fileupload": "^1.5.1",
     "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.0",
