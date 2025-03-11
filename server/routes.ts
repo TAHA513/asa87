@@ -93,8 +93,16 @@ async function checkInventoryLevels() {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   console.log("Starting to register routes...");
-  
+
   // setupAuth is already called in index.ts, remove this call to avoid duplicate setup
+
+  // ميدلوير لتجديد الجلسة في كل طلب
+  app.use((req, res, next) => {
+    if (req.session && req.isAuthenticated()) {
+      req.session.touch();
+    }
+    next();
+  });
 
   // Products routes
   app.get("/api/products", async (_req, res) => {
@@ -1339,7 +1347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/store-settings", async (req, res) => {
     try {
       console.log("جاري جلب إعدادات المتجر...");
-      
+
       // تحقق من وجود جدول إعدادات المتجر
       try {
         const tableExists = await db.execute(sql`
@@ -1349,7 +1357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             AND table_name = 'store_settings'
           );
         `);
-        
+
         if (!tableExists.rows?.[0]?.exists) {
           console.log("جدول إعدادات المتجر غير موجود، سيتم إنشاؤه");
           await db.execute(sql`
@@ -1367,7 +1375,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
           `);
-          
+
           // إضافة بيانات افتراضية
           await db.execute(sql`
             INSERT INTO store_settings 
@@ -1379,12 +1387,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (tableError) {
         console.error("خطأ أثناء التحقق من جدول إعدادات المتجر:", tableError);
       }
-      
+
       // جلب إعدادات المتجر
       const result = await db.execute(sql`
         SELECT * FROM store_settings ORDER BY id DESC LIMIT 1;
       `);
-      
+
       if (result.rows && result.rows.length > 0) {
         const settings = {
           id: result.rows[0].id,
@@ -1428,7 +1436,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       console.log("جاري تحديث إعدادات المتجر...", req.body);
-      
+
       // معالجة رفع الشعار إذا كان موجوداً
       let logoUrl = req.body.logoUrl;
 
@@ -1452,7 +1460,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const existingSettings = await db.execute(sql`
         SELECT id FROM store_settings ORDER BY id DESC LIMIT 1;
       `);
-      
+
       let result;
       if (existingSettings.rows && existingSettings.rows.length > 0) {
         // تحديث الإعدادات الموجودة
@@ -1489,7 +1497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           RETURNING *;
         `);
       }
-      
+
       if (result.rows && result.rows.length > 0) {
         const settings = {
           id: result.rows[0].id,

@@ -32,9 +32,10 @@ export function setupAuth(app: Express) {
     rolling: true, // تجديد وقت انتهاء الصلاحية مع كل طلب
     cookie: {
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 أيام بدلاً من يوم واحد
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 يوم (شهر كامل)
       sameSite: 'lax',
-      httpOnly: true
+      httpOnly: true,
+      path: '/'
     }
   }));
 
@@ -99,6 +100,12 @@ export function setupAuth(app: Express) {
       if (!user || !user.isActive) {
         return done(null, false);
       }
+      
+      // تجديد الجلسة في كل مرة يتم فيها التحقق من بيانات المستخدم
+      if (done.req && done.req.session) {
+        done.req.session.touch();
+      }
+      
       done(null, user);
     } catch (error) {
       done(error);
@@ -132,6 +139,16 @@ export function setupAuth(app: Express) {
         }
 
         try {
+          // تجديد الجلسة بشكل صريح
+          if (req.session) {
+            req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 يوم
+            req.session.save((err) => {
+              if (err) {
+                console.error("خطأ في حفظ الجلسة:", err);
+              }
+            });
+          }
+          
           // عدم إرسال كلمة المرور في الاستجابة
           const { password, ...userWithoutPassword } = user;
           console.log("تم تسجيل الدخول بنجاح:", userWithoutPassword.username);
