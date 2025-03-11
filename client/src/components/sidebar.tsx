@@ -21,7 +21,7 @@ function Sidebar() {
         </li>
         <li>
           <Link to="/sales-analytics">
-            <BarChart3Icon /> تحليلات الذكاء الاصطناعي
+            <BarChart3Icon /> تحليلات المبيعات الذكية
           </Link>
         </li>
         <li>

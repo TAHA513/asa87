@@ -9,7 +9,7 @@ import Settings from './pages/settings';
 import PosPage from './pages/pos';
 import SalesHistory from './pages/sales-history';
 import SalesAnalytics from './pages/sales-analytics'; // Added import for SalesAnalytics
-
+import ProductRecommendation from './pages/product-recommendation'; //Added for product recommendation
 // Import Arabic fonts
 import "@fontsource/noto-kufi-arabic/400.css";
 import "@fontsource/noto-kufi-arabic/700.css";
@@ -32,6 +32,26 @@ createRoot(document.getElementById("root")!).render(
       <Route path="/pos" element={<PosPage />} />
       <Route path="/sales-history" element={<SalesHistory />} />
       <Route path="/sales-analytics" element={<SalesAnalytics />} /> {/* Added route for SalesAnalytics */}
+      <Route path="/product-recommendation" element={<ProductRecommendation />} /> {/* Added route for product recommendation */}
     </Routes>
   </Router>
 );
+
+// Placeholder components -  These need to be implemented based on your specific requirements.
+function SalesAnalytics() {
+  return (
+    <div>
+      <h1>Sales Analytics</h1>
+      {/* Add charts and graphs here */}
+    </div>
+  );
+}
+
+function ProductRecommendation() {
+  return (
+    <div>
+      <h1>Product Recommendations</h1>
+      {/* Add recommendation logic here */}
+    </div>
+  );
+}

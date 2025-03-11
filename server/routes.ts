@@ -1500,6 +1500,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+// خدمة تحليل المبيعات بالذكاء الاصطناعي
+app.get('/api/sales-analytics', async (req, res) => {
+  try {
+    // الحصول على بيانات المبيعات
+    const salesData = await storage.getSales();
+    
+    // تحليل البيانات باستخدام محاكاة بسيطة للذكاء الاصطناعي
+    // في تطبيق حقيقي، ستقوم بتدريب نموذج ML هنا
+    
+    // 1. حساب متوسط المبيعات اليومية
+    const sales = salesData.sales || [];
+    const salesByDate = sales.reduce((acc: any, sale: any) => {
+      const date = new Date(sale.date).toISOString().split('T')[0];
+      if (!acc[date]) {
+        acc[date] = 0;
+      }
+      acc[date] += sale.totalPrice;
+      return acc;
+    }, {});
+
+    const dailyAverage = Object.values(salesByDate).length
+      ? Object.values(salesByDate).reduce((sum: any, val: any) => sum + val, 0) / Object.values(salesByDate).length
+      : 0;
+    
+    // 2. تحليل المنتجات الأكثر مبيعًا
+    const productSales: any = {};
+    sales.forEach((sale: any) => {
+      (sale.items || []).forEach((item: any) => {
+        if (!productSales[item.productId]) {
+          productSales[item.productId] = 0;
+        }
+        productSales[item.productId] += item.quantity;
+      });
+    });
+    
+    // ترتيب المنتجات حسب المبيعات
+    const topProducts = Object.entries(productSales)
+      .map(([productId, count]) => ({ productId: parseInt(productId), count }))
+      .sort((a, b) => (b.count as number) - (a.count as number))
+      .slice(0, 5);
+    
+    // 3. محاكاة توقع المبيعات للأسبوع القادم
+    // في تطبيق حقيقي، هنا ستستخدم نموذج تنبؤ مثل ARIMA أو شبكة عصبية
+    
+    // افتراض زيادة بنسبة 5-15% (هذه محاكاة للذكاء الاصطناعي)
+    const growthRate = 1 + (Math.random() * 0.1 + 0.05);  // 5-15% نمو
+    const nextWeekForecast = dailyAverage * 7 * growthRate;
+    
+    // 4. تحديد أنماط الشراء
+    // محاكاة بسيطة: العملاء يشترون المنتجات ذات الصلة
+    const relatedProductsMap: any = {};
+    
+    sales.forEach((sale: any) => {
+      const items = sale.items || [];
+      for (let i = 0; i < items.length; i++) {
+        for (let j = 0; j < items.length; j++) {
+          if (i !== j) {
+            const productA = items[i].productId;
+            const productB = items[j].productId;
+            
+            if (!relatedProductsMap[productA]) {
+              relatedProductsMap[productA] = {};
+            }
+            
+            if (!relatedProductsMap[productA][productB]) {
+              relatedProductsMap[productA][productB] = 0;
+            }
+            
+            relatedProductsMap[productA][productB]++;
+          }
+        }
+      }
+    });
+    
+    // ترتيب المنتجات ذات الصلة لكل منتج
+    const relatedProducts: any = {};
+    
+    Object.keys(relatedProductsMap).forEach(productId => {
+      relatedProducts[productId] = Object.entries(relatedProductsMap[productId])
+        .map(([relatedId, count]) => ({ productId: parseInt(relatedId), count }))
+        .sort((a, b) => (b.count as number) - (a.count as number))
+        .slice(0, 3);
+    });
+    
+    res.status(200).json({
+      dailyAverageSales: dailyAverage,
+      topSellingProducts: topProducts,
+      forecastNextWeek: nextWeekForecast,
+      relatedProducts
+    });
+    
+  } catch (error) {
+    console.error('خطأ في تحليل البيانات:', error);
+    res.status(500).json({
+      message: 'حدث خطأ أثناء تحليل البيانات'
+    });
+  }
+});
+
   app.post("/api/appointments", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
