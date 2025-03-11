@@ -34,6 +34,19 @@ async function startServer() {
       tempFileDir: path.join(__dirname, "../tmp"),
     }));
 
+    // Add global error logger
+    app.use((req, res, next) => {
+      try {
+        next();
+      } catch (error) {
+        console.error("Express middleware error:", error);
+        res.status(500).json({ 
+          message: "Internal server error", 
+          error: error instanceof Error ? error.message : String(error) 
+        });
+      }
+    });
+
 
     console.log("جاري تهيئة قاعدة البيانات...");
     await initializeDatabase();
@@ -44,6 +57,15 @@ async function startServer() {
 
     // تسجيل المسارات
     await registerRoutes(app);
+
+    // Add global error handler
+    app.use((err, req, res, next) => {
+      console.error("Unhandled Express error:", err);
+      res.status(500).json({ 
+        message: "Internal server error", 
+        error: err instanceof Error ? err.message : String(err) 
+      });
+    });
 
     // إعداد Vite للتطوير أو الملفات الثابتة للإنتاج
     if (isDev) {

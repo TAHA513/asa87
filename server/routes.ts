@@ -94,14 +94,24 @@ async function checkInventoryLevels() {
 export async function registerRoutes(app: Express): Promise<Server> {
   console.log("Starting to register routes...");
 
+  // Error handler for async routes
+  const asyncHandler = (fn: Function) => (req: any, res: any, next: any) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+
   // setupAuth is already called in index.ts, remove this call to avoid duplicate setup
 
   // ميدلوير بسيط للتحقق من حالة الجلسة
   app.use((req, res, next) => {
-    if (req.session && !req.session.cookie.originalMaxAge) {
-      req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 يوم
+    try {
+      if (req.session && !req.session.cookie.originalMaxAge) {
+        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 يوم
+      }
+      next();
+    } catch (error) {
+      console.error("Session middleware error:", error);
+      next(error);
     }
-    next();
   });
 
   // Products routes
