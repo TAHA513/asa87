@@ -6,7 +6,7 @@ import fileUpload from "express-fileupload";
 import path from "path";
 import { fileURLToPath } from "url";
 import { nanoid } from "nanoid";
-import { setupRoutes } from "./routes";
+import { registerRoutes } from "./routes";
 import { setupAuth } from "./auth";
 import { setupVite, log } from "./vite";
 import { initializeDatabase } from "./initialize-database";
@@ -40,7 +40,7 @@ async function startServer() {
     await setupAuth(app);
     
     // API routes
-    setupRoutes(app, server);
+    await registerRoutes(app);
 
     // Static files in production
     if (!isDev) {

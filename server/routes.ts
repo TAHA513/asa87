@@ -92,8 +92,8 @@ async function checkInventoryLevels() {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   console.log("Starting to register routes...");
-
-  setupAuth(app);
+  
+  // setupAuth is already called in index.ts, remove this call to avoid duplicate setup
 
   // Products routes
   app.get("/api/products", async (_req, res) => {
