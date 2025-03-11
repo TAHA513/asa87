@@ -201,14 +201,33 @@ async function initializeDatabase() {
         .execute();
         
       // إضافة إعدادات المتجر الافتراضية إذا لم تكن موجودة
-      const storeSettings = await db.select().from(schema.storeSettings).limit(1);
-      if (storeSettings.length === 0) {
+      try {
+        // حذف وإعادة إنشاء جدول إعدادات المتجر
+        await db.schema.dropTable("store_settings").ifExists().execute();
+        console.log("تم حذف جدول إعدادات المتجر بنجاح");
+        
+        await db.schema
+          .createTable("store_settings")
+          .ifNotExists()
+          .addColumn("id", "serial", (col) => col.primaryKey())
+          .addColumn("store_name", "text", (col) => col.notNull())
+          .addColumn("store_address", "text")
+          .addColumn("store_phone", "text")
+          .addColumn("store_email", "text")
+          .addColumn("tax_number", "text")
+          .addColumn("logo_url", "text")
+          .addColumn("receipt_notes", "text")
+          .addColumn("enable_logo", "boolean", (col) => col.notNull().defaultTo(true))
+          .addColumn("created_at", "timestamp", (col) => col.notNull().defaultTo(sql`now()`))
+          .addColumn("updated_at", "timestamp", (col) => col.notNull().defaultTo(sql`now()`))
+          .execute();
+        
         console.log("إضافة إعدادات المتجر الافتراضية...");
         await db.insert(schema.storeSettings).values({
           storeName: "نظام SAS للإدارة",
-          storeAddress: "العنوان الافتراضي",
-          storePhone: "07xxxxxxxx",
-          storeEmail: "info@example.com",
+          storeAddress: "بغداد - العراق",
+          storePhone: "07701234567",
+          storeEmail: "info@sas-system.com",
           taxNumber: "123456789",
           receiptNotes: "شكراً لتعاملكم معنا",
           enableLogo: true,
@@ -216,6 +235,8 @@ async function initializeDatabase() {
           updatedAt: new Date()
         });
         console.log("تم إضافة إعدادات المتجر الافتراضية بنجاح");
+      } catch (error) {
+        console.error("حدث خطأ أثناء إعداد جدول إعدادات المتجر:", error);
       }
 
 
