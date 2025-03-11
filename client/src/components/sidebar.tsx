@@ -1,8 +1,8 @@
 import React from 'react';
-import { Link } from 'react-router-dom'; 
-import PackageIcon from './icons/PackageIcon'; 
-import ShoppingCartIcon from './icons/ShoppingCartIcon'; 
-import BarChart3Icon from './icons/BarChart3Icon'; 
+import { Link } from 'react-router-dom';
+import { Package as PackageIcon } from "lucide-react";
+import ShoppingCartIcon from './icons/ShoppingCartIcon';
+import BarChart3Icon from './icons/BarChart3Icon';
 
 
 function Sidebar() {
