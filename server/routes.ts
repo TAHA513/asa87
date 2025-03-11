@@ -1337,7 +1337,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Store Settings Routes
   app.get("/api/store-settings", async (req, res) => {
     try {
+      console.log("جاري جلب إعدادات المتجر...");
       const settings = await storage.getStoreSettings();
+      console.log("تم جلب إعدادات المتجر:", settings);
       res.json(settings);
     } catch (error) {
       console.error("Error fetching store settings:", error);
@@ -1351,6 +1353,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      console.log("جاري تحديث إعدادات المتجر...", req.body);
+      
       // Handle logo upload if present
       let logoUrl = req.body.logoUrl;
 
@@ -1367,6 +1371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Set the logo URL
         logoUrl = `/uploads/${fileName}`;
+        console.log("تم رفع الشعار:", logoUrl);
       }
 
       const settings = await storage.updateStoreSettings({
@@ -1374,6 +1379,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         logoUrl
       });
 
+      console.log("تم تحديث إعدادات المتجر:", settings);
       res.json(settings);
     } catch (error) {
       console.error("Error updating store settings:", error);

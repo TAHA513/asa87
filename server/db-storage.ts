@@ -899,6 +899,114 @@ export class DatabaseStorage {
       return [];
     }
   }
+
+  // وظائف إعدادات المتجر
+  async getStoreSettings(): Promise<any> {
+    try {
+      // التحقق من وجود جدول إعدادات المتجر
+      const tableExists = await this.db.execute(sql`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'store_settings'
+        );
+      `);
+
+      if (!tableExists?.rows?.[0]?.exists) {
+        await this.db.execute(sql`
+          CREATE TABLE store_settings (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            address TEXT NOT NULL,
+            phone VARCHAR(255) NOT NULL,
+            email VARCHAR(255),
+            tax_number VARCHAR(255),
+            website VARCHAR(255),
+            logo_url TEXT,
+            notes TEXT,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+
+        // إنشاء سجل افتراضي
+        await this.db.execute(sql`
+          INSERT INTO store_settings (name, address, phone) 
+          VALUES ('متجري', 'العراق', '07xxxxxxxxx');
+        `);
+      }
+
+      const result = await this.db.execute(sql`
+        SELECT * FROM store_settings ORDER BY id DESC LIMIT 1;
+      `);
+
+      if (result.rows && result.rows.length > 0) {
+        return {
+          id: result.rows[0].id,
+          name: result.rows[0].name,
+          address: result.rows[0].address,
+          phone: result.rows[0].phone,
+          email: result.rows[0].email,
+          taxNumber: result.rows[0].tax_number,
+          website: result.rows[0].website,
+          logoUrl: result.rows[0].logo_url,
+          notes: result.rows[0].notes,
+          createdAt: result.rows[0].created_at,
+          updatedAt: result.rows[0].updated_at,
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error getting store settings:', error);
+      throw error;
+    }
+  }
+
+  async updateStoreSettings(settings: any): Promise<any> {
+    try {
+      // تأكد من وجود الجدول
+      await this.getStoreSettings();
+
+      // تحديث الإعدادات
+      const result = await this.db.execute(sql`
+        UPDATE store_settings
+        SET 
+          name = ${settings.name || ''},
+          address = ${settings.address || ''},
+          phone = ${settings.phone || ''},
+          email = ${settings.email || null},
+          tax_number = ${settings.taxNumber || null},
+          website = ${settings.website || null},
+          logo_url = ${settings.logoUrl || null},
+          notes = ${settings.notes || null},
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = (SELECT id FROM store_settings ORDER BY id DESC LIMIT 1)
+        RETURNING *;
+      `);
+
+      if (result.rows && result.rows.length > 0) {
+        return {
+          id: result.rows[0].id,
+          name: result.rows[0].name,
+          address: result.rows[0].address,
+          phone: result.rows[0].phone,
+          email: result.rows[0].email,
+          taxNumber: result.rows[0].tax_number,
+          website: result.rows[0].website,
+          logoUrl: result.rows[0].logo_url,
+          notes: result.rows[0].notes,
+          createdAt: result.rows[0].created_at,
+          updatedAt: result.rows[0].updated_at,
+        };
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error updating store settings:', error);
+      throw error;
+    }
+  }
 }
 
 export const dbStorage = new DatabaseStorage();

@@ -1,8 +1,27 @@
 import { pgTable, text, serial, timestamp, boolean, decimal, integer, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import type { Infer } from "zod";
 import { jsonb } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+
+// نموذج إعدادات المتجر
+export const storeSettingsSchema = z.object({
+  id: z.number().optional(),
+  name: z.string().min(2),
+  address: z.string().min(2),
+  phone: z.string().min(6),
+  email: z.string().email().optional().nullable(),
+  taxNumber: z.string().optional().nullable(),
+  website: z.string().url().optional().nullable(),
+  logoUrl: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+});
+
+export type StoreSettings = z.infer<typeof storeSettingsSchema>;
+export type InsertStoreSettings = Omit<StoreSettings, "id" | "createdAt" | "updatedAt">;
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),

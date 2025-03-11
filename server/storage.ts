@@ -95,6 +95,10 @@ export interface IStorage {
   getFileById(id: number): Promise<FileStorage | undefined>;
   getUserFiles(userId: number): Promise<FileStorage[]>;
   deleteFile(id: number): Promise<void>;
+  
+  // وظائف إعدادات المتجر
+  getStoreSettings(): Promise<any>;
+  updateStoreSettings(settings: any): Promise<any>;
   createInvoice(invoice: InsertInvoice): Promise<Invoice>;
   getInvoice(id: number): Promise<Invoice | undefined>;
   updateInvoicePrintStatus(id: number, printed: boolean): Promise<Invoice>;
