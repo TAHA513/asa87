@@ -14,8 +14,24 @@ import {
   invoices, invoiceItems, invoiceHistory, insertInvoiceSchema,
   insertInvoiceItemSchema, insertInvoiceHistorySchema, systemActivities,
   insertSystemActivitySchema, activityReports, insertActivityReportSchema,
-  storeSettings, insertStoreSettingsSchema,
+  insertStoreSettingsSchema,
 } from '@shared/schema';
+import { pgTable, text, serial, timestamp, boolean } from "drizzle-orm/pg-core";
+
+// إنشاء جدول إعدادات المتجر مباشرة هنا للتأكد من توفره
+export const storeSettings = pgTable("store_settings", {
+  id: serial("id").primaryKey(),
+  storeName: text("store_name").notNull(),
+  storeAddress: text("store_address"),
+  storePhone: text("store_phone"),
+  storeEmail: text("store_email"),
+  taxNumber: text("tax_number"),
+  logoUrl: text("logo_url"),
+  receiptNotes: text("receipt_notes"),
+  enableLogo: boolean("enable_logo").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
 import { db } from "./db";
 import { eq, desc, or, like, SQL, gte, lte, and, sql, lt, gt } from "drizzle-orm";
 import { caching } from "./cache";
