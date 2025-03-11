@@ -50,11 +50,11 @@ function SalesAnalyticsPlaceholder() {
   );
 }
 
-function ProductRecommendation() {
+function ProductRecommendationPlaceholder() {
   return (
     <div>
       <h1>Product Recommendations</h1>
-      {/* Add recommendation logic here */}
+      <p>Recommendations Coming Soon</p>
     </div>
   );
 }
