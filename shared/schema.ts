@@ -90,6 +90,25 @@ export const selectApiKeySchema = createSelectSchema(apiKeys);
 export type ApiKey = z.infer<typeof selectApiKeySchema>;
 export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
 
+// Appointments
+export const appointments = pgTable("appointments", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id").references(() => customers.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  date: timestamp("date").notNull(),
+  duration: integer("duration").notNull(),
+  status: text("status").notNull().default("scheduled"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertAppointmentSchema = createInsertSchema(appointments);
+export const selectAppointmentSchema = createSelectSchema(appointments);
+export type Appointment = z.infer<typeof selectAppointmentSchema>;
+export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
+
 // Store Settings
 export const storeSettings = pgTable("store_settings", {
   id: serial("id").primaryKey(),
