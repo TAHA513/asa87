@@ -40,21 +40,14 @@ export class DatabaseStorage {
   // البحث عن مستخدم باسم المستخدم
   async getUserByUsername(username: string): Promise<User | undefined> {
     try {
-      console.log(`البحث عن المستخدم بالاسم: ${username}`);
-      // التحقق من الاتصال بقاعدة البيانات أولاً
-      await db.execute(sql`SELECT 1`);
-      
       const [user] = await db
         .select()
         .from(users)
         .where(eq(users.username, username));
-      
-      console.log(`نتيجة البحث: ${user ? 'تم العثور على المستخدم' : 'لم يتم العثور على المستخدم'}`);
       return user;
     } catch (error) {
       console.error("خطأ في البحث عن المستخدم في قاعدة البيانات:", error);
-      // رمي الخطأ مرة أخرى للتعامل معه في المستوى الأعلى
-      throw new Error(`فشل البحث عن المستخدم: ${error.message}`);
+      return undefined;
     }
   }
 

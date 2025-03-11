@@ -6,7 +6,6 @@ import * as bcrypt from "@node-rs/bcrypt";
 import { storage } from "./storage";
 import { type User } from "@shared/schema";
 import MemoryStore from "memorystore";
-import jwt from 'jsonwebtoken'; // Added import for JWT
 
 const MemoryStoreSession = MemoryStore(session);
 
@@ -45,7 +44,7 @@ export function setupAuth(app: Express) {
   passport.use(new LocalStrategy(async (username, password, done) => {
     try {
       console.log(`محاولة تسجيل دخول للمستخدم: ${username}`);
-
+      
       // تحسين معالجة أخطاء قاعدة البيانات
       let user;
       try {
@@ -105,66 +104,46 @@ export function setupAuth(app: Express) {
   });
 
   // نقاط النهاية للمصادقة
-  app.post("/api/auth/login", async (req, res) => {
-    const { username, password } = req.body;
+  app.post("/api/auth/login", (req, res, next) => {
+    // تسجيل تفاصيل طلب تسجيل الدخول
+    console.log("طلب تسجيل الدخول:", { 
+      username: req.body.username,
+      bodyExists: !!req.body,
+      hasPassword: !!req.body?.password
+    });
+    
+    if (!req.body.username || !req.body.password) {
+      return res.status(400).json({ message: "اسم المستخدم وكلمة المرور مطلوبان" });
+    }
 
-    try {
-      if (!username || !password) {
-        return res.status(400).json({ message: "اسم المستخدم وكلمة المرور مطلوبان" });
+    passport.authenticate("local", (err: Error | null, user: User | false, info: { message: string } | undefined) => {
+      if (err) {
+        console.error("خطأ في تسجيل الدخول:", err);
+        return res.status(500).json({ message: "حدث خطأ أثناء تسجيل الدخول" });
       }
-
-      // محاولة الاتصال بقاعدة البيانات والتحقق من بيانات المستخدم
-      const user = await storage.getUserByUsername(username);
 
       if (!user) {
-        return res.status(401).json({ message: "اسم المستخدم أو كلمة المرور غير صحيحة" });
+        console.log("فشل تسجيل الدخول:", info?.message);
+        return res.status(401).json({ message: info?.message || "فشل تسجيل الدخول" });
       }
 
-      const isPasswordValid = await comparePasswords(password, user.password);
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          console.error("خطأ في إنشاء الجلسة:", loginErr);
+          return res.status(500).json({ message: "فشل في إنشاء جلسة المستخدم" });
+        }
 
-      if (!isPasswordValid) {
-        return res.status(401).json({ message: "اسم المستخدم أو كلمة المرور غير صحيحة" });
-      }
-
-      // تحديث وقت آخر تسجيل دخول
-      const updatedUser = {
-        ...user,
-        lastLoginAt: new Date()
-      };
-
-      // إذا كان req.session موجودًا
-      if (req.session) {
-        req.session.userId = user.id;
-        req.session.username = user.username;
-        req.session.role = user.role;
-      }
-
-      // إنشاء رمز JWT
-      const token = jwt.sign(
-        { 
-          userId: user.id, 
-          username: user.username,
-          role: user.role
-        },
-        process.env.SESSION_SECRET || "default-secret-key",
-        { expiresIn: "7d" }
-      );
-
-      // إرسال البيانات باستثناء كلمة المرور
-      const { password: _, ...userWithoutPassword } = updatedUser;
-      return res.status(200).json({
-        message: "تم تسجيل الدخول بنجاح",
-        user: userWithoutPassword,
-        token
+        try {
+          // عدم إرسال كلمة المرور في الاستجابة
+          const { password, ...userWithoutPassword } = user;
+          console.log("تم تسجيل الدخول بنجاح:", userWithoutPassword.username);
+          return res.json(userWithoutPassword);
+        } catch (responseErr) {
+          console.error("خطأ في إعداد استجابة تسجيل الدخول:", responseErr);
+          return res.status(500).json({ message: "حدث خطأ أثناء إكمال عملية تسجيل الدخول" });
+        }
       });
-    } catch (error) {
-      console.error("خطأ أثناء تسجيل الدخول:", error);
-      // تحسين رسالة الخطأ لتكون أكثر وضوحًا
-      return res.status(500).json({ 
-        message: "حدث خطأ في الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى لاحقًا.",
-        error: process.env.NODE_ENV === 'development' ? String(error) : undefined
-      });
-    }
+    })(req, res, next);
   });
 
   app.post("/api/auth/register", async (req, res) => {
