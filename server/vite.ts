@@ -122,3 +122,13 @@ export function closeVite() {
     viteDevServer = null;
   }
 }
+
+// Placeholder for setupViteDevServer - requires more context for a complete implementation
+import type { Express } from 'express';
+import type { Server } from 'http';
+export async function setupViteDevServer(app: Express, httpServer: Server) {
+  // Placeholder implementation - replace with actual Vite server setup logic
+  console.log("Vite dev server placeholder initialized.");
+  // تحديد مسار الملفات الثابتة
+  app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+}
