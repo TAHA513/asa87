@@ -128,7 +128,7 @@ async function startServer() {
     // إعداد Socket.IO
     const io = new SocketServer(httpServer, {
       cors: {
-        origin: ["https://admin.socket.io", process.env.NODE_ENV === "production" ? "*" : "http://0.0.0.0:5000"],
+        origin: "*",
         credentials: true
       }
     });
