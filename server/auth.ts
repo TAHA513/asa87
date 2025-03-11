@@ -2,10 +2,11 @@
 import express from 'express';
 import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
-import { PrismaClient, User } from '@prisma/client';
 import bcrypt from 'bcrypt';
-
-const prisma = new PrismaClient();
+import { db } from './db.js';
+import { users } from '../shared/schema.js';
+import { eq } from 'drizzle-orm';
+import type { User } from '../shared/schema.js';
 
 // تصدير الوظيفة الأساسية التي تقوم بإعداد المصادقة
 export default function setupAuth(app: express.Application) {
@@ -23,9 +24,7 @@ export default function setupAuth(app: express.Application) {
       async (email, password, done) => {
         try {
           // البحث عن المستخدم بواسطة البريد الإلكتروني
-          const user = await prisma.user.findUnique({
-            where: { email },
-          });
+          const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
           // التحقق من وجود المستخدم
           if (!user) {
@@ -55,9 +54,7 @@ export default function setupAuth(app: express.Application) {
   // استرجاع معلومات المستخدم من الجلسة
   passport.deserializeUser(async (id: number, done) => {
     try {
-      const user = await prisma.user.findUnique({
-        where: { id },
-      });
+      const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
       done(null, user);
     } catch (error) {
       done(error);
