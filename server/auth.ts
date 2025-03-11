@@ -18,23 +18,21 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
-  // تكوين مخزن للجلسات مع تنظيف منتظم
+  // تكوين إعدادات الجلسة
   const sessionStore = new MemoryStoreSession({
     checkPeriod: 86400000 // تنظيف الجلسات المنتهية كل 24 ساعة
   });
 
-  // إعداد الجلسات بشكل مبسط ومباشر
+  // إعداد الجلسات
   app.use(session({
-    secret: process.env.SESSION_SECRET || 'SAS-APP-SECRET-KEY-CHANGE-ME',
-    resave: true,
+    secret: process.env.SESSION_SECRET || 'default-secret-key',
+    resave: false,
     saveUninitialized: false,
     store: sessionStore,
     cookie: {
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 يوم
-      httpOnly: true,
-      sameSite: 'lax',
-      path: '/',
-      secure: process.env.NODE_ENV === 'production'
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000, // 24 ساعة
+      sameSite: 'lax'
     }
   }));
 
@@ -46,9 +44,16 @@ export function setupAuth(app: Express) {
   passport.use(new LocalStrategy(async (username, password, done) => {
     try {
       console.log(`محاولة تسجيل دخول للمستخدم: ${username}`);
-
-      // البحث عن المستخدم
-      const user = await storage.getUserByUsername(username);
+      
+      // Add more error handling for getUserByUsername
+      let user;
+      try {
+        user = await storage.getUserByUsername(username);
+      } catch (dbError) {
+        console.error("خطأ في قاعدة البيانات عند البحث عن المستخدم:", dbError);
+        console.error("Error details:", dbError);
+        return done(null, false, { message: "حدث خطأ في قاعدة البيانات" });
+      }
 
       if (!user) {
         console.log(`لم يتم العثور على المستخدم: ${username}`);
@@ -60,8 +65,13 @@ export function setupAuth(app: Express) {
         return done(null, false, { message: "الحساب غير نشط" });
       }
 
-      // التحقق من كلمة المرور
-      const isValidPassword = await comparePasswords(password, user.password);
+      let isValidPassword = false;
+      try {
+        isValidPassword = await comparePasswords(password, user.password);
+      } catch (passwordError) {
+        console.error("خطأ في التحقق من كلمة المرور:", passwordError);
+        return done(null, false, { message: "حدث خطأ أثناء التحقق من كلمة المرور" });
+      }
 
       if (!isValidPassword) {
         console.log(`كلمة المرور غير صحيحة للمستخدم: ${username}`);
@@ -72,16 +82,15 @@ export function setupAuth(app: Express) {
       return done(null, user);
     } catch (error) {
       console.error("خطأ في عملية المصادقة:", error);
-      return done(error);
+      return done(null, false, { message: "حدث خطأ أثناء تسجيل الدخول" });
     }
   }));
 
-  // تخزين معرف المستخدم في الجلسة
+  // تسجيل وفك تشفير معرف المستخدم في الجلسة
   passport.serializeUser((user: User, done) => {
     done(null, user.id);
   });
 
-  // استرجاع بيانات المستخدم من المعرف
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
@@ -96,13 +105,14 @@ export function setupAuth(app: Express) {
 
   // نقاط النهاية للمصادقة
   app.post("/api/auth/login", (req, res, next) => {
+    // Log the incoming login request
     console.log("طلب تسجيل الدخول:", { username: req.body.username });
-
+    
     if (!req.body.username || !req.body.password) {
       return res.status(400).json({ message: "اسم المستخدم وكلمة المرور مطلوبان" });
     }
 
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: Error | null, user: User | false, info: { message: string } | undefined) => {
       if (err) {
         console.error("خطأ في تسجيل الدخول:", err);
         return res.status(500).json({ message: "حدث خطأ أثناء تسجيل الدخول" });
@@ -119,9 +129,15 @@ export function setupAuth(app: Express) {
           return res.status(500).json({ message: "فشل في إنشاء جلسة المستخدم" });
         }
 
-        const { password, ...userWithoutPassword } = user;
-        console.log("تم تسجيل الدخول بنجاح:", userWithoutPassword.username);
-        return res.json(userWithoutPassword);
+        try {
+          // عدم إرسال كلمة المرور في الاستجابة
+          const { password, ...userWithoutPassword } = user;
+          console.log("تم تسجيل الدخول بنجاح:", userWithoutPassword.username);
+          return res.json(userWithoutPassword);
+        } catch (responseErr) {
+          console.error("خطأ في إعداد استجابة تسجيل الدخول:", responseErr);
+          return res.status(500).json({ message: "حدث خطأ أثناء إكمال عملية تسجيل الدخول" });
+        }
       });
     })(req, res, next);
   });
@@ -178,7 +194,6 @@ export function setupAuth(app: Express) {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
-
     const { password, ...userWithoutPassword } = req.user as User;
     res.json(userWithoutPassword);
   });

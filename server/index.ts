@@ -34,18 +34,23 @@ async function startServer() {
       tempFileDir: path.join(__dirname, "../tmp"),
     }));
 
-    // Add global error logger
-    app.use((req, res, next) => {
-      try {
-        next();
-      } catch (error) {
-        console.error("Express middleware error:", error);
-        res.status(500).json({ 
-          message: "Internal server error", 
-          error: error instanceof Error ? error.message : String(error) 
-        });
-      }
+    // Configure session store
+    const MemoryStore = createMemoryStore(session);
+    const sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // Prune expired entries every 24h
     });
+
+    // Configure sessions before auth
+    app.use(session({
+      secret: process.env.SESSION_SECRET || 'default-secret-key',
+      resave: false,
+      saveUninitialized: false,
+      store: sessionStore,
+      cookie: { 
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      }
+    }));
 
 
     console.log("جاري تهيئة قاعدة البيانات...");
@@ -53,19 +58,10 @@ async function startServer() {
     console.log("اكتملت عملية تهيئة قاعدة البيانات بنجاح");
 
     // إعداد المصادقة
-    // تكوين المصادقة يتم في registerRoutes وليس هنا لتجنب التكرار
+    await setupAuth(app);
 
     // تسجيل المسارات
     await registerRoutes(app);
-
-    // Add global error handler
-    app.use((err, req, res, next) => {
-      console.error("Unhandled Express error:", err);
-      res.status(500).json({ 
-        message: "Internal server error", 
-        error: err instanceof Error ? err.message : String(err) 
-      });
-    });
 
     // إعداد Vite للتطوير أو الملفات الثابتة للإنتاج
     if (isDev) {
