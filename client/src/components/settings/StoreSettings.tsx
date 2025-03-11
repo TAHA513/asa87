@@ -1,24 +1,40 @@
-import { useEffect, useState, useRef } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
+
+import React, { useRef, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/api";
 
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { Building, Upload } from "lucide-react";
-import { FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage, Form } from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
 import { Switch } from "@/components/ui/switch";
+import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
-  storeName: z.string().min(1, { message: "اسم المتجر مطلوب" }),
+  storeName: z.string().min(1, "اسم المتجر مطلوب"),
   storeAddress: z.string().optional(),
   storePhone: z.string().optional(),
-  storeEmail: z.string().email({ message: "البريد الإلكتروني غير صالح" }).optional().or(z.literal("")),
+  storeEmail: z.string().optional(),
   taxNumber: z.string().optional(),
   receiptNotes: z.string().optional(),
   enableLogo: z.boolean().default(true),
@@ -38,9 +54,23 @@ export function StoreSettings() {
     queryKey: ["storeSettings"],
     queryFn: async () => {
       console.log("جلب إعدادات المتجر...");
-      const response = await apiRequest("GET", "/api/store-settings");
-      console.log("تم جلب إعدادات المتجر:", response);
-      return response;
+      try {
+        const response = await apiRequest("GET", "/api/store-settings");
+        console.log("تم جلب إعدادات المتجر:", response);
+        return response;
+      } catch (error) {
+        console.error("خطأ في جلب إعدادات المتجر:", error);
+        return {
+          storeName: "نظام SAS للإدارة",
+          storeAddress: "",
+          storePhone: "",
+          storeEmail: "",
+          taxNumber: "",
+          logoUrl: "",
+          receiptNotes: "شكراً لتعاملكم معنا",
+          enableLogo: true
+        };
+      }
     },
   });
 
@@ -59,6 +89,7 @@ export function StoreSettings() {
 
   useEffect(() => {
     if (storeSettings) {
+      console.log("تحديث النموذج بإعدادات المتجر:", storeSettings);
       // تعبئة النموذج بالبيانات الموجودة
       form.reset({
         storeName: storeSettings.storeName || "",
@@ -67,68 +98,18 @@ export function StoreSettings() {
         storeEmail: storeSettings.storeEmail || "",
         taxNumber: storeSettings.taxNumber || "",
         receiptNotes: storeSettings.receiptNotes || "",
-        enableLogo: storeSettings.enableLogo !== undefined ? storeSettings.enableLogo : true,
+        enableLogo: storeSettings.enableLogo !== false,
       });
-
-      // عرض الشعار إذا كان موجودًا
+      
+      // تحديث معاينة الشعار إذا كان موجوداً
       if (storeSettings.logoUrl) {
         setLogoPreview(storeSettings.logoUrl);
       }
     }
   }, [storeSettings, form]);
 
-  const onSubmit = async (values: FormValues) => {
-    setIsSubmitting(true);
-    try {
-      console.log("جاري حفظ إعدادات المتجر...", values);
-
-      // إعداد FormData إذا كان هناك ملف
-      if (logoFile) {
-        const formData = new FormData();
-        formData.append("logo", logoFile);
-
-        // إضافة باقي البيانات
-        Object.entries(values).forEach(([key, value]) => {
-          formData.append(key, String(value));
-        });
-
-        const response = await fetch("/api/store-settings", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!response.ok) {
-          throw new Error("فشل في حفظ إعدادات المتجر");
-        }
-
-        const data = await response.json();
-        console.log("تم حفظ إعدادات المتجر:", data);
-      } else {
-        // إذا لم يكن هناك ملف جديد، أرسل البيانات العادية
-        await apiRequest("POST", "/api/store-settings", values);
-      }
-
-      toast({
-        title: "تم الحفظ بنجاح",
-        description: "تم حفظ إعدادات المتجر بنجاح",
-      });
-
-      // تحديث البيانات في الكاش
-      queryClient.invalidateQueries({ queryKey: ["storeSettings"] });
-    } catch (error) {
-      console.error("خطأ في حفظ إعدادات المتجر:", error);
-      toast({
-        title: "خطأ",
-        description: "حدث خطأ أثناء حفظ إعدادات المتجر",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
       setLogoFile(file);
       const reader = new FileReader();
@@ -139,31 +120,76 @@ export function StoreSettings() {
     }
   };
 
-  const handleLogoClick = () => {
-    fileInputRef.current?.click();
+  const onSubmit = async (data: FormValues) => {
+    setIsSubmitting(true);
+    try {
+      console.log("جاري حفظ إعدادات المتجر...", data);
+      
+      // إنشاء كائن FormData لإرسال الملفات
+      const formData = new FormData();
+      
+      // إضافة بيانات النموذج
+      Object.entries(data).forEach(([key, value]) => {
+        formData.append(key, value !== undefined ? String(value) : "");
+      });
+      
+      // إضافة الشعار إذا تم تحديثه
+      if (logoFile) {
+        formData.append("logo", logoFile);
+      } else if (logoPreview) {
+        formData.append("logoUrl", logoPreview);
+      }
+      
+      // إرسال البيانات للخادم
+      const response = await fetch("/api/store-settings", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        throw new Error(`فشل الحفظ: ${response.status} ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log("تم حفظ إعدادات المتجر:", result);
+      
+      // تحديث البيانات في ذاكرة التخزين المؤقت
+      queryClient.invalidateQueries({ queryKey: ["storeSettings"] });
+      
+      toast({
+        title: "تم الحفظ",
+        description: "تم حفظ إعدادات المتجر بنجاح",
+      });
+    } catch (error) {
+      console.error("خطأ أثناء حفظ إعدادات المتجر:", error);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء حفظ إعدادات المتجر",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-
-  if (isLoading) {
-    return <div className="flex justify-center p-8">جاري التحميل...</div>;
-  }
 
   return (
     <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center gap-4 mb-6">
-          <Building className="h-8 w-8 text-primary" />
-          <div>
-            <h2 className="text-2xl font-bold">إعدادات المتجر</h2>
-            <p className="text-muted-foreground">
-              قم بتحديث معلومات المتجر التي ستظهر في الفواتير والمستندات
-            </p>
+      <CardHeader>
+        <CardTitle>إعدادات المتجر</CardTitle>
+        <CardDescription>
+          قم بتعديل معلومات المتجر التي تظهر في الفواتير والمواعيد
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        </div>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="flex flex-col md:flex-row gap-8">
-              <div className="w-full md:w-3/4 space-y-4">
+        ) : (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <div className="space-y-6">
                 <FormField
                   control={form.control}
                   name="storeName"
@@ -171,8 +197,11 @@ export function StoreSettings() {
                     <FormItem>
                       <FormLabel>اسم المتجر</FormLabel>
                       <FormControl>
-                        <Input placeholder="اسم المتجر" {...field} />
+                        <Input placeholder="أدخل اسم المتجر" {...field} />
                       </FormControl>
+                      <FormDescription>
+                        سيظهر اسم المتجر في جميع الفواتير والتقارير
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -185,14 +214,14 @@ export function StoreSettings() {
                     <FormItem>
                       <FormLabel>عنوان المتجر</FormLabel>
                       <FormControl>
-                        <Input placeholder="عنوان المتجر" {...field} />
+                        <Input placeholder="أدخل عنوان المتجر" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                   <FormField
                     control={form.control}
                     name="storePhone"
@@ -200,7 +229,11 @@ export function StoreSettings() {
                       <FormItem>
                         <FormLabel>رقم الهاتف</FormLabel>
                         <FormControl>
-                          <Input placeholder="رقم الهاتف" {...field} />
+                          <Input
+                            type="tel"
+                            placeholder="أدخل رقم الهاتف"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -214,7 +247,11 @@ export function StoreSettings() {
                       <FormItem>
                         <FormLabel>البريد الإلكتروني</FormLabel>
                         <FormControl>
-                          <Input placeholder="البريد الإلكتروني" {...field} />
+                          <Input
+                            type="email"
+                            placeholder="أدخل البريد الإلكتروني"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -229,7 +266,7 @@ export function StoreSettings() {
                     <FormItem>
                       <FormLabel>الرقم الضريبي</FormLabel>
                       <FormControl>
-                        <Input placeholder="الرقم الضريبي" {...field} />
+                        <Input placeholder="أدخل الرقم الضريبي" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -244,50 +281,17 @@ export function StoreSettings() {
                       <FormLabel>ملاحظات الفاتورة</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="النص الذي سيظهر في أسفل الفواتير"
+                          placeholder="أدخل ملاحظات تظهر أسفل الفواتير"
                           {...field}
-                          rows={3}
                         />
                       </FormControl>
                       <FormDescription>
-                        هذا النص سيظهر في أسفل الفواتير
+                        تظهر هذه الملاحظات في أسفل جميع الفواتير المطبوعة
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-
-              <div className="w-full md:w-1/4 space-y-4">
-                <div>
-                  <p className="mb-2 font-medium">شعار المتجر</p>
-                  <div
-                    onClick={handleLogoClick}
-                    className="border-2 border-dashed rounded-lg p-4 h-48 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition"
-                  >
-                    {logoPreview ? (
-                      <img
-                        src={logoPreview}
-                        alt="شعار المتجر"
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    ) : (
-                      <>
-                        <Upload className="h-12 w-12 text-muted-foreground mb-2" />
-                        <p className="text-sm text-muted-foreground text-center">
-                          انقر لاختيار شعار المتجر
-                        </p>
-                      </>
-                    )}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoChange}
-                      className="hidden"
-                    />
-                  </div>
-                </div>
 
                 <FormField
                   control={form.control}
@@ -295,11 +299,9 @@ export function StoreSettings() {
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                       <div className="space-y-0.5">
-                        <FormLabel className="text-base">
-                          إظهار الشعار في الفواتير
-                        </FormLabel>
+                        <FormLabel className="text-base">شعار المتجر</FormLabel>
                         <FormDescription>
-                          عرض شعار المتجر عند طباعة الفواتير
+                          إظهار شعار المتجر في الفواتير والتقارير
                         </FormDescription>
                       </div>
                       <FormControl>
@@ -311,14 +313,58 @@ export function StoreSettings() {
                     </FormItem>
                   )}
                 />
-              </div>
-            </div>
 
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "جاري الحفظ..." : "حفظ الإعدادات"}
-            </Button>
-          </form>
-        </Form>
+                <div className="space-y-3">
+                  <FormLabel>تحميل الشعار</FormLabel>
+                  <div className="flex items-center gap-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      اختر صورة
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleLogoChange}
+                    />
+                    <FormDescription>
+                      يفضل استخدام صورة شفافة بصيغة PNG أو SVG
+                    </FormDescription>
+                  </div>
+                  {logoPreview && (
+                    <div className="mt-4">
+                      <p className="mb-2 text-sm">معاينة الشعار:</p>
+                      <div className="h-20 w-48 overflow-hidden rounded border bg-gray-50 dark:bg-gray-800">
+                        <img
+                          src={logoPreview}
+                          alt="شعار المتجر"
+                          className="h-full w-auto object-contain"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <CardFooter className="flex justify-end px-0 pt-6">
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      جاري الحفظ...
+                    </>
+                  ) : (
+                    "حفظ التغييرات"
+                  )}
+                </Button>
+              </CardFooter>
+            </form>
+          </Form>
+        )}
       </CardContent>
     </Card>
   );

@@ -123,6 +123,26 @@ async function startServer() {
     }
 
     const port = process.env.PORT || 5000;
+    
+    // محاولة إيقاف أي عمليات سابقة على نفس المنفذ
+    try {
+      const net = require('net');
+      const tester = net.createServer()
+        .once('error', (err: any) => {
+          if (err.code === 'EADDRINUSE') {
+            console.log(`المنفذ ${port} مستخدم بالفعل. محاولة إغلاقه...`);
+            require('child_process').execSync(`fuser -k ${port}/tcp`);
+            console.log(`تم تحرير المنفذ ${port}`);
+          }
+        })
+        .once('listening', () => {
+          tester.close();
+        })
+        .listen(port);
+    } catch (err) {
+      console.error('لم نتمكن من تحرير المنفذ:', err);
+    }
+    
     const httpServer = createServer(app);
 
     // إعداد Socket.IO

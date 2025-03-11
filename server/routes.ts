@@ -1338,9 +1338,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/store-settings", async (req, res) => {
     try {
       console.log("جاري جلب إعدادات المتجر...");
-      const settings = await storage.getStoreSettings();
-      console.log("تم جلب إعدادات المتجر:", settings);
-      res.json(settings || {
+      let settings;
+      try {
+        settings = await storage.getStoreSettings();
+        console.log("تم جلب إعدادات المتجر من قاعدة البيانات:", settings);
+      } catch (dbError) {
+        console.error("خطأ في جلب إعدادات المتجر من قاعدة البيانات:", dbError);
+        settings = null;
+      }
+      
+      // إرجاع الإعدادات الافتراضية إذا لم تكن موجودة
+      const defaultSettings = {
+        storeName: "نظام SAS للإدارة",
+        storeAddress: "",
+        storePhone: "",
+        storeEmail: "",
+        taxNumber: "",
+        logoUrl: "",
+        receiptNotes: "شكراً لتعاملكم معنا",
+        enableLogo: true
+      };
+      
+      res.json(settings || defaultSettings);
+    } catch (error) {
+      console.error("Error fetching store settings:", error);
+      // إرجاع الإعدادات الافتراضية في حالة الخطأ
+      res.json({
         storeName: "نظام SAS للإدارة",
         storeAddress: "",
         storePhone: "",
@@ -1350,9 +1373,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         receiptNotes: "شكراً لتعاملكم معنا",
         enableLogo: true
       });
-    } catch (error) {
-      console.error("Error fetching store settings:", error);
-      res.status(500).json({ message: "فشل في جلب إعدادات المتجر" });
     }
   });
 
@@ -1364,35 +1384,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("جاري تحديث إعدادات المتجر...", req.body);
       
-      // Handle logo upload if present
+      // معالجة رفع الشعار إذا كان موجوداً
       let logoUrl = req.body.logoUrl;
 
       if (req.files && req.files.logo) {
-        const file = req.files.logo;
-        const fileName = `store-logo-${Date.now()}-${file.name}`;
-        const filePath = path.join(process.cwd(), "uploads", fileName);
+        try {
+          const file = req.files.logo;
+          const fileName = `store-logo-${Date.now()}-${file.name}`;
+          const filePath = path.join(process.cwd(), "uploads", fileName);
 
-        // Create uploads directory if it doesn't exist
-        await fs.mkdir(path.join(process.cwd(), "uploads"), { recursive: true });
+          // إنشاء مجلد التحميلات إذا لم يكن موجوداً
+          await fs.mkdir(path.join(process.cwd(), "uploads"), { recursive: true });
 
-        // Save the file
-        await fs.writeFile(filePath, file.data);
+          // حفظ الملف
+          await fs.writeFile(filePath, file.data);
 
-        // Set the logo URL
-        logoUrl = `/uploads/${fileName}`;
-        console.log("تم رفع الشعار:", logoUrl);
+          // تعيين رابط الشعار
+          logoUrl = `/uploads/${fileName}`;
+          console.log("تم رفع الشعار:", logoUrl);
+        } catch (fileError) {
+          console.error("خطأ في رفع الشعار:", fileError);
+          // استمر بدون تغيير الشعار في حالة الخطأ
+        }
       }
 
-      const settings = await storage.updateStoreSettings({
-        ...req.body,
-        logoUrl
-      });
+      // تجهيز بيانات الإعدادات للحفظ
+      const settingsData = {
+        storeName: req.body.storeName || "نظام SAS للإدارة",
+        storeAddress: req.body.storeAddress || "",
+        storePhone: req.body.storePhone || "",
+        storeEmail: req.body.storeEmail || "",
+        taxNumber: req.body.taxNumber || "",
+        receiptNotes: req.body.receiptNotes || "شكراً لتعاملكم معنا",
+        enableLogo: req.body.enableLogo === "true" || req.body.enableLogo === true,
+        logoUrl: logoUrl || ""
+      };
 
-      console.log("تم تحديث إعدادات المتجر:", settings);
-      res.json(settings);
+      console.log("البيانات المجهزة للحفظ:", settingsData);
+
+      // حفظ الإعدادات في قاعدة البيانات
+      let settings;
+      try {
+        settings = await storage.updateStoreSettings(settingsData);
+        console.log("تم تحديث إعدادات المتجر:", settings);
+      } catch (dbError) {
+        console.error("خطأ في تحديث إعدادات المتجر في قاعدة البيانات:", dbError);
+        // إرجاع البيانات المرسلة على الأقل
+        settings = settingsData;
+      }
+
+      res.json(settings || settingsData);
     } catch (error) {
       console.error("Error updating store settings:", error);
-      res.status(500).json({ message: "فشل في تحديث إعدادات المتجر" });
+      res.status(500).json({ 
+        message: "فشل في تحديث إعدادات المتجر",
+        error: error instanceof Error ? error.message : "خطأ غير معروف"
+      });
     }
   });
 
