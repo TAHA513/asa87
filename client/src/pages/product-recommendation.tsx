@@ -35,7 +35,7 @@ export default function ProductRecommendation() {
       <main className="flex-1 p-8 overflow-auto">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-3xl font-bold mb-8">توصيات المنتجات</h1>
-          
+
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>اختيار المنتج أو العميل</CardTitle>
@@ -71,11 +71,11 @@ export default function ProductRecommendation() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="text-center md:pt-8">
                     <span className="px-4">أو</span>
                   </div>
-                  
+
                   <div className="w-full md:w-1/2 space-y-2">
                     <label className="text-sm font-medium">اختر عميلًا:</label>
                     <Select
@@ -101,7 +101,7 @@ export default function ProductRecommendation() {
               )}
             </CardContent>
           </Card>
-          
+
           <ProductRecommendations 
             customerId={selectedCustomerId || undefined} 
             currentProductId={selectedProductId || undefined}
