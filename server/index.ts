@@ -34,16 +34,13 @@ async function startServer() {
       tempFileDir: path.join(__dirname, "../tmp"),
     }));
 
-    // ملاحظة: تم نقل إعدادات الجلسة إلى ملف auth.ts لتجنب التكرار
-    // سيتم تكوين الجلسة في setupAuth
-
 
     console.log("جاري تهيئة قاعدة البيانات...");
     await initializeDatabase();
     console.log("اكتملت عملية تهيئة قاعدة البيانات بنجاح");
 
     // إعداد المصادقة
-    await setupAuth(app);
+    // تكوين المصادقة يتم في registerRoutes وليس هنا لتجنب التكرار
 
     // تسجيل المسارات
     await registerRoutes(app);
