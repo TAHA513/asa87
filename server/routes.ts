@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import fs from "fs/promises";
 import path from "path";
+import { db, sql } from "./db";
 import {
   insertProductSchema,
   insertSaleSchema,

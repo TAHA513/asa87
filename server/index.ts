@@ -16,6 +16,9 @@ const PORT = 5000; // Always use port 5000 as per requirements
 
 async function startServer() {
   try {
+    // Define log function
+    const log = (message: string) => console.log(message);
+    
     // Initialize database
     await initializeDatabase();
     log("قاعدة البيانات تم تهيئتها بنجاح");
