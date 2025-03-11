@@ -44,8 +44,3 @@ export const storage = {
 
   // Add other necessary methods...
 };
-
-// Remove duplicate import since the storage object is already defined above
-export {
-  storage
-};
