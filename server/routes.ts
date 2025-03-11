@@ -1340,7 +1340,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("جاري جلب إعدادات المتجر...");
       const settings = await storage.getStoreSettings();
       console.log("تم جلب إعدادات المتجر:", settings);
-      res.json(settings);
+      res.json(settings || {
+        storeName: "نظام SAS للإدارة",
+        storeAddress: "",
+        storePhone: "",
+        storeEmail: "",
+        taxNumber: "",
+        logoUrl: "",
+        receiptNotes: "شكراً لتعاملكم معنا",
+        enableLogo: true
+      });
     } catch (error) {
       console.error("Error fetching store settings:", error);
       res.status(500).json({ message: "فشل في جلب إعدادات المتجر" });
