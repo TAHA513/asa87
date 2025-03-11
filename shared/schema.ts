@@ -337,6 +337,20 @@ export const userSettings = pgTable("user_settings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const storeSettings = pgTable("store_settings", {
+  id: serial("id").primaryKey(),
+  storeName: text("store_name").notNull(),
+  storeAddress: text("store_address"),
+  storePhone: text("store_phone"),
+  storeEmail: text("store_email"),
+  taxNumber: text("tax_number"),
+  logoUrl: text("logo_url"),
+  receiptNotes: text("receipt_notes"),
+  enableLogo: boolean("enable_logo").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const systemActivities = pgTable("system_activities", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
@@ -728,21 +742,6 @@ export type InvoiceItem = typeof invoiceItems.$inferSelect;
 export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
 export type InvoiceHistory = typeof invoiceHistory.$inferSelect;
 export type InsertInvoiceHistory = z.infer<typeof insertInvoiceHistorySchema>;
-
-export const storeSettings = pgTable("store_settings", {
-  id: serial("id").primaryKey(),
-  storeName: text("store_name").notNull(),
-  storeAddress: text("store_address"),
-  storePhone: text("store_phone"),
-  storeEmail: text("store_email"),
-  taxNumber: text("tax_number"),
-  logoUrl: text("logo_url"),
-  receiptNotes: text("receipt_notes"),
-  enableLogo: boolean("enable_logo").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
 export type StoreSettings = typeof storeSettings.$inferSelect;
 
 export const insertStoreSettingsSchema = createInsertSchema(storeSettings)
