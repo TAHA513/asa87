@@ -4,7 +4,7 @@ import { createServer } from 'http';
 import cors from 'cors';
 import passport from 'passport';
 import session from 'express-session';
-import MemoryStore from 'memorystore';
+import * as memorystore from 'memorystore';
 import { registerRoutes } from './routes.js';
 import * as auth from './auth.js';
 import { initializeDatabase } from './initialize-database.js';
@@ -14,6 +14,7 @@ const app = express();
 const httpServer = createServer(app);
 
 // تكوين جلسات المستخدمين
+const MemoryStore = memorystore(session);
 app.use(
   session({
     name: "app.session",
@@ -64,8 +65,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// استيراد دالة setupAuth من وحدة auth
-import * as auth from './auth.js';
+// دالة setupAuth تم استيرادها مسبقاً
 
 // إعداد المصادقة
 auth.setupAuth(app);
