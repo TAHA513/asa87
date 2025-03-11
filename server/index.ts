@@ -65,7 +65,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // إعداد المصادقة
-auth.default(app);
+setupAuth(app);
+
+// استيراد دالة setupAuth من وحدة auth
+import setupAuth from './auth.js';
 
 // إعداد المسارات
 registerRoutes(app);
