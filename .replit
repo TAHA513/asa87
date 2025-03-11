@@ -1,7 +1,7 @@
 modules = ["nodejs-20"]
 
 [workflows]
-runButton = "Run"
+runButton = "Run Server"
 
 [[workflows.workflow]]
 name = "Start application"
@@ -27,6 +27,14 @@ author = 39617731
 task = "shell.exec"
 args = "NODE_ENV=development node --experimental-specifier-resolution=node --loader ts-node/esm server/index.ts"
 
+[[workflows.workflow]]
+name = "Run Server"
+author = 39617731
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=development node --experimental-specifier-resolution=node --loader ts-node/esm server/index.ts"
+
 [nix]
 channel = "stable-24_05"
 
@@ -36,3 +44,14 @@ run = ["sh", "-c", "npm run dev"]
 [[ports]]
 localPort = 5000
 externalPort = 80
+run = "npm run dev"
+modules = ["nodejs-20:v8-20230920-bd784b9"]
+hidden = [".config", "package-lock.json"]
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 3000
+externalPort = 3000

@@ -9,6 +9,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import fileUpload from "express-fileupload";
 import dotenv from "dotenv";
+import fs from "fs/promises";
 
 // تحميل متغيرات البيئة
 dotenv.config();
