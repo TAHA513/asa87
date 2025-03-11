@@ -103,7 +103,14 @@ export function setupAuth(app: Express) {
       
       // تجديد الجلسة في كل مرة يتم فيها التحقق من بيانات المستخدم
       if (done.req && done.req.session) {
+        // تجديد وقت الجلسة
         done.req.session.touch();
+        
+        // إعادة تعيين وقت انتهاء الصلاحية
+        done.req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 يوم
+        
+        // حفظ التغييرات بشكل صريح
+        done.req.session.save();
       }
       
       done(null, user);
@@ -141,10 +148,19 @@ export function setupAuth(app: Express) {
         try {
           // تجديد الجلسة بشكل صريح
           if (req.session) {
-            req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 يوم
+            // تعيين وقت انتهاء طويل للغاية
+            req.session.cookie.maxAge = 365 * 24 * 60 * 60 * 1000; // سنة كاملة
+            
+            // تعيين خيارات إضافية للكوكي
+            req.session.cookie.httpOnly = true;
+            req.session.cookie.path = '/';
+            
+            // حفظ الجلسة بشكل صريح
             req.session.save((err) => {
               if (err) {
                 console.error("خطأ في حفظ الجلسة:", err);
+              } else {
+                console.log("تم حفظ الجلسة بنجاح، تنتهي في:", new Date(Date.now() + req.session.cookie.maxAge));
               }
             });
           }

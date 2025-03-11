@@ -98,8 +98,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ميدلوير لتجديد الجلسة في كل طلب
   app.use((req, res, next) => {
-    if (req.session && req.isAuthenticated()) {
+    if (req.session) {
+      // تجديد الجلسة لكل الطلبات حتى لو لم يكن المستخدم مسجل الدخول
+      // هذا يحافظ على الجلسة نشطة طالما المتصفح مفتوح
       req.session.touch();
+      
+      // إعادة تعيين وقت انتهاء الصلاحية لمدة 30 يوم بعد كل طلب
+      if (req.isAuthenticated()) {
+        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 يوم
+      }
     }
     next();
   });
