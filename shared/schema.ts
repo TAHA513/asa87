@@ -1,25 +1,26 @@
-import { pgTable, text, serial, timestamp, boolean, decimal, integer, varchar, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, decimal, integer, varchar, json, PgColumn } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
 
-// نموذج إعدادات المتجر
-export const storeSettingsSchema = z.object({
-  id: z.number().optional(),
-  name: z.string().min(2),
-  address: z.string().min(2),
-  phone: z.string().min(6),
-  email: z.string().email().optional().nullable(),
-  taxNumber: z.string().optional().nullable(),
-  website: z.string().url().optional().nullable(),
-  logoUrl: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
-  createdAt: z.date().optional(),
-  updatedAt: z.date().optional(),
+// Store settings table definition
+export const storeSettings = pgTable("store_settings", {
+  id: serial("id").primaryKey(),
+  storeName: text("store_name").notNull(),
+  storeAddress: text("store_address"),
+  storePhone: text("store_phone"),
+  storeEmail: text("store_email"),
+  taxNumber: text("tax_number"),
+  logoUrl: text("logo_url"),
+  receiptNotes: text("receipt_notes"),
+  enableLogo: boolean("enable_logo").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export type StoreSettings = z.infer<typeof storeSettingsSchema>;
-export type InsertStoreSettings = Omit<StoreSettings, "id" | "createdAt" | "updatedAt">;
+// Remove duplicate StoreSettings type and use table inference
+export type StoreSettings = typeof storeSettings.$inferSelect;
+export type InsertStoreSettings = typeof storeSettings.$inferInsert;
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -89,7 +90,7 @@ export const sales = pgTable("sales", {
   isInstallment: boolean("is_installment").notNull().default(false),
 });
 
-// Add proper type annotation for invoices table
+// Fix invoice reference and type annotation
 export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
   saleId: integer("sale_id").notNull(),
@@ -102,11 +103,14 @@ export const invoices = pgTable("invoices", {
   paymentMethod: text("payment_method").notNull().default("cash"),
   notes: text("notes"),
   printed: boolean("printed").notNull().default(false),
-  originalInvoiceId: integer("original_invoice_id").references(() => invoices.id),
+  originalInvoiceId: integer("original_invoice_id"),
   modificationReason: text("modification_reason"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+// After invoices table is defined, add the self-reference
+sql`ALTER TABLE ${invoices} ADD CONSTRAINT invoices_original_invoice_id_fkey FOREIGN KEY (original_invoice_id) REFERENCES ${invoices} (id)`;
 
 export const invoiceItems = pgTable("invoice_items", {
   id: serial("id").primaryKey(),
@@ -355,19 +359,6 @@ export const userSettings = pgTable("user_settings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const storeSettings = pgTable("store_settings", {
-  id: serial("id").primaryKey(),
-  storeName: text("store_name").notNull(),
-  storeAddress: text("store_address"),
-  storePhone: text("store_phone"),
-  storeEmail: text("store_email"),
-  taxNumber: text("tax_number"),
-  logoUrl: text("logo_url"),
-  receiptNotes: text("receipt_notes"),
-  enableLogo: boolean("enable_logo").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
 
 export const systemActivities = pgTable("system_activities", {
   id: serial("id").primaryKey(),

@@ -11,6 +11,7 @@ import fileUpload from "express-fileupload";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import dotenv from "dotenv";
+import fs from "fs";
 
 // تحميل متغيرات البيئة
 dotenv.config();
@@ -18,7 +19,20 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const isDev = process.env.NODE_ENV !== "production";
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
+
+// إنشاء مجلد للسجلات إذا لم يكن موجوداً
+const logsDir = path.join(__dirname, "../logs");
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
+
+// دالة لتسجيل الأحداث في ملف
+function logToFile(message: string, type: 'info' | 'error' = 'info') {
+  const timestamp = new Date().toISOString();
+  const logMessage = `${timestamp} [${type.toUpperCase()}] ${message}\n`;
+  fs.appendFileSync(path.join(logsDir, `${type}.log`), logMessage);
+}
 
 async function startServer() {
   try {
@@ -33,6 +47,16 @@ async function startServer() {
       useTempFiles: true,
       tempFileDir: path.join(__dirname, "../tmp"),
     }));
+
+    // إعداد تسجيل الطلبات
+    app.use((req, res, next) => {
+      const start = Date.now();
+      res.on('finish', () => {
+        const duration = Date.now() - start;
+        logToFile(`${req.method} ${req.originalUrl} - ${res.statusCode} - ${duration}ms`);
+      });
+      next();
+    });
 
     // Configure session store
     const MemoryStore = createMemoryStore(session);
@@ -52,37 +76,67 @@ async function startServer() {
       }
     }));
 
-
-    console.log("جاري تهيئة قاعدة البيانات...");
+    logToFile("جاري تهيئة قاعدة البيانات...");
     await initializeDatabase();
-    console.log("اكتملت عملية تهيئة قاعدة البيانات بنجاح");
+    logToFile("اكتملت عملية تهيئة قاعدة البيانات بنجاح");
 
     // إعداد المصادقة
     await setupAuth(app);
+    logToFile("تم إعداد نظام المصادقة بنجاح");
 
     // تسجيل المسارات
     await registerRoutes(app);
+    logToFile("تم تسجيل جميع المسارات بنجاح");
 
     // إعداد Vite للتطوير أو الملفات الثابتة للإنتاج
     if (isDev) {
       await setupVite(app, server);
+      logToFile("تم إعداد Vite للتطوير");
     } else {
       serveStatic(app);
+      logToFile("تم إعداد خدمة الملفات الثابتة للإنتاج");
     }
+
+    // معالجة الأخطاء العامة
+    app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+      logToFile(err.stack || err.message, 'error');
+      res.status(500).json({ message: 'حدث خطأ داخلي في الخادم' });
+    });
 
     // بدء الخادم
     server.listen(PORT, "0.0.0.0", () => {
-      console.log(`الخادم يعمل على المنفذ ${PORT} في وضع ${isDev ? "التطوير" : "الإنتاج"}`);
+      const mode = isDev ? "التطوير" : "الإنتاج";
+      const message = `الخادم يعمل على المنفذ ${PORT} في وضع ${mode}`;
+      console.log(message);
+      logToFile(message);
     });
 
   } catch (error) {
-    console.error("فشل بدء تشغيل الخادم:", error);
+    const errorMessage = "فشل بدء تشغيل الخادم: " + (error instanceof Error ? error.message : String(error));
+    console.error(errorMessage);
+    logToFile(errorMessage, 'error');
     process.exit(1);
   }
 }
 
+// إضافة معالجة الأخطاء غير المتوقعة
+process.on('uncaughtException', (error) => {
+  const errorMessage = "خطأ غير متوقع: " + error.message;
+  console.error(errorMessage);
+  logToFile(errorMessage, 'error');
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  const errorMessage = "وعد مرفوض غير معالج: " + String(reason);
+  console.error(errorMessage);
+  logToFile(errorMessage, 'error');
+});
+
 // بدء الخادم
 startServer().catch((error) => {
-  console.error("خطأ غير متوقع:", error);
+  const errorMessage = "خطأ غير متوقع: " + (error instanceof Error ? error.message : String(error));
+  console.error(errorMessage);
+  logToFile(errorMessage, 'error');
   process.exit(1);
 });
