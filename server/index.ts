@@ -9,7 +9,7 @@ import { fileURLToPath } from "url";
 import fileUpload from "express-fileupload";
 import session from "express-session";
 import createMemoryStore from "memorystore";
-import { setupPassport } from "./auth.js";
+import { setupAuth } from "./auth.js";
 import dotenv from "dotenv";
 import { Server as SocketIOServer } from "socket.io";
 import { instrument } from "@socket.io/admin-ui";
@@ -75,7 +75,7 @@ async function startServer() {
     );
     
     // Set up authentication
-    setupPassport(app);
+    setupAuth(app);
     
     // Initialize database
     log("جاري تهيئة قاعدة البيانات...");
