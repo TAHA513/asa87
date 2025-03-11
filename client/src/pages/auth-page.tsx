@@ -136,6 +136,20 @@ export default function AuthPage() {
                style={{ fontFamily: 'Cairo, sans-serif' }}>
             SAS
           </div>
+          
+          <div className="flex justify-center items-center mb-3">
+            <div className="text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-500 shadow-glow px-4 py-1 rounded-lg border border-blue-300/30" 
+                 style={{ 
+                   fontFamily: 'Cairo, sans-serif',
+                   textShadow: '0 0 15px rgba(59, 130, 246, 0.5)',
+                   backdropFilter: 'blur(4px)',
+                   background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(147, 51, 234, 0.1))'
+                 }}>
+              <span style={{ letterSpacing: '1px' }}>S.A.S</span>
+              <span className="text-sm ml-1 align-text-top">®</span>
+            </div>
+          </div>
+          
           <div className="text-2xl text-center text-foreground font-semibold max-w-md animate-fade-in"
                style={{ fontFamily: 'Cairo, sans-serif' }}>
             نظام إدارة الأعمال المتكامل
@@ -163,10 +177,18 @@ export default function AuthPage() {
         <div className="w-full">
           <Card className="w-full backdrop-blur-sm bg-background/80 border-border/50 shadow-lg">
             <CardHeader className="text-center">
-              <div className="md:hidden flex justify-center mb-4">
+              <div className="md:hidden flex flex-col items-center justify-center mb-4">
                 <div className="text-6xl font-black bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-accent animate-gradient"
                     style={{ fontFamily: 'Cairo, sans-serif' }}>
                   SAS
+                </div>
+                <div className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-500 mt-1" 
+                     style={{ 
+                       fontFamily: 'Cairo, sans-serif',
+                       textShadow: '0 0 8px rgba(59, 130, 246, 0.4)'
+                     }}>
+                  <span style={{ letterSpacing: '1px' }}>S.A.S</span>
+                  <span className="text-xs ml-1 align-text-top">®</span>
                 </div>
               </div>
               <CardTitle className="text-2xl font-bold">مرحباً بك</CardTitle>
