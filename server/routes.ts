@@ -2345,7 +2345,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // مسار الخطأ 404
   app.use((req, res) => {
     console.log(`مسار غير موجود: ${req.method} ${req.originalUrl}`);
-    res.status(404).json({ message: "المسار غير موجود" });
+    
+    // إذا كان الطلب لواجهة API، أرجع JSON
+    if (req.originalUrl.startsWith('/api')) {
+      return res.status(404).json({ message: "المسار غير موجود", path: req.originalUrl });
+    }
+    
+    // للطلبات الأخرى، وجه إلى تطبيق React
+    res.sendFile(path.join(process.cwd(), 'client/dist/index.html'));
   });
 
   // معالجة الأخطاء العامة

@@ -55,9 +55,20 @@ async function startServer() {
 
     // إعداد Vite للتطوير أو الملفات الثابتة للإنتاج
     if (isDev) {
+      console.log("إعداد Vite في وضع التطوير...");
       await setupVite(app, server);
     } else {
+      console.log("إعداد الملفات الثابتة في وضع الإنتاج...");
       serveStatic(app);
+    }
+    
+    // التأكد من أن مجلد التحميلات موجود
+    const uploadsDir = path.join(process.cwd(), "uploads");
+    try {
+      await fs.mkdir(uploadsDir, { recursive: true });
+      console.log(`تم التأكد من وجود مجلد التحميلات: ${uploadsDir}`);
+    } catch (err) {
+      console.error("خطأ في إنشاء مجلد التحميلات:", err);
     }
 
     // بدء الخادم
