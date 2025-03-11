@@ -41,6 +41,10 @@ async function startServer() {
       res.json({ message: 'مرحباً بك في نظام إدارة الأعمال' });
     });
 
+    // Register routes
+    const { registerRoutes } = await import("./routes");
+    await registerRoutes(app);
+
     // Start server
     server.listen(PORT, "0.0.0.0", () => {
       log(`الخادم يعمل على المنفذ ${PORT} في وضع ${isDev ? "التطوير" : "الإنتاج"}`);
