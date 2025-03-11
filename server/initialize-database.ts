@@ -199,24 +199,6 @@ async function initializeDatabase() {
         .addColumn("created_at", "timestamp", (col) => col.notNull().defaultTo(sql`now()`))
         .addColumn("updated_at", "timestamp", (col) => col.notNull().defaultTo(sql`now()`))
         .execute();
-        
-      // إضافة إعدادات المتجر الافتراضية إذا لم تكن موجودة
-      const storeSettings = await db.select().from(schema.storeSettings).limit(1);
-      if (storeSettings.length === 0) {
-        console.log("إضافة إعدادات المتجر الافتراضية...");
-        await db.insert(schema.storeSettings).values({
-          storeName: "نظام SAS للإدارة",
-          storeAddress: "العنوان الافتراضي",
-          storePhone: "07xxxxxxxx",
-          storeEmail: "info@example.com",
-          taxNumber: "123456789",
-          receiptNotes: "شكراً لتعاملكم معنا",
-          enableLogo: true,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        });
-        console.log("تم إضافة إعدادات المتجر الافتراضية بنجاح");
-      }
 
 
       console.log("اكتملت عملية بذر البيانات بنجاح");

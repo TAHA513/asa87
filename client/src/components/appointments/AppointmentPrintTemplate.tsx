@@ -1,183 +1,155 @@
-import { formatDate } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/api";
-import { Loader2 } from "lucide-react";
 
-interface AppointmentPrintTemplateProps {
-  appointment: any;
-  customer?: any;
-  isPrinting?: boolean;
+import { useEffect, useState } from 'react';
+import { format } from 'date-fns';
+import { ar } from 'date-fns/locale';
+
+interface Appointment {
+  id: number;
+  title: string;
+  description: string;
+  date: string;
+  duration: number;
+  status: string;
+  customerName?: string;
 }
 
-export function AppointmentPrintTemplate({
-  appointment,
-  customer,
-  isPrinting = false
-}: AppointmentPrintTemplateProps) {
-  if (!appointment) return null;
+interface StoreSettings {
+  storeName: string;
+  storeAddress: string;
+  storePhone: string;
+  storeEmail: string;
+  logoUrl: string;
+  enableLogo: boolean;
+}
 
-  // جلب إعدادات المتجر
-  const { data: storeSettings, isLoading } = useQuery({
-    queryKey: ["/api/store-settings"],
-    queryFn: async () => {
-      return await apiRequest("GET", "/api/store-settings");
-    },
+export const AppointmentPrintTemplate = ({ 
+  appointment, 
+  onPrint 
+}: { 
+  appointment: Appointment, 
+  onPrint?: () => void 
+}) => {
+  const [storeSettings, setStoreSettings] = useState<StoreSettings>({
+    storeName: "",
+    storeAddress: "",
+    storePhone: "",
+    storeEmail: "",
+    logoUrl: "",
+    enableLogo: true
   });
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
-  };
+  useEffect(() => {
+    // جلب إعدادات المتجر
+    const fetchStoreSettings = async () => {
+      try {
+        const response = await fetch('/api/store-settings');
+        if (response.ok) {
+          const data = await response.json();
+          setStoreSettings(data);
+        }
+      } catch (error) {
+        console.error("Error fetching store settings:", error);
+      }
+    };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'scheduled': return 'مجدول';
-      case 'completed': return 'مكتمل';
-      case 'cancelled': return 'ملغي';
-      default: return status;
-    }
-  };
+    fetchStoreSettings();
+  }, []);
 
-  const getStatusClass = (status: string) => {
-    switch (status) {
-      case 'scheduled': return 'text-blue-600';
-      case 'completed': return 'text-green-600';
-      case 'cancelled': return 'text-red-600';
-      default: return '';
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
+  // تنسيق التاريخ والوقت بالعربية
+  const appointmentDate = new Date(appointment.date);
+  const formattedDate = format(appointmentDate, 'PPP', { locale: ar });
+  const formattedTime = format(appointmentDate, 'p', { locale: ar });
 
   return (
-    <div className={`bg-white p-6 rounded-lg shadow max-w-3xl mx-auto ${isPrinting ? 'print:shadow-none print:p-0' : ''}`}>
-      <div className="flex justify-between items-start border-b pb-4 mb-4">
+    <div className="bg-white p-8 max-w-md mx-auto shadow-md print:shadow-none print:p-1">
+      {/* رأس الصفحة مع شعار المتجر */}
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold mb-1">تأكيد الموعد</h1>
-          <p className="text-gray-600">رقم المرجع: {appointment.id}</p>
+          <h1 className="text-xl font-bold">{storeSettings.storeName}</h1>
+          {storeSettings.storeAddress && (
+            <p className="text-gray-500 text-sm">{storeSettings.storeAddress}</p>
+          )}
+          {storeSettings.storePhone && (
+            <p className="text-gray-500 text-sm">هاتف: {storeSettings.storePhone}</p>
+          )}
         </div>
-        <div className="text-left">
-          {storeSettings?.enableLogo && storeSettings?.logoUrl && (
+
+        {storeSettings.enableLogo && storeSettings.logoUrl && (
+          <div>
             <img 
               src={storeSettings.logoUrl} 
               alt="شعار المتجر" 
-              className="h-16 mb-2 object-contain" 
+              className="h-16 object-contain"
             />
-          )}
-          <h2 className="text-xl font-bold">{storeSettings?.storeName || "نظام SAS للإدارة"}</h2>
-          {storeSettings?.storeAddress && (
-            <p className="text-gray-600">{storeSettings.storeAddress}</p>
-          )}
-          {storeSettings?.storePhone && (
-            <p className="text-gray-600">هاتف: {storeSettings.storePhone}</p>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <h3 className="text-lg font-semibold mb-3 border-b pb-1">تفاصيل الموعد</h3>
-
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="font-medium">العنوان:</span>
-              <span>{appointment.title}</span>
-            </div>
-
-            <div className="flex justify-between">
-              <span className="font-medium">التاريخ:</span>
-              <span dir="ltr">{formatDate(new Date(appointment.date))}</span>
-            </div>
-
-            <div className="flex justify-between">
-              <span className="font-medium">الوقت:</span>
-              <span dir="ltr">{formatTime(appointment.date)}</span>
-            </div>
-
-            <div className="flex justify-between">
-              <span className="font-medium">المدة:</span>
-              <span>{appointment.duration} دقيقة</span>
-            </div>
-
-            <div className="flex justify-between">
-              <span className="font-medium">الحالة:</span>
-              <span className={getStatusClass(appointment.status)}>
-                {getStatusText(appointment.status)}
-              </span>
-            </div>
           </div>
-
-          {appointment.description && (
-            <div className="mt-4">
-              <h4 className="font-medium">الوصف:</h4>
-              <p className="text-gray-700 mt-1 whitespace-pre-line">{appointment.description}</p>
-            </div>
-          )}
-        </div>
-
-        <div>
-          <h3 className="text-lg font-semibold mb-3 border-b pb-1">معلومات العميل</h3>
-
-          {customer ? (
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="font-medium">الاسم:</span>
-                <span>{customer.name}</span>
-              </div>
-
-              {customer.phone && (
-                <div className="flex justify-between">
-                  <span className="font-medium">الهاتف:</span>
-                  <span dir="ltr">{customer.phone}</span>
-                </div>
-              )}
-
-              {customer.email && (
-                <div className="flex justify-between">
-                  <span className="font-medium">البريد الإلكتروني:</span>
-                  <span>{customer.email}</span>
-                </div>
-              )}
-
-              {customer.address && (
-                <div className="flex justify-between">
-                  <span className="font-medium">العنوان:</span>
-                  <span>{customer.address}</span>
-                </div>
-              )}
-            </div>
-          ) : (
-            <p className="text-gray-500 italic">لا توجد معلومات للعميل</p>
-          )}
-
-          {appointment.notes && (
-            <div className="mt-4">
-              <h4 className="font-medium">ملاحظات:</h4>
-              <p className="text-gray-700 mt-1 whitespace-pre-line">{appointment.notes}</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-8 border-t pt-4 text-center text-gray-500">
-        <p className="text-sm">يرجى الحضور قبل الموعد بـ 10 دقائق</p>
-        {storeSettings?.storePhone && (
-          <p className="text-sm mt-1">لإلغاء أو تغيير الموعد، يرجى الاتصال بنا على الرقم {storeSettings.storePhone}</p>
         )}
-        <p className="text-sm mt-3">{storeSettings?.receiptNotes || `شكراً لكم - ${storeSettings?.storeName || 'نظام SAS للإدارة'}`}</p>
       </div>
 
-      {isPrinting && (
-        <div className="mt-6 text-xs text-gray-400 text-center">
-          <p>تم إصدار هذا المستند في {new Date().toLocaleString('ar-IQ')}</p>
+      {/* تأكيد الموعد */}
+      <div className="text-center mb-6">
+        <h2 className="text-lg font-bold">تأكيد الموعد</h2>
+        <p className="text-gray-600 text-sm">رقم الموعد: {appointment.id}</p>
+      </div>
+
+      {/* بطاقة معلومات الموعد */}
+      <div className="border rounded-lg p-4 mb-6">
+        <h3 className="font-bold mb-3 text-center border-b pb-2">{appointment.title}</h3>
+        
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <span className="font-semibold">التاريخ:</span>
+            <span>{formattedDate}</span>
+          </div>
+          
+          <div className="flex justify-between">
+            <span className="font-semibold">الوقت:</span>
+            <span>{formattedTime}</span>
+          </div>
+          
+          <div className="flex justify-between">
+            <span className="font-semibold">المدة:</span>
+            <span>{appointment.duration} دقيقة</span>
+          </div>
+          
+          {appointment.customerName && (
+            <div className="flex justify-between">
+              <span className="font-semibold">العميل:</span>
+              <span>{appointment.customerName}</span>
+            </div>
+          )}
+          
+          {appointment.description && (
+            <div className="mt-3">
+              <p className="font-semibold">الوصف:</p>
+              <p className="text-gray-700 text-sm mt-1">{appointment.description}</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ملاحظات */}
+      <div className="text-sm text-gray-600 mb-6">
+        <p>* يرجى الحضور قبل الموعد بـ 10 دقائق</p>
+        <p>* في حالة الرغبة بإلغاء الموعد، يرجى إبلاغنا قبل الموعد بيوم على الأقل</p>
+      </div>
+
+      {/* معلومات الاتصال */}
+      <div className="border-t pt-4 text-center text-sm text-gray-600">
+        {storeSettings.storePhone && <p>للاستفسار: {storeSettings.storePhone}</p>}
+        {storeSettings.storeEmail && <p>{storeSettings.storeEmail}</p>}
+      </div>
+
+      {/* زر الطباعة (يظهر فقط على الشاشة وليس عند الطباعة) */}
+      {onPrint && (
+        <div className="mt-6 text-center print:hidden">
+          <button
+            onClick={onPrint}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+          >
+            طباعة الموعد
+          </button>
         </div>
       )}
     </div>
   );
-}
+};

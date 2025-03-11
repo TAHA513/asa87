@@ -941,7 +941,8 @@ export class DatabaseStorage implements IStorage {
       .where(or(
           like(products.productCode, `%${query}%`),
           like(products.barcode, `%${query}%`),
-          like(products.name, `%${query}%`)        )
+          like(products.name, `%${query}%`)
+        )
       );
   }
 
@@ -1768,81 +1769,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getStoreSettings(): Promise<StoreSettings | undefined> {
-    try {
-      const settings = await db
-        .select()
-        .from(storeSettings)
-        .limit(1);
-
-      if (settings.length === 0) {
-        // إنشاء إعدادات افتراضية إذا لم تكن موجودة
-        const inserted = await db
-          .insert(storeSettings)
-          .values({
-            storeName: "نظام SAS للإدارة",
-            storeAddress: "العنوان الافتراضي",
-            storePhone: "07xxxxxxxx",
-            storeEmail: "info@example.com",
-            taxNumber: "123456789",
-            receiptNotes: "شكراً لتعاملكم معنا",
-            enableLogo: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .returning();
-
-        return inserted[0];
-      }
-
-      return settings[0];
-    } catch (error) {
-      console.error("Error getting store settings:", error);
-      return null;
-    }
-  }
-
-  async updateStoreSettings(data: Partial<InsertStoreSettings>): Promise<StoreSettings | null> {
-    try {
-      const existingSettings = await this.getStoreSettings();
-
-      if (existingSettings) {
-        console.log("تحديث إعدادات المتجر:", data);
-        const updated = await db
-          .update(storeSettings)
-          .set({ 
-            ...data, 
-            updatedAt: new Date() 
-          })
-          .where(eq(storeSettings.id, existingSettings.id))
-          .returning();
-
-        console.log("تم تحديث إعدادات المتجر:", updated[0]);
-        return updated[0];
-      } else {
-        console.log("إنشاء إعدادات متجر جديدة:", data);
-        const inserted = await db
-          .insert(storeSettings)
-          .values({
-            storeName: data.storeName || "نظام SAS للإدارة",
-            storeAddress: data.storeAddress,
-            storePhone: data.storePhone,
-            storeEmail: data.storeEmail,
-            taxNumber: data.taxNumber,
-            logoUrl: data.logoUrl,
-            receiptNotes: data.receiptNotes,
-            enableLogo: data.enableLogo ?? true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .returning();
-
-        console.log("تم إنشاء إعدادات المتجر:", inserted[0]);
-        return inserted[0];
-      }
-    } catch (error) {
-      console.error("Error updating store settings:", error);
-      return null;
-    }
+    const [settings] = await db.select().from(storeSettings).where(eq(storeSettings.id, 1));
+    return settings;
   }
 
   async updateStoreSettings(data: Partial<StoreSettings>): Promise<StoreSettings> {

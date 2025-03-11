@@ -1,136 +1,58 @@
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "../ui/use-toast";
-import { apiRequest } from "@/lib/api";
-import { Button } from "../ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "../ui/form";
-import { Input } from "../ui/input";
-import { Textarea } from "../ui/textarea";
-import { Switch } from "../ui/switch";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
-import { Loader2, Upload } from "lucide-react";
-import { useRef, useState } from "react";
 
-const formSchema = z.object({
-  storeName: z.string().min(1, { message: "اسم المتجر مطلوب" }),
-  storeAddress: z.string().optional(),
-  storePhone: z.string().optional(),
-  storeEmail: z.string().email({ message: "البريد الإلكتروني غير صالح" }).optional().or(z.literal("")),
-  taxNumber: z.string().optional(),
-  receiptNotes: z.string().optional(),
-  enableLogo: z.boolean().default(true),
-});
+import { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "../ui/card";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Textarea } from "../ui/textarea";
+import { Separator } from "../ui/separator";
+import { Switch } from "../ui/switch";
+import { Grid, Upload, Info } from "lucide-react";
+import { useTheme } from "../../contexts/theme-provider";
 
 export function StoreSettings() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-
-  const { data: storeSettings, isLoading } = useQuery({
-    queryKey: ["/api/store-settings"],
-    queryFn: async () => {
-      console.log("جلب إعدادات المتجر...");
-      const response = await apiRequest("GET", "/api/store-settings");
-      console.log("تم جلب إعدادات المتجر:", response);
-      return response;
-    },
+  const { theme } = useTheme();
+  const [isLoading, setIsLoading] = useState(false);
+  const [logo, setLogo] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState("");
+  const [formData, setFormData] = useState({
+    storeName: "",
+    storeAddress: "",
+    storePhone: "",
+    storeEmail: "",
+    taxNumber: "",
+    logoUrl: "",
+    receiptNotes: "",
+    enableLogo: true,
   });
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      storeName: "",
-      storeAddress: "",
-      storePhone: "",
-      storeEmail: "",
-      taxNumber: "",
-      receiptNotes: "",
-      enableLogo: true,
-    },
-  });
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-  // تحديث القيم الافتراضية عند استلام البيانات من الخادم
-  useEffect(() => {
-    if (storeSettings) {
-      console.log("تحديث نموذج إعدادات المتجر:", storeSettings);
-      form.reset({
-        storeName: storeSettings.storeName || "",
-        storeAddress: storeSettings.storeAddress || "",
-        storePhone: storeSettings.storePhone || "",
-        storeEmail: storeSettings.storeEmail || "",
-        taxNumber: storeSettings.taxNumber || "",
-        receiptNotes: storeSettings.receiptNotes || "",
-        enableLogo: storeSettings.enableLogo ?? true,
-      });
+  const handleSwitchChange = (checked: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      enableLogo: checked,
+    }));
+  };
 
-      // عرض الشعار إذا كان موجوداً
-      if (storeSettings.logoUrl) {
-        setLogoPreview(storeSettings.logoUrl);
-      }
-    }
-  }, [storeSettings, form]);
-
-  const updateMutation = useMutation({
-    mutationFn: async (values: z.infer<typeof formSchema>) => {
-      console.log("حفظ إعدادات المتجر:", values);
-      const formData = new FormData();
-
-      // Add form fields to FormData
-      Object.entries(values).forEach(([key, value]) => {
-        if (value !== undefined) {
-          formData.append(key, String(value));
-        }
-      });
-
-      // Add logo file if exists
-      if (logoFile) {
-        formData.append("logo", logoFile);
-      }
-
-      return await apiRequest("POST", "/api/store-settings", formData, {
-        isFormData: true,
-      });
-    },
-    onSuccess: (data) => {
-      console.log("تم حفظ إعدادات المتجر بنجاح:", data);
-      queryClient.invalidateQueries({ queryKey: ["/api/store-settings"] });
-      toast({
-        title: "تم الحفظ",
-        description: "تم حفظ إعدادات المتجر بنجاح",
-      });
-    },
-    onError: (error) => {
-      console.error("Error saving store settings:", error);
-      toast({
-        title: "حدث خطأ",
-        description: "فشل في حفظ إعدادات المتجر",
-        variant: "destructive",
-      });
-    },
-  });
-
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log("تقديم نموذج إعدادات المتجر:", values);
-    updateMutation.mutate(values);
-  }
-
-  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
-      setLogoFile(file);
+      setLogo(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoPreview(reader.result as string);
@@ -139,194 +61,241 @@ export function StoreSettings() {
     }
   };
 
-  const handleLogoClick = () => {
-    fileInputRef.current?.click();
+  const fetchStoreSettings = async () => {
+    try {
+      const response = await fetch('/api/store-settings');
+      if (response.ok) {
+        const data = await response.json();
+        setFormData({
+          storeName: data.storeName || "",
+          storeAddress: data.storeAddress || "",
+          storePhone: data.storePhone || "",
+          storeEmail: data.storeEmail || "",
+          taxNumber: data.taxNumber || "",
+          logoUrl: data.logoUrl || "",
+          receiptNotes: data.receiptNotes || "",
+          enableLogo: data.enableLogo,
+        });
+        
+        if (data.logoUrl) {
+          setLogoPreview(data.logoUrl);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching store settings:", error);
+      toast.error("فشل في جلب إعدادات المتجر");
+    }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      // Create form data for file upload
+      const formDataToSend = new FormData();
+      
+      // Add all form fields
+      Object.entries(formData).forEach(([key, value]) => {
+        formDataToSend.append(key, value as string);
+      });
+      
+      // Add logo if changed
+      if (logo) {
+        formDataToSend.append('logo', logo);
+      }
+
+      const response = await fetch('/api/store-settings', {
+        method: 'POST',
+        body: formDataToSend,
+      });
+
+      if (response.ok) {
+        toast.success("تم حفظ إعدادات المتجر بنجاح");
+        fetchStoreSettings();
+      } else {
+        toast.error("فشل في حفظ إعدادات المتجر");
+      }
+    } catch (error) {
+      console.error("Error saving store settings:", error);
+      toast.error("حدث خطأ أثناء حفظ الإعدادات");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStoreSettings();
+  }, []);
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>إعدادات المتجر</CardTitle>
-        <CardDescription>
-          إعدادات المتجر الأساسية التي ستظهر في الفواتير والتقارير
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4 md:space-x-reverse">
-              {/* Logo Upload */}
-              <div className="w-full md:w-1/3">
-                <FormLabel className="mb-2 block">شعار المتجر</FormLabel>
-                <div 
-                  onClick={handleLogoClick}
-                  className="h-48 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors"
-                >
-                  {logoPreview || storeSettings?.logoUrl ? (
-                    <img 
-                      src={logoPreview || storeSettings?.logoUrl} 
-                      alt="شعار المتجر" 
-                      className="max-h-full max-w-full object-contain p-2" 
-                    />
-                  ) : (
-                    <>
-                      <Upload className="h-10 w-10 text-muted-foreground mb-2" />
-                      <p className="text-sm text-muted-foreground">اضغط لاختيار صورة الشعار</p>
-                    </>
-                  )}
-                  <input 
-                    type="file" 
-                    ref={fileInputRef}
-                    onChange={handleLogoChange}
-                    accept="image/*" 
-                    className="hidden" 
-                  />
-                </div>
-                <FormDescription className="mt-2 text-xs">
-                  يظهر الشعار على الفواتير والتقارير المطبوعة
-                </FormDescription>
-              </div>
-
-              {/* Form Fields */}
-              <div className="w-full md:w-2/3 space-y-4">
-                <FormField
-                  control={form.control}
+    <form onSubmit={handleSubmit}>
+      <Card className="border-border">
+        <CardHeader>
+          <CardTitle className="text-xl">إعدادات المتجر</CardTitle>
+          <CardDescription>
+            قم بإدارة بيانات المتجر التي تظهر في الفواتير والتقارير
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="storeName">اسم المتجر</Label>
+                <Input
+                  id="storeName"
                   name="storeName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>اسم المتجر</FormLabel>
-                      <FormControl>
-                        <Input placeholder="اسم المتجر" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  placeholder="اسم المتجر الذي سيظهر في الفواتير"
+                  value={formData.storeName}
+                  onChange={handleInputChange}
+                  required
                 />
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="storePhone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>رقم الهاتف</FormLabel>
-                        <FormControl>
-                          <Input placeholder="رقم الهاتف" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="storeEmail"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>البريد الإلكتروني</FormLabel>
-                        <FormControl>
-                          <Input placeholder="البريد الإلكتروني" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
+              </div>
+              
+              <div>
+                <Label htmlFor="storeAddress">عنوان المتجر</Label>
+                <Input
+                  id="storeAddress"
                   name="storeAddress"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>عنوان المتجر</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="عنوان المتجر"
-                          {...field}
-                          rows={2}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  placeholder="العنوان"
+                  value={formData.storeAddress}
+                  onChange={handleInputChange}
                 />
-
-                <FormField
-                  control={form.control}
+              </div>
+              
+              <div>
+                <Label htmlFor="storePhone">رقم الهاتف</Label>
+                <Input
+                  id="storePhone"
+                  name="storePhone"
+                  type="tel"
+                  placeholder="رقم هاتف المتجر"
+                  value={formData.storePhone}
+                  onChange={handleInputChange}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="storeEmail">البريد الإلكتروني</Label>
+                <Input
+                  id="storeEmail"
+                  name="storeEmail"
+                  type="email"
+                  placeholder="email@example.com"
+                  value={formData.storeEmail}
+                  onChange={handleInputChange}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="taxNumber">الرقم الضريبي</Label>
+                <Input
+                  id="taxNumber"
                   name="taxNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>الرقم الضريبي</FormLabel>
-                      <FormControl>
-                        <Input placeholder="الرقم الضريبي" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="receiptNotes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ملاحظات الفاتورة</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="ملاحظات تظهر أسفل الفاتورة"
-                          {...field}
-                          rows={2}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="enableLogo"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                      <div className="space-y-0.5">
-                        <FormLabel>عرض الشعار</FormLabel>
-                        <FormDescription>
-                          إظهار شعار المتجر على الفواتير والتقارير
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
+                  placeholder="الرقم الضريبي (إن وجد)"
+                  value={formData.taxNumber}
+                  onChange={handleInputChange}
                 />
               </div>
             </div>
-
-            <Button 
-              type="submit" 
-              className="w-full md:w-auto"
-              disabled={updateMutation.isPending}
-            >
-              {updateMutation.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              حفظ التغييرات
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+            
+            <div className="space-y-4">
+              <div className="border rounded-md p-4">
+                <div className="flex justify-between items-center mb-4">
+                  <Label htmlFor="logoUpload">شعار المتجر</Label>
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="enableLogo" 
+                      checked={formData.enableLogo}
+                      onCheckedChange={handleSwitchChange}
+                    />
+                    <Label htmlFor="enableLogo" className="mr-2">إظهار الشعار في الفواتير</Label>
+                  </div>
+                </div>
+                
+                <div className="flex flex-col items-center justify-center">
+                  {logoPreview ? (
+                    <div className="mb-4 relative">
+                      <img 
+                        src={logoPreview} 
+                        alt="شعار المتجر" 
+                        className="max-h-36 max-w-full border rounded-md"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-0 left-0 w-8 h-8 p-0 rounded-full"
+                        onClick={() => {
+                          setLogo(null);
+                          setLogoPreview("");
+                          setFormData(prev => ({ ...prev, logoUrl: "" }));
+                        }}
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="border border-dashed border-border rounded-md p-8 flex flex-col items-center justify-center mb-4">
+                      <Grid className="h-12 w-12 text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        اسحب وأفلت الشعار هنا أو اضغط للاختيار
+                      </p>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-center">
+                    <Label
+                      htmlFor="logoUpload"
+                      className="cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md transition-colors flex items-center gap-2"
+                    >
+                      <Upload className="h-4 w-4" />
+                      <span>اختيار شعار</span>
+                    </Label>
+                    <Input
+                      id="logoUpload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleLogoChange}
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="receiptNotes">ملاحظات الفاتورة</Label>
+                <Textarea
+                  id="receiptNotes"
+                  name="receiptNotes"
+                  placeholder="ملاحظات تظهر أسفل الفاتورة"
+                  rows={3}
+                  value={formData.receiptNotes}
+                  onChange={handleInputChange}
+                />
+              </div>
+            </div>
+          </div>
+          
+          <Separator />
+          
+          <div className="bg-muted/50 p-4 rounded-md flex gap-3 items-start">
+            <Info className="h-5 w-5 text-blue-500 mt-0.5" />
+            <p className="text-sm text-muted-foreground">
+              ستظهر هذه المعلومات في جميع الفواتير والتقارير المطبوعة. تأكد من صحة البيانات قبل الحفظ.
+            </p>
+          </div>
+        </CardContent>
+        <CardFooter className="flex justify-end">
+          <Button 
+            type="submit" 
+            disabled={isLoading}
+            className="min-w-[120px]"
+          >
+            {isLoading ? "جاري الحفظ..." : "حفظ الإعدادات"}
+          </Button>
+        </CardFooter>
+      </Card>
+    </form>
   );
 }
