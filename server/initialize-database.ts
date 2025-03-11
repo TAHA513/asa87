@@ -10,11 +10,11 @@ import fs from 'fs';
 async function runScript(scriptPath: string): Promise<void> {
   return new Promise((resolve, reject) => {
     console.log(`جاري تنفيذ: ${scriptPath}`);
-    
+
     const process = spawn('npx', ['tsx', scriptPath], {
       stdio: 'inherit'
     });
-    
+
     process.on('close', (code) => {
       if (code === 0) {
         console.log(`تم تنفيذ ${scriptPath} بنجاح`);
@@ -168,6 +168,38 @@ async function initializeDatabase() {
 
         console.log("تم إضافة سعر الصرف الافتراضي بنجاح");
       }
+
+      // -------  إنشاء جداول معلومات النظام وإعداداته -------
+      await db.schema
+        .createTable("user_settings")
+        .ifNotExists()
+        .addColumn("id", "serial", (col) => col.primaryKey())
+        .addColumn("user_id", "integer", (col) => col.notNull().references(() => "users.id"))
+        .addColumn("theme_name", "text", (col) => col.notNull())
+        .addColumn("font_name", "text", (col) => col.notNull())
+        .addColumn("font_size", "text", (col) => col.notNull())
+        .addColumn("appearance", "text", (col) => col.notNull())
+        .addColumn("colors", "jsonb", (col) => col.notNull())
+        .addColumn("created_at", "timestamp", (col) => col.notNull().defaultTo(sql`now()`))
+        .addColumn("updated_at", "timestamp", (col) => col.notNull().defaultTo(sql`now()`))
+        .execute();
+
+      await db.schema
+        .createTable("store_settings")
+        .ifNotExists()
+        .addColumn("id", "serial", (col) => col.primaryKey())
+        .addColumn("store_name", "text", (col) => col.notNull())
+        .addColumn("store_address", "text")
+        .addColumn("store_phone", "text")
+        .addColumn("store_email", "text")
+        .addColumn("tax_number", "text")
+        .addColumn("logo_url", "text")
+        .addColumn("receipt_notes", "text")
+        .addColumn("enable_logo", "boolean", (col) => col.notNull().defaultTo(true))
+        .addColumn("created_at", "timestamp", (col) => col.notNull().defaultTo(sql`now()`))
+        .addColumn("updated_at", "timestamp", (col) => col.notNull().defaultTo(sql`now()`))
+        .execute();
+
 
       console.log("اكتملت عملية بذر البيانات بنجاح");
 

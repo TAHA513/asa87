@@ -1,29 +1,21 @@
 import {
-  systemActivities, activityReports,
-  type SystemActivity, type ActivityReport,
-  type InsertSystemActivity, type InsertActivityReport
-} from "@shared/schema";
-import {
-  users, products, sales, exchangeRates, fileStorage,
-  installments, installmentPayments, marketingCampaigns,
-  campaignAnalytics, socialMediaAccounts, apiKeys,
-  inventoryTransactions, expenseCategories, expenses,
-  suppliers, supplierTransactions, customers, appointments,
-  invoices, invoiceItems, userSettings, reports,
-  type User, type Product, type Sale, type ExchangeRate,
-  type FileStorage, type Installment, type InstallmentPayment,
-  type Campaign, type InsertCampaign, type CampaignAnalytics,
-  type InsertCampaignAnalytics, type SocialMediaAccount,
-  type ApiKey, type InsertApiKey, type InventoryTransaction,
-  type InsertInventoryTransaction, type ExpenseCategory,
-  type InsertExpenseCategory, type Expense, type InsertExpense,
-  type Supplier, type InsertSupplier, type SupplierTransaction,
-  type InsertSupplierTransaction, type Customer, type InsertCustomer,
-  type Appointment, type InsertAppointment, type Invoice,
-  type InsertInvoice, type UserSettings, type InsertUserSettings,
-  type InsertUser, type InsertFileStorage,
-  type Report, type InsertReport, type InvoiceItem
-} from "@shared/schema";
+  insertUserSchema, users, products, insertProductSchema, sales,
+  exchangeRates, insertExchangeRateSchema, insertSaleSchema,
+  installments, installmentPayments, marketingCampaigns, insertCampaignSchema,
+  campaignAnalytics, insertAnalyticsSchema, socialMediaAccounts,
+  insertSocialMediaAccountSchema, apiKeys, insertApiKeySchema,
+  inventoryTransactions, insertInventoryTransactionSchema,
+  expenseCategories, insertExpenseCategorySchema, expenses, insertExpenseSchema,
+  suppliers, insertSupplierSchema, supplierTransactions,
+  insertSupplierTransactionSchema, customers, appointments,
+  insertAppointmentSchema, insertCustomerSchema, fileStorage,
+  insertFileStorageSchema, userSettings, insertUserSettingsSchema,
+  inventoryAlerts, alertNotifications, insertInventoryAlertSchema,
+  invoices, invoiceItems, invoiceHistory, insertInvoiceSchema,
+  insertInvoiceItemSchema, insertInvoiceHistorySchema, systemActivities,
+  insertSystemActivitySchema, activityReports, insertActivityReportSchema,
+  storeSettings, insertStoreSettingsSchema,
+} from '@shared/schema';
 import { db } from "./db";
 import { eq, desc, or, like, SQL, gte, lte, and, sql, lt, gt } from "drizzle-orm";
 import { caching } from "./cache";
@@ -143,6 +135,8 @@ export interface IStorage {
   getHistoricalStats(): Promise<any>;
   getFrontendComponents():Promise<string[]>;
   getApiEndpoints():Promise<string[]>;
+  getStoreSettings(): Promise<StoreSettings | undefined>;
+  updateStoreSettings(data: Partial<StoreSettings>): Promise<StoreSettings>;
 
   // واجهات برمجة جديدة لدعم نظام الإشعارات
   sendNotification(userId: number, notificationType: string, data: any): boolean;
@@ -969,7 +963,7 @@ export class DatabaseStorage implements IStorage {
 
       // Ensure userId is a number
       const userIdNum = Number(userId);
-      
+
       // Process colors to ensure they are stored as a valid JSONB object
       const processedColors = typeof settings.colors === 'string' 
         ? JSON.parse(settings.colors)
@@ -1437,7 +1431,7 @@ export class DatabaseStorage implements IStorage {
         console.error("Invalid report ID:", id);
         throw new Error("معرف التقرير غير صالح");
       }
-      
+
       const [report] = await db
         .select()
         .from(reports)
@@ -1666,7 +1660,7 @@ export class DatabaseStorage implements IStorage {
             acc[curr.status] = curr.count;
             return acc;
           }, {} as Record<string, number>);
-          
+
         return {
           ...day,
           byStatus: statusCounts
@@ -1772,6 +1766,20 @@ export class DatabaseStorage implements IStorage {
       console.error("خطأ في جلب المواعيد حسب النطاق الزمني:", error);
       return [];
     }
+  }
+
+  async getStoreSettings(): Promise<StoreSettings | undefined> {
+    const [settings] = await db.select().from(storeSettings).where(eq(storeSettings.id, 1));
+    return settings;
+  }
+
+  async updateStoreSettings(data: Partial<StoreSettings>): Promise<StoreSettings> {
+    const [updatedSettings] = await db
+      .update(storeSettings)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(storeSettings.id, 1))
+      .returning();
+    return updatedSettings;
   }
 
   sendNotification(userId: number, notificationType: string, data: any): boolean {

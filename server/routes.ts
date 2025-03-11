@@ -1334,6 +1334,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Store Settings Routes
+  app.get("/api/store-settings", async (req, res) => {
+    try {
+      const settings = await storage.getStoreSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching store settings:", error);
+      res.status(500).json({ message: "فشل في جلب إعدادات المتجر" });
+    }
+  });
+
+  app.post("/api/store-settings", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
+    }
+
+    try {
+      // Handle logo upload if present
+      let logoUrl = req.body.logoUrl;
+
+      if (req.files && req.files.logo) {
+        const file = req.files.logo;
+        const fileName = `store-logo-${Date.now()}-${file.name}`;
+        const filePath = path.join(process.cwd(), "uploads", fileName);
+
+        // Create uploads directory if it doesn't exist
+        await fs.mkdir(path.join(process.cwd(), "uploads"), { recursive: true });
+
+        // Save the file
+        await fs.writeFile(filePath, file.data);
+
+        // Set the logo URL
+        logoUrl = `/uploads/${fileName}`;
+      }
+
+      const settings = await storage.updateStoreSettings({
+        ...req.body,
+        logoUrl
+      });
+
+      res.json(settings);
+    } catch (error) {
+      console.error("Error updating store settings:", error);
+      res.status(500).json({ message: "فشل في تحديث إعدادات المتجر" });
+    }
+  });
+
   app.post("/api/settings", async (req, res) => {
     try {
       // التحقق من صحة البيانات
