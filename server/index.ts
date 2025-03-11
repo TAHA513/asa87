@@ -6,7 +6,7 @@ import passport from 'passport';
 import session from 'express-session';
 import MemoryStore from 'memorystore';
 import { setupRoutes } from './routes.js';
-import { setupPassport as setupAuth } from './auth.js';
+import * as auth from './auth.js';
 import { initializeDatabase } from './initialize-database.js';
 import { setupViteDevServer } from './vite.js';
 
@@ -65,7 +65,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // إعداد المصادقة
-setupAuth(app);
+auth.default(app);
 
 // إعداد المسارات
 setupRoutes(app);
