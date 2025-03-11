@@ -33,11 +33,8 @@ export function StoreSettings() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loading, setLoading] = useState(false); // Added loading state
-  const [storeSettings, setStoreSettings] = useState<FormValues | null>(null); // manage local state
 
-
-  const { data: initialStoreSettings, isLoading: initialLoading } = useQuery({
+  const { data: storeSettings, isLoading } = useQuery({
     queryKey: ["storeSettings"],
     queryFn: async () => {
       console.log("جلب إعدادات المتجر...");
@@ -46,13 +43,6 @@ export function StoreSettings() {
       return response;
     },
   });
-
-  useEffect(() => {
-    if (initialStoreSettings) {
-      setStoreSettings(initialStoreSettings);
-    }
-  }, [initialStoreSettings]);
-
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -70,7 +60,15 @@ export function StoreSettings() {
   useEffect(() => {
     if (storeSettings) {
       // تعبئة النموذج بالبيانات الموجودة
-      form.reset(storeSettings);
+      form.reset({
+        storeName: storeSettings.storeName || "",
+        storeAddress: storeSettings.storeAddress || "",
+        storePhone: storeSettings.storePhone || "",
+        storeEmail: storeSettings.storeEmail || "",
+        taxNumber: storeSettings.taxNumber || "",
+        receiptNotes: storeSettings.receiptNotes || "",
+        enableLogo: storeSettings.enableLogo !== undefined ? storeSettings.enableLogo : true,
+      });
 
       // عرض الشعار إذا كان موجودًا
       if (storeSettings.logoUrl) {
@@ -100,17 +98,14 @@ export function StoreSettings() {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "فشل في حفظ إعدادات المتجر");
+          throw new Error("فشل في حفظ إعدادات المتجر");
         }
 
         const data = await response.json();
         console.log("تم حفظ إعدادات المتجر:", data);
-        setStoreSettings(data); // Update local state after successful save.
       } else {
         // إذا لم يكن هناك ملف جديد، أرسل البيانات العادية
-        const response = await apiRequest("POST", "/api/store-settings", values);
-        setStoreSettings(response); // Update local state after successful save
+        await apiRequest("POST", "/api/store-settings", values);
       }
 
       toast({
@@ -124,7 +119,7 @@ export function StoreSettings() {
       console.error("خطأ في حفظ إعدادات المتجر:", error);
       toast({
         title: "خطأ",
-        description: error instanceof Error ? error.message : "حدث خطأ أثناء حفظ إعدادات المتجر",
+        description: "حدث خطأ أثناء حفظ إعدادات المتجر",
         variant: "destructive",
       });
     } finally {
@@ -148,7 +143,7 @@ export function StoreSettings() {
     fileInputRef.current?.click();
   };
 
-  if (initialLoading) {
+  if (isLoading) {
     return <div className="flex justify-center p-8">جاري التحميل...</div>;
   }
 
@@ -319,8 +314,8 @@ export function StoreSettings() {
               </div>
             </div>
 
-            <Button type="submit" disabled={isSubmitting || loading}>
-              {isSubmitting || loading ? "جاري الحفظ..." : "حفظ الإعدادات"}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "جاري الحفظ..." : "حفظ الإعدادات"}
             </Button>
           </form>
         </Form>
