@@ -59,7 +59,7 @@ function ProductRecommendationPlaceholder() {
   );
 }
 
-function AIAnalytics() {
+function AIAnalyticsPlaceholder() {
   return (
     <div>
       <h1>AI Analytics</h1>
