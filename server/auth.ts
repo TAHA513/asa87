@@ -23,16 +23,18 @@ export function setupAuth(app: Express) {
     checkPeriod: 86400000 // تنظيف الجلسات المنتهية كل 24 ساعة
   });
 
-  // إعداد الجلسات
+  // إعداد الجلسات مع تحسين الإعدادات للحفاظ على الجلسة نشطة
   app.use(session({
     secret: process.env.SESSION_SECRET || 'default-secret-key',
-    resave: false,
+    resave: true, // إعادة حفظ الجلسة حتى إذا لم تتغير
     saveUninitialized: false,
     store: sessionStore,
+    rolling: true, // تجديد وقت انتهاء الصلاحية مع كل طلب
     cookie: {
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000, // 24 ساعة
-      sameSite: 'lax'
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 أيام بدلاً من يوم واحد
+      sameSite: 'lax',
+      httpOnly: true
     }
   }));
 
@@ -194,6 +196,12 @@ export function setupAuth(app: Express) {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
+    
+    // تجديد الجلسة عند كل استعلام لبيانات المستخدم
+    if (req.session) {
+      req.session.touch();
+    }
+    
     const { password, ...userWithoutPassword } = req.user as User;
     res.json(userWithoutPassword);
   });

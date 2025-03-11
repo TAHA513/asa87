@@ -34,23 +34,8 @@ async function startServer() {
       tempFileDir: path.join(__dirname, "../tmp"),
     }));
 
-    // Configure session store
-    const MemoryStore = createMemoryStore(session);
-    const sessionStore = new MemoryStore({
-      checkPeriod: 86400000 // Prune expired entries every 24h
-    });
-
-    // Configure sessions before auth
-    app.use(session({
-      secret: process.env.SESSION_SECRET || 'default-secret-key',
-      resave: false,
-      saveUninitialized: false,
-      store: sessionStore,
-      cookie: { 
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
-      }
-    }));
+    // ملاحظة: تم نقل إعدادات الجلسة إلى ملف auth.ts لتجنب التكرار
+    // سيتم تكوين الجلسة في setupAuth
 
 
     console.log("جاري تهيئة قاعدة البيانات...");
