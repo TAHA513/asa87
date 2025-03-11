@@ -58,6 +58,44 @@ export const selectActivityReportSchema = createSelectSchema(activityReports);
 export type ActivityReport = z.infer<typeof selectActivityReportSchema>;
 export type InsertActivityReport = z.infer<typeof insertActivityReportSchema>;
 
+// Marketing Campaigns
+export const marketingCampaigns = pgTable("marketing_campaigns", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  platforms: text("platforms").array(),
+  budget: text("budget").notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"),
+  status: text("status").notNull().default("active"),
+  userId: integer("user_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertCampaignSchema = createInsertSchema(marketingCampaigns);
+export const selectCampaignSchema = createSelectSchema(marketingCampaigns);
+export type Campaign = z.infer<typeof selectCampaignSchema>;
+export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
+
+// Campaign Analytics
+export const campaignAnalytics = pgTable("campaign_analytics", {
+  id: serial("id").primaryKey(),
+  campaignId: integer("campaign_id").notNull().references(() => marketingCampaigns.id),
+  platform: text("platform").notNull(),
+  date: timestamp("date").notNull(),
+  impressions: integer("impressions").notNull(),
+  clicks: integer("clicks").notNull(),
+  conversions: integer("conversions"),
+  spend: text("spend").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertAnalyticsSchema = createInsertSchema(campaignAnalytics);
+export const selectAnalyticsSchema = createSelectSchema(campaignAnalytics);
+export type CampaignAnalytics = z.infer<typeof selectAnalyticsSchema>;
+export type InsertCampaignAnalytics = z.infer<typeof insertAnalyticsSchema>;
+
 // Social Media Accounts
 export const socialMediaAccounts = pgTable("social_media_accounts", {
   id: serial("id").primaryKey(),
