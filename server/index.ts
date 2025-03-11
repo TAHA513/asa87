@@ -14,10 +14,12 @@ const __dirname = path.dirname(__filename);
 const isDev = process.env.NODE_ENV !== "production";
 // Try to use port 5000, but fall back to another if it's in use
 const PRIMARY_PORT = 5000;
-const FALLBACK_PORT = process.env.PORT || 3000;
+const FALLBACK_PORTS = [3000, 3001, 3002, 3003, 3004, 4000, 4001, 4002, 4003, 4004];
+const PORT_ENV = process.env.PORT ? parseInt(process.env.PORT) : null;
 
 async function startServer() {
-  let PORT = PRIMARY_PORT;
+  let portIndex = 0;
+  let PORT = PORT_ENV || PRIMARY_PORT;
   try {
     // Define log function
     const log = (message: string) => console.log(message);
@@ -50,12 +52,17 @@ async function startServer() {
 
     // Start server with error handling for port in use
     server.on('error', (error: NodeJS.ErrnoException) => {
-      if (error.code === 'EADDRINUSE' && PORT === PRIMARY_PORT) {
-        log(`المنفذ ${PORT} قيد الاستخدام بالفعل، سيتم محاولة استخدام المنفذ ${FALLBACK_PORT}`);
-        PORT = FALLBACK_PORT;
-        server.listen(PORT, "0.0.0.0", () => {
-          log(`الخادم يعمل على المنفذ ${PORT} في وضع ${isDev ? "التطوير" : "الإنتاج"}`);
-        });
+      if (error.code === 'EADDRINUSE') {
+        if (portIndex < FALLBACK_PORTS.length) {
+          PORT = FALLBACK_PORTS[portIndex++];
+          log(`المنفذ السابق قيد الاستخدام بالفعل، سيتم محاولة استخدام المنفذ ${PORT}`);
+          server.listen(PORT, "0.0.0.0", () => {
+            log(`الخادم يعمل على المنفذ ${PORT} في وضع ${isDev ? "التطوير" : "الإنتاج"}`);
+          });
+        } else {
+          console.error("جميع المنافذ قيد الاستخدام بالفعل، يرجى إيقاف أحد التطبيقات الأخرى التي تستخدم هذه المنافذ.");
+          process.exit(1);
+        }
       } else {
         console.error("خطأ في بدء الخادم:", error);
         process.exit(1);
