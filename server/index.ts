@@ -38,12 +38,17 @@ async function startServer() {
     const app = express();
     const server = http.createServer(app);
     
-    // Set up Socket.IO
+    // Set up Socket.IO بإعدادات محسنة
     const io = new SocketIOServer(server, {
       cors: {
-        origin: ["https://admin.socket.io"],
+        origin: ["https://admin.socket.io", "http://localhost:3000", "*"],
         credentials: true
-      }
+      },
+      transports: ['websocket', 'polling'],
+      pingTimeout: 60000,
+      pingInterval: 25000,
+      connectTimeout: 30000,
+      allowEIO3: true
     });
     
     // Set up Socket.IO Admin UI
@@ -52,27 +57,80 @@ async function startServer() {
       mode: "development",
     });
     
+    // إضافة معالج للتعامل مع اتصالات العميل
+    io.on('connection', (socket) => {
+      console.log('Socket.IO client connected:', socket.id);
+      
+      socket.on('disconnect', (reason) => {
+        console.log('Socket.IO client disconnected:', socket.id, reason);
+      });
+      
+      socket.on('error', (error) => {
+        console.error('Socket.IO error:', error);
+      });
+    });
+    
     // Configure session store
     const MemoryStore = createMemoryStore(session);
     const sessionStore = new MemoryStore({
       checkPeriod: 86400000 // Prune expired entries every 24h
     });
     
-    // Configure Express middleware
-    app.use(express.json());
-    app.use(cors());
-    app.use(fileUpload());
+    // تكوين متطور للـ Express middleware
+    app.use(express.json({ limit: '50mb' }));
+    app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+    app.use(cors({
+      origin: true,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+    }));
+    app.use(fileUpload({
+      limits: { fileSize: 50 * 1024 * 1024 }, // حد 50MB للملفات
+      useTempFiles: true,
+      tempFileDir: './tmp/' // تخزين مؤقت للملفات
+    }));
     
-    // Configure sessions
+    // تكوين معزز للجلسات
     app.use(
       session({
-        secret: process.env.SESSION_SECRET || "default-secret-key",
-        resave: false,
-        saveUninitialized: false,
+        secret: process.env.SESSION_SECRET || "enhanced-secret-key-for-development",
+        resave: true,
+        saveUninitialized: true,
         store: sessionStore,
-        cookie: { secure: false, maxAge: 30 * 24 * 60 * 60 * 1000 } // 30 days
+        cookie: { 
+          secure: false, 
+          maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+          sameSite: 'lax',
+          path: '/'
+        },
+        rolling: true // تحديث الكوكيز مع كل طلب
       })
     );
+    
+    // إضافة معالج الخطأ العام
+    app.use((err: any, req: any, res: any, next: any) => {
+      console.error('خطأ في تطبيق Express:', err);
+      res.status(500).json({ message: 'حدث خطأ في الخادم', error: process.env.NODE_ENV === 'development' ? err.message : undefined });
+    });
+    
+    // تنظيف الذاكرة بشكل دوري
+    const memoryCleanupInterval = setInterval(() => {
+      if (global.gc) {
+        try {
+          global.gc();
+          console.log('تم تنظيف الذاكرة بنجاح');
+        } catch (e) {
+          console.error('فشل تنظيف الذاكرة:', e);
+        }
+      }
+    }, 60000 * 15); // كل 15 دقيقة
+    
+    // تنظيف الموارد عند إغلاق التطبيق
+    process.on('SIGTERM', () => {
+      clearInterval(memoryCleanupInterval);
+      sessionStore.stopInterval();
+    });
     
     // Set up authentication
     setupAuth(app);
