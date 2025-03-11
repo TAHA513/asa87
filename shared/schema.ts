@@ -147,6 +147,25 @@ export const selectAppointmentSchema = createSelectSchema(appointments);
 export type Appointment = z.infer<typeof selectAppointmentSchema>;
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
 
+// Customers
+export const customers = pgTable("customers", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  phone: text("phone"),
+  email: text("email"),
+  address: text("address"),
+  notes: text("notes"),
+  loyaltyPoints: integer("loyalty_points").default(0),
+  lastVisit: timestamp("last_visit"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at"),
+});
+
+export const insertCustomerSchema = createInsertSchema(customers);
+export const selectCustomerSchema = createSelectSchema(customers);
+export type Customer = z.infer<typeof selectCustomerSchema>;
+export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
+
 // Store Settings
 export const storeSettings = pgTable("store_settings", {
   id: serial("id").primaryKey(),
