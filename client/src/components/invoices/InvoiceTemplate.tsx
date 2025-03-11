@@ -1,9 +1,11 @@
-
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/api"; 
+import { Loader2 } from "lucide-react"; 
 
-// نوع معلومات الفاتورة
+
 interface InvoiceItem {
   id: number;
   productName: string;
@@ -22,7 +24,6 @@ interface Invoice {
   items: InvoiceItem[];
 }
 
-// نوع إعدادات المتجر
 interface StoreSettings {
   storeName: string;
   storeAddress: string;
@@ -35,66 +36,52 @@ interface StoreSettings {
 }
 
 export const InvoiceTemplate = ({ invoice, onPrint }: { invoice: Invoice, onPrint?: () => void }) => {
-  const [storeSettings, setStoreSettings] = useState<StoreSettings>({
-    storeName: "",
-    storeAddress: "",
-    storePhone: "",
-    storeEmail: "",
-    taxNumber: "",
-    logoUrl: "",
-    receiptNotes: "",
-    enableLogo: true
+
+  const { data: storeSettings, isLoading } = useQuery({
+    queryKey: ["/api/store-settings"],
+    queryFn: async () => {
+      return await apiRequest("GET", "/api/store-settings");
+    },
   });
 
-  useEffect(() => {
-    // جلب إعدادات المتجر
-    const fetchStoreSettings = async () => {
-      try {
-        const response = await fetch('/api/store-settings');
-        if (response.ok) {
-          const data = await response.json();
-          setStoreSettings(data);
-        }
-      } catch (error) {
-        console.error("Error fetching store settings:", error);
-      }
-    };
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
-    fetchStoreSettings();
-  }, []);
 
-  // تنسيق التاريخ بالعربية
   const formattedDate = format(new Date(invoice.createdAt), 'PPP', { locale: ar });
 
   return (
     <div className="bg-white p-8 max-w-4xl mx-auto shadow-md print:shadow-none print:p-0">
-      {/* رأس الفاتورة مع شعار المتجر */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold">{storeSettings.storeName}</h1>
-          {storeSettings.storeAddress && (
+          <h1 className="text-2xl font-bold">{storeSettings?.storeName || "اسم المتجر"}</h1>
+          {storeSettings?.storeAddress && (
             <p className="text-gray-500">{storeSettings.storeAddress}</p>
           )}
-          {storeSettings.storePhone && (
+          {storeSettings?.storePhone && (
             <p className="text-gray-500">هاتف: {storeSettings.storePhone}</p>
           )}
-          {storeSettings.storeEmail && (
+          {storeSettings?.storeEmail && (
             <p className="text-gray-500">{storeSettings.storeEmail}</p>
           )}
         </div>
 
-        {storeSettings.enableLogo && storeSettings.logoUrl && (
+        {storeSettings?.enableLogo && storeSettings?.logoUrl && (
           <div>
-            <img 
-              src={storeSettings.logoUrl} 
-              alt="شعار المتجر" 
+            <img
+              src={storeSettings.logoUrl}
+              alt="شعار المتجر"
               className="h-20 object-contain"
             />
           </div>
         )}
       </div>
 
-      {/* معلومات الفاتورة والعميل */}
       <div className="bg-gray-100 p-4 rounded-md mb-6 flex flex-wrap justify-between">
         <div>
           <h2 className="text-lg font-semibold mb-2">فاتورة #{invoice.invoiceNumber}</h2>
@@ -104,7 +91,7 @@ export const InvoiceTemplate = ({ invoice, onPrint }: { invoice: Invoice, onPrin
           <h2 className="text-lg font-semibold mb-2">العميل</h2>
           <p className="text-gray-600">{invoice.customerName}</p>
         </div>
-        {storeSettings.taxNumber && (
+        {storeSettings?.taxNumber && (
           <div>
             <h2 className="text-lg font-semibold mb-2">الرقم الضريبي</h2>
             <p className="text-gray-600">{storeSettings.taxNumber}</p>
@@ -112,7 +99,6 @@ export const InvoiceTemplate = ({ invoice, onPrint }: { invoice: Invoice, onPrin
         )}
       </div>
 
-      {/* جدول المنتجات */}
       <table className="w-full mb-6 border-collapse">
         <thead>
           <tr className="bg-gray-200">
@@ -142,15 +128,13 @@ export const InvoiceTemplate = ({ invoice, onPrint }: { invoice: Invoice, onPrin
         </tfoot>
       </table>
 
-      {/* ملاحظات الفاتورة */}
-      {storeSettings.receiptNotes && (
+      {storeSettings?.receiptNotes && (
         <div className="border-t pt-4 mb-6">
           <h3 className="font-semibold mb-2">ملاحظات:</h3>
           <p className="text-gray-600">{storeSettings.receiptNotes}</p>
         </div>
       )}
 
-      {/* توقيع */}
       <div className="mt-10 flex justify-between">
         <div className="border-t border-gray-300 pt-2 w-40 text-center">
           <p className="text-sm text-gray-600">توقيع المستلم</p>
@@ -160,7 +144,6 @@ export const InvoiceTemplate = ({ invoice, onPrint }: { invoice: Invoice, onPrin
         </div>
       </div>
 
-      {/* زر الطباعة (يظهر فقط على الشاشة وليس عند الطباعة) */}
       {onPrint && (
         <div className="mt-8 text-center print:hidden">
           <button
