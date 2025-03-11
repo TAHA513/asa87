@@ -48,27 +48,38 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
+        console.log(`محاولة تسجيل دخول للمستخدم: ${username}`);
         const user = await storage.getUserByUsername(username);
         if (!user) {
+          console.log(`المستخدم غير موجود: ${username}`);
           return done(null, false, { message: "اسم المستخدم غير موجود" });
         }
 
         if (!user.isActive) {
+          console.log(`حساب غير نشط: ${username}`);
           return done(null, false, { message: "الحساب غير نشط" });
         }
 
         const isValidPassword = await comparePasswords(password, user.password);
         if (!isValidPassword) {
+          console.log(`كلمة مرور غير صحيحة للمستخدم: ${username}`);
           return done(null, false, { message: "كلمة المرور غير صحيحة" });
         }
 
         // تحديث وقت آخر تسجيل دخول
-        await storage.updateUser(user.id, {
-          lastLoginAt: new Date()
-        });
+        try {
+          await storage.updateUser(user.id, {
+            lastLoginAt: new Date()
+          });
+          console.log(`تم تسجيل دخول المستخدم بنجاح: ${username}`);
+        } catch (updateErr) {
+          console.error(`خطأ في تحديث وقت تسجيل الدخول: ${updateErr}`);
+          // استمر حتى لو فشل تحديث وقت تسجيل الدخول
+        }
 
         return done(null, user);
       } catch (err) {
+        console.error(`خطأ غير متوقع في عملية المصادقة:`, err);
         return done(err);
       }
     })
@@ -130,6 +141,8 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/auth/login", (req, res, next) => {
+    console.log("طلب تسجيل دخول جديد:", req.body.username);
+    
     passport.authenticate("local", (err: Error | null, user: User | false, info: { message: string } | undefined) => {
       if (err) {
         console.error("Login error:", err);
@@ -137,6 +150,7 @@ export function setupAuth(app: Express) {
       }
 
       if (!user) {
+        console.log(`فشل تسجيل الدخول: ${info?.message || "سبب غير معروف"}`);
         return res.status(401).json({
           message: info?.message || "فشل تسجيل الدخول",
         });
@@ -149,9 +163,22 @@ export function setupAuth(app: Express) {
             message: "فشل في إنشاء جلسة المستخدم",
           });
         }
-        // عدم إرجاع كلمة المرور في الاستجابة
-        const { password, ...userWithoutPassword } = user;
-        res.json(userWithoutPassword);
+        
+        // تأكد من تعيين معلومات الجلسة بشكل صحيح
+        req.session.save((err) => {
+          if (err) {
+            console.error("Error saving session:", err);
+            return res.status(500).json({
+              message: "فشل في حفظ جلسة المستخدم",
+            });
+          }
+          
+          console.log(`تم تسجيل دخول المستخدم بنجاح: ${user.username}, معرف الجلسة: ${req.sessionID}`);
+          
+          // عدم إرجاع كلمة المرور في الاستجابة
+          const { password, ...userWithoutPassword } = user;
+          res.json(userWithoutPassword);
+        });
       });
     })(req, res, next);
   });
