@@ -1,134 +1,88 @@
-import { ViteDevServer, createServer } from "vite";
-import express from "express";
-import path from "path";
+import express, { type Express } from "express";
 import fs from "fs";
+import path, { dirname } from "path";
 import { fileURLToPath } from "url";
+import { createServer as createViteServer, createLogger } from "vite";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+import { type Server } from "http";
+import viteConfig from "../vite.config";
+import { nanoid } from "nanoid";
 
-// الحصول على مسار المجلد الحالي
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const viteLogger = createLogger();
 
-// مسار الجذر للمشروع
-const root = path.resolve(__dirname, "../");
-
-// عدم تشغيل Vite في وضع الإنتاج
-let viteDevServer: ViteDevServer | null = null;
-
-export async function setupVite(app: express.Express) {
-  // تشغيل Vite في وضع التطوير فقط
-  if (process.env.NODE_ENV !== "production") {
-    console.log("🔧 بدء إعداد خادم Vite للتطوير...");
-
-    try {
-      viteDevServer = await createServer({
-        root: path.resolve(root, "client"),
-        server: {
-          middlewareMode: true,
-          hmr: {
-            port: 24678,
-            // استخدام 0.0.0.0 بدلاً من localhost للسماح بالاتصالات من أي عنوان IP
-            host: "0.0.0.0",
-            // تحسين إعدادات HMR لتقليل إعادة الاتصالات
-            clientPort: 443,
-            protocol: 'wss',
-            timeout: 30000, // زيادة مهلة الانتظار
-            overlay: false // تعطيل التراكب لتقليل التحديثات غير الضرورية
-          },
-          watch: {
-            // تبسيط مراقبة الملفات
-            usePolling: false,
-            interval: 1000,
-          },
-        },
-        appType: "spa",
-        // تعطيل تحديثات HMR المفرطة
-        optimizeDeps: {
-          force: false
-        },
-        // تقليل سجلات التحميل
-        logLevel: "warn",
-      });
-
-      console.log("✅ تم إعداد خادم Vite بنجاح");
-
-      // استخدام وسيط Vite
-      app.use(viteDevServer.middlewares);
-    } catch (error) {
-      console.error("❌ فشل في إعداد خادم Vite:", error);
-    }
-  } else {
-    // في وضع الإنتاج، نقدم الملفات المبنية مسبقًا
-    console.log("📦 تقديم تطبيق الواجهة المبني مسبقًا...");
-
-    const clientDist = path.resolve(root, "client/dist");
-
-    // التأكد من وجود المجلد المبني
-    if (!fs.existsSync(clientDist)) {
-      console.error("❌ مجلد client/dist غير موجود. هل نسيت بناء التطبيق؟");
-      process.exit(1);
-    }
-
-    // تقديم الأصول الثابتة
-    app.use(express.static(clientDist, {
-      index: false,
-      maxAge: '1d',
-    }));
-  }
-
-  // معالج الطرق لجميع الطلبات التي تبدأ بـ /
-  app.get("*", async (req, res, next) => {
-    // تخطي طلبات الواجهة البرمجية
-    if (req.path.startsWith("/api")) {
-      return next();
-    }
-
-    try {
-      let template: string;
-
-      if (viteDevServer) {
-        // وضع التطوير: استخدام Vite للحصول على HTML
-        template = fs.readFileSync(
-          path.resolve(root, "client/index.html"),
-          "utf-8"
-        );
-        template = await viteDevServer.transformIndexHtml(req.url, template);
-      } else {
-        // وضع الإنتاج: استخدام الملف المبني
-        template = fs.readFileSync(
-          path.resolve(root, "client/dist/index.html"),
-          "utf-8"
-        );
-      }
-
-      // إرسال الصفحة إلى المتصفح
-      res.status(200).set({ "Content-Type": "text/html" }).end(template);
-    } catch (error) {
-      console.error("❌ خطأ في تقديم الصفحة:", error);
-      if (viteDevServer) {
-        // إرسال الخطأ إلى Vite للعرض في المتصفح
-        viteDevServer.ssrFixStacktrace(error as Error);
-      }
-      next(error);
-    }
+export function log(message: string, source = "express") {
+  const formattedTime = new Date().toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
   });
 
-  return viteDevServer;
+  console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-// التنظيف عند إغلاق التطبيق
-export function closeVite() {
-  if (viteDevServer) {
-    console.log("🧹 إغلاق خادم Vite...");
-    viteDevServer.close();
-    viteDevServer = null;
+export async function setupVite(app: Express, server: Server) {
+  const serverOptions = {
+    middlewareMode: true,
+    hmr: { server },
+    allowedHosts: true,
+  };
+
+  const vite = await createViteServer({
+    ...viteConfig,
+    configFile: false,
+    customLogger: {
+      ...viteLogger,
+      error: (msg, options) => {
+        viteLogger.error(msg, options);
+        process.exit(1);
+      },
+    },
+    server: serverOptions,
+    appType: "custom",
+  });
+
+  app.use(vite.middlewares);
+  app.use("*", async (req, res, next) => {
+    const url = req.originalUrl;
+
+    try {
+      const clientTemplate = path.resolve(
+        __dirname,
+        "..",
+        "client",
+        "index.html",
+      );
+
+      // always reload the index.html file from disk incase it changes
+      let template = await fs.promises.readFile(clientTemplate, "utf-8");
+      template = template.replace(
+        `src="/src/main.tsx"`,
+        `src="/src/main.tsx?v=${nanoid()}"`,
+      );
+      const page = await vite.transformIndexHtml(url, template);
+      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+    } catch (e) {
+      vite.ssrFixStacktrace(e as Error);
+      next(e);
+    }
+  });
+}
+
+export function serveStatic(app: Express) {
+  const distPath = path.resolve(__dirname, "public");
+
+  if (!fs.existsSync(distPath)) {
+    throw new Error(
+      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+    );
   }
-}
 
-// Placeholder for setupViteDevServer - requires more context for a complete implementation
-import type { Express } from 'express';
-import type { Server } from 'http';
-export async function setupViteDevServer(app: Express, httpServer: Server) {
-  // Placeholder implementation - replace with actual Vite server setup logic
-  console.log("Vite dev server placeholder initialized.");
-  // تحديد مسار الملفات الثابتة
-  app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+  app.use(express.static(distPath));
+
+  // fall through to index.html if the file doesn't exist
+  app.use("*", (_req, res) => {
+    res.sendFile(path.resolve(distPath, "index.html"));
+  });
 }
