@@ -1,3 +1,18 @@
+
+import express from 'express';
+import { createServer } from 'http';
+import cors from 'cors';
+import passport from 'passport';
+import session from 'express-session';
+import MemoryStore from 'memorystore';
+import { setupRoutes } from './routes.js';
+import { setupAuth } from './auth.js';
+import { initializeDatabase } from './initialize-database.js';
+import { setupViteDevServer } from './vite.js';
+
+const app = express();
+const httpServer = createServer(app);
+
 // تكوين جلسات المستخدمين
 app.use(
   session({
@@ -37,4 +52,32 @@ app.use((req, res, next) => {
     }
   };
   next();
+});
+
+// تكوين CORS
+app.use(cors({
+  origin: process.env.CLIENT_URL || '*',
+  credentials: true,
+}));
+
+// إعداد معالجة JSON
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// إعداد المصادقة
+setupAuth(app);
+
+// إعداد المسارات
+setupRoutes(app);
+
+// تهيئة قاعدة البيانات
+initializeDatabase().catch(console.error);
+
+// إعداد خادم التطوير Vite
+setupViteDevServer(app, httpServer);
+
+// تشغيل الخادم
+const PORT = process.env.PORT || 3000;
+httpServer.listen(PORT, () => {
+  console.log(`🚀 الخادم يعمل على المنفذ ${PORT}`);
 });
