@@ -45,10 +45,11 @@ export function setupAuth(app: Express) {
     try {
       console.log(`محاولة تسجيل دخول للمستخدم: ${username}`);
       
-      // Add more error handling for getUserByUsername
+      // تحسين معالجة أخطاء قاعدة البيانات
       let user;
       try {
         user = await storage.getUserByUsername(username);
+        console.log("نتيجة البحث عن المستخدم:", user ? "تم العثور على المستخدم" : "لم يتم العثور على المستخدم");
       } catch (dbError) {
         console.error("خطأ في قاعدة البيانات عند البحث عن المستخدم:", dbError);
         return done(null, false, { message: "حدث خطأ في قاعدة البيانات" });
@@ -104,8 +105,12 @@ export function setupAuth(app: Express) {
 
   // نقاط النهاية للمصادقة
   app.post("/api/auth/login", (req, res, next) => {
-    // Log the incoming login request
-    console.log("طلب تسجيل الدخول:", { username: req.body.username });
+    // تسجيل تفاصيل طلب تسجيل الدخول
+    console.log("طلب تسجيل الدخول:", { 
+      username: req.body.username,
+      bodyExists: !!req.body,
+      hasPassword: !!req.body?.password
+    });
     
     if (!req.body.username || !req.body.password) {
       return res.status(400).json({ message: "اسم المستخدم وكلمة المرور مطلوبان" });

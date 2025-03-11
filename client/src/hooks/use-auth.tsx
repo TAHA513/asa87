@@ -41,9 +41,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.setQueryData(["/api/auth/user"], user);
     },
     onError: (error: Error) => {
+      console.error("خطأ في تسجيل الدخول:", error);
       toast({
         title: "فشل تسجيل الدخول",
-        description: error.message,
+        description: error.message || "حدث خطأ أثناء محاولة تسجيل الدخول",
         variant: "destructive",
       });
     },
