@@ -12,33 +12,33 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import dotenv from "dotenv";
 
-// Load environment variables
+// تحميل متغيرات البيئة
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const isDev = process.env.NODE_ENV !== "production";
-const PORT = 5000; // Always use port 5000 as per requirements
+const PORT = 5000;
 
 async function startServer() {
   try {
-    // Initialize Express app and HTTP server
+    // تهيئة Express والخادم
     const app = express();
     const server = http.createServer(app);
 
-    // Configure session store
-    const MemoryStore = createMemoryStore(session);
-    const sessionStore = new MemoryStore({
-      checkPeriod: 86400000 // Prune expired entries every 24h
-    });
-
-    // Configure Express middleware
+    // إعداد الميدلوير الأساسي
     app.use(express.json());
     app.use(cors());
     app.use(fileUpload({
       useTempFiles: true,
       tempFileDir: path.join(__dirname, "../tmp"),
     }));
+
+    // Configure session store
+    const MemoryStore = createMemoryStore(session);
+    const sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // Prune expired entries every 24h
+    });
 
     // Configure sessions before auth
     app.use(session({
@@ -52,25 +52,25 @@ async function startServer() {
       }
     }));
 
-    // Initialize database
+
     console.log("جاري تهيئة قاعدة البيانات...");
     await initializeDatabase();
     console.log("اكتملت عملية تهيئة قاعدة البيانات بنجاح");
 
-    // Setup authentication after session
+    // إعداد المصادقة
     await setupAuth(app);
 
-    // Register API routes
+    // تسجيل المسارات
     await registerRoutes(app);
 
-    // Set up Vite for development or serve static files for production
+    // إعداد Vite للتطوير أو الملفات الثابتة للإنتاج
     if (isDev) {
       await setupVite(app, server);
     } else {
       serveStatic(app);
     }
 
-    // Start server
+    // بدء الخادم
     server.listen(PORT, "0.0.0.0", () => {
       console.log(`الخادم يعمل على المنفذ ${PORT} في وضع ${isDev ? "التطوير" : "الإنتاج"}`);
     });
@@ -81,7 +81,7 @@ async function startServer() {
   }
 }
 
-// Start the server
+// بدء الخادم
 startServer().catch((error) => {
   console.error("خطأ غير متوقع:", error);
   process.exit(1);
