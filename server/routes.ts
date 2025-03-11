@@ -1230,32 +1230,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // إعدادات المتجر API
-  app.get("/api/store-settings", async (req, res) => {
-    try {
-      const settings = await storage.getStoreSettings();
-      res.json(settings || {});
-    } catch (error) {
-      console.error("Error fetching store settings:", error);
-      res.status(500).json({ message: "فشل في جلب إعدادات المتجر" });
-    }
-  });
-
-  app.post("/api/store-settings", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      console.log("تحديث إعدادات المتجر:", req.body);
-      const updatedSettings = await storage.updateStoreSettings(req.body);
-      res.json(updatedSettings);
-    } catch (error) {
-      console.error("Error updating store settings:", error);
-      res.status(500).json({ message: "فشل في تحديث إعدادات المتجر" });
-    }
-  });
-
   // File Storage Routes
   app.post("/api/files", async (req, res) => {
     if (!req.isAuthenticated()) {
