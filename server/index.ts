@@ -64,11 +64,11 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// إعداد المصادقة
-setupAuth(app);
-
 // استيراد دالة setupAuth من وحدة auth
-import setupAuth from './auth.js';
+import * as auth from './auth.js';
+
+// إعداد المصادقة
+auth.setupAuth(app);
 
 // إعداد المسارات
 registerRoutes(app);
