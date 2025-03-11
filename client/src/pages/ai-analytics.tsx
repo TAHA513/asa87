@@ -2,7 +2,7 @@
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SalesRecommendations } from "@/components/ai/product-recommendations";
+import { ProductRecommendation } from "@/components/ai/product-recommendations";
 import InventoryForecasting from "@/components/ai/inventory-forecasting";
 import Sidebar from "@/components/sidebar";
 
