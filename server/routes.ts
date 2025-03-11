@@ -1500,104 +1500,200 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-// خدمة تحليل المبيعات بالذكاء الاصطناعي
-app.get('/api/sales-analytics', async (req, res) => {
-  try {
-    // الحصول على بيانات المبيعات
-    const salesData = await storage.getSales();
-    
-    // تحليل البيانات باستخدام محاكاة بسيطة للذكاء الاصطناعي
-    // في تطبيق حقيقي، ستقوم بتدريب نموذج ML هنا
-    
-    // 1. حساب متوسط المبيعات اليومية
-    const sales = salesData.sales || [];
-    const salesByDate = sales.reduce((acc: any, sale: any) => {
-      const date = new Date(sale.date).toISOString().split('T')[0];
-      if (!acc[date]) {
-        acc[date] = 0;
-      }
-      acc[date] += sale.totalPrice;
-      return acc;
-    }, {});
+  // إضافة خدمة اقتراحات المنتجات بالذكاء الاصطناعي
+  app.get('/api/product-recommendations', async (req, res) => {
+    try {
+      // استخراج معرف المنتج من الاستعلام
+      const productId = req.query.productId ? parseInt(req.query.productId as string) : null;
+      const customerId = req.query.customerId ? parseInt(req.query.customerId as string) : null;
 
-    const dailyAverage = Object.values(salesByDate).length
-      ? Object.values(salesByDate).reduce((sum: any, val: any) => sum + val, 0) / Object.values(salesByDate).length
-      : 0;
-    
-    // 2. تحليل المنتجات الأكثر مبيعًا
-    const productSales: any = {};
-    sales.forEach((sale: any) => {
-      (sale.items || []).forEach((item: any) => {
-        if (!productSales[item.productId]) {
-          productSales[item.productId] = 0;
-        }
-        productSales[item.productId] += item.quantity;
-      });
-    });
-    
-    // ترتيب المنتجات حسب المبيعات
-    const topProducts = Object.entries(productSales)
-      .map(([productId, count]) => ({ productId: parseInt(productId), count }))
-      .sort((a, b) => (b.count as number) - (a.count as number))
-      .slice(0, 5);
-    
-    // 3. محاكاة توقع المبيعات للأسبوع القادم
-    // في تطبيق حقيقي، هنا ستستخدم نموذج تنبؤ مثل ARIMA أو شبكة عصبية
-    
-    // افتراض زيادة بنسبة 5-15% (هذه محاكاة للذكاء الاصطناعي)
-    const growthRate = 1 + (Math.random() * 0.1 + 0.05);  // 5-15% نمو
-    const nextWeekForecast = dailyAverage * 7 * growthRate;
-    
-    // 4. تحديد أنماط الشراء
-    // محاكاة بسيطة: العملاء يشترون المنتجات ذات الصلة
-    const relatedProductsMap: any = {};
-    
-    sales.forEach((sale: any) => {
-      const items = sale.items || [];
-      for (let i = 0; i < items.length; i++) {
-        for (let j = 0; j < items.length; j++) {
-          if (i !== j) {
-            const productA = items[i].productId;
-            const productB = items[j].productId;
-            
-            if (!relatedProductsMap[productA]) {
-              relatedProductsMap[productA] = {};
+      // استخراج البيانات من قاعدة البيانات
+      const salesData = await storage.getSales();
+      const productsData = await storage.getProducts();
+
+      // تحليل بيانات المبيعات لإيجاد المنتجات ذات الصلة
+      const relatedProducts = [];
+      const customerPreferences = [];
+
+      // 1. تحليل المنتجات المرتبطة (المشتراة معًا)
+      if (productId) {
+        const productSales = salesData.filter((sale: any) => sale.productId === productId);
+        const customerIds = [...new Set(productSales.map((sale: any) => sale.customerId))];
+
+        // البحث عن العملاء الذين اشتروا هذا المنتج واشتروا منتجات أخرى
+        for (const custId of customerIds) {
+          if (!custId) continue; // تخطي المبيعات بدون عميل محدد
+
+          const customerSales = salesData.filter((sale: any) => sale.customerId === custId && sale.productId !== productId);
+          for (const sale of customerSales) {
+            const product = productsData.find((p: any) => p.id === sale.productId);
+            if (product) {
+              relatedProducts.push({
+                id: product.id,
+                name: product.name,
+                price: product.priceIqd,
+                relevanceScore: 0.8, // قيمة مبدئية
+                reason: "العملاء الذين اشتروا هذا المنتج اشتروا أيضًا"
+              });
             }
-            
-            if (!relatedProductsMap[productA][productB]) {
-              relatedProductsMap[productA][productB] = 0;
-            }
-            
-            relatedProductsMap[productA][productB]++;
           }
         }
       }
-    });
-    
-    // ترتيب المنتجات ذات الصلة لكل منتج
-    const relatedProducts: any = {};
-    
-    Object.keys(relatedProductsMap).forEach(productId => {
-      relatedProducts[productId] = Object.entries(relatedProductsMap[productId])
-        .map(([relatedId, count]) => ({ productId: parseInt(relatedId), count }))
+
+      // 2. تحليل تفضيلات العميل المحدد
+      if (customerId) {
+        const customerSales = salesData.filter((sale: any) => sale.customerId === customerId);
+
+        // تحليل أنواع المنتجات المفضلة
+        const purchasedProductIds = customerSales.map((sale: any) => sale.productId);
+        const purchasedProducts = productsData.filter((p: any) => purchasedProductIds.includes(p.id));
+
+        // اقتراح منتجات مشابهة للتي اشتراها العميل سابقًا
+        for (const product of productsData) {
+          if (!purchasedProductIds.includes(product.id)) {
+            // هنا يمكن إضافة منطق أكثر تعقيدًا لمقارنة فئات المنتجات وخصائصها
+            // لهذا المثال، نستخدم مقارنة بسيطة بالسعر
+            const similarProducts = purchasedProducts.filter((p: any) => {
+              const priceDiff = Math.abs(p.priceIqd - product.priceIqd);
+              const percentDiff = priceDiff / p.priceIqd;
+              return percentDiff < 0.3; // منتجات في نفس نطاق السعر تقريبًا
+            });
+
+            if (similarProducts.length > 0) {
+              customerPreferences.push({
+                id: product.id,
+                name: product.name,
+                price: product.priceIqd,
+                relevanceScore: 0.7,
+                reason: "استنادًا إلى مشترياتك السابقة"
+              });
+            }
+          }
+        }
+      }
+
+      // إزالة التكرارات وترتيب النتائج
+      const uniqueRelatedProducts = Array.from(
+        new Map(relatedProducts.map(item => [item.id, item])).values()
+      );
+
+      const uniqueCustomerPrefs = Array.from(
+        new Map(customerPreferences.map(item => [item.id, item])).values()
+      );
+
+      // الجمع بين النتائج
+      const recommendations = {
+        relatedProducts: uniqueRelatedProducts.slice(0, 5),
+        customerPreferences: uniqueCustomerPrefs.slice(0, 5)
+      };
+
+      res.status(200).json(recommendations);
+    } catch (error) {
+      console.error('خطأ في تحليل اقتراحات المنتجات:', error);
+      res.status(500).json({
+        message: 'حدث خطأ أثناء معالجة اقتراحات المنتجات'
+      });
+    }
+  });
+
+  // خدمة تحليل المبيعات بالذكاء الاصطناعي
+  app.get('/api/sales-analytics', async (req, res) => {
+    try {
+      // الحصول على بيانات المبيعات
+      const salesData = await storage.getSales();
+
+      // تحليل البيانات باستخدام محاكاة بسيطة للذكاء الاصطناعي
+      // في تطبيق حقيقي، ستقوم بتدريب نموذج ML هنا
+
+      // 1. حساب متوسط المبيعات اليومية
+      const sales = salesData.sales || [];
+      const salesByDate = sales.reduce((acc: any, sale: any) => {
+        const date = new Date(sale.date).toISOString().split('T')[0];
+        if (!acc[date]) {
+          acc[date] = 0;
+        }
+        acc[date] += sale.totalPrice;
+        return acc;
+      }, {});
+
+      const dailyAverage = Object.values(salesByDate).length
+        ? Object.values(salesByDate).reduce((sum: any, val: any) => sum + val, 0) / Object.values(salesByDate).length
+        : 0;
+
+      // 2. تحليل المنتجات الأكثر مبيعًا
+      const productSales: any = {};
+      sales.forEach((sale: any) => {
+        (sale.items || []).forEach((item: any) => {
+          if (!productSales[item.productId]) {
+            productSales[item.productId] = 0;
+          }
+          productSales[item.productId] += item.quantity;
+        });
+      });
+
+      // ترتيب المنتجات حسب المبيعات
+      const topProducts = Object.entries(productSales)
+        .map(([productId, count]) => ({ productId: parseInt(productId), count }))
         .sort((a, b) => (b.count as number) - (a.count as number))
-        .slice(0, 3);
-    });
-    
-    res.status(200).json({
-      dailyAverageSales: dailyAverage,
-      topSellingProducts: topProducts,
-      forecastNextWeek: nextWeekForecast,
-      relatedProducts
-    });
-    
-  } catch (error) {
-    console.error('خطأ في تحليل البيانات:', error);
-    res.status(500).json({
-      message: 'حدث خطأ أثناء تحليل البيانات'
-    });
-  }
-});
+        .slice(0, 5);
+
+      // 3. محاكاة توقع المبيعات للأسبوع القادم
+      // في تطبيق حقيقي، هنا ستستخدم نموذج تنبؤ مثل ARIMA أو شبكة عصبية
+
+      // افتراض زيادة بنسبة 5-15% (هذه محاكاة للذكاء الاصطناعي)
+      const growthRate = 1 + (Math.random() * 0.1 + 0.05);  // 5-15% نمو
+      const nextWeekForecast = dailyAverage * 7 * growthRate;
+
+      // 4. تحديد أنماط الشراء
+      // محاكاة بسيطة: العملاء يشترون المنتجات ذات الصلة
+      const relatedProductsMap: any = {};
+
+      sales.forEach((sale: any) => {
+        const items = sale.items || [];
+        for (let i = 0; i < items.length; i++) {
+          for (let j = 0; j < items.length; j++) {
+            if (i !== j) {
+              const productA = items[i].productId;
+              const productB = items[j].productId;
+
+              if (!relatedProductsMap[productA]) {
+                relatedProductsMap[productA] = {};
+              }
+
+              if (!relatedProductsMap[productA][productB]) {
+                relatedProductsMap[productA][productB] = 0;
+              }
+
+              relatedProductsMap[productA][productB]++;
+            }
+          }
+        }
+      });
+
+      // ترتيب المنتجات ذات الصلة لكل منتج
+      const relatedProducts: any = {};
+
+      Object.keys(relatedProductsMap).forEach(productId => {
+        relatedProducts[productId] = Object.entries(relatedProductsMap[productId])
+          .map(([relatedId, count]) => ({ productId: parseInt(relatedId), count }))
+          .sort((a, b) => (b.count as number) - (a.count as number))
+          .slice(0, 3);
+      });
+
+      res.status(200).json({
+        dailyAverageSales: dailyAverage,
+        topSellingProducts: topProducts,
+        forecastNextWeek: nextWeekForecast,
+        relatedProducts
+      });
+
+    } catch (error) {
+      console.error('خطأ في تحليل البيانات:', error);
+      res.status(500).json({
+        message: 'حدث خطأ أثناء تحليل البيانات'
+      });
+    }
+  });
 
   app.post("/api/appointments", async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -1626,107 +1722,8 @@ app.get('/api/sales-analytics', async (req, res) => {
   });
 
   app.patch("/api/appointments/:id", async (req, res) => {
-
-// خدمة تحليل المبيعات بالذكاء الاصطناعي
-app.get('/api/sales-analytics', async (req, res) => {
-  try {
-    // الحصول على بيانات المبيعات
-    const salesData = await storage.getSales();
-    
-    // تحليل البيانات باستخدام محاكاة بسيطة للذكاء الاصطناعي
-    // في تطبيق حقيقي، ستقوم بتدريب نموذج ML هنا
-    
-    // 1. حساب متوسط المبيعات اليومية
-    const sales = salesData.sales || [];
-    const salesByDate = sales.reduce((acc: any, sale: any) => {
-      const date = new Date(sale.date).toISOString().split('T')[0];
-      if (!acc[date]) {
-        acc[date] = 0;
-      }
-      acc[date] += sale.totalPrice;
-      return acc;
-    }, {});
-
-    const dailyAverage = Object.values(salesByDate).length
-      ? Object.values(salesByDate).reduce((sum: any, val: any) => sum + val, 0) / Object.values(salesByDate).length
-      : 0;
-    
-    // 2. تحليل المنتجات الأكثر مبيعًا
-    const productSales: any = {};
-    sales.forEach((sale: any) => {
-      (sale.items || []).forEach((item: any) => {
-        if (!productSales[item.productId]) {
-          productSales[item.productId] = 0;
-        }
-        productSales[item.productId] += item.quantity;
-      });
-    });
-    
-    // ترتيب المنتجات حسب المبيعات
-    const topProducts = Object.entries(productSales)
-      .map(([productId, count]) => ({ productId: parseInt(productId), count }))
-      .sort((a, b) => (b.count as number) - (a.count as number))
-      .slice(0, 5);
-    
-    // 3. محاكاة توقع المبيعات للأسبوع القادم
-    // في تطبيق حقيقي، هنا ستستخدم نموذج تنبؤ مثل ARIMA أو شبكة عصبية
-    
-    // افتراض زيادة بنسبة 5-15% (هذه محاكاة للذكاء الاصطناعي)
-    const growthRate = 1 + (Math.random() * 0.1 + 0.05);  // 5-15% نمو
-    const nextWeekForecast = dailyAverage * 7 * growthRate;
-    
-    // 4. تحديد أنماط الشراء
-    // محاكاة بسيطة: العملاء يشترون المنتجات ذات الصلة
-    const relatedProductsMap: any = {};
-    
-    sales.forEach((sale: any) => {
-      const items = sale.items || [];
-      for (let i = 0; i < items.length; i++) {
-        for (let j = 0; j < items.length; j++) {
-          if (i !== j) {
-            const productA = items[i].productId;
-            const productB = items[j].productId;
-            
-            if (!relatedProductsMap[productA]) {
-              relatedProductsMap[productA] = {};
-            }
-            
-            if (!relatedProductsMap[productA][productB]) {
-              relatedProductsMap[productA][productB] = 0;
-            }
-            
-            relatedProductsMap[productA][productB]++;
-          }
-        }
-      }
-    });
-    
-    // ترتيب المنتجات ذات الصلة لكل منتج
-    const relatedProducts: any = {};
-    
-    Object.keys(relatedProductsMap).forEach(productId => {
-      relatedProducts[productId] = Object.entries(relatedProductsMap[productId])
-        .map(([relatedId, count]) => ({ productId: parseInt(relatedId), count }))
-        .sort((a, b) => (b.count as number) - (a.count as number))
-        .slice(0, 3);
-    });
-    
-    res.status(200).json({
-      dailyAverageSales: dailyAverage,
-      topSellingProducts: topProducts,
-      forecastNextWeek: nextWeekForecast,
-      relatedProducts
-    });
-    
-  } catch (error) {
-    console.error('خطأ في تحليل البيانات:', error);
-    res.status(500).json({
-      message: 'حدث خطأ أثناء تحليل البيانات'
-    });
-  }
-});
-
     if (!req.isAuthenticated()) {
+      return res.status(401).json{
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
 
@@ -1929,12 +1926,12 @@ app.get('/api/sales-analytics', async (req, res) => {
 
     try {
       const reportId = parseInt(req.params.id);
-      
+
       // التحقق من صحة معرف التقرير
       if (isNaN(reportId)) {
         return res.status(400).json({ message: "معرف التقرير غير صالح" });
       }
-      
+
       const report = await storage.getReport(reportId);
       if (!report) {
         return res.status(404).json({ message: "التقرير غير موجود" });
@@ -1972,7 +1969,7 @@ app.get('/api/sales-analytics', async (req, res) => {
       // التحقق من صحة التواريخ
       const start = new Date(startDate as string);
       const end = new Date(endDate as string);
-      
+
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
         return res.status(400).json({
           message: "صيغة التاريخ غير صحيحة"

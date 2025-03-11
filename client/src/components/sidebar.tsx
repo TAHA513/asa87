@@ -1,8 +1,8 @@
 import React from 'react';
-import { Link } from 'react-router-dom'; // Assuming react-router-dom is used
-import PackageIcon from './icons/PackageIcon'; // Placeholder for icon component
-import ShoppingCartIcon from './icons/ShoppingCartIcon'; // Placeholder for icon component
-import BarChart3Icon from './icons/BarChart3Icon'; // Placeholder for icon component
+import { Link } from 'react-router-dom'; 
+import PackageIcon from './icons/PackageIcon'; 
+import ShoppingCartIcon from './icons/ShoppingCartIcon'; 
+import BarChart3Icon from './icons/BarChart3Icon'; 
 
 
 function Sidebar() {
@@ -27,6 +27,16 @@ function Sidebar() {
         <li>
           <Link to="/reports">
             <BarChart3Icon /> التقارير
+          </Link>
+        </li>
+        <li>
+          <Link to="/ai-analytics">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+              <path d="M12 2a8 8 0 0 0-8 8c0 3.6 2.4 6.9 6 8.7V22l3.5-3.5a12 12 0 0 0 4.5-.3 8 8 0 0 0 0-16" />
+              <path d="M19 2v6" />
+              <path d="M16 5h6" />
+            </svg>
+            <span>تحليلات الذكاء الاصطناعي</span>
           </Link>
         </li>
       </ul>

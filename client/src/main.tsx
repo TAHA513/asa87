@@ -10,6 +10,7 @@ import PosPage from './pages/pos';
 import SalesHistory from './pages/sales-history';
 import SalesAnalytics from './pages/sales-analytics'; // Added import for SalesAnalytics
 import ProductRecommendation from './pages/product-recommendation'; //Added for product recommendation
+import AIAnalytics from './pages/ai-analytics'; // Added import for AIAnalytics
 // Import Arabic fonts
 import "@fontsource/noto-kufi-arabic/400.css";
 import "@fontsource/noto-kufi-arabic/700.css";
@@ -21,6 +22,7 @@ import "@fontsource/tajawal/400.css";
 import "@fontsource/tajawal/700.css";
 
 import "./index.css";
+import "./components/ai/product-recommendations";
 
 createRoot(document.getElementById("root")!).render(
   <Router> {/* Wrapped App component with Router */}
@@ -33,6 +35,7 @@ createRoot(document.getElementById("root")!).render(
       <Route path="/sales-history" element={<SalesHistory />} />
       <Route path="/sales-analytics" element={<SalesAnalytics />} /> {/* Added route for SalesAnalytics */}
       <Route path="/product-recommendation" element={<ProductRecommendation />} /> {/* Added route for product recommendation */}
+      <Route path="/ai-analytics" element={<AIAnalytics />} /> {/* Added route for AIAnalytics */}
     </Routes>
   </Router>
 );
@@ -52,6 +55,15 @@ function ProductRecommendation() {
     <div>
       <h1>Product Recommendations</h1>
       {/* Add recommendation logic here */}
+    </div>
+  );
+}
+
+function AIAnalytics() {
+  return (
+    <div>
+      <h1>AI Analytics</h1>
+      <p>Coming soon...</p>
     </div>
   );
 }
