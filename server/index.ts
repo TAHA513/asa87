@@ -125,25 +125,6 @@ async function startServer() {
     const port = process.env.PORT || 5000;
     const httpServer = createServer(app);
 
-    // تحقق مما إذا كان المنفذ متاحًا قبل الاستماع
-    const checkPort = () => {
-      return new Promise((resolve, reject) => {
-        const tester = createServer()
-          .once('error', err => {
-            if (err.code === 'EADDRINUSE') {
-              console.log(`المنفذ ${port} قيد الاستخدام بالفعل. سيتم محاولة إيقاف العمليات السابقة.`);
-              resolve(false);
-            } else {
-              reject(err);
-            }
-          })
-          .once('listening', () => {
-            tester.close(() => resolve(true));
-          })
-          .listen(port);
-      });
-    };
-
     // إعداد Socket.IO
     const io = new SocketServer(httpServer, {
       cors: {

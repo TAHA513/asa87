@@ -1341,31 +1341,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // تحقق من وجود جدول إعدادات المتجر
       try {
-        // استخدام storage بدلاً من db مباشرة لضمان الاتساق
-        const storeSettings = await storage.getStoreSettings();
+        const tableExists = await db.execute(sql`
+          SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'store_settings'
+          );
+        `);
         
-        if (storeSettings) {
-          console.log("تم العثور على إعدادات المتجر:", storeSettings);
-          return res.json(storeSettings);
+        if (!tableExists.rows?.[0]?.exists) {
+          console.log("جدول إعدادات المتجر غير موجود، سيتم إنشاؤه");
+          await db.execute(sql`
+            CREATE TABLE IF NOT EXISTS store_settings (
+              id SERIAL PRIMARY KEY,
+              store_name VARCHAR(255) NOT NULL,
+              store_address TEXT,
+              store_phone VARCHAR(255),
+              store_email VARCHAR(255),
+              tax_number VARCHAR(255),
+              logo_url TEXT,
+              receipt_notes TEXT,
+              enable_logo BOOLEAN NOT NULL DEFAULT true,
+              created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+          `);
+          
+          // إضافة بيانات افتراضية
+          await db.execute(sql`
+            INSERT INTO store_settings 
+            (store_name, store_address, store_phone, receipt_notes, enable_logo) 
+            VALUES ('نظام SAS للإدارة', 'العراق', '07xxxxxxxxx', 'شكراً لتعاملكم معنا', true);
+          `);
+          console.log("تم إنشاء جدول إعدادات المتجر وإضافة البيانات الافتراضية");
         }
-
-        // إذا لم يتم العثور على إعدادات، فسنقوم بإنشاء الجدول وإضافة بيانات افتراضية
-        console.log("جدول إعدادات المتجر غير موجود، سيتم إنشاؤه");
-        
-        // إنشاء إعدادات افتراضية
-        const defaultSettings = await storage.createStoreSettings({
-          storeName: 'نظام SAS للإدارة',
-          storeAddress: 'العراق',
-          storePhone: '07xxxxxxxxx',
-          storeEmail: '',
-          taxNumber: '',
-          logoUrl: '',
-          receiptNotes: 'شكراً لتعاملكم معنا',
-          enableLogo: true
-        });
-        
-        console.log("تم إنشاء إعدادات المتجر الافتراضية:", defaultSettings);
-        return res.json(defaultSettings);
       } catch (tableError) {
         console.error("خطأ أثناء التحقق من جدول إعدادات المتجر:", tableError);
       }

@@ -79,49 +79,52 @@ export function StoreSettings() {
     }
   }, [storeSettings, form]);
 
-  const onSubmit = async (data: FormValues) => {
+  const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
-      console.log("جاري إرسال بيانات المتجر:", data);
+      console.log("جاري حفظ إعدادات المتجر...", values);
 
-      const formData = new FormData();
-      formData.append("storeName", data.storeName);
-      formData.append("storeAddress", data.storeAddress || "");
-      formData.append("storePhone", data.storePhone || "");
-      formData.append("storeEmail", data.storeEmail || "");
-      formData.append("taxNumber", data.taxNumber || "");
-      formData.append("receiptNotes", data.receiptNotes || "");
-      formData.append("enableLogo", String(data.enableLogo));
-
+      // إعداد FormData إذا كان هناك ملف
       if (logoFile) {
+        const formData = new FormData();
         formData.append("logo", logoFile);
-      } else if (logoPreview) {
-        formData.append("logoUrl", logoPreview);
-      }
 
-      // استخدام apiRequest بدلاً من fetch مباشرة
-      const response = await apiRequest("POST", "/api/store-settings", formData, true);
-
-      if (response) {
-        console.log("تم حفظ إعدادات المتجر بنجاح:", response);
-        // تحديث البيانات المحلية
-        setStoreSettings(response);
-
-        toast({
-          title: "تم الحفظ بنجاح",
-          description: "تم حفظ إعدادات المتجر",
+        // إضافة باقي البيانات
+        Object.entries(values).forEach(([key, value]) => {
+          formData.append(key, String(value));
         });
 
-        // تحديث البيانات في الواجهة
-        queryClient.invalidateQueries({ queryKey: ["storeSettings"] });
+        const response = await fetch("/api/store-settings", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "فشل في حفظ إعدادات المتجر");
+        }
+
+        const data = await response.json();
+        console.log("تم حفظ إعدادات المتجر:", data);
+        setStoreSettings(data); // Update local state after successful save.
       } else {
-        throw new Error("فشل في حفظ إعدادات المتجر");
+        // إذا لم يكن هناك ملف جديد، أرسل البيانات العادية
+        const response = await apiRequest("POST", "/api/store-settings", values);
+        setStoreSettings(response); // Update local state after successful save
       }
+
+      toast({
+        title: "تم الحفظ بنجاح",
+        description: "تم حفظ إعدادات المتجر بنجاح",
+      });
+
+      // تحديث البيانات في الكاش
+      queryClient.invalidateQueries({ queryKey: ["storeSettings"] });
     } catch (error) {
       console.error("خطأ في حفظ إعدادات المتجر:", error);
       toast({
         title: "خطأ",
-        description: "فشل في حفظ إعدادات المتجر",
+        description: error instanceof Error ? error.message : "حدث خطأ أثناء حفظ إعدادات المتجر",
         variant: "destructive",
       });
     } finally {
