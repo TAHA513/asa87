@@ -5,9 +5,6 @@ import fileUpload from "express-fileupload";
 import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
-import { registerRoutes } from "./routes";
-import { setupAuth } from "./auth";
-import { setupVite, log } from "./vite";
 import { initializeDatabase } from "./initialize-database";
 
 // Environment setup
@@ -36,19 +33,10 @@ async function startServer() {
       tempFileDir: path.join(__dirname, "../tmp"),
     }));
 
-    // Setup authentication
-    await setupAuth(app);
-
-    // API routes
-    await registerRoutes(app);
-
-    // Static files in production
-    if (!isDev) {
-      app.use(express.static(path.join(__dirname, "../public")));
-    } else {
-      // Development mode - use Vite
-      await setupVite(app, server);
-    }
+    // Basic route for testing
+    app.get('/', (req, res) => {
+      res.json({ message: 'مرحباً بك في نظام إدارة الأعمال' });
+    });
 
     // Start server
     server.listen(PORT, "0.0.0.0", () => {
