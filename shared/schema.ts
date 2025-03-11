@@ -266,4 +266,259 @@ export const selectReportSchema = createSelectSchema(reports);
 export type Report = z.infer<typeof selectReportSchema>;
 export type InsertReport = z.infer<typeof insertReportSchema>;
 
+// Expense Categories
+export const expenseCategories = pgTable("expense_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  budgetAmount: text("budget_amount"),
+  parentId: integer("parent_id"),
+  userId: integer("user_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertExpenseCategorySchema = createInsertSchema(expenseCategories);
+export const selectExpenseCategorySchema = createSelectSchema(expenseCategories);
+export type ExpenseCategory = z.infer<typeof selectExpenseCategorySchema>;
+export type InsertExpenseCategory = z.infer<typeof insertExpenseCategorySchema>;
+
+// Expenses
+export const expenses = pgTable("expenses", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  categoryId: integer("category_id").notNull(),
+  amount: text("amount").notNull(),
+  description: text("description"),
+  date: timestamp("date").notNull(),
+  receiptUrl: text("receipt_url"),
+  isRecurring: boolean("is_recurring").default(false),
+  recurringPeriod: text("recurring_period"),
+  nextDueDate: timestamp("next_due_date"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertExpenseSchema = createInsertSchema(expenses);
+export const selectExpenseSchema = createSelectSchema(expenses);
+export type Expense = z.infer<typeof selectExpenseSchema>;
+export type InsertExpense = z.infer<typeof insertExpenseSchema>;
+
+// Suppliers
+export const suppliers = pgTable("suppliers", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  name: text("name").notNull(),
+  contactPerson: text("contact_person"),
+  email: text("email"),
+  phone: text("phone"),
+  address: text("address"),
+  categories: text("categories").array(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at")
+});
+
+export const insertSupplierSchema = createInsertSchema(suppliers);
+export const selectSupplierSchema = createSelectSchema(suppliers);
+export type Supplier = z.infer<typeof selectSupplierSchema>;
+export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
+
+// Supplier Transactions
+export const supplierTransactions = pgTable("supplier_transactions", {
+  id: serial("id").primaryKey(),
+  supplierId: integer("supplier_id").notNull().references(() => suppliers.id),
+  amount: text("amount").notNull(),
+  type: text("type").notNull(),
+  status: text("status").notNull(),
+  date: timestamp("date").notNull(),
+  notes: text("notes"),
+  attachmentUrl: text("attachment_url"),
+  userId: integer("user_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+});
+
+export const insertSupplierTransactionSchema = createInsertSchema(supplierTransactions);
+export const selectSupplierTransactionSchema = createSelectSchema(supplierTransactions);
+export type SupplierTransaction = z.infer<typeof selectSupplierTransactionSchema>;
+export type InsertSupplierTransaction = z.infer<typeof insertSupplierTransactionSchema>;
+
+// File Storage
+export const fileStorage = pgTable("file_storage", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  fileName: text("file_name").notNull(),
+  fileType: text("file_type").notNull(),
+  fileSize: integer("file_size").notNull(),
+  fileUrl: text("file_url").notNull(),
+  filePath: text("file_path"),
+  entityType: text("entity_type"),
+  entityId: integer("entity_id"),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+});
+
+export const insertFileStorageSchema = createInsertSchema(fileStorage);
+export const selectFileStorageSchema = createSelectSchema(fileStorage);
+export type FileStorage = z.infer<typeof selectFileStorageSchema>;
+export type InsertFileStorage = z.infer<typeof insertFileStorageSchema>;
+
+// User Settings
+export const userSettings = pgTable("user_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  themeName: text("theme_name"),
+  fontName: text("font_name"),
+  fontSize: text("font_size"),
+  appearance: text("appearance"),
+  colors: jsonb("colors"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at")
+});
+
+export const insertUserSettingsSchema = createInsertSchema(userSettings);
+export const selectUserSettingsSchema = createSelectSchema(userSettings);
+export type UserSettings = z.infer<typeof selectUserSettingsSchema>;
+export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;
+
+// Inventory Transactions
+export const inventoryTransactions = pgTable("inventory_transactions", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull(),
+  type: text("type").notNull(),
+  quantity: integer("quantity").notNull(),
+  reason: text("reason").notNull(),
+  reference: text("reference"),
+  userId: integer("user_id").notNull(),
+  date: timestamp("date").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+});
+
+export const insertInventoryTransactionSchema = createInsertSchema(inventoryTransactions);
+export const selectInventoryTransactionSchema = createSelectSchema(inventoryTransactions);
+export type InventoryTransaction = z.infer<typeof selectInventoryTransactionSchema>;
+export type InsertInventoryTransaction = z.infer<typeof insertInventoryTransactionSchema>;
+
+// Inventory Alerts
+export const inventoryAlerts = pgTable("inventory_alerts", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id").notNull(),
+  alertType: text("alert_type").notNull(),
+  threshold: integer("threshold").notNull(),
+  status: text("status").notNull().default("active"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at")
+});
+
+export const insertInventoryAlertSchema = createInsertSchema(inventoryAlerts);
+export const selectInventoryAlertSchema = createSelectSchema(inventoryAlerts);
+export type InventoryAlert = z.infer<typeof selectInventoryAlertSchema>;
+export type InsertInventoryAlert = z.infer<typeof insertInventoryAlertSchema>;
+
+// Alert Notifications
+export const alertNotifications = pgTable("alert_notifications", {
+  id: serial("id").primaryKey(),
+  alertId: integer("alert_id").notNull(),
+  userId: integer("user_id").notNull(),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+});
+
+export const insertAlertNotificationSchema = createInsertSchema(alertNotifications);
+export const selectAlertNotificationSchema = createSelectSchema(alertNotifications);
+export type AlertNotification = z.infer<typeof selectAlertNotificationSchema>;
+export type InsertAlertNotification = z.infer<typeof insertAlertNotificationSchema>;
+
+// Invoices
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  invoiceNumber: text("invoice_number").notNull().unique(),
+  userId: integer("user_id").notNull(),
+  customerId: integer("customer_id"),
+  customerName: text("customer_name").notNull(),
+  customerContact: text("customer_contact"),
+  totalAmount: text("total_amount").notNull(),
+  paidAmount: text("paid_amount"),
+  status: text("status").notNull().default("draft"),
+  printed: boolean("printed").default(false),
+  notes: text("notes"),
+  dueDate: timestamp("due_date"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
+export const insertInvoiceSchema = createInsertSchema(invoices);
+export const selectInvoiceSchema = createSelectSchema(invoices);
+export type Invoice = z.infer<typeof selectInvoiceSchema>;
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+
+// Invoice Items
+export const invoiceItems = pgTable("invoice_items", {
+  id: serial("id").primaryKey(),
+  invoiceId: integer("invoice_id").notNull().references(() => invoices.id),
+  productId: integer("product_id").notNull(),
+  productName: text("product_name").notNull(),
+  quantity: integer("quantity").notNull(),
+  unitPrice: text("unit_price").notNull(),
+  discount: text("discount").default("0"),
+  totalPrice: text("total_price").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+});
+
+export const insertInvoiceItemSchema = createInsertSchema(invoiceItems);
+export const selectInvoiceItemSchema = createSelectSchema(invoiceItems);
+export type InvoiceItem = z.infer<typeof selectInvoiceItemSchema>;
+export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
+
+// Invoice History
+export const invoiceHistory = pgTable("invoice_history", {
+  id: serial("id").primaryKey(),
+  invoiceId: integer("invoice_id").notNull().references(() => invoices.id),
+  status: text("status").notNull(),
+  notes: text("notes"),
+  userId: integer("user_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+});
+
+export const insertInvoiceHistorySchema = createInsertSchema(invoiceHistory);
+export const selectInvoiceHistorySchema = createSelectSchema(invoiceHistory);
+export type InvoiceHistory = z.infer<typeof selectInvoiceHistorySchema>;
+export type InsertInvoiceHistory = z.infer<typeof insertInvoiceHistorySchema>;
+
+// Installments
+export const installments = pgTable("installments", {
+  id: serial("id").primaryKey(),
+  saleId: integer("sale_id").notNull(),
+  customerId: integer("customer_id").notNull(),
+  totalAmount: text("total_amount").notNull(),
+  downPayment: text("down_payment").notNull(),
+  remainingAmount: text("remaining_amount").notNull(),
+  installmentCount: integer("installment_count").notNull(),
+  installmentAmount: text("installment_amount").notNull(),
+  startDate: timestamp("start_date").notNull(),
+  nextDueDate: timestamp("next_due_date"),
+  status: text("status").notNull().default("active"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
+export const insertInstallmentSchema = createInsertSchema(installments);
+export const selectInstallmentSchema = createSelectSchema(installments);
+export type Installment = z.infer<typeof selectInstallmentSchema>;
+export type InsertInstallment = z.infer<typeof insertInstallmentSchema>;
+
+// Installment Payments
+export const installmentPayments = pgTable("installment_payments", {
+  id: serial("id").primaryKey(),
+  installmentId: integer("installment_id").notNull().references(() => installments.id),
+  amount: text("amount").notNull(),
+  paymentMethod: text("payment_method").notNull(),
+  notes: text("notes"),
+  userId: integer("user_id").notNull(),
+  paymentDate: timestamp("payment_date").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+});
+
+export const insertInstallmentPaymentSchema = createInsertSchema(installmentPayments);
+export const selectInstallmentPaymentSchema = createSelectSchema(installmentPayments);
+export type InstallmentPayment = z.infer<typeof selectInstallmentPaymentSchema>;
+export type InsertInstallmentPayment = z.infer<typeof insertInstallmentPaymentSchema>;
+
 // Additional tables schemas would go here...
