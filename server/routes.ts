@@ -1723,7 +1723,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/appointments/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json{
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
     }
 
