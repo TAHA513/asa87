@@ -8,8 +8,9 @@ import { setupVite, serveStatic } from "./vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import fileUpload from "express-fileupload";
+import session from "express-session";
+import createMemoryStore from "memorystore";
 import dotenv from "dotenv";
-import fs from "fs/promises";
 
 // تحميل متغيرات البيئة
 dotenv.config();
@@ -27,49 +28,46 @@ async function startServer() {
 
     // إعداد الميدلوير الأساسي
     app.use(express.json());
-    app.use(cors({
-      origin: true,
-      credentials: true
-    }));
+    app.use(cors());
     app.use(fileUpload({
       useTempFiles: true,
       tempFileDir: path.join(__dirname, "../tmp"),
     }));
 
-    // ملاحظة: تم نقل إعدادات الجلسة إلى ملف auth.ts لتجنب التكرار
+    // Configure session store
+    const MemoryStore = createMemoryStore(session);
+    const sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // Prune expired entries every 24h
+    });
+
+    // Configure sessions before auth
+    app.use(session({
+      secret: process.env.SESSION_SECRET || 'default-secret-key',
+      resave: false,
+      saveUninitialized: false,
+      store: sessionStore,
+      cookie: { 
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      }
+    }));
+
 
     console.log("جاري تهيئة قاعدة البيانات...");
     await initializeDatabase();
     console.log("اكتملت عملية تهيئة قاعدة البيانات بنجاح");
 
-    // إعداد المصادقة (يتضمن إعدادات الجلسة)
+    // إعداد المصادقة
     await setupAuth(app);
 
     // تسجيل المسارات
     await registerRoutes(app);
 
-    // تحسين معالجة الأخطاء العامة
-    app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-      console.error("خطأ غير معالج:", err);
-      res.status(500).json({ message: "حدث خطأ في الخادم" });
-    });
-
     // إعداد Vite للتطوير أو الملفات الثابتة للإنتاج
     if (isDev) {
-      console.log("إعداد Vite في وضع التطوير...");
       await setupVite(app, server);
     } else {
-      console.log("إعداد الملفات الثابتة في وضع الإنتاج...");
       serveStatic(app);
-    }
-    
-    // التأكد من أن مجلد التحميلات موجود
-    const uploadsDir = path.join(process.cwd(), "uploads");
-    try {
-      await fs.mkdir(uploadsDir, { recursive: true });
-      console.log(`تم التأكد من وجود مجلد التحميلات: ${uploadsDir}`);
-    } catch (err) {
-      console.error("خطأ في إنشاء مجلد التحميلات:", err);
     }
 
     // بدء الخادم
@@ -82,17 +80,6 @@ async function startServer() {
     process.exit(1);
   }
 }
-
-// إضافة معالجة أخطاء عملية Node غير المتوقعة
-process.on('uncaughtException', (err) => {
-  console.error('خطأ غير متوقع:', err);
-  // لا تغلق الخادم في حالة الأخطاء غير المتوقعة
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('وعد مرفوض غير معالج:', reason);
-  // لا تغلق الخادم في حالة الوعود المرفوضة غير المعالجة
-});
 
 // بدء الخادم
 startServer().catch((error) => {

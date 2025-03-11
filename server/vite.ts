@@ -71,26 +71,18 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.join(process.cwd(), "client/dist");
+  const distPath = path.resolve(__dirname, "public");
 
-  // التحقق من وجود مجلد dist
-  try {
-    if (!fs.existsSync(distPath)) {
-      console.warn(`تحذير: مجلد dist غير موجود: ${distPath}`);
-      console.warn("قد تحتاج إلى بناء التطبيق أولاً باستخدام 'npm run build'");
-    }
-  } catch (err) {
-    console.error("خطأ في التحقق من وجود مجلد dist:", err);
+  if (!fs.existsSync(distPath)) {
+    throw new Error(
+      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+    );
   }
 
-  // تقديم ملفات المشروع
   app.use(express.static(distPath));
 
-  // تقديم ملفات التحميلات
-  app.use('/uploads', express.static(path.join(process.cwd(), "uploads")));
-
-  // توجيه جميع المسارات الأخرى إلى React app
-  app.get(/^(?!\/api).*/, (_req, res) => {
-    res.sendFile(path.join(distPath, "index.html"));
+  // fall through to index.html if the file doesn't exist
+  app.use("*", (_req, res) => {
+    res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
