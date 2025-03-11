@@ -44,7 +44,15 @@ export function setupAuth(app: Express) {
   passport.use(new LocalStrategy(async (username, password, done) => {
     try {
       console.log(`محاولة تسجيل دخول للمستخدم: ${username}`);
-      const user = await storage.getUserByUsername(username);
+      
+      // Add more error handling for getUserByUsername
+      let user;
+      try {
+        user = await storage.getUserByUsername(username);
+      } catch (dbError) {
+        console.error("خطأ في قاعدة البيانات عند البحث عن المستخدم:", dbError);
+        return done(null, false, { message: "حدث خطأ في قاعدة البيانات" });
+      }
 
       if (!user) {
         console.log(`لم يتم العثور على المستخدم: ${username}`);
@@ -56,7 +64,14 @@ export function setupAuth(app: Express) {
         return done(null, false, { message: "الحساب غير نشط" });
       }
 
-      const isValidPassword = await comparePasswords(password, user.password);
+      let isValidPassword = false;
+      try {
+        isValidPassword = await comparePasswords(password, user.password);
+      } catch (passwordError) {
+        console.error("خطأ في التحقق من كلمة المرور:", passwordError);
+        return done(null, false, { message: "حدث خطأ أثناء التحقق من كلمة المرور" });
+      }
+
       if (!isValidPassword) {
         console.log(`كلمة المرور غير صحيحة للمستخدم: ${username}`);
         return done(null, false, { message: "كلمة المرور غير صحيحة" });
@@ -66,7 +81,7 @@ export function setupAuth(app: Express) {
       return done(null, user);
     } catch (error) {
       console.error("خطأ في عملية المصادقة:", error);
-      return done(error);
+      return done(null, false, { message: "حدث خطأ أثناء تسجيل الدخول" });
     }
   }));
 
@@ -89,6 +104,13 @@ export function setupAuth(app: Express) {
 
   // نقاط النهاية للمصادقة
   app.post("/api/auth/login", (req, res, next) => {
+    // Log the incoming login request
+    console.log("طلب تسجيل الدخول:", { username: req.body.username });
+    
+    if (!req.body.username || !req.body.password) {
+      return res.status(400).json({ message: "اسم المستخدم وكلمة المرور مطلوبان" });
+    }
+
     passport.authenticate("local", (err: Error | null, user: User | false, info: { message: string } | undefined) => {
       if (err) {
         console.error("خطأ في تسجيل الدخول:", err);
@@ -96,18 +118,25 @@ export function setupAuth(app: Express) {
       }
 
       if (!user) {
+        console.log("فشل تسجيل الدخول:", info?.message);
         return res.status(401).json({ message: info?.message || "فشل تسجيل الدخول" });
       }
 
-      req.login(user, (err) => {
-        if (err) {
-          console.error("خطأ في إنشاء الجلسة:", err);
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          console.error("خطأ في إنشاء الجلسة:", loginErr);
           return res.status(500).json({ message: "فشل في إنشاء جلسة المستخدم" });
         }
 
-        // عدم إرسال كلمة المرور في الاستجابة
-        const { password, ...userWithoutPassword } = user;
-        res.json(userWithoutPassword);
+        try {
+          // عدم إرسال كلمة المرور في الاستجابة
+          const { password, ...userWithoutPassword } = user;
+          console.log("تم تسجيل الدخول بنجاح:", userWithoutPassword.username);
+          return res.json(userWithoutPassword);
+        } catch (responseErr) {
+          console.error("خطأ في إعداد استجابة تسجيل الدخول:", responseErr);
+          return res.status(500).json({ message: "حدث خطأ أثناء إكمال عملية تسجيل الدخول" });
+        }
       });
     })(req, res, next);
   });
