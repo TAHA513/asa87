@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -102,11 +101,11 @@ function ProductRecommendations({
 }) {
   // Here you would fetch recommendations based on customer or product
   // For now we'll just show mock data
-  
+
   if (!customerId && !currentProductId) {
     return null;
   }
-  
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-semibold">
@@ -114,7 +113,7 @@ function ProductRecommendations({
           ? "منتجات موصى بها لهذا العميل" 
           : "منتجات مشابهة قد تهمك"}
       </h2>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Array.from({ length: 6 }).map((_, i) => (
           <Card key={i}>
