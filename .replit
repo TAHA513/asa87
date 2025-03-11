@@ -50,5 +50,5 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "node -e \"try { require('child_process').execSync('pkill -f server/index.ts', { stdio: 'ignore' }); } catch (e) {}\" && npm run dev"
 waitForPort = 5000
