@@ -41,11 +41,11 @@ createRoot(document.getElementById("root")!).render(
 );
 
 // Placeholder components -  These need to be implemented based on your specific requirements.
-function SalesAnalytics() {
+function SalesAnalyticsPlaceholder() {
   return (
     <div>
       <h1>Sales Analytics</h1>
-      {/* Add charts and graphs here */}
+      <p>Analytics Dashboard Coming Soon</p>
     </div>
   );
 }
