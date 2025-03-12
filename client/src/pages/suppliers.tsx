@@ -66,15 +66,15 @@ type Supplier = {
   bankAccount: string;
   notes: string;
   status: string;
-  categories?: string[];
+  categories: string[];
 };
 
 type Transaction = {
   id: number;
   supplierId: number;
-  date: string;
-  type: "payment" | "refund" | "advance" | "purchase" | "other";
+  type: string;
   amount: number;
+  date: string;
   reference: string;
   notes: string;
   status: "completed" | "pending" | "cancelled";
@@ -165,7 +165,7 @@ export default function SuppliersPage() {
         console.error("Error fetching transactions:", await response.text());
         toast({
           title: "خطأ",
-          description: "فشل في جلب سجل المشتريات",
+          description: "فشل في جلب المعاملات",
           variant: "destructive",
         });
       }
@@ -181,52 +181,32 @@ export default function SuppliersPage() {
     }
   };
 
-  const handleViewTransactions = (supplier: Supplier) => {
-    setSelectedSupplier(supplier);
-    setViewingTransactions(true);
-    fetchTransactions(supplier.id);
-  };
-
-  const addTransaction = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedSupplier) return;
+  const handleDelete = async (id: number) => {
+    if (!confirm("هل أنت متأكد من حذف هذا المورد؟")) {
+      return;
+    }
 
     try {
-      const response = await fetch(`${apiUrl}/api/suppliers/${selectedSupplier.id}/transactions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...purchaseData,
-          date: new Date().toISOString(),
-        }),
+      const response = await fetch(`${apiUrl}/api/suppliers/${id}`, {
+        method: "DELETE",
       });
 
       if (response.ok) {
         toast({
-          title: "تم بنجاح",
-          description: "تمت إضافة المعاملة بنجاح",
+          title: "تم الحذف",
+          description: "تم حذف المورد بنجاح",
         });
-        setPurchaseData({
-          type: "purchase",
-          amount: 0,
-          reference: "",
-          notes: "",
-          status: "completed",
-        });
-        setIsPurchaseFormOpen(false);
-        fetchTransactions(selectedSupplier.id);
+        fetchSuppliers();
       } else {
         const errorData = await response.json();
         toast({
           title: "خطأ",
-          description: errorData.message || "فشل في إضافة المعاملة",
+          description: errorData.message || "فشل في حذف المورد",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error("Error adding transaction:", error);
+      console.error("Error deleting supplier:", error);
       toast({
         title: "خطأ",
         description: "حدث خطأ أثناء الاتصال بالخادم",
@@ -235,13 +215,18 @@ export default function SuppliersPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleViewTransactions = async (supplier: Supplier) => {
+    setSelectedSupplier(supplier);
+    setViewingTransactions(true);
+    await fetchTransactions(supplier.id);
+  };
+
+  const handleSaveSupplier = async () => {
     try {
-      const method = selectedSupplier ? "PATCH" : "POST";
       const url = selectedSupplier
         ? `${apiUrl}/api/suppliers/${selectedSupplier.id}`
         : `${apiUrl}/api/suppliers`;
+      const method = selectedSupplier ? "PATCH" : "POST";
 
       const response = await fetch(url, {
         method,
@@ -281,30 +266,42 @@ export default function SuppliersPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("هل أنت متأكد من حذف هذا المورد؟")) return;
-
+  const handleSaveTransaction = async () => {
     try {
-      const response = await fetch(`${apiUrl}/api/suppliers/${id}`, {
-        method: "DELETE",
+      if (!selectedSupplier) {
+        toast({
+          title: "خطأ",
+          description: "يجب اختيار مورد أولاً",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch(`${apiUrl}/api/suppliers/${selectedSupplier.id}/transactions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(purchaseData),
       });
 
       if (response.ok) {
         toast({
           title: "تم بنجاح",
-          description: "تم حذف المورد بنجاح",
+          description: "تمت إضافة المعاملة بنجاح",
         });
-        fetchSuppliers();
+        setIsPurchaseFormOpen(false);
+        await fetchTransactions(selectedSupplier.id);
       } else {
         const errorData = await response.json();
         toast({
           title: "خطأ",
-          description: errorData.message || "فشل في حذف المورد",
+          description: errorData.message || "فشل في إضافة المعاملة",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error("Error deleting supplier:", error);
+      console.error("Error saving transaction:", error);
       toast({
         title: "خطأ",
         description: "حدث خطأ أثناء الاتصال بالخادم",
@@ -361,36 +358,26 @@ export default function SuppliersPage() {
   // إذا كان هناك تحميل
   if (isLoadingSuppliers) {
     return (
-      <SidebarProvider>
-        <div className="flex h-screen">
-          <div className="w-64 h-full">
-            <Sidebar />
-          </div>
-          <main className="flex-1 p-8">
-            <div className="h-[400px] flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-          </main>
-        </div>
-      </SidebarProvider>
+      <div className="h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="mr-2">جاري تحميل البيانات...</span>
+      </div>
     );
   }
 
-  // عرض الصفحة الرئيسية
   return (
     <SidebarProvider>
-      <div className="flex h-screen">
-        <div className="w-64 h-full">
-          <Sidebar />
-        </div>
-        <main className="flex-1 p-8 overflow-y-auto">
-          <div className="max-w-7xl mx-auto space-y-6">
-            <div className="flex justify-between items-center">
-              <h1 className="text-2xl font-bold">الموردين</h1>
-              <div className="flex space-x-4">
+      <div className="grid grid-cols-[220px_1fr] h-screen">
+        <Sidebar className="border-l border-border h-screen">
+          <SidebarMenu />
+        </Sidebar>
+        <SidebarContent>
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-3xl font-bold">الموردين</h1>
+              <div className="flex space-x-2">
                 <Button
                   onClick={handleAddNew}
-                  variant="default"
                   className="flex items-center gap-2"
                 >
                   <Plus className="h-4 w-4" />
@@ -464,11 +451,11 @@ export default function SuppliersPage() {
                               <Trash className="h-4 w-4" />
                             </Button>
                             <Button
-                              variant="default"
+                              variant="outline"
                               size="sm"
                               onClick={() => handleViewTransactions(supplier)}
                             >
-                              <FileText className="h-4 w-4" />
+                              عرض المعاملات
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -479,375 +466,351 @@ export default function SuppliersPage() {
               </CardContent>
             </Card>
           </div>
-
-          {/* نموذج إضافة/تعديل المورد */}
-          <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>
-                  {selectedSupplier ? "تعديل بيانات المورد" : "إضافة مورد جديد"}
-                </DialogTitle>
-                <DialogDescription>
-                  أدخل بيانات المورد بشكل صحيح
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-2 gap-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">اسم المورد</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="contactPerson">جهة الاتصال</Label>
-                    <Input
-                      id="contactPerson"
-                      value={formData.contactPerson}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          contactPerson: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">رقم الهاتف</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) =>
-                        setFormData({ ...formData, phone: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">البريد الإلكتروني</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="address">العنوان</Label>
-                    <Input
-                      id="address"
-                      value={formData.address}
-                      onChange={(e) =>
-                        setFormData({ ...formData, address: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="taxNumber">الرقم الضريبي</Label>
-                    <Input
-                      id="taxNumber"
-                      value={formData.taxNumber}
-                      onChange={(e) =>
-                        setFormData({ ...formData, taxNumber: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="companyType">نوع الشركة</Label>
-                    <Input
-                      id="companyType"
-                      value={formData.companyType}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          companyType: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="bankAccount">الحساب البنكي</Label>
-                    <Input
-                      id="bankAccount"
-                      value={formData.bankAccount}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          bankAccount: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="categories">التصنيفات (مفصولة بفواصل)</Label>
-                    <Input
-                      id="categories"
-                      value={formData.categories}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          categories: e.target.value,
-                        })
-                      }
-                      placeholder="أجهزة كهربائية, ألكترونيات, ..."
-                    />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label htmlFor="notes">ملاحظات</Label>
-                    <Textarea
-                      id="notes"
-                      value={formData.notes}
-                      onChange={(e) =>
-                        setFormData({ ...formData, notes: e.target.value })
-                      }
-                      rows={3}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="submit">
-                    {selectedSupplier ? "تحديث" : "إضافة"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-
-          {/* نموذج عرض المعاملات */}
-          <Dialog open={viewingTransactions} onOpenChange={setViewingTransactions}>
-            <DialogContent className="max-w-3xl">
-              <DialogHeader>
-                <DialogTitle>
-                  المعاملات - {selectedSupplier?.name}
-                </DialogTitle>
-                <DialogDescription>
-                  سجل المعاملات والمشتريات مع المورد
-                </DialogDescription>
-              </DialogHeader>
-              <div className="mt-4">
-                <Button
-                  onClick={() => {
-                    if (selectedSupplier) {
-                      setPurchaseData({
-                        ...purchaseData,
-                        supplierId: selectedSupplier.id,
-                      });
-                      setIsPurchaseFormOpen(true);
-                    }
-                  }}
-                  className="mb-4"
-                >
-                  <Plus className="mr-2 h-4 w-4" /> إضافة معاملة
-                </Button>
-                {isLoadingTransactions ? (
-                  <div className="h-[200px] flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                  </div>
-                ) : transactions.length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-muted-foreground">لا توجد معاملات</p>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>التاريخ</TableHead>
-                        <TableHead>النوع</TableHead>
-                        <TableHead>المبلغ</TableHead>
-                        <TableHead>المرجع</TableHead>
-                        <TableHead>الحالة</TableHead>
-                        <TableHead>ملاحظات</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {transactions.map((transaction) => (
-                        <TableRow key={transaction.id}>
-                          <TableCell>
-                            {new Date(transaction.date).toLocaleDateString("ar-IQ")}
-                          </TableCell>
-                          <TableCell>
-                            {transaction.type === "payment"
-                              ? "دفع"
-                              : transaction.type === "refund"
-                              ? "استرجاع"
-                              : transaction.type === "advance"
-                              ? "دفعة مقدمة"
-                              : transaction.type === "purchase"
-                              ? "مشتريات"
-                              : "أخرى"}
-                          </TableCell>
-                          <TableCell>{transaction.amount}</TableCell>
-                          <TableCell>{transaction.reference}</TableCell>
-                          <TableCell>
-                            {transaction.status === "completed"
-                              ? "مكتمل"
-                              : transaction.status === "pending"
-                              ? "معلق"
-                              : "ملغي"}
-                          </TableCell>
-                          <TableCell>{transaction.notes}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          {/* نموذج إضافة مشتريات */}
-          <Dialog open={isPurchaseFormOpen} onOpenChange={setIsPurchaseFormOpen}>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>إضافة مشتريات جديدة</DialogTitle>
-                <DialogDescription>
-                  أدخل بيانات المشتريات من المورد
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={addTransaction}>
-                <div className="space-y-4 py-4">
-                  {!selectedSupplier && (
-                    <div className="space-y-2">
-                      <Label htmlFor="supplier">المورد</Label>
-                      <Select
-                        onValueChange={(value) => {
-                          const selectedSup = suppliers.find(
-                            (s) => s.id === parseInt(value)
-                          );
-                          if (selectedSup) {
-                            setSelectedSupplier(selectedSup);
-                            setPurchaseData({
-                              ...purchaseData,
-                              supplierId: selectedSup.id,
-                            });
-                          }
-                        }}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="اختر المورد" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {suppliers.map((supplier) => (
-                            <SelectItem
-                              key={supplier.id}
-                              value={supplier.id.toString()}
-                            >
-                              {supplier.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                  <div className="space-y-2">
-                    <Label htmlFor="type">نوع المعاملة</Label>
-                    <Select
-                      defaultValue="purchase"
-                      onValueChange={(value) =>
-                        setPurchaseData({
-                          ...purchaseData,
-                          type: value as any,
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر نوع المعاملة" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="purchase">مشتريات</SelectItem>
-                        <SelectItem value="payment">دفع</SelectItem>
-                        <SelectItem value="refund">استرجاع</SelectItem>
-                        <SelectItem value="advance">دفعة مقدمة</SelectItem>
-                        <SelectItem value="other">أخرى</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="amount">المبلغ</Label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      value={purchaseData.amount}
-                      onChange={(e) =>
-                        setPurchaseData({
-                          ...purchaseData,
-                          amount: parseFloat(e.target.value),
-                        })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="reference">المرجع</Label>
-                    <Input
-                      id="reference"
-                      value={purchaseData.reference}
-                      onChange={(e) =>
-                        setPurchaseData({
-                          ...purchaseData,
-                          reference: e.target.value,
-                        })
-                      }
-                      placeholder="رقم الفاتورة أو المرجع"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="status">الحالة</Label>
-                    <Select
-                      defaultValue="completed"
-                      onValueChange={(value) =>
-                        setPurchaseData({
-                          ...purchaseData,
-                          status: value as any,
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="اختر الحالة" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="completed">مكتمل</SelectItem>
-                        <SelectItem value="pending">معلق</SelectItem>
-                        <SelectItem value="cancelled">ملغي</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">ملاحظات</Label>
-                    <Textarea
-                      id="notes"
-                      value={purchaseData.notes}
-                      onChange={(e) =>
-                        setPurchaseData({
-                          ...purchaseData,
-                          notes: e.target.value,
-                        })
-                      }
-                      rows={3}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    type="submit"
-                    disabled={!selectedSupplier || purchaseData.amount <= 0}
-                  >
-                    إضافة
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </main>
+        </SidebarContent>
       </div>
+
+      {/* نافذة إضافة/تعديل مورد */}
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedSupplier ? "تعديل بيانات المورد" : "إضافة مورد جديد"}
+            </DialogTitle>
+            <DialogDescription>
+              ادخل بيانات المورد للحفظ في النظام
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">اسم المورد</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contactPerson">الشخص المسؤول</Label>
+                <Input
+                  id="contactPerson"
+                  value={formData.contactPerson}
+                  onChange={(e) =>
+                    setFormData({ ...formData, contactPerson: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">رقم الهاتف</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">البريد الإلكتروني</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">العنوان</Label>
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={(e) =>
+                  setFormData({ ...formData, address: e.target.value })
+                }
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="taxNumber">رقم الضريبة</Label>
+                <Input
+                  id="taxNumber"
+                  value={formData.taxNumber}
+                  onChange={(e) =>
+                    setFormData({ ...formData, taxNumber: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bankAccount">الحساب البنكي</Label>
+                <Input
+                  id="bankAccount"
+                  value={formData.bankAccount}
+                  onChange={(e) =>
+                    setFormData({ ...formData, bankAccount: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="categories">التصنيفات (مفصولة بفواصل)</Label>
+              <Input
+                id="categories"
+                value={formData.categories}
+                onChange={(e) =>
+                  setFormData({ ...formData, categories: e.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">ملاحظات</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) =>
+                  setFormData({ ...formData, notes: e.target.value })
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsFormOpen(false)}>
+              إلغاء
+            </Button>
+            <Button onClick={handleSaveSupplier}>حفظ</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة إضافة مشتريات */}
+      <Dialog open={isPurchaseFormOpen} onOpenChange={setIsPurchaseFormOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>إضافة معاملة جديدة</DialogTitle>
+            <DialogDescription>
+              أدخل بيانات المعاملة مع المورد
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="supplier">المورد</Label>
+              <Select
+                onValueChange={(value) =>
+                  setSelectedSupplier(
+                    suppliers.find((s) => s.id === Number(value)) || null
+                  )
+                }
+                value={selectedSupplier?.id?.toString()}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر المورد" />
+                </SelectTrigger>
+                <SelectContent>
+                  {suppliers.map((supplier) => (
+                    <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                      {supplier.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="transactionType">نوع المعاملة</Label>
+              <Select
+                onValueChange={(value) =>
+                  setPurchaseData({
+                    ...purchaseData,
+                    type: value as PurchaseData["type"],
+                  })
+                }
+                value={purchaseData.type}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر نوع المعاملة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="purchase">مشتريات</SelectItem>
+                  <SelectItem value="payment">دفعة</SelectItem>
+                  <SelectItem value="refund">استرجاع</SelectItem>
+                  <SelectItem value="advance">دفعة مقدمة</SelectItem>
+                  <SelectItem value="other">أخرى</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="amount">المبلغ</Label>
+              <Input
+                id="amount"
+                type="number"
+                value={purchaseData.amount}
+                onChange={(e) =>
+                  setPurchaseData({
+                    ...purchaseData,
+                    amount: Number(e.target.value),
+                  })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reference">المرجع/الرقم</Label>
+              <Input
+                id="reference"
+                value={purchaseData.reference}
+                onChange={(e) =>
+                  setPurchaseData({
+                    ...purchaseData,
+                    reference: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="notes">ملاحظات</Label>
+              <Textarea
+                id="notes"
+                value={purchaseData.notes}
+                onChange={(e) =>
+                  setPurchaseData({
+                    ...purchaseData,
+                    notes: e.target.value,
+                  })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="status">الحالة</Label>
+              <Select
+                onValueChange={(value) =>
+                  setPurchaseData({
+                    ...purchaseData,
+                    status: value as PurchaseData["status"],
+                  })
+                }
+                value={purchaseData.status}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر الحالة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="completed">مكتملة</SelectItem>
+                  <SelectItem value="pending">قيد الانتظار</SelectItem>
+                  <SelectItem value="cancelled">ملغية</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPurchaseFormOpen(false)}>
+              إلغاء
+            </Button>
+            <Button onClick={handleSaveTransaction}>حفظ</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* نافذة عرض المعاملات */}
+      <Dialog open={viewingTransactions} onOpenChange={setViewingTransactions}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>معاملات المورد: {selectedSupplier?.name}</DialogTitle>
+            <DialogDescription>
+              سجل جميع المعاملات مع هذا المورد
+            </DialogDescription>
+          </DialogHeader>
+          {isLoadingTransactions ? (
+            <div className="flex items-center justify-center p-4">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="mr-2">جاري تحميل المعاملات...</span>
+            </div>
+          ) : (
+            <div className="overflow-auto max-h-[60vh]">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>النوع</TableHead>
+                    <TableHead>المبلغ</TableHead>
+                    <TableHead>التاريخ</TableHead>
+                    <TableHead>المرجع</TableHead>
+                    <TableHead>الحالة</TableHead>
+                    <TableHead>ملاحظات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {transactions.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center">
+                        لا توجد معاملات
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    transactions.map((transaction) => (
+                      <TableRow key={transaction.id}>
+                        <TableCell>
+                          {(() => {
+                            switch (transaction.type) {
+                              case "purchase":
+                                return "مشتريات";
+                              case "payment":
+                                return "دفعة";
+                              case "refund":
+                                return "استرجاع";
+                              case "advance":
+                                return "دفعة مقدمة";
+                              default:
+                                return transaction.type;
+                            }
+                          })()}
+                        </TableCell>
+                        <TableCell>{transaction.amount}</TableCell>
+                        <TableCell>
+                          {new Date(transaction.date).toLocaleDateString("ar-IQ")}
+                        </TableCell>
+                        <TableCell>{transaction.reference}</TableCell>
+                        <TableCell>
+                          {(() => {
+                            switch (transaction.status) {
+                              case "completed":
+                                return "مكتملة";
+                              case "pending":
+                                return "قيد الانتظار";
+                              case "cancelled":
+                                return "ملغية";
+                              default:
+                                return transaction.status;
+                            }
+                          })()}
+                        </TableCell>
+                        <TableCell>{transaction.notes}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setIsPurchaseFormOpen(true);
+                setViewingTransactions(false);
+              }}
+            >
+              إضافة معاملة جديدة
+            </Button>
+            <Button variant="outline" onClick={() => setViewingTransactions(false)}>
+              إغلاق
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }
