@@ -1,6 +1,6 @@
 import { formatDate } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api";
 import { Loader2 } from "lucide-react";
 
 interface AppointmentPrintTemplateProps {

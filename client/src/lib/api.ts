@@ -1,10 +1,4 @@
 
-// Import apiRequest from queryClient to re-export it
-import { apiRequest as queryApiRequest } from "./queryClient";
-
-// Re-export apiRequest
-export const apiRequest = queryApiRequest;
-
 // وظائف API الافتراضية
 export const api = {
   // وظيفة للحصول على المنتجات

@@ -147,7 +147,7 @@ export const storage = {
       throw new Error("فشل في إنشاء تحليلات الحملة");
     }
   },
-
+  
   sessionStore: new PostgresSessionStore({
     conObject: {
       connectionString: process.env.DATABASE_URL,
@@ -283,7 +283,7 @@ export const storage = {
       if (!search) {
         return await db.select().from(schema.customers);
       }
-
+      
       return await db.select()
         .from(schema.customers)
         .where(
@@ -450,15 +450,15 @@ export const storage = {
   async getSystemActivities(filters: any = {}) {
     try {
       let query = db.select().from(schema.systemActivity);
-
+      
       if (filters.entityType) {
         query = query.where(eq(schema.systemActivity.entityType, filters.entityType));
       }
-
+      
       if (filters.entityId) {
         query = query.where(eq(schema.systemActivity.entityId, filters.entityId));
       }
-
+      
       return await query.orderBy(desc(schema.systemActivity.createdAt));
     } catch (error) {
       console.error("Error getting system activities:", error);
@@ -543,40 +543,6 @@ export const storage = {
     } catch (error) {
       console.error("Error creating alert notification:", error);
       throw new Error("فشل في إنشاء إشعار");
-    }
-  },
-
-  async getExpenseCategories(userId: number) {
-    try {
-      const categories = await db.select().from(schema.expenseCategories);
-      return categories;
-    } catch (error) {
-      console.error("Error fetching expense categories:", error);
-      return [];
-    }
-  },
-
-  async getExpenses(userId: number) {
-    try {
-      const results = await db.select()
-        .from(schema.expenses)
-        .where(eq(schema.expenses.userId, userId));
-      return results;
-    } catch (error) {
-      console.error("Error fetching expenses:", error);
-      return [];
-    }
-  },
-
-  async createExpenseCategory(data: any) {
-    try {
-      const [result] = await db.insert(schema.expenseCategories)
-        .values(data)
-        .returning();
-      return result;
-    } catch (error) {
-      console.error("Error creating expense category:", error);
-      throw new Error("فشل في إنشاء فئة المصروفات");
     }
   },
 };
