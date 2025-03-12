@@ -1,0 +1,99 @@
+يبدو أن الخطأ الذي يظهر لديك يتعلق باستخدام useAuth خارج AuthProvider. هذا يعني أن أحد المكونات التي تحتاج إلى المصادقة يتم استخدامها في مكان ليس داخل المزود (Provider)، مما يؤدي إلى تعطل النظام بعد فترة قصيرة من التصفح.
+
+أسباب المشكلة:
+
+1. نسيان تغليف التطبيق بمزود المصادقة (AuthProvider)
+
+يجب التأكد من أن المكون الجذري (root component) يحتوي على AuthProvider.
+
+
+
+2. استخدام useAuth في مكون لا يتم تغليفه بـ AuthProvider
+
+إذا تم استدعاء useAuth() في أحد المكونات مثل Sidebar أو Settings بدون أن يكون ضمن AuthProvider، فسيحدث هذا الخطأ.
+
+
+
+
+
+---
+
+الحل 1: تأكد من أن AuthProvider يحيط بالتطبيق بالكامل
+
+في ملف index.tsx أو App.tsx، تأكد من أن AuthProvider يحيط بجميع المكونات:
+
+قبل (الخطأ موجود)
+
+import { createRoot } from 'react-dom/client';
+import App from './App';
+
+createRoot(document.getElementById('root')).render(<App />);
+
+بعد (تصحيح المشكلة)
+
+import { createRoot } from 'react-dom/client';
+import App from './App';
+import { AuthProvider } from './context/AuthProvider'; // تأكد من استيراد AuthProvider
+
+createRoot(document.getElementById('root')).render(
+  <AuthProvider>
+    <App />
+  </AuthProvider>
+);
+
+
+---
+
+الحل 2: تأكد من أن Sidebar أو Settings لا تستخدم useAuth خارج AuthProvider
+
+إذا كنت تستخدم useAuth() في Sidebar أو Settings، فتأكد من أنهما داخل AuthProvider في App.tsx:
+
+قبل (الخطأ موجود)
+
+<Router>
+  <Sidebar />
+  <Routes>
+    <Route path="/settings" element={<Settings />} />
+  </Routes>
+</Router>
+
+بعد (تصحيح المشكلة)
+
+<AuthProvider>
+  <Router>
+    <Sidebar />
+    <Routes>
+      <Route path="/settings" element={<Settings />} />
+    </Routes>
+  </Router>
+</AuthProvider>
+
+
+---
+
+الحل 3: التأكد من أن useAuth() لا يتم استدعاؤه في مكون غير مغلف بـ AuthProvider
+
+في ملف use-auth.tsx، يمكنك التحقق مما إذا كان AuthProvider غير مستخدم وإظهار تحذير بدلاً من التوقف الكامل:
+
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthProvider';
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    console.warn("⚠️ تحذير: useAuth تم استدعاؤه خارج AuthProvider! تأكد من تضمين AuthProvider.");
+    return {}; // تجنب حدوث كراش كامل
+  }
+  return context;
+};
+
+
+---
+
+الخلاصة
+
+✔ تأكد من أن AuthProvider يحيط بجميع المكونات التي تحتاج المصادقة.
+✔ تحقق من أن Sidebar و Settings لا يستخدمان useAuth() خارج AuthProvider.
+✔ أضف تحذيرًا بدلاً من إيقاف التطبيق إذا تم استدعاء useAuth() بشكل غير صحيح.
+
+جرب هذه الحلول وأخبرني إن استمرت المشكلة!

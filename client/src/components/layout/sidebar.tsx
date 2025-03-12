@@ -1,100 +1,296 @@
-import { Link, useLocation } from "wouter";
+import React, { useState } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
-import {
-  MdDashboard,
-  MdInventory2,
-  MdPointOfSale,
-  MdPeople,
-  MdReceipt,
-  MdCalendarMonth,
-  MdCampaign,
-  MdBarChart,
-  MdAccountBalance,
-  MdLocalShipping,
-  MdQrCode2,
-  MdLocalOffer,
-  MdSupervisorAccount,
-  MdSettings,
-} from "react-icons/md";
-import NotificationCenter from "@/components/ui-ar/notification-center"; // Added import
+import { useTheme } from "@/context/theme-provider";
+import { LogOut, Menu, Sun, Moon, User, Settings, Info } from "lucide-react";
+import { useAuth } from "@/context/use-auth";
+import { Skeleton } from "../ui/skeleton";
 
-const navigation = [
-  { name: "لوحة التحكم", href: "/", icon: MdDashboard, color: "#4285F4" },
-  { name: "المواعيد", href: "/appointments", icon: MdCalendarMonth, color: "#EA4335" }, // Added appointments
-  { name: "المخزون", href: "/inventory", icon: MdInventory2, color: "#34A853" },
-  { name: "المبيعات", href: "/sales", icon: MdPointOfSale, color: "#EA4335" },
-  { name: "العملاء", href: "/customers", icon: MdPeople, color: "#FBBC05" },
-  { name: "الفواتير", href: "/invoices", icon: MdReceipt, color: "#4285F4" },
-  { name: "التقسيط", href: "/installments", icon: MdCalendarMonth, color: "#34A853" },
-  { name: "التسويق", href: "/marketing", icon: MdCampaign, color: "#EA4335" },
-  { name: "التقارير", href: "/reports", icon: MdBarChart, color: "#FBBC05" },
-  { name: "المصروفات", href: "/expenses", icon: MdAccountBalance, color: "#4285F4" },
-  { name: "الموردين", href: "/suppliers", icon: MdLocalShipping, color: "#34A853" },
-  { name: "الباركود", href: "/barcodes", icon: MdQrCode2, color: "#EA4335" }, // Added barcodes
-  { name: "أكواد الخصم", href: "/discount-codes", icon: MdLocalOffer, color: "#FBBC05" },
-  { name: "الموظفين", href: "/staff", icon: MdSupervisorAccount, color: "#4285F4" },
-  { name: "الإعدادات", href: "/settings", icon: MdSettings, color: "#34A853" },
-];
+interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
 
-export default function Sidebar() {
-  const [location] = useLocation();
-  const { user, logoutMutation } = useAuth();
+export function Sidebar({ className }: SidebarProps) {
+  const { theme, setTheme } = useTheme();
+  const [location, navigate] = useLocation();
+  const [collapsed, setCollapsed] = useState(false);
+  const { user, isLoading, isAuthenticated, logout } = useAuth();
+
+  // تحقق من وجود معلومات المصادقة قبل استخدامها
+  if (!user && !isLoading) {
+    console.warn("⚠️ Sidebar: useAuth returned null.  Investigate AuthProvider setup.");
+    return null; // تجنب تعطل التطبيق إذا كان المزود غير جاهز
+  }
+
+  if (isLoading) {
+    return (
+      <div className={cn("pb-12 h-full flex flex-col", className)}>
+        <div className="space-y-4 py-4 flex flex-col justify-between h-full">
+          <div className="px-3 py-2">
+            <div className="flex items-center justify-between mb-2">
+              <Skeleton className="h-6 w-[100px]" />
+              <Skeleton className="h-6 w-6" />
+            </div>
+            <div className="space-y-2">
+              {Array(5).fill(0).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const toggleCollapse = () => {
+    setCollapsed(!collapsed);
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
 
   return (
-    <div className="flex flex-col h-full bg-white border-l">
-      <div className="p-4">
-        <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold">نظام المتجر</h1>
-            <NotificationCenter />
+    <div className={cn("pb-12 h-full flex flex-col", className)}>
+      <div className="space-y-4 py-4 flex flex-col justify-between h-full">
+        <div className="px-3 py-2">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className={cn("text-lg font-semibold", !collapsed && "tracking-tight")}>
+              {!collapsed ? "نظام المبيعات" : "ن.م"}
+            </h2>
+            <Button variant="ghost" size="icon" onClick={toggleCollapse}>
+              <Menu className="h-5 w-5" />
+            </Button>
           </div>
-        <p className="text-xs text-gray-600">
-          مرحباً, {user?.username}
-        </p>
-      </div>
 
-      <nav className="flex-1 px-3">
-        <ul className="space-y-2">
-          {navigation.map((item) => {
-            const Icon = item.icon;
-            return (
-              <li key={item.name}>
+          <div className="space-y-1">
+            <Button
+              variant={location === "/" ? "secondary" : "ghost"}
+              onClick={() => navigate("/")}
+              className={cn("w-full justify-start", collapsed && "justify-center")}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-5 w-5 mr-2"
+              >
+                <rect width="7" height="9" x="3" y="3" rx="1" />
+                <rect width="7" height="5" x="14" y="3" rx="1" />
+                <rect width="7" height="9" x="14" y="12" rx="1" />
+                <rect width="7" height="5" x="3" y="16" rx="1" />
+              </svg>
+              {!collapsed && <span>لوحة التحكم</span>}
+            </Button>
+
+            <Button
+              variant={location === "/sales" ? "secondary" : "ghost"}
+              onClick={() => navigate("/sales")}
+              className={cn("w-full justify-start", collapsed && "justify-center")}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-5 w-5 mr-2"
+              >
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+                <path d="M3 6h18" />
+                <path d="M16 10a4 4 0 0 1-8 0" />
+              </svg>
+              {!collapsed && <span>المبيعات</span>}
+            </Button>
+
+            <Button
+              variant={location === "/inventory" ? "secondary" : "ghost"}
+              onClick={() => navigate("/inventory")}
+              className={cn("w-full justify-start", collapsed && "justify-center")}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-5 w-5 mr-2"
+              >
+                <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4" />
+                <path d="M4 6v12c0 1.1.9 2 2 2h14v-4" />
+                <path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z" />
+              </svg>
+              {!collapsed && <span>المخزون</span>}
+            </Button>
+
+            <Button
+              variant={location === "/marketing" ? "secondary" : "ghost"}
+              onClick={() => navigate("/marketing")}
+              className={cn("w-full justify-start", collapsed && "justify-center")}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-5 w-5 mr-2"
+              >
+                <path d="M3 3v18h18" />
+                <path d="m19 9-5 5-4-4-3 3" />
+              </svg>
+              {!collapsed && <span>التسويق</span>}
+            </Button>
+
+            <Button
+              variant={location === "/settings" ? "secondary" : "ghost"}
+              onClick={() => navigate("/settings")}
+              className={cn("w-full justify-start", collapsed && "justify-center")}
+            >
+              <Settings className="h-5 w-5 mr-2" />
+              {!collapsed && <span>الإعدادات</span>}
+            </Button>
+
+            <Button
+              variant={location === "/about" ? "secondary" : "ghost"}
+              onClick={() => navigate("/about")}
+              className={cn("w-full justify-start", collapsed && "justify-center")}
+            >
+              <Info className="h-5 w-5 mr-2" />
+              {!collapsed && <span>حول النظام</span>}
+            </Button>
+          </div>
+        </div>
+
+        <div className="px-3 py-2">
+          <div className="space-y-1">
+            {isAuthenticated && (
+              <>
                 <Button
                   variant="ghost"
-                  className={cn(
-                    "w-full justify-start gap-3 h-10 px-3 text-sm font-normal",
-                    location === item.href
-                      ? "bg-gray-100 text-black"
-                      : "text-black hover:bg-gray-50"
-                  )}
-                  asChild
+                  className={cn("w-full justify-start", collapsed && "justify-center")}
                 >
-                  <Link href={item.href}>
-                    <Icon 
-                      className="h-5 w-5"
-                      style={{ color: item.color }}
-                    />
-                    {item.name}
-                  </Link>
+                  <User className="h-5 w-5 mr-2" />
+                  {!collapsed && (
+                    <span className="truncate">{user?.displayName || user?.username || 'المستخدم'}</span>
+                  )}
                 </Button>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-
-      <div className="p-3 border-t border-gray-200">
-        <Button
-          variant="ghost"
-          className="w-full h-10 text-sm font-normal text-black hover:bg-gray-50"
-          onClick={() => logoutMutation.mutate()}
-        >
-          <LogOut className="h-5 w-5 ml-3" style={{ color: "#EA4335" }} />
-          تسجيل خروج
-        </Button>
+                <Button
+                  variant="ghost"
+                  onClick={logout}
+                  className={cn("w-full justify-start", collapsed && "justify-center")}
+                >
+                  <LogOut className="h-5 w-5 mr-2" />
+                  {!collapsed && <span>تسجيل الخروج</span>}
+                </Button>
+              </>
+            )}
+            <Button
+              variant="ghost"
+              onClick={toggleTheme}
+              className={cn("w-full justify-start", collapsed && "justify-center")}
+            >
+              {theme === "light" ? (
+                <Moon className="h-5 w-5 mr-2" />
+              ) : (
+                <Sun className="h-5 w-5 mr-2" />
+              )}
+              {!collapsed && <span>{theme === "light" ? "الوضع الداكن" : "الوضع الفاتح"}</span>}
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
+  );
+}
+
+import {
+  Sidebar as UISidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuLink,
+} from "@/components/ui/sidebar";
+import { 
+  Home, 
+  Settings as SettingsIcon, 
+  ShoppingCart, 
+  Users, 
+  Package, 
+  TrendingUp,
+  Truck,
+  DollarSign
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { SidebarProvider } from "@/components/ui/sidebar";
+
+export default function SidebarComponent() {
+  const navigate = useNavigate();
+  const location = useLocation(); // Using already imported useLocation
+  
+  return (
+    <SidebarProvider>
+      <SidebarContentMain navigate={navigate} location={location} />
+    </SidebarProvider>
+  );
+}
+
+function SidebarContentMain({ navigate, location }) {
+  const isActive = (path: string) => {
+    return location.pathname === path;
+  };
+
+  return (
+    <UISidebar>
+      <SidebarHeader className="text-xl font-bold py-4 text-center">
+        نظام المبيعات
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarMenu>
+          <SidebarMenuItem active={isActive("/")} icon={<Home />}>
+            <SidebarMenuLink onClick={() => navigate("/")}>الرئيسية</SidebarMenuLink>
+          </SidebarMenuItem>
+          
+          <SidebarMenuItem active={isActive("/products")} icon={<Package />}>
+            <SidebarMenuLink onClick={() => navigate("/products")}>المنتجات</SidebarMenuLink>
+          </SidebarMenuItem>
+          
+          <SidebarMenuItem active={isActive("/sales")} icon={<ShoppingCart />}>
+            <SidebarMenuLink onClick={() => navigate("/sales")}>المبيعات</SidebarMenuLink>
+          </SidebarMenuItem>
+          
+          <SidebarMenuItem active={isActive("/campaigns")} icon={<TrendingUp />}>
+            <SidebarMenuLink onClick={() => navigate("/campaigns")}>الحملات الإعلانية</SidebarMenuLink>
+          </SidebarMenuItem>
+          
+          <SidebarMenuItem active={isActive("/customers")} icon={<Users />}>
+            <SidebarMenuLink onClick={() => navigate("/customers")}>العملاء</SidebarMenuLink>
+          </SidebarMenuItem>
+          
+          <SidebarMenuItem active={isActive("/suppliers")} icon={<Truck />}>
+            <SidebarMenuLink onClick={() => navigate("/suppliers")}>الموردين</SidebarMenuLink>
+          </SidebarMenuItem>
+          
+          <SidebarMenuItem active={isActive("/finances")} icon={<DollarSign />}>
+            <SidebarMenuLink onClick={() => navigate("/finances")}>المالية</SidebarMenuLink>
+          </SidebarMenuItem>
+          
+          <SidebarMenuItem active={isActive("/settings")} icon={<SettingsIcon />}>
+            <SidebarMenuLink onClick={() => navigate("/settings")}>الإعدادات</SidebarMenuLink>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarContent>
+    </UISidebar>
   );
 }

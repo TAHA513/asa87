@@ -79,7 +79,7 @@ interface Sale {
 
 export default function Sales() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
@@ -90,6 +90,14 @@ export default function Sales() {
   const [isPrinting, setIsPrinting] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [, navigate] = useLocation(); // Using useLocation from wouter correctly
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen">جاري التحميل...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <div className="flex items-center justify-center h-screen">يرجى تسجيل الدخول للوصول إلى صفحة المبيعات</div>;
+  }
 
   const { data: sales = [] } = useQuery<Sale[]>({
     queryKey: ["/api/sales"],
@@ -133,19 +141,31 @@ export default function Sales() {
     }
   });
 
-  const { data: exchangeRate } = useQuery({
-    queryKey: ["/api/exchange-rate"],
-    queryFn: async () => {
+  // استخدام useQuery لجلب سعر الصرف
+  const { data: exchangeRateData, isLoading: isLoadingRate, error: rateError } = useQuery<{ usdToIqd: number }>(
+    "exchangeRate",
+    async () => {
       try {
-        const response = await apiRequest('GET', '/api/exchange-rate');
-        console.log("Fetched exchange rate:", response);
-        return response;
+        const response = await fetch("/api/exchange-rate");
+        if (!response.ok) {
+          console.error("خطأ في جلب سعر الصرف:", await response.text());
+          throw new Error(`Error fetching exchange rate: ${response.statusText}`);
+        }
+        return response.json();
       } catch (error) {
-        console.error("Error fetching exchange rate:", error);
-        return { usdToIqd: 1500 };
+        console.error("استثناء عند جلب سعر الصرف:", error);
+        // إرجاع قيمة افتراضية في حالة فشل الطلب
+        return { usdToIqd: 1460 };
+      }
+    },
+    {
+      retry: 3, // محاولة إعادة الطلب 3 مرات في حالة الفشل
+      retryDelay: 1000,
+      onError: (error) => {
+        console.error("فشل في جلب سعر الصرف:", error);
       }
     }
-  });
+  );
 
   // You can access URL search params if needed, using Wouter
   useEffect(() => {
@@ -612,7 +632,7 @@ export default function Sales() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-2xl font-bold">
-                    {(sales.reduce((sum, sale) => sum + sale.totalPrice, 0) * (exchangeRate?.usdToIqd || 1500)).toLocaleString()} د.ع
+                    {(sales.reduce((sum, sale) => sum + sale.totalPrice, 0) * (exchangeRateData?.usdToIqd || 1460)).toLocaleString()} د.ع
                   </div>
                   <p className="text-xs text-muted-foreground">
                     إجمالي الإيرادات بالدينار العراقي
@@ -828,7 +848,7 @@ export default function Sales() {
                   <div className="flex justify-between mt-2 text-muted-foreground text-sm">
                     <span>بالدينار العراقي:</span>
                     <span>
-                      {(selectedSale.totalPrice * (exchangeRate?.usdToIqd || 1500)).toLocaleString()} د.ع
+                      {(selectedSale.totalPrice * (exchangeRateData?.usdToIqd || 1460)).toLocaleString()} د.ع
                     </span>
                   </div>
                 </div>

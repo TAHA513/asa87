@@ -57,7 +57,6 @@ export default function ProductRecommendation() {
                       <SelectValue placeholder="اختر عميلًا" />
                     </SelectTrigger>
                     <SelectContent>
-                      {/* بيانات تجريبية - يجب استبدالها ببيانات حقيقية من API */}
                       <SelectItem value="1">عميل 1</SelectItem>
                       <SelectItem value="2">عميل 2</SelectItem>
                       <SelectItem value="3">عميل 3</SelectItem>

@@ -23,8 +23,6 @@ import Barcodes from "@/pages/barcodes";
 import DiscountCodes from "@/pages/discount-codes";
 import Customers from "@/pages/customers";
 import Appointments from "@/pages/appointments";
-import InvoiceView from "./pages/invoice-view";
-import PrintReportPage from "./pages/reports/print-report";
 
 function Router() {
   return (
@@ -40,14 +38,12 @@ function Router() {
       <ProtectedRoute path="/installments" component={Installments} />
       <ProtectedRoute path="/marketing" component={Marketing} />
       <ProtectedRoute path="/reports" component={Reports} />
-      <ProtectedRoute path="/reports/print/:type/:id" element={<PrintReportPage />} />
       <ProtectedRoute path="/expenses" component={Expenses} />
       <ProtectedRoute path="/suppliers" component={Suppliers} />
       <ProtectedRoute path="/barcodes" component={Barcodes} />
       <ProtectedRoute path="/discount-codes" component={DiscountCodes} />
       <ProtectedRoute path="/customers" component={Customers} />
       <ProtectedRoute path="/appointments" component={Appointments} />
-      <Route path="/invoices/:id" element={<InvoiceView />} />
       <Route component={NotFound} />
     </Switch>
   );

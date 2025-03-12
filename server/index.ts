@@ -19,7 +19,7 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const isDev = process.env.NODE_ENV !== "production";
-const PORT = process.env.PORT || 5002;
+const PORT = process.env.PORT || 5000;
 
 // إنشاء مجلد للسجلات إذا لم يكن موجوداً
 const logsDir = path.join(__dirname, "../logs");
@@ -58,9 +58,11 @@ async function startServer() {
       next();
     });
 
-    // استيراد مخزن الجلسات من ملف storage
-    const { storage } = await import("./storage");
-    const sessionStore = storage.sessionStore;
+    // Configure session store
+    const MemoryStore = createMemoryStore(session);
+    const sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // Prune expired entries every 24h
+    });
 
     // Configure sessions before auth
     app.use(session({
@@ -97,15 +99,8 @@ async function startServer() {
 
     // معالجة الأخطاء العامة
     app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-      console.error("خطأ في الخادم:", err);
-      logToFile(JSON.stringify({
-        message: err.message,
-        stack: err.stack,
-        path: req.path,
-        method: req.method,
-        timestamp: new Date().toISOString()
-      }), 'error');
-      res.status(500).json({ message: 'حدث خطأ داخلي في الخادم', details: err.message });
+      logToFile(err.stack || err.message, 'error');
+      res.status(500).json({ message: 'حدث خطأ داخلي في الخادم' });
     });
 
     // بدء الخادم
