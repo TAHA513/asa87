@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,15 +35,20 @@ export function StoreSettings() {
       try {
         const response = await fetch("/api/settings/store");
         if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${await response.text()}`);
+          console.error("خطأ في جلب إعدادات المتجر:", await response.text());
+          throw new Error("فشل في جلب إعدادات المتجر");
         }
         return response.json();
       } catch (error) {
-        console.error("Error loading store settings:", error);
-        throw new Error("فشل في تحميل إعدادات المتجر");
+        console.error("استثناء عند جلب إعدادات المتجر:", error);
+        // إرجاع كائن فارغ في حالة الفشل لمنع تعطل التطبيق
+        return {};
       }
     },
-    retry: 1,
+    retry: 2,
+    onError: (error) => {
+      console.error("فشل في جلب إعدادات المتجر:", error);
+    }
   });
 
   // تعريف النموذج
@@ -88,12 +92,12 @@ export function StoreSettings() {
         },
         body: JSON.stringify(data),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText || "فشل في حفظ إعدادات المتجر");
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
@@ -181,7 +185,7 @@ export function StoreSettings() {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="storeAddress"
@@ -195,7 +199,7 @@ export function StoreSettings() {
                 </FormItem>
               )}
             />
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -210,7 +214,7 @@ export function StoreSettings() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="storeEmail"
@@ -225,7 +229,7 @@ export function StoreSettings() {
                 )}
               />
             </div>
-            
+
             <FormField
               control={form.control}
               name="storeLogo"
@@ -242,7 +246,7 @@ export function StoreSettings() {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="invoiceFooter"
@@ -256,7 +260,7 @@ export function StoreSettings() {
                 </FormItem>
               )}
             />
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -271,7 +275,7 @@ export function StoreSettings() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="currency"
@@ -286,7 +290,7 @@ export function StoreSettings() {
                 )}
               />
             </div>
-            
+
             <Button 
               type="submit" 
               className="mt-4"

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -17,7 +16,12 @@ export function Sidebar({ className }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const { user, isLoading, isAuthenticated, logout } = useAuth();
 
-  // التحقق من وجود المستخدم قبل استخدامه
+  // تحقق من وجود معلومات المصادقة قبل استخدامها
+  if (!user && !isLoading) {
+    console.warn("⚠️ Sidebar: useAuth returned null.  Investigate AuthProvider setup.");
+    return null; // تجنب تعطل التطبيق إذا كان المزود غير جاهز
+  }
+
   if (isLoading) {
     return (
       <div className={cn("pb-12 h-full flex flex-col", className)}>
@@ -45,7 +49,7 @@ export function Sidebar({ className }: SidebarProps) {
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
   };
-  
+
   return (
     <div className={cn("pb-12 h-full flex flex-col", className)}>
       <div className="space-y-4 py-4 flex flex-col justify-between h-full">
@@ -58,7 +62,7 @@ export function Sidebar({ className }: SidebarProps) {
               <Menu className="h-5 w-5" />
             </Button>
           </div>
-          
+
           <div className="space-y-1">
             <Button
               variant={location === "/" ? "secondary" : "ghost"}
@@ -82,7 +86,7 @@ export function Sidebar({ className }: SidebarProps) {
               </svg>
               {!collapsed && <span>لوحة التحكم</span>}
             </Button>
-            
+
             <Button
               variant={location === "/sales" ? "secondary" : "ghost"}
               onClick={() => navigate("/sales")}
@@ -104,7 +108,7 @@ export function Sidebar({ className }: SidebarProps) {
               </svg>
               {!collapsed && <span>المبيعات</span>}
             </Button>
-            
+
             <Button
               variant={location === "/inventory" ? "secondary" : "ghost"}
               onClick={() => navigate("/inventory")}
@@ -126,7 +130,7 @@ export function Sidebar({ className }: SidebarProps) {
               </svg>
               {!collapsed && <span>المخزون</span>}
             </Button>
-            
+
             <Button
               variant={location === "/marketing" ? "secondary" : "ghost"}
               onClick={() => navigate("/marketing")}
@@ -147,7 +151,7 @@ export function Sidebar({ className }: SidebarProps) {
               </svg>
               {!collapsed && <span>التسويق</span>}
             </Button>
-            
+
             <Button
               variant={location === "/settings" ? "secondary" : "ghost"}
               onClick={() => navigate("/settings")}
@@ -156,7 +160,7 @@ export function Sidebar({ className }: SidebarProps) {
               <Settings className="h-5 w-5 mr-2" />
               {!collapsed && <span>الإعدادات</span>}
             </Button>
-            
+
             <Button
               variant={location === "/about" ? "secondary" : "ghost"}
               onClick={() => navigate("/about")}
@@ -167,7 +171,7 @@ export function Sidebar({ className }: SidebarProps) {
             </Button>
           </div>
         </div>
-        
+
         <div className="px-3 py-2">
           <div className="space-y-1">
             {isAuthenticated && (

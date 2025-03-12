@@ -28,6 +28,88 @@ export const storage = {
       return [];
     }
   },
+  
+  async getCurrentExchangeRate() {
+    try {
+      // التحقق من وجود الجدول
+      const tableExists = await db.execute(sql`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'exchange_rates'
+        );
+      `);
+      
+      if (!tableExists.rows?.[0]?.exists) {
+        // إنشاء الجدول إذا لم يكن موجوداً
+        await db.execute(sql`
+          CREATE TABLE IF NOT EXISTS exchange_rates (
+            id SERIAL PRIMARY KEY,
+            usd_to_iqd NUMERIC(10,2) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+          
+          INSERT INTO exchange_rates (usd_to_iqd) VALUES (1460);
+        `);
+        return { usdToIqd: 1460 };
+      }
+      
+      const result = await db.execute(sql`
+        SELECT usd_to_iqd FROM exchange_rates ORDER BY created_at DESC LIMIT 1;
+      `);
+      
+      if (result.rows && result.rows.length > 0) {
+        return { usdToIqd: Number(result.rows[0].usd_to_iqd) };
+      } else {
+        // إذا لم يكن هناك أي سعر صرف، نضيف سعر افتراضي
+        await db.execute(sql`
+          INSERT INTO exchange_rates (usd_to_iqd) VALUES (1460);
+        `);
+        return { usdToIqd: 1460 };
+      }
+    } catch (error) {
+      console.error("Error getting exchange rate:", error);
+      return { usdToIqd: 1460 }; // قيمة افتراضية في حالة الخطأ
+    }
+  },
+  
+  async setExchangeRate(rate: number) {
+    try {
+      // التحقق من وجود الجدول
+      const tableExists = await db.execute(sql`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'exchange_rates'
+        );
+      `);
+      
+      if (!tableExists.rows?.[0]?.exists) {
+        // إنشاء الجدول إذا لم يكن موجوداً
+        await db.execute(sql`
+          CREATE TABLE IF NOT EXISTS exchange_rates (
+            id SERIAL PRIMARY KEY,
+            usd_to_iqd NUMERIC(10,2) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+      }
+      
+      const result = await db.execute(sql`
+        INSERT INTO exchange_rates (usd_to_iqd) VALUES (${rate})
+        RETURNING *;
+      `);
+      
+      if (result.rows && result.rows.length > 0) {
+        return { usdToIqd: Number(result.rows[0].usd_to_iqd) };
+      } else {
+        throw new Error("فشل في حفظ سعر الصرف");
+      }
+    } catch (error) {
+      console.error("Error setting exchange rate:", error);
+      throw error;
+    }
+  },
 
   async getCampaigns() {
     try {
