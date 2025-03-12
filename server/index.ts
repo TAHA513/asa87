@@ -58,9 +58,7 @@ async function startServer() {
       next();
     });
 
-    // Configure session store
-    const MemoryStore = createMemoryStore(session);
-    const sessionStore = new MemoryStore({
+    // Configure session storere({
       checkPeriod: 86400000 // Prune expired entries every 24h
     });
 

@@ -11,8 +11,7 @@ const PostgresSessionStore = connectPg(session);
 export const storage = {
   async getSales() {
     try {
-      const results = await db.select().from(schema.sales);
-      return results;
+      return await db.select().from(schema.sales);
     } catch (error) {
       console.error("Error in getSales:", error);
       return [];
