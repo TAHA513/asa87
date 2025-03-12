@@ -715,47 +715,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // API Key routes
-  // إعدادات المتجر
-  app.get("/api/settings/store", async (req, res) => {
-    try {
-      const storeSettings = await storage.getStoreSettings();
-      res.json(storeSettings || {});
-    } catch (error) {
-      console.error("Error getting store settings:", error);
-      res.status(500).json({ message: "فشل في جلب إعدادات المتجر" });
-    }
-  });
-
-  app.post("/api/settings/store", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });
-    }
-
-    try {
-      const storeSettingsSchema = z.object({
-        storeName: z.string().min(1, "اسم المتجر مطلوب"),
-        storeAddress: z.string().optional(),
-        storePhone: z.string().optional(),
-        storeEmail: z.string().email("البريد الإلكتروني غير صالح").optional().or(z.literal("")),
-        storeLogo: z.string().optional(),
-        invoiceFooter: z.string().optional(),
-        taxRate: z.number().min(0).max(100).default(0),
-        currency: z.string().default("ر.س"),
-      });
-
-      const validatedData = storeSettingsSchema.parse(req.body);
-      const savedSettings = await storage.saveStoreSettings(validatedData);
-      
-      res.json(savedSettings);
-    } catch (error) {
-      console.error("Error saving store settings:", error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "بيانات غير صالحة", errors: error.errors });
-      }
-      res.status(500).json({ message: "فشل في حفظ إعدادات المتجر" });
-    }
-  });
-
   app.post("/api/settings/api-keys", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "يجب تسجيل الدخول أولاً" });

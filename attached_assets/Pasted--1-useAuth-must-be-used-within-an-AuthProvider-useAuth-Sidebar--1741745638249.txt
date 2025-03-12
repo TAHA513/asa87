@@ -1,127 +1,0 @@
-
-1. مشكلة useAuth must be used within an AuthProvider
-💡 السبب:
-
-يتم استدعاء useAuth() داخل Sidebar.tsx قبل تحميل AuthProvider.
-هذا يعني أن AuthProvider غير محيط بالمكونات بالشكل الصحيح، أو أن هناك تأخير في تحميله.
-✔️ الحل:
-تحقق من أن AuthProvider يغلف جميع المكونات في index.tsx أو App.tsx.
-
-🔹 تأكد من هذا الترتيب الصحيح في index.tsx أو App.tsx
-tsx
-نسخ
-تحرير
-import React from 'react';
-import ReactDOM from 'react-dom';
-import { BrowserRouter as Router } from 'react-router-dom';
-import { AuthProvider } from './context/AuthProvider';
-import App from './App';
-
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <AuthProvider>  {/* يجب أن يكون AuthProvider هو الأعلى */}
-    <Router>
-      <App />
-    </Router>
-  </AuthProvider>
-);
-2. مشكلة 500 Internal Server Error عند طلب بيانات exchange-rate, customers, settings
-💡 السبب:
-
-الخادم (Backend) يواجه خطأ داخليًا عند معالجة الطلبات إلى API.
-قد يكون الخطأ بسبب عدم الاتصال بقاعدة البيانات أو خطأ في الكود الخلفي.
-✔️ الحل:
-🔹 افتح سجل الأخطاء (Logs) في السيرفر لمعرفة السبب الحقيقي: في Replit، انتقل إلى وحدة التحكم (Console) وشغل:
-
-bash
-نسخ
-تحرير
-npm start
-أو
-
-bash
-نسخ
-تحرير
-tail -f logs.txt
-🔹 تأكد من أن قاعدة البيانات متصلة وتعمل بشكل صحيح عبر تشغيل:
-
-sql
-نسخ
-تحرير
-SELECT * FROM customers;
-إذا لم يعمل، فتحقق مما إذا كانت قاعدة البيانات متصلة.
-
-🔹 تحقق من الكود الخلفي الذي يتعامل مع exchange-rate, customers, settings: افتح server.js أو routes.js وتأكد من أن الكود الخلفي لا يحتوي على أي أخطاء.
-
-🎯 إذا كنت تستخدم Express.js، جرب إضافة try/catch لكل استعلام قاعدة بيانات:
-
-javascript
-نسخ
-تحرير
-app.get('/api/exchange-rate', async (req, res) => {
-    try {
-        const rates = await db.query('SELECT * FROM exchange_rates');
-        res.json(rates);
-    } catch (error) {
-        console.error('خطأ أثناء جلب سعر الصرف:', error);
-        res.status(500).json({ message: 'فشل في جلب سعر الصرف' });
-    }
-});
-3. مشكلة Error fetching exchange rate و Error loading settings
-💡 السبب:
-
-عند استدعاء useBaseQuery في sales.tsx و theme-settings.tsx، يتم إرسال طلبات API ولكنها تفشل بسبب خطأ 500 من السيرفر.
-✔️ الحل:
-🔹 أضف تحققًا من استجابة API قبل تحديث الواجهة الأمامية (Frontend) في sales.tsx و theme-settings.tsx:
-
-tsx
-نسخ
-تحرير
-const { data, error, isLoading } = useQuery("exchangeRate", async () => {
-    const response = await fetch("/api/exchange-rate");
-    
-    if (!response.ok) {
-        console.error("❌ خطأ في جلب سعر الصرف:", await response.text());
-        throw new Error("فشل في جلب سعر الصرف");
-    }
-    
-    return response.json();
-});
-هذا يمنع تعطل React عند فشل الطلب.
-4. مشكلة Sidebar تتسبب في خطأ useAuth
-✔️ الحل:
-أضف تحققًا داخل Sidebar.tsx لتجنب استخدام useAuth() إذا لم يكن AuthProvider جاهزًا:
-
-tsx
-نسخ
-تحرير
-import { useAuth } from '../../hooks/use-auth';
-
-const Sidebar = () => {
-  const auth = useAuth();
-  
-  if (!auth || !auth.user) {
-    console.warn("⚠️ Sidebar: AuthProvider غير محمل بعد");
-    return null; // تجنب تعطل التطبيق
-  }
-
-  return (
-    <div>
-      <p>مرحبًا، {auth.user.name}</p>
-      <button onClick={auth.logout}>تسجيل الخروج</button>
-    </div>
-  );
-};
-
-export default Sidebar;
-🎯 ماذا تفعل الآن؟
-تحقق من Console في المتصفح (F12 → Console) إذا استمرت الأخطاء.
-افتح وحدة التحكم في Replit (npm start أو tail -f logs.txt) لمعرفة الأخطاء في الخلفية.
-تحقق من أن AuthProvider يحيط بجميع المكونات في index.tsx.
-أضف try/catch لاستعلامات قاعدة البيانات في server.js لمعرفة سبب خطأ 500 Internal Server Error.
-إذا استمرت المشكلة، انسخ لي الخطأ المحدّث من Console أو Logs، وسأساعدك بحلّه! 🚀
-
-
-
-
-
-
