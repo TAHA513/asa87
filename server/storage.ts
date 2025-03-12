@@ -1,8 +1,11 @@
+import { db, sql } from './db';
+import * as schema from '../shared/schema';
+import * as bcrypt from '@node-rs/bcrypt';
+import { eq, and, gt, lt, desc, gte, lte, asc } from 'drizzle-orm';
+import session from 'express-session';
+import connectPg from 'connect-pg-simple';
 
-import { db } from "./db";
-import { PostgresSessionStore } from "./auth";
-import * as schema from "@shared/schema";
-import { eq } from "drizzle-orm";
+const PostgresSessionStore = connectPg(session);
 
 // Implement storage methods
 export const storage = {
@@ -18,8 +21,14 @@ export const storage = {
 
   async getInstallments() {
     try {
-      const results = await db.select().from(schema.installments);
-      return results;
+      // التحقق من وجود جدول التقسيط
+      try {
+        const results = await db.select().from(schema.installments);
+        return results;
+      } catch (error) {
+        console.error("Error selecting from installments table:", error);
+        return [];
+      }
     } catch (error) {
       console.error("Error in getInstallments:", error);
       return [];
@@ -28,97 +37,98 @@ export const storage = {
 
   async getCampaigns() {
     try {
-      const results = await db.select().from(schema.marketingCampaigns);
-      return results;
+      // التحقق من وجود جدول الحملات
+      try {
+        const results = await db.select().from(schema.campaigns);
+        return results;
+      } catch (error) {
+        console.error("Error selecting from campaigns table:", error);
+        return [];
+      }
     } catch (error) {
       console.error("Error in getCampaigns:", error);
       return [];
     }
   },
+  sessionStore: new PostgresSessionStore({
+    conObject: {
+      connectionString: process.env.DATABASE_URL,
+    },
+    createTableIfMissing: true,
+  }),
 
+  // User related methods
+  async getUser(id: number) {
+    try {
+      const users = await db.select()
+        .from(schema.users)
+        .where(eq(schema.users.id, id));
+      return users[0];
+    } catch (error) {
+      console.error("Error getting user:", error);
+      return undefined;
+    }
+  },
+
+  async getUserByUsername(username: string) {
+    try {
+      const users = await db.select()
+        .from(schema.users)
+        .where(eq(schema.users.username, username));
+      return users[0];
+    } catch (error) {
+      console.error("Error getting user by username:", error);
+      return undefined;
+    }
+  },
+
+  async createUser(user: schema.InsertUser) {
+    try {
+      const [newUser] = await db.insert(schema.users)
+        .values(user)
+        .returning();
+      return newUser;
+    } catch (error) {
+      console.error("Error creating user:", error);
+      throw new Error("Failed to create user");
+    }
+  },
+
+  // Product related methods
   async getProducts() {
-    try {
-      const results = await db.select().from(schema.products);
-      return results;
-    } catch (error) {
-      console.error("Error in getProducts:", error);
-      return [];
-    }
+    return await db.select().from(schema.products);
   },
 
-  async getCustomers() {
-    try {
-      const results = await db.select().from(schema.customers);
-      return results;
-    } catch (error) {
-      console.error("Error in getCustomers:", error);
-      return [];
-    }
+  async getProduct(id: number) {
+    const results = await db.select()
+      .from(schema.products)
+      .where(eq(schema.products.id, id));
+    return results[0];
   },
 
-  async getAppointments() {
+  async getProductSales(productId: number, since: Date) {
     try {
-      const results = await db.select().from(schema.appointments);
-      return results;
+      const sales = await db.select()
+        .from(schema.sales)
+        .where(and(
+          eq(schema.sales.productId, productId),
+          gte(schema.sales.date, since)
+        ));
+      return sales;
     } catch (error) {
-      console.error("Error in getAppointments:", error);
-      return [];
-    }
-  },
-
-  async getInvoices() {
-    try {
-      const results = await db.select().from(schema.invoices);
-      return results;
-    } catch (error) {
-      console.error("Error in getInvoices:", error);
-      return [];
-    }
-  },
-
-  async getExpenses() {
-    try {
-      const results = await db.select().from(schema.expenses);
-      return results;
-    } catch (error) {
-      console.error("Error in getExpenses:", error);
-      return [];
-    }
-  },
-
-  async getInventoryTransactions() {
-    try {
-      const results = await db.select().from(schema.inventoryTransactions);
-      return results;
-    } catch (error) {
-      console.error("Error in getInventoryTransactions:", error);
-      return [];
-    }
-  },
-
-  async getSuppliers() {
-    try {
-      const results = await db.select().from(schema.suppliers);
-      return results;
-    } catch (error) {
-      console.error("Error in getSuppliers:", error);
+      console.error("Error getting product sales:", error);
       return [];
     }
   },
 
   async getInventoryAlerts() {
-    try {
-      const results = await db.select().from(schema.inventoryAlerts);
-      return results;
-    } catch (error) {
-      console.error("Error in getInventoryAlerts:", error);
-      return [];
-    }
+    return await db.select().from(schema.inventoryAlerts);
   },
 
-  sessionStore: new PostgresSessionStore({
-    conObject: {
-      connectionString: process.env.DATABASE_URL,
-    }
-  })
+  async createAlertNotification(data: schema.InsertAlertNotification) {
+    const result = await db.insert(schema.alertNotifications)
+      .values(data)
+      .returning();
+    return result[0];
+  },
 };
