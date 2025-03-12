@@ -1,0 +1,35 @@
+[vite] connecting...
+[vite] connected.
+إنشاء اتصال Socket.IO للإشعارات للمستخدم: 2
+useAuth must be used within an AuthProvider
+No QueryClient set, use QueryClientProvider to set one
+useAuth must be used within an AuthProvider
+No QueryClient set, use QueryClientProvider to set one
+The above error occurred in the <Sidebar> component:
+
+    at Sidebar (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev:3000/src/components/layout/sidebar.tsx:61:22)
+    at div
+    at div
+    at Inventory
+    at RenderedRoute (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev:3000/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=258ed16c:5713:26)
+    at Routes (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev:3000/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=258ed16c:6444:3)
+    at Router (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev:3000/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=258ed16c:6387:13)
+    at BrowserRouter (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev:3000/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=258ed16c:8612:3)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+The above error occurred in the <InventoryTable> component:
+
+    at InventoryTable (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev:3000/src/components/inventory/inventory-table.tsx:53:31)
+    at div
+    at main
+    at div
+    at Inventory
+    at RenderedRoute (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev:3000/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=258ed16c:5713:26)
+    at Routes (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev:3000/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=258ed16c:6444:3)
+    at Router (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev:3000/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=258ed16c:6387:13)
+    at BrowserRouter (https://5786635c-1556-4028-a008-f5b3ddfa1dfc-00-16y9irx0fywcw.pike.replit.dev:3000/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=258ed16c:8612:3)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+useAuth must be used within an AuthProvider
