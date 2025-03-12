@@ -1,7 +1,7 @@
 import { db, sql } from './db';
 import * as schema from '../shared/schema';
 import * as bcrypt from '@node-rs/bcrypt';
-import { eq, and, gt, lt, desc, gte, lte, asc } from 'drizzle-orm';
+import { eq, and, gt, lt, desc, gte, lte, asc, like, or } from 'drizzle-orm';
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 
@@ -11,11 +11,22 @@ const PostgresSessionStore = connectPg(session);
 export const storage = {
   async getSales() {
     try {
-      const results = await db.select().from(schema.sales);
-      return results;
+      return await db.select().from(schema.sales);
     } catch (error) {
       console.error("Error in getSales:", error);
       return [];
+    }
+  },
+
+  async getSale(id: number) {
+    try {
+      const results = await db.select()
+        .from(schema.sales)
+        .where(eq(schema.sales.id, id));
+      return results[0];
+    } catch (error) {
+      console.error("Error in getSale:", error);
+      return undefined;
     }
   },
 
@@ -28,86 +39,54 @@ export const storage = {
       return [];
     }
   },
-  
-  async getCurrentExchangeRate() {
+
+  async getInstallment(id: number) {
     try {
-      // التحقق من وجود الجدول
-      const tableExists = await db.execute(sql`
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_schema = 'public' 
-          AND table_name = 'exchange_rates'
-        );
-      `);
-      
-      if (!tableExists.rows?.[0]?.exists) {
-        // إنشاء الجدول إذا لم يكن موجوداً
-        await db.execute(sql`
-          CREATE TABLE IF NOT EXISTS exchange_rates (
-            id SERIAL PRIMARY KEY,
-            usd_to_iqd NUMERIC(10,2) NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-          
-          INSERT INTO exchange_rates (usd_to_iqd) VALUES (1460);
-        `);
-        return { usdToIqd: 1460 };
-      }
-      
-      const result = await db.execute(sql`
-        SELECT usd_to_iqd FROM exchange_rates ORDER BY created_at DESC LIMIT 1;
-      `);
-      
-      if (result.rows && result.rows.length > 0) {
-        return { usdToIqd: Number(result.rows[0].usd_to_iqd) };
-      } else {
-        // إذا لم يكن هناك أي سعر صرف، نضيف سعر افتراضي
-        await db.execute(sql`
-          INSERT INTO exchange_rates (usd_to_iqd) VALUES (1460);
-        `);
-        return { usdToIqd: 1460 };
-      }
+      const results = await db.select()
+        .from(schema.installments)
+        .where(eq(schema.installments.id, id));
+      return results[0];
     } catch (error) {
-      console.error("Error getting exchange rate:", error);
-      return { usdToIqd: 1460 }; // قيمة افتراضية في حالة الخطأ
+      console.error("Error in getInstallment:", error);
+      return undefined;
     }
   },
-  
+
+  async getInstallmentPayments(installmentId: number) {
+    try {
+      const results = await db.select()
+        .from(schema.installmentPayments)
+        .where(eq(schema.installmentPayments.installmentId, installmentId));
+      return results;
+    } catch (error) {
+      console.error("Error in getInstallmentPayments:", error);
+      return [];
+    }
+  },
+
+  async getCurrentExchangeRate() {
+    try {
+      const results = await db.select()
+        .from(schema.exchangeRates)
+        .orderBy(desc(schema.exchangeRates.date))
+        .limit(1);
+      return results[0] || { usdToIqd: 1460, date: new Date() };
+    } catch (error) {
+      console.error("Error in getCurrentExchangeRate:", error);
+      // تأكد من إرجاع القيم الافتراضية بالشكل الصحيح
+      return { id: 0, usdToIqd: 1460, date: new Date() };
+    }
+  },
+
   async setExchangeRate(rate: number) {
     try {
-      // التحقق من وجود الجدول
-      const tableExists = await db.execute(sql`
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_schema = 'public' 
-          AND table_name = 'exchange_rates'
-        );
-      `);
-      
-      if (!tableExists.rows?.[0]?.exists) {
-        // إنشاء الجدول إذا لم يكن موجوداً
-        await db.execute(sql`
-          CREATE TABLE IF NOT EXISTS exchange_rates (
-            id SERIAL PRIMARY KEY,
-            usd_to_iqd NUMERIC(10,2) NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-        `);
-      }
-      
-      const result = await db.execute(sql`
-        INSERT INTO exchange_rates (usd_to_iqd) VALUES (${rate})
-        RETURNING *;
-      `);
-      
-      if (result.rows && result.rows.length > 0) {
-        return { usdToIqd: Number(result.rows[0].usd_to_iqd) };
-      } else {
-        throw new Error("فشل في حفظ سعر الصرف");
-      }
+      const [result] = await db.insert(schema.exchangeRates)
+        .values({ usdToIqd: rate, date: new Date() })
+        .returning();
+      return result;
     } catch (error) {
       console.error("Error setting exchange rate:", error);
-      throw error;
+      throw new Error("فشل في تحديث سعر الصرف");
     }
   },
 
@@ -120,6 +99,55 @@ export const storage = {
       return [];
     }
   },
+
+  async getCampaign(id: number) {
+    try {
+      const results = await db.select()
+        .from(schema.campaigns)
+        .where(eq(schema.campaigns.id, id));
+      return results[0];
+    } catch (error) {
+      console.error("Error in getCampaign:", error);
+      return undefined;
+    }
+  },
+
+  async createCampaign(campaign: any) {
+    try {
+      const [result] = await db.insert(schema.campaigns)
+        .values(campaign)
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error creating campaign:", error);
+      throw new Error("فشل في إنشاء الحملة");
+    }
+  },
+
+  async getCampaignAnalytics(campaignId: number) {
+    try {
+      const results = await db.select()
+        .from(schema.campaignAnalytics)
+        .where(eq(schema.campaignAnalytics.campaignId, campaignId));
+      return results;
+    } catch (error) {
+      console.error("Error in getCampaignAnalytics:", error);
+      return [];
+    }
+  },
+
+  async createCampaignAnalytics(analytics: any) {
+    try {
+      const [result] = await db.insert(schema.campaignAnalytics)
+        .values(analytics)
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error creating campaign analytics:", error);
+      throw new Error("فشل في إنشاء تحليلات الحملة");
+    }
+  },
+  
   sessionStore: new PostgresSessionStore({
     conObject: {
       connectionString: process.env.DATABASE_URL,
@@ -166,14 +194,60 @@ export const storage = {
 
   // Product related methods
   async getProducts() {
-    return await db.select().from(schema.products);
+    try {
+      return await db.select().from(schema.products);
+    } catch (error) {
+      console.error("Error getting products:", error);
+      return [];
+    }
   },
 
   async getProduct(id: number) {
-    const results = await db.select()
-      .from(schema.products)
-      .where(eq(schema.products.id, id));
-    return results[0];
+    try {
+      const results = await db.select()
+        .from(schema.products)
+        .where(eq(schema.products.id, id));
+      return results[0];
+    } catch (error) {
+      console.error("Error getting product:", error);
+      return undefined;
+    }
+  },
+
+  async createProduct(product: any) {
+    try {
+      const [result] = await db.insert(schema.products)
+        .values(product)
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error creating product:", error);
+      throw new Error("فشل في إنشاء المنتج");
+    }
+  },
+
+  async updateProduct(id: number, product: any) {
+    try {
+      const [result] = await db.update(schema.products)
+        .set(product)
+        .where(eq(schema.products.id, id))
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error updating product:", error);
+      throw new Error("فشل في تحديث المنتج");
+    }
+  },
+
+  async deleteProduct(id: number) {
+    try {
+      await db.delete(schema.products)
+        .where(eq(schema.products.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting product:", error);
+      throw new Error("فشل في حذف المنتج");
+    }
   },
 
   async getProductSales(productId: number, since: Date) {
@@ -191,111 +265,284 @@ export const storage = {
     }
   },
 
-  async getInventoryAlerts() {
-    return await db.select().from(schema.inventoryAlerts);
-  },
-
-  async createAlertNotification(data: schema.InsertAlertNotification) {
-    const result = await db.insert(schema.alertNotifications)
-      .values(data)
-      .returning();
-    return result[0];
-  },
-
-  async getStoreSettings() {
+  // Customer methods
+  async getCustomers() {
     try {
-      // تحقق من وجود الجدول
-      const tableExists = await db.execute(sql`
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_schema = 'public' 
-          AND table_name = 'store_settings'
-        );
-      `);
-      
-      if (!tableExists.rows?.[0]?.exists) {
-        return null;
+      // التعامل مع الاستعلام بشكل آمن
+      const customers = await db.select().from(schema.customers);
+      return customers || [];
+    } catch (error) {
+      console.error("Error getting customers:", error);
+      // التأكد من إرجاع مصفوفة فارغة دائماً في حالة الخطأ
+      return [];
+    }
+  },
+
+  async searchCustomers(search?: string) {
+    try {
+      if (!search) {
+        return await db.select().from(schema.customers);
       }
       
-      const results = await db.execute(sql`SELECT * FROM store_settings LIMIT 1`);
-      return results.rows?.[0] || null;
+      return await db.select()
+        .from(schema.customers)
+        .where(
+          or(
+            like(schema.customers.name, `%${search}%`),
+            like(schema.customers.phone, `%${search}%`),
+            like(schema.customers.email, `%${search}%`)
+          )
+        );
     } catch (error) {
-      console.error("Error getting store settings:", error);
+      console.error("Error searching customers:", error);
+      return [];
+    }
+  },
+
+  async getCustomer(id: number) {
+    try {
+      const results = await db.select()
+        .from(schema.customers)
+        .where(eq(schema.customers.id, id));
+      return results[0];
+    } catch (error) {
+      console.error("Error getting customer:", error);
+      return undefined;
+    }
+  },
+
+  async createCustomer(customer: any) {
+    try {
+      const [result] = await db.insert(schema.customers)
+        .values(customer)
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error creating customer:", error);
+      throw new Error("فشل في إنشاء العميل");
+    }
+  },
+
+  async deleteCustomer(id: number) {
+    try {
+      await db.delete(schema.customers)
+        .where(eq(schema.customers.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting customer:", error);
+      throw new Error("فشل في حذف العميل");
+    }
+  },
+
+  async getCustomerSales(customerId: number) {
+    try {
+      return await db.select()
+        .from(schema.sales)
+        .where(eq(schema.sales.customerId, customerId));
+    } catch (error) {
+      console.error("Error getting customer sales:", error);
+      return [];
+    }
+  },
+
+  // Appointment methods
+  async getAppointments() {
+    try {
+      // التعامل مع الاستعلام بشكل آمن
+      const appointments = await db.select().from(schema.appointments);
+      return appointments || [];
+    } catch (error) {
+      console.error("Error getting appointments:", error);
+      // تفاصيل أكثر عن الخطأ لتسهيل التشخيص
+      console.error("Original error details:", error instanceof Error ? error.message : String(error));
+      return [];
+    }
+  },
+
+  async getAppointment(id: number) {
+    try {
+      const results = await db.select()
+        .from(schema.appointments)
+        .where(eq(schema.appointments.id, id));
+      return results[0];
+    } catch (error) {
+      console.error("Error getting appointment:", error);
+      return undefined;
+    }
+  },
+
+  async getCustomerAppointments(customerId: number) {
+    try {
+      return await db.select()
+        .from(schema.appointments)
+        .where(eq(schema.appointments.customerId, customerId));
+    } catch (error) {
+      console.error("Error getting customer appointments:", error);
+      return [];
+    }
+  },
+
+  async createAppointment(appointment: any) {
+    try {
+      const [result] = await db.insert(schema.appointments)
+        .values(appointment)
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error creating appointment:", error);
+      throw new Error("فشل في إنشاء الموعد");
+    }
+  },
+
+  async updateAppointment(id: number, appointment: any) {
+    try {
+      const [result] = await db.update(schema.appointments)
+        .set(appointment)
+        .where(eq(schema.appointments.id, id))
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error updating appointment:", error);
+      throw new Error("فشل في تحديث الموعد");
+    }
+  },
+
+  async deleteAppointment(id: number) {
+    try {
+      await db.delete(schema.appointments)
+        .where(eq(schema.appointments.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting appointment:", error);
+      throw new Error("فشل في حذف الموعد");
+    }
+  },
+
+  // Activity logging methods
+  async logSystemActivity(activity: any) {
+    try {
+      const [result] = await db.insert(schema.systemActivity)
+        .values(activity)
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error logging system activity:", error);
+      // Don't throw here, just log the error
       return null;
     }
   },
 
-  async saveStoreSettings(settings: any) {
+  async getAppointmentActivities(appointmentId: number) {
     try {
-      // تحقق من وجود الجدول
-      const tableExists = await db.execute(sql`
-        SELECT EXISTS (
-          SELECT FROM information_schema.tables 
-          WHERE table_schema = 'public' 
-          AND table_name = 'store_settings'
-        );
-      `);
-      
-      if (!tableExists.rows?.[0]?.exists) {
-        // إنشاء الجدول إذا لم يكن موجودًا
-        await db.execute(sql`
-          CREATE TABLE IF NOT EXISTS store_settings (
-            id SERIAL PRIMARY KEY,
-            store_name VARCHAR(255) NOT NULL,
-            store_address TEXT,
-            store_phone VARCHAR(255),
-            store_email VARCHAR(255),
-            store_logo TEXT,
-            invoice_footer TEXT,
-            tax_rate NUMERIC(5,2),
-            currency VARCHAR(10),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );
-        `);
-      }
-      
-      // تحقق إذا كان هناك إعدادات موجودة بالفعل
-      const existingSettings = await db.execute(sql`SELECT id FROM store_settings LIMIT 1`);
-      
-      if (existingSettings.rows?.length) {
-        // تحديث الإعدادات الحالية
-        await db.execute(sql`
-          UPDATE store_settings SET
-            store_name = ${settings.storeName || ''},
-            store_address = ${settings.storeAddress || ''},
-            store_phone = ${settings.storePhone || ''},
-            store_email = ${settings.storeEmail || ''},
-            store_logo = ${settings.storeLogo || ''},
-            invoice_footer = ${settings.invoiceFooter || ''},
-            tax_rate = ${settings.taxRate || 0},
-            currency = ${settings.currency || 'ر.س'},
-            updated_at = CURRENT_TIMESTAMP
-          WHERE id = ${existingSettings.rows[0].id}
-        `);
-        return { ...settings, id: existingSettings.rows[0].id };
-      } else {
-        // إنشاء إعدادات جديدة
-        const result = await db.execute(sql`
-          INSERT INTO store_settings (
-            store_name, store_address, store_phone, store_email,
-            store_logo, invoice_footer, tax_rate, currency
-          ) VALUES (
-            ${settings.storeName || ''},
-            ${settings.storeAddress || ''},
-            ${settings.storePhone || ''},
-            ${settings.storeEmail || ''},
-            ${settings.storeLogo || ''},
-            ${settings.invoiceFooter || ''},
-            ${settings.taxRate || 0},
-            ${settings.currency || 'ر.س'}
-          ) RETURNING id
-        `);
-        return { ...settings, id: result.rows?.[0]?.id };
-      }
+      return await db.select()
+        .from(schema.systemActivity)
+        .where(and(
+          eq(schema.systemActivity.entityType, 'appointments'),
+          eq(schema.systemActivity.entityId, appointmentId)
+        ))
+        .orderBy(desc(schema.systemActivity.createdAt));
     } catch (error) {
-      console.error("Error saving store settings:", error);
-      throw new Error("فشل في حفظ إعدادات المتجر");
+      console.error("Error getting appointment activities:", error);
+      return [];
+    }
+  },
+
+  async getSystemActivities(filters: any = {}) {
+    try {
+      let query = db.select().from(schema.systemActivity);
+      
+      if (filters.entityType) {
+        query = query.where(eq(schema.systemActivity.entityType, filters.entityType));
+      }
+      
+      if (filters.entityId) {
+        query = query.where(eq(schema.systemActivity.entityId, filters.entityId));
+      }
+      
+      return await query.orderBy(desc(schema.systemActivity.createdAt));
+    } catch (error) {
+      console.error("Error getting system activities:", error);
+      return [];
+    }
+  },
+
+  async getInventoryAlerts() {
+    try {
+      return await db.select().from(schema.inventoryAlerts);
+    } catch (error) {
+      console.error("Error getting inventory alerts:", error);
+      return [];
+    }
+  },
+
+  async createInventoryAlert(alert: any) {
+    try {
+      const [result] = await db.insert(schema.inventoryAlerts)
+        .values(alert)
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error creating inventory alert:", error);
+      throw new Error("فشل في إنشاء تنبيه المخزون");
+    }
+  },
+
+  async updateInventoryAlert(id: number, alert: any) {
+    try {
+      const [result] = await db.update(schema.inventoryAlerts)
+        .set(alert)
+        .where(eq(schema.inventoryAlerts.id, id))
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error updating inventory alert:", error);
+      throw new Error("فشل في تحديث تنبيه المخزون");
+    }
+  },
+
+  async deleteInventoryAlert(id: number) {
+    try {
+      await db.delete(schema.inventoryAlerts)
+        .where(eq(schema.inventoryAlerts.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting inventory alert:", error);
+      throw new Error("فشل في حذف تنبيه المخزون");
+    }
+  },
+
+  async getAlertNotifications() {
+    try {
+      return await db.select().from(schema.alertNotifications)
+        .orderBy(desc(schema.alertNotifications.createdAt));
+    } catch (error) {
+      console.error("Error getting alert notifications:", error);
+      return [];
+    }
+  },
+
+  async markNotificationAsRead(id: number) {
+    try {
+      const [result] = await db.update(schema.alertNotifications)
+        .set({ isRead: true })
+        .where(eq(schema.alertNotifications.id, id))
+        .returning();
+      return result;
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      throw new Error("فشل في تحديث حالة الإشعار");
+    }
+  },
+
+  async createAlertNotification(data: schema.InsertAlertNotification) {
+    try {
+      const result = await db.insert(schema.alertNotifications)
+        .values(data)
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error("Error creating alert notification:", error);
+      throw new Error("فشل في إنشاء إشعار");
     }
   },
 };

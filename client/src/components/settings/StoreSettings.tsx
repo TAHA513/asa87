@@ -1,309 +1,326 @@
-import React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/api";
+
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Building, Upload } from "lucide-react";
+import { FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage, Form } from "@/components/ui/form";
+import { Switch } from "@/components/ui/switch";
 
-const storeFormSchema = z.object({
-  storeName: z.string().min(1, "اسم المتجر مطلوب"),
+const formSchema = z.object({
+  storeName: z.string().min(1, { message: "اسم المتجر مطلوب" }),
   storeAddress: z.string().optional(),
   storePhone: z.string().optional(),
-  storeEmail: z.string().email("البريد الإلكتروني غير صالح").optional().or(z.literal("")),
-  storeLogo: z.string().optional(),
-  invoiceFooter: z.string().optional(),
-  taxRate: z.coerce.number().min(0).max(100).default(0),
-  currency: z.string().default("ر.س"),
+  storeEmail: z.string().email({ message: "البريد الإلكتروني غير صالح" }).optional().or(z.literal("")),
+  taxNumber: z.string().optional(),
+  receiptNotes: z.string().optional(),
+  enableLogo: z.boolean().default(true),
 });
 
-type StoreFormValues = z.infer<typeof storeFormSchema>;
+type FormValues = z.infer<typeof formSchema>;
 
 export function StoreSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false); // Added loading state
+  const [storeSettings, setStoreSettings] = useState<FormValues | null>(null); // manage local state
 
-  // جلب إعدادات المتجر الحالية
-  const { data: storeSettings, isLoading: isLoadingSettings, error: settingsError } = useQuery({
+
+  const { data: initialStoreSettings, isLoading: initialLoading } = useQuery({
     queryKey: ["storeSettings"],
     queryFn: async () => {
-      try {
-        const response = await fetch("/api/settings/store");
-        if (!response.ok) {
-          console.error("خطأ في جلب إعدادات المتجر:", await response.text());
-          throw new Error("فشل في جلب إعدادات المتجر");
-        }
-        return response.json();
-      } catch (error) {
-        console.error("استثناء عند جلب إعدادات المتجر:", error);
-        // إرجاع كائن فارغ في حالة الفشل لمنع تعطل التطبيق
-        return {};
-      }
+      console.log("جلب إعدادات المتجر...");
+      const response = await apiRequest("GET", "/api/store-settings");
+      console.log("تم جلب إعدادات المتجر:", response);
+      return response;
     },
-    retry: 2,
-    onError: (error) => {
-      console.error("فشل في جلب إعدادات المتجر:", error);
-    }
   });
 
-  // تعريف النموذج
-  const form = useForm<StoreFormValues>({
-    resolver: zodResolver(storeFormSchema),
+  useEffect(() => {
+    if (initialStoreSettings) {
+      setStoreSettings(initialStoreSettings);
+    }
+  }, [initialStoreSettings]);
+
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       storeName: "",
       storeAddress: "",
       storePhone: "",
       storeEmail: "",
-      storeLogo: "",
-      invoiceFooter: "",
-      taxRate: 0,
-      currency: "ر.س",
+      taxNumber: "",
+      receiptNotes: "",
+      enableLogo: true,
     },
   });
 
-  // تحديث النموذج عند تحميل البيانات
-  React.useEffect(() => {
+  useEffect(() => {
     if (storeSettings) {
-      form.reset({
-        storeName: storeSettings.store_name || "",
-        storeAddress: storeSettings.store_address || "",
-        storePhone: storeSettings.store_phone || "",
-        storeEmail: storeSettings.store_email || "",
-        storeLogo: storeSettings.store_logo || "",
-        invoiceFooter: storeSettings.invoice_footer || "",
-        taxRate: storeSettings.tax_rate || 0,
-        currency: storeSettings.currency || "ر.س",
-      });
+      // تعبئة النموذج بالبيانات الموجودة
+      form.reset(storeSettings);
+
+      // عرض الشعار إذا كان موجودًا
+      if (storeSettings.logoUrl) {
+        setLogoPreview(storeSettings.logoUrl);
+      }
     }
-  }, [form, storeSettings]);
+  }, [storeSettings, form]);
 
-  // حفظ الإعدادات
-  const saveSettingsMutation = useMutation({
-    mutationFn: async (data: StoreFormValues) => {
-      const response = await fetch("/api/settings/store", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+  const onSubmit = async (values: FormValues) => {
+    setIsSubmitting(true);
+    try {
+      console.log("جاري حفظ إعدادات المتجر...", values);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "فشل في حفظ إعدادات المتجر");
+      // إعداد FormData إذا كان هناك ملف
+      if (logoFile) {
+        const formData = new FormData();
+        formData.append("logo", logoFile);
+
+        // إضافة باقي البيانات
+        Object.entries(values).forEach(([key, value]) => {
+          formData.append(key, String(value));
+        });
+
+        const response = await fetch("/api/store-settings", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "فشل في حفظ إعدادات المتجر");
+        }
+
+        const data = await response.json();
+        console.log("تم حفظ إعدادات المتجر:", data);
+        setStoreSettings(data); // Update local state after successful save.
+      } else {
+        // إذا لم يكن هناك ملف جديد، أرسل البيانات العادية
+        const response = await apiRequest("POST", "/api/store-settings", values);
+        setStoreSettings(response); // Update local state after successful save
       }
 
-      return response.json();
-    },
-    onSuccess: () => {
       toast({
-        title: "تم الحفظ",
+        title: "تم الحفظ بنجاح",
         description: "تم حفظ إعدادات المتجر بنجاح",
       });
+
+      // تحديث البيانات في الكاش
       queryClient.invalidateQueries({ queryKey: ["storeSettings"] });
-    },
-    onError: (error: Error) => {
+    } catch (error) {
+      console.error("خطأ في حفظ إعدادات المتجر:", error);
       toast({
         title: "خطأ",
-        description: error.message || "حدث خطأ أثناء حفظ الإعدادات",
+        description: error instanceof Error ? error.message : "حدث خطأ أثناء حفظ إعدادات المتجر",
         variant: "destructive",
       });
-    },
-  });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-  // تقديم النموذج
-  function onSubmit(data: StoreFormValues) {
-    saveSettingsMutation.mutate(data);
-  }
+  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
-  // عرض رسالة التحميل
-  if (isLoadingSettings) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>إعدادات المتجر</CardTitle>
-          <CardDescription>إدارة معلومات المتجر الأساسية</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center p-6">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <span className="mr-2">جاري تحميل الإعدادات...</span>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const handleLogoClick = () => {
+    fileInputRef.current?.click();
+  };
 
-  // عرض رسالة الخطأ
-  if (settingsError) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>إعدادات المتجر</CardTitle>
-          <CardDescription>إدارة معلومات المتجر الأساسية</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="p-4 text-red-500 bg-red-50 rounded-md">
-            <p>حدث خطأ أثناء تحميل إعدادات المتجر</p>
-            <Button 
-              variant="outline"
-              className="mt-2"
-              onClick={() => queryClient.invalidateQueries({ queryKey: ["storeSettings"] })}
-            >
-              إعادة المحاولة
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
+  if (initialLoading) {
+    return <div className="flex justify-center p-8">جاري التحميل...</div>;
   }
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>إعدادات المتجر</CardTitle>
-        <CardDescription>إدارة معلومات المتجر الأساسية</CardDescription>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="p-6">
+        <div className="flex items-center gap-4 mb-6">
+          <Building className="h-8 w-8 text-primary" />
+          <div>
+            <h2 className="text-2xl font-bold">إعدادات المتجر</h2>
+            <p className="text-muted-foreground">
+              قم بتحديث معلومات المتجر التي ستظهر في الفواتير والمستندات
+            </p>
+          </div>
+        </div>
+
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="storeName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>اسم المتجر</FormLabel>
-                  <FormControl>
-                    <Input placeholder="أدخل اسم المتجر" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="flex flex-col md:flex-row gap-8">
+              <div className="w-full md:w-3/4 space-y-4">
+                <FormField
+                  control={form.control}
+                  name="storeName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>اسم المتجر</FormLabel>
+                      <FormControl>
+                        <Input placeholder="اسم المتجر" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="storeAddress"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>عنوان المتجر</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="أدخل عنوان المتجر" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="storeAddress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>عنوان المتجر</FormLabel>
+                      <FormControl>
+                        <Input placeholder="عنوان المتجر" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="storePhone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>رقم الهاتف</FormLabel>
-                    <FormControl>
-                      <Input placeholder="رقم هاتف المتجر" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="storePhone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>رقم الهاتف</FormLabel>
+                        <FormControl>
+                          <Input placeholder="رقم الهاتف" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="storeEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>البريد الإلكتروني</FormLabel>
-                    <FormControl>
-                      <Input placeholder="البريد الإلكتروني للمتجر" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="storeEmail"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>البريد الإلكتروني</FormLabel>
+                        <FormControl>
+                          <Input placeholder="البريد الإلكتروني" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="taxNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>الرقم الضريبي</FormLabel>
+                      <FormControl>
+                        <Input placeholder="الرقم الضريبي" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="receiptNotes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>ملاحظات الفاتورة</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="النص الذي سيظهر في أسفل الفواتير"
+                          {...field}
+                          rows={3}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        هذا النص سيظهر في أسفل الفواتير
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="w-full md:w-1/4 space-y-4">
+                <div>
+                  <p className="mb-2 font-medium">شعار المتجر</p>
+                  <div
+                    onClick={handleLogoClick}
+                    className="border-2 border-dashed rounded-lg p-4 h-48 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition"
+                  >
+                    {logoPreview ? (
+                      <img
+                        src={logoPreview}
+                        alt="شعار المتجر"
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    ) : (
+                      <>
+                        <Upload className="h-12 w-12 text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground text-center">
+                          انقر لاختيار شعار المتجر
+                        </p>
+                      </>
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleLogoChange}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="enableLogo"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-base">
+                          إظهار الشعار في الفواتير
+                        </FormLabel>
+                        <FormDescription>
+                          عرض شعار المتجر عند طباعة الفواتير
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
 
-            <FormField
-              control={form.control}
-              name="storeLogo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>رابط شعار المتجر</FormLabel>
-                  <FormControl>
-                    <Input placeholder="أدخل رابط شعار المتجر" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    يمكن استخدام رابط صورة من الإنترنت
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="invoiceFooter"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>تذييل الفاتورة</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="نص يظهر في أسفل الفاتورة" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="taxRate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>نسبة الضريبة (%)</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} min="0" max="100" step="0.01" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="currency"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>العملة</FormLabel>
-                    <FormControl>
-                      <Input placeholder="رمز العملة" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <Button 
-              type="submit" 
-              className="mt-4"
-              disabled={saveSettingsMutation.isPending}
-            >
-              {saveSettingsMutation.isPending ? (
-                <>
-                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                  جاري الحفظ...
-                </>
-              ) : (
-                "حفظ الإعدادات"
-              )}
+            <Button type="submit" disabled={isSubmitting || loading}>
+              {isSubmitting || loading ? "جاري الحفظ..." : "حفظ الإعدادات"}
             </Button>
           </form>
         </Form>
