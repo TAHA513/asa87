@@ -233,11 +233,20 @@ import {
   DollarSign
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 export default function SidebarComponent() {
   const navigate = useNavigate();
   const location = useLocation(); // Using already imported useLocation
   
+  return (
+    <SidebarProvider>
+      <SidebarContent navigate={navigate} location={location} />
+    </SidebarProvider>
+  );
+}
+
+function SidebarContent({ navigate, location }) {
   const isActive = (path: string) => {
     return location.pathname === path;
   };
