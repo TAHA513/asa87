@@ -6,6 +6,7 @@ import * as bcrypt from "@node-rs/bcrypt";
 import { storage } from "./storage";
 import { type User } from "@shared/schema";
 
+// تحديث تعريف المستخدم في Express
 declare global {
   namespace Express {
     interface User extends User {}
@@ -58,12 +59,14 @@ export function setupAuth(app: Express) {
     }
   }));
 
-  // تسجيل وفك تشفير معرف المستخدم في الجلسة
-  passport.serializeUser((req: Express.Request, user: Express.User, done: (err: any, id?: unknown) => void) => {
+  passport.serializeUser((user, done) => {
+    if (!user || typeof user.id !== 'number') {
+      return done(new Error('معرف المستخدم مفقود أو غير صالح'));
+    }
     done(null, user.id);
   });
 
-  passport.deserializeUser(async (id: number, done: (err: any, user?: Express.User | false) => void) => {
+  passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
       if (!user || !user.isActive) {

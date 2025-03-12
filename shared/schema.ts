@@ -18,9 +18,9 @@ export const storeSettings = pgTable("store_settings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// Remove duplicate StoreSettings type and use table inference
-export type StoreSettings = typeof storeSettings.$inferSelect;
-export type InsertStoreSettings = typeof storeSettings.$inferInsert;
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -359,7 +359,6 @@ export const userSettings = pgTable("user_settings", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-
 export const systemActivities = pgTable("system_activities", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
@@ -669,8 +668,6 @@ export type InsertSystemActivity = z.infer<typeof insertSystemActivitySchema>;
 export type ActivityReport = typeof activityReports.$inferSelect;
 export type InsertActivityReport = z.infer<typeof insertActivityReportSchema>;
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Sale = typeof sales.$inferSelect;
 export type ExchangeRate = typeof exchangeRates.$inferSelect;
@@ -681,7 +678,7 @@ export type InsertInstallmentPayment = z.infer<typeof insertInstallmentPaymentSc
 export type Campaign = typeof marketingCampaigns.$inferSelect;
 export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
 export type CampaignAnalytics = typeof campaignAnalytics.$inferSelect;
-exporttype InsertCampaignAnalytics = z.infer<typeof insertAnalyticsSchema>;
+export type InsertCampaignAnalytics = z.infer<typeof insertAnalyticsSchema>;
 export type SocialMediaAccount = typeof socialMediaAccounts.$inferSelect;
 export type InsertSocialMediaAccount = z.infer<typeof insertSocialMediaAccountSchema>;
 export type ApiKey = typeof apiKeys.$inferSelect;
