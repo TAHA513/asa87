@@ -76,12 +76,7 @@ export const useTheme = () => {
 
 import { createContext, useContext, useEffect, useState } from "react";
 
-// Types have already been declared elsewhere in the file
-
-type ThemeProviderState = {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
-};
+// All types have already been declared elsewhere in the file
 
 const initialState: ThemeProviderState = {
   theme: "system",
