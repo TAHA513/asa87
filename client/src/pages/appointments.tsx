@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Calendar as CalendarIcon, Plus, CheckCircle, XCircle, Clock, Filter, Search } from "lucide-react";
@@ -223,19 +224,14 @@ export default function AppointmentsPage() {
     createAppointmentMutation.mutate(data);
   };
 
-  const handleStatusChange = (id: number, status: AppointmentStatus) => {
-    updateAppointmentMutation.mutate({ id, status });
+  const handleStatusChange = (id: number, newStatus: AppointmentStatus) => {
+    updateAppointmentMutation.mutate({ id, newStatus });
   };
 
   const handleDeleteAppointment = (id: number) => {
     if (confirm("هل أنت متأكد من حذف هذا الموعد؟")) {
       deleteAppointmentMutation.mutate(id);
     }
-  };
-
-  const getCustomerName = (customerId: number) => {
-    const customer = customers.find(c => c.id === customerId);
-    return customer?.name || "عميل غير معروف";
   };
 
   const filteredAppointments = appointments.filter(appointment => {
@@ -256,6 +252,10 @@ export default function AppointmentsPage() {
       format(selectedDate, "yyyy-MM-dd")
   );
 
+  const getCustomerName = (customerId: number) => {
+    const customer = customers.find(c => c.id === customerId);
+    return customer?.name || "عميل غير معروف";
+  };
 
   return (
     <div className="container mx-auto py-6">

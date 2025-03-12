@@ -26,28 +26,26 @@ import Appointments from "@/pages/appointments";
 
 function Router() {
   return (
-    <div className="app-container" dir="rtl">
-      <Switch>
-        <Route path="/auth" component={AuthPage} />
-        <ProtectedRoute path="/" component={Dashboard} />
-        <ProtectedRoute path="/inventory" component={Inventory} />
-        <ProtectedRoute path="/sales" component={Sales} />
-        <ProtectedRoute path="/invoices" component={InvoicesPage} />
-        <ProtectedRoute path="/invoices/:id" component={InvoiceDetailsPage} />
-        <ProtectedRoute path="/staff" component={Staff} />
-        <ProtectedRoute path="/settings" component={Settings} />
-        <ProtectedRoute path="/installments" component={Installments} />
-        <ProtectedRoute path="/marketing" component={Marketing} />
-        <ProtectedRoute path="/reports" component={Reports} />
-        <ProtectedRoute path="/expenses" component={Expenses} />
-        <ProtectedRoute path="/suppliers" component={Suppliers} />
-        <ProtectedRoute path="/barcodes" component={Barcodes} />
-        <ProtectedRoute path="/discount-codes" component={DiscountCodes} />
-        <ProtectedRoute path="/customers" component={Customers} />
-        <ProtectedRoute path="/appointments" component={Appointments} />
-        <Route component={NotFound} />
-      </Switch>
-    </div>
+    <Switch>
+      <Route path="/auth" component={AuthPage} />
+      <ProtectedRoute path="/" component={Dashboard} />
+      <ProtectedRoute path="/inventory" component={Inventory} />
+      <ProtectedRoute path="/sales" component={Sales} />
+      <ProtectedRoute path="/invoices" component={InvoicesPage} />
+      <ProtectedRoute path="/invoices/:id" component={InvoiceDetailsPage} />
+      <ProtectedRoute path="/staff" component={Staff} />
+      <ProtectedRoute path="/settings" component={Settings} />
+      <ProtectedRoute path="/installments" component={Installments} />
+      <ProtectedRoute path="/marketing" component={Marketing} />
+      <ProtectedRoute path="/reports" component={Reports} />
+      <ProtectedRoute path="/expenses" component={Expenses} />
+      <ProtectedRoute path="/suppliers" component={Suppliers} />
+      <ProtectedRoute path="/barcodes" component={Barcodes} />
+      <ProtectedRoute path="/discount-codes" component={DiscountCodes} />
+      <ProtectedRoute path="/customers" component={Customers} />
+      <ProtectedRoute path="/appointments" component={Appointments} />
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 
