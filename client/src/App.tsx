@@ -34,10 +34,10 @@ const queryClient = new QueryClient();
 
 function App() {
   return (
-    <Router>
-      <ThemeProvider defaultTheme="dark" storageKey="ui-theme">
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
+    <ThemeProvider defaultTheme="dark" storageKey="ui-theme">
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <Router>
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/login" element={<LoginPage />} />
@@ -62,10 +62,10 @@ function App() {
               <Route path="/ai-analytics" element={<AIAnalytics />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </AuthProvider>
-        </QueryClientProvider>
-      </ThemeProvider>
-    </Router>
+          </Router>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 
