@@ -76,12 +76,7 @@ export const useTheme = () => {
 
 import { createContext, useContext, useEffect, useState } from "react";
 
-// Type has already been declared elsewhere in the file
-
-type ThemeProviderProps = {
-  children: React.ReactNode;
-  defaultTheme?: Theme;
-};
+// Types have already been declared elsewhere in the file
 
 type ThemeProviderState = {
   theme: Theme;
