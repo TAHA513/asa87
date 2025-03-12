@@ -79,7 +79,7 @@ interface Sale {
 
 export default function Sales() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const queryClient = useQueryClient();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isCustomerDialogOpen, setIsCustomerDialogOpen] = useState(false);
@@ -90,6 +90,14 @@ export default function Sales() {
   const [isPrinting, setIsPrinting] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [, navigate] = useLocation(); // Using useLocation from wouter correctly
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen">جاري التحميل...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <div className="flex items-center justify-center h-screen">يرجى تسجيل الدخول للوصول إلى صفحة المبيعات</div>;
+  }
 
   const { data: sales = [] } = useQuery<Sale[]>({
     queryKey: ["/api/sales"],
