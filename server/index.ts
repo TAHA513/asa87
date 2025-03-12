@@ -20,7 +20,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const isDev = process.env.NODE_ENV !== "production";
 const PORT = process.env.PORT || 5000;
-const HOST = "0.0.0.0"; // Ensure the server listens on all network interfaces
 
 // إنشاء مجلد للسجلات إذا لم يكن موجوداً
 const logsDir = path.join(__dirname, "../logs");
@@ -105,7 +104,7 @@ async function startServer() {
     });
 
     // بدء الخادم
-    server.listen(PORT, HOST, () => {
+    server.listen(PORT, "0.0.0.0", () => {
       const mode = isDev ? "التطوير" : "الإنتاج";
       const message = `الخادم يعمل على المنفذ ${PORT} في وضع ${mode}`;
       console.log(message);
