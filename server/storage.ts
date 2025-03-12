@@ -5,6 +5,10 @@ import { eq, and, gt, lt, desc, gte, lte, asc } from 'drizzle-orm';
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 
+import { db } from "./db";
+import { eq } from "drizzle-orm";
+import { sales, products, customers, users } from "@shared/schema";
+
 const PostgresSessionStore = connectPg(session);
 
 // Implement storage methods
@@ -90,4 +94,20 @@ export const storage = {
       .returning();
     return result[0];
   },
+
+  // Add getSales function
+  async getSales(userId: number) {
+    try {
+      const result = await db
+        .select()
+        .from(sales)
+        .where(eq(sales.userId, userId))
+        .orderBy(sales.createdAt);
+
+      return result;
+    } catch (error) {
+      console.error("Error fetching sales:", error);
+      throw error;
+    }
+  }
 };
