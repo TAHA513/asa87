@@ -58,10 +58,10 @@ async function startServer() {
       next();
     });
 
-    // Configure session store
-    import { storage } from "./storage";
+    // استيراد مخزن الجلسات من ملف storage
+    const { storage } = await import("./storage");
     const sessionStore = storage.sessionStore;
-
+    
     // Configure sessions before auth
     app.use(session({
       secret: process.env.SESSION_SECRET || 'default-secret-key',
