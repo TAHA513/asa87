@@ -1,12 +1,13 @@
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
-import { apiRequest } from '../lib/api';
+import api from '../lib/api';
 
-interface User {
+export interface User {
   id: number;
   username: string;
   fullName: string;
   role: string;
+  isActive: boolean;
 }
 
 interface AuthContextType {
@@ -31,9 +32,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const checkAuth = async () => {
       try {
         setIsLoading(true);
-        const userData = await apiRequest('GET', '/api/auth/user');
-        if (userData) {
+        const response = await fetch('/api/auth/user');
+        if (response.ok) {
+          const userData = await response.json();
           setUser(userData);
+        } else {
+          setUser(null);
         }
       } catch (error) {
         console.error('فشل التحقق من المصادقة:', error);
@@ -49,8 +53,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      const userData = await apiRequest('POST', '/api/auth/login', { username, password });
-      if (userData) {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
         setUser(userData);
         return true;
       }
@@ -66,7 +78,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = async (): Promise<void> => {
     try {
       setIsLoading(true);
-      await apiRequest('POST', '/api/auth/logout');
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
       setUser(null);
     } catch (error) {
       console.error('فشل تسجيل الخروج:', error);
