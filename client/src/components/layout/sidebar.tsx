@@ -234,7 +234,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
-export default function Sidebar() {
+export default function SidebarComponent() {
   const navigate = useNavigate();
   const location = useLocation();
   
