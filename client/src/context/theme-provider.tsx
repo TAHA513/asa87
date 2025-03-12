@@ -76,9 +76,7 @@ export const useTheme = () => {
 
 import { createContext, useContext, useEffect, useState } from "react";
 
-// All types and initial state have already been declared elsewhere in the file
-
-const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
+// All types, initial state, and context have already been declared elsewhere in the file
 
 export function ThemeProvider({
   children,
