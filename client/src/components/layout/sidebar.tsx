@@ -241,12 +241,12 @@ export default function SidebarComponent() {
   
   return (
     <SidebarProvider>
-      <SidebarContent navigate={navigate} location={location} />
+      <SidebarContentMain navigate={navigate} location={location} />
     </SidebarProvider>
   );
 }
 
-function SidebarContent({ navigate, location }) {
+function SidebarContentMain({ navigate, location }) {
   const isActive = (path: string) => {
     return location.pathname === path;
   };
