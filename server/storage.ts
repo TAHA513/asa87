@@ -21,14 +21,8 @@ export const storage = {
 
   async getInstallments() {
     try {
-      // التحقق من وجود جدول التقسيط
-      try {
-        const results = await db.select().from(schema.installments);
-        return results;
-      } catch (error) {
-        console.error("Error selecting from installments table:", error);
-        return [];
-      }
+      const results = await db.select().from(schema.installments);
+      return results;
     } catch (error) {
       console.error("Error in getInstallments:", error);
       return [];
@@ -37,14 +31,8 @@ export const storage = {
 
   async getCampaigns() {
     try {
-      // التحقق من وجود جدول الحملات
-      try {
-        const results = await db.select().from(schema.campaigns);
-        return results;
-      } catch (error) {
-        console.error("Error selecting from campaigns table:", error);
-        return [];
-      }
+      const results = await db.select().from(schema.campaigns);
+      return results;
     } catch (error) {
       console.error("Error in getCampaigns:", error);
       return [];
