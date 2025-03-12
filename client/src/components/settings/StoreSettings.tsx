@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest } from "@/lib/api";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 interface StoreSettings {
   name: string;
@@ -56,10 +56,19 @@ export function StoreSettings() {
 
     try {
       await apiRequest('PUT', '/api/store-settings', settings);
-      toast.success("تم حفظ إعدادات المتجر بنجاح");
+      const { toast } = useToast();
+toast({
+  title: "نجاح",
+  description: "تم حفظ إعدادات المتجر بنجاح",
+  variant: "default",
+});
     } catch (error) {
       console.error("Error saving store settings:", error);
-      toast.error("حدث خطأ أثناء حفظ الإعدادات");
+      toast({
+  title: "خطأ",
+  description: "حدث خطأ أثناء حفظ الإعدادات",
+  variant: "destructive",
+});
     } finally {
       setLoading(false);
     }
