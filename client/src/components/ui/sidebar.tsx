@@ -64,13 +64,52 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+import React from "react";
+import { useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { 
+  LayoutDashboard, 
+  Package, 
+  ShoppingCart, 
+  Users, 
+  Calendar as CalendarIcon,
+  BarChart3,
+  FileText,
+  Truck,
+  Wallet,
+  Database,
+  BarChartHorizontal,
+  Settings
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import { Skeleton } from "@/components/ui/skeleton";
+
 interface SidebarProps {
   className?: string;
 }
 
+export function Sidebar({ className }: SidebarProps) {
+  return (
+    <div className={cn("h-full w-[220px] flex flex-col border-r bg-background", className)}>
+      <div className="p-4 border-b">
+        <h2 className="text-lg font-semibold">نظام المتجر</h2>
+      </div>
+      <div className="flex-1 py-4">
+        <SidebarNav />
+      </div>
+      <div className="p-4 border-t">
+        <Link to="/settings" className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground">
+          <Settings className="w-4 h-4" />
+          <span>الإعدادات</span>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 // إضافة مكون SidebarNav
 export function SidebarNav() {
-  const [location] = useLocation();
+  const location = useLocation();
 
   const routes = [
     {

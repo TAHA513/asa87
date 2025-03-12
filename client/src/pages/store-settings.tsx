@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { MainLayout } from "../components/layout/main-layout";
-import { PageHeader } from "@/components/page-header";
+import { PageHeader } from "../components/page-header";
 import { StoreSettings } from "@/components/settings/StoreSettings";
 
 export default function StoreSettingsPage() {
