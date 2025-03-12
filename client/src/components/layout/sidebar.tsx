@@ -213,3 +213,75 @@ export function Sidebar({ className }: SidebarProps) {
     </div>
   );
 }
+import React from "react";
+import {
+  Sidebar as UISidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuLink,
+} from "@/components/ui/sidebar";
+import { 
+  Home, 
+  Settings, 
+  ShoppingCart, 
+  Users, 
+  Package, 
+  TrendingUp,
+  Truck,
+  DollarSign
+} from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+
+export default function Sidebar() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  const isActive = (path: string) => {
+    return location.pathname === path;
+  };
+
+  return (
+    <UISidebar>
+      <SidebarHeader className="text-xl font-bold py-4 text-center">
+        نظام المبيعات
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarMenu>
+          <SidebarMenuItem active={isActive("/")} icon={<Home />}>
+            <SidebarMenuLink onClick={() => navigate("/")}>الرئيسية</SidebarMenuLink>
+          </SidebarMenuItem>
+          
+          <SidebarMenuItem active={isActive("/products")} icon={<Package />}>
+            <SidebarMenuLink onClick={() => navigate("/products")}>المنتجات</SidebarMenuLink>
+          </SidebarMenuItem>
+          
+          <SidebarMenuItem active={isActive("/sales")} icon={<ShoppingCart />}>
+            <SidebarMenuLink onClick={() => navigate("/sales")}>المبيعات</SidebarMenuLink>
+          </SidebarMenuItem>
+          
+          <SidebarMenuItem active={isActive("/campaigns")} icon={<TrendingUp />}>
+            <SidebarMenuLink onClick={() => navigate("/campaigns")}>الحملات الإعلانية</SidebarMenuLink>
+          </SidebarMenuItem>
+          
+          <SidebarMenuItem active={isActive("/customers")} icon={<Users />}>
+            <SidebarMenuLink onClick={() => navigate("/customers")}>العملاء</SidebarMenuLink>
+          </SidebarMenuItem>
+          
+          <SidebarMenuItem active={isActive("/suppliers")} icon={<Truck />}>
+            <SidebarMenuLink onClick={() => navigate("/suppliers")}>الموردين</SidebarMenuLink>
+          </SidebarMenuItem>
+          
+          <SidebarMenuItem active={isActive("/finances")} icon={<DollarSign />}>
+            <SidebarMenuLink onClick={() => navigate("/finances")}>المالية</SidebarMenuLink>
+          </SidebarMenuItem>
+          
+          <SidebarMenuItem active={isActive("/settings")} icon={<Settings />}>
+            <SidebarMenuLink onClick={() => navigate("/settings")}>الإعدادات</SidebarMenuLink>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarContent>
+    </UISidebar>
+  );
+}
