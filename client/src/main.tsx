@@ -26,10 +26,19 @@ import "./components/ai/product-recommendations";
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthProvider';
 import { ThemeProvider } from './context/theme-provider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import App from './App';
+import Inventory from './pages/inventory';
+import Reports from './pages/reports';
+import Settings from './pages/settings';
+import PosPage from './pages/pos';
+import SalesHistory from './pages/sales-history';
+import SalesAnalytics from './pages/sales-analytics';
+import ProductRecommendation from './pages/product-recommendation';
+import AIAnalytics from './pages/ai-analytics';
 
 
 const queryClient = new QueryClient();

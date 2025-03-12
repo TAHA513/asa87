@@ -3,7 +3,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { useTheme } from "../../context/theme-provider";
+import { useTheme } from "@/context/theme-provider";
 import { LogOut, Menu, Sun, Moon, User, Settings, Info } from "lucide-react";
 import { useAuth } from "@/context/use-auth";
 import { Skeleton } from "../ui/skeleton";
