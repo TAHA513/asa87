@@ -48,6 +48,11 @@ async function startServer() {
       tempFileDir: path.join(__dirname, "../tmp"),
     }));
 
+    // التحقق من وجود متغيرات البيئة الضرورية
+    if (!process.env.DATABASE_URL || !process.env.SESSION_SECRET) {
+      console.error("⚠️ تحذير: بعض متغيرات البيئة الضرورية غير موجودة. يرجى إضافتها في أداة Secrets بـ Replit.");
+    }
+
     // إعداد تسجيل الطلبات
     app.use((req, res, next) => {
       const start = Date.now();
@@ -73,6 +78,10 @@ async function startServer() {
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
       }
     }));
+    
+    if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET === 'default-secret-key') {
+      logToFile("⚠️ تحذير: يتم استخدام المفتاح الافتراضي للجلسة. يرجى تعيين SESSION_SECRET في أداة Secrets بـ Replit.", 'error');
+    }
 
     logToFile("جاري تهيئة قاعدة البيانات...");
     await initializeDatabase();

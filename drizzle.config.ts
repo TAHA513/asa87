@@ -1,7 +1,12 @@
+
 import { defineConfig } from "drizzle-kit";
 
-// تم نقل متغير DATABASE_URL إلى أداة Secrets
-// يرجى التأكد من إضافة المتغير هناك
+// تم نقل متغير DATABASE_URL إلى أداة Secrets في Replit
+// يرجى التأكد من إضافة المتغير هناك:
+// 1. انتقل إلى قائمة Tools
+// 2. اختر Secrets
+// 3. أضف متغير DATABASE_URL مع رابط قاعدة البيانات الخاص بك
+// 4. أضف متغير SESSION_SECRET مع مفتاح آمن
 
 export default defineConfig({
   out: "./migrations",

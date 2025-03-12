@@ -9,7 +9,7 @@ neonConfig.webSocketConstructor = ws;
 
 // التحقق من وجود رابط قاعدة البيانات
 if (!process.env.DATABASE_URL) {
-  throw new Error("يجب تعيين DATABASE_URL في متغيرات البيئة");
+  throw new Error("يجب تعيين DATABASE_URL في أداة Secrets بـ Replit");
 }
 
 // إعداد تجمع الاتصالات مع إعدادات محسنة
