@@ -862,6 +862,30 @@ const SidebarMenuSubButton = React.forwardRef<
 })
 SidebarMenuSubButton.displayName = "SidebarMenuSubButton"
 
+interface SidebarMenuLinkProps extends React.ComponentPropsWithoutRef<"div"> {
+  icon?: React.ReactNode;
+  onClick?: () => void;
+}
+
+const SidebarMenuLink = React.forwardRef<
+  HTMLDivElement,
+  SidebarMenuLinkProps
+>(({ className, children, icon, onClick, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground cursor-pointer",
+      className
+    )}
+    onClick={onClick}
+    {...props}
+  >
+    {children}
+  </div>
+));
+
+SidebarMenuLink.displayName = "SidebarMenuLink";
+
 export {
   Sidebar,
   SidebarContent,
@@ -885,5 +909,6 @@ export {
   SidebarMenuSubItem,
   SidebarRail,
   SidebarSeparator,
-  SidebarTrigger
+  SidebarTrigger,
+  SidebarMenuLink
 }
