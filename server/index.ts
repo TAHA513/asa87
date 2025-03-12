@@ -19,7 +19,7 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const isDev = process.env.NODE_ENV !== "production";
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5002;
 
 // إنشاء مجلد للسجلات إذا لم يكن موجوداً
 const logsDir = path.join(__dirname, "../logs");
@@ -58,12 +58,10 @@ async function startServer() {
       next();
     });
 
-    // Configure session store
-    const MemoryStore = createMemoryStore(session);
-    const sessionStore = new MemoryStore({
-      checkPeriod: 86400000 // Prune expired entries every 24h
-    });
-
+    // استيراد مخزن الجلسات من ملف storage
+    const { storage } = await import("./storage");
+    const sessionStore = storage.sessionStore;
+    
     // Configure sessions before auth
     app.use(session({
       secret: process.env.SESSION_SECRET || 'default-secret-key',

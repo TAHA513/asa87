@@ -24,35 +24,20 @@ import "@fontsource/tajawal/700.css";
 import "./index.css";
 import "./components/ai/product-recommendations";
 
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
-import { AuthProvider } from './context/AuthProvider';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-
-
-const queryClient = new QueryClient();
-
-createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<App />} /> {/* Assuming App is the main route */}
-            <Route path="/inventory" element={<Inventory />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/pos" element={<PosPage />} />
-            <Route path="/sales-history" element={<SalesHistory />} />
-            <Route path="/sales-analytics" element={<SalesAnalytics />} /> {/* Added route for SalesAnalytics */}
-            <Route path="/product-recommendation" element={<ProductRecommendation />} /> {/* Added route for product recommendation */}
-            <Route path="/ai-analytics" element={<AIAnalytics />} /> {/* Added route for AIAnalytics */}
-          </Routes>
-        </AuthProvider>
-      </QueryClientProvider>
-    </BrowserRouter>
-  </React.StrictMode>
+createRoot(document.getElementById("root")!).render(
+  <Router> {/* Wrapped App component with Router */}
+    <Routes>
+      <Route path="/" element={<App />} /> {/* Assuming App is the main route */}
+      <Route path="/inventory" element={<Inventory />} />
+      <Route path="/reports" element={<Reports />} />
+      <Route path="/settings" element={<Settings />} />
+      <Route path="/pos" element={<PosPage />} />
+      <Route path="/sales-history" element={<SalesHistory />} />
+      <Route path="/sales-analytics" element={<SalesAnalytics />} /> {/* Added route for SalesAnalytics */}
+      <Route path="/product-recommendation" element={<ProductRecommendation />} /> {/* Added route for product recommendation */}
+      <Route path="/ai-analytics" element={<AIAnalytics />} /> {/* Added route for AIAnalytics */}
+    </Routes>
+  </Router>
 );
 
 // Placeholder components -  These need to be implemented based on your specific requirements.
