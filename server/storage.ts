@@ -9,6 +9,47 @@ const PostgresSessionStore = connectPg(session);
 
 // Implement storage methods
 export const storage = {
+  async getSales() {
+    try {
+      const results = await db.select().from(schema.sales);
+      return results;
+    } catch (error) {
+      console.error("Error in getSales:", error);
+      return [];
+    }
+  },
+
+  async getInstallments() {
+    try {
+      // التحقق من وجود جدول التقسيط
+      try {
+        const results = await db.select().from(schema.installments);
+        return results;
+      } catch (error) {
+        console.error("Error selecting from installments table:", error);
+        return [];
+      }
+    } catch (error) {
+      console.error("Error in getInstallments:", error);
+      return [];
+    }
+  },
+
+  async getCampaigns() {
+    try {
+      // التحقق من وجود جدول الحملات
+      try {
+        const results = await db.select().from(schema.campaigns);
+        return results;
+      } catch (error) {
+        console.error("Error selecting from campaigns table:", error);
+        return [];
+      }
+    } catch (error) {
+      console.error("Error in getCampaigns:", error);
+      return [];
+    }
+  },
   sessionStore: new PostgresSessionStore({
     conObject: {
       connectionString: process.env.DATABASE_URL,
