@@ -58,10 +58,12 @@ async function startServer() {
       next();
     });
 
-    // استيراد مخزن الجلسات من ملف storage
-    const { storage } = await import("./storage");
-    const sessionStore = storage.sessionStore;
-    
+    // Configure session store
+    const MemoryStore = createMemoryStore(session);
+    const sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // Prune expired entries every 24h
+    });
+
     // Configure sessions before auth
     app.use(session({
       secret: process.env.SESSION_SECRET || 'default-secret-key',
