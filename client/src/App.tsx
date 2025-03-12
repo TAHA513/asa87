@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "./components/theme-provider";
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { AuthProvider } from '@/contexts/auth-context';
 import Dashboard from './pages/dashboard';
