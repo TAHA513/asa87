@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/api"; 
+import { apiRequest } from "@/lib/queryClient"; 
 import { Loader2 } from "lucide-react"; 
 
 
