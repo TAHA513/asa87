@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from "@/components/theme-provider";
@@ -11,7 +10,6 @@ import Sales from './pages/sales';
 import Appointments from './pages/appointments';
 import Reports from './pages/reports';
 import Settings from './pages/settings';
-import Login from './pages/login';
 import Marketing from './pages/marketing';
 import Installments from './pages/installments';
 import Inventory from './pages/inventory';
@@ -21,6 +19,9 @@ import NotFound from './pages/not-found';
 import PrintReport from './pages/reports/print-report';
 import StoreSettings from './pages/store-settings';
 import InvoiceView from './pages/invoice-view';
+// Added placeholder Login component
+const LoginPage = () => <div>Login Page</div>;
+
 
 // Create a client for React Query
 const queryClient = new QueryClient();
@@ -40,7 +41,7 @@ function App() {
               <Route path="/reports" element={<Reports />} />
               <Route path="/reports/print/:type" element={<PrintReport />} />
               <Route path="/settings" element={<Settings />} />
-              <Route path="/login" element={<Login />} />
+              <Route path="/login" element={<LoginPage />} /> {/* Added login route */}
               <Route path="/marketing" element={<Marketing />} />
               <Route path="/installments" element={<Installments />} />
               <Route path="/inventory" element={<Inventory />} />
