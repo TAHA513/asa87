@@ -17,7 +17,7 @@ import Suppliers from './pages/suppliers';
 import Expenses from './pages/expenses';
 import NotFound from './pages/not-found';
 import PrintReport from './pages/reports/print-report';
-import StoreSettings from './pages/store-settings';
+import StoreSettingsPage from './pages/store-settings';
 import InvoiceView from './pages/invoice-view';
 // Added placeholder Login component
 const LoginPage = () => <div>Login Page</div>;
@@ -47,7 +47,7 @@ function App() {
               <Route path="/inventory" element={<Inventory />} />
               <Route path="/suppliers" element={<Suppliers />} />
               <Route path="/expenses" element={<Expenses />} />
-              <Route path="/store-settings" element={<StoreSettings />} />
+              <Route path="/store-settings" element={<StoreSettingsPage />} />
               <Route path="/invoices/:id" element={<InvoiceView />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
