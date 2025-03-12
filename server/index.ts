@@ -61,7 +61,7 @@ async function startServer() {
     // استيراد مخزن الجلسات من ملف storage
     const { storage } = await import("./storage");
     const sessionStore = storage.sessionStore;
-    
+
     // Configure sessions before auth
     app.use(session({
       secret: process.env.SESSION_SECRET || 'default-secret-key',
@@ -97,8 +97,15 @@ async function startServer() {
 
     // معالجة الأخطاء العامة
     app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-      logToFile(err.stack || err.message, 'error');
-      res.status(500).json({ message: 'حدث خطأ داخلي في الخادم' });
+      console.error("خطأ في الخادم:", err);
+      logToFile(JSON.stringify({
+        message: err.message,
+        stack: err.stack,
+        path: req.path,
+        method: req.method,
+        timestamp: new Date().toISOString()
+      }), 'error');
+      res.status(500).json({ message: 'حدث خطأ داخلي في الخادم', details: err.message });
     });
 
     // بدء الخادم
