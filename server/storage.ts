@@ -73,8 +73,7 @@ export const storage = {
       return results[0] || { usdToIqd: 1460, date: new Date() };
     } catch (error) {
       console.error("Error in getCurrentExchangeRate:", error);
-      // تأكد من إرجاع القيم الافتراضية بالشكل الصحيح
-      return { id: 0, usdToIqd: 1460, date: new Date() };
+      return { usdToIqd: 1460, date: new Date() };
     }
   },
 
@@ -268,12 +267,9 @@ export const storage = {
   // Customer methods
   async getCustomers() {
     try {
-      // التعامل مع الاستعلام بشكل آمن
-      const customers = await db.select().from(schema.customers);
-      return customers || [];
+      return await db.select().from(schema.customers);
     } catch (error) {
       console.error("Error getting customers:", error);
-      // التأكد من إرجاع مصفوفة فارغة دائماً في حالة الخطأ
       return [];
     }
   },
@@ -348,13 +344,9 @@ export const storage = {
   // Appointment methods
   async getAppointments() {
     try {
-      // التعامل مع الاستعلام بشكل آمن
-      const appointments = await db.select().from(schema.appointments);
-      return appointments || [];
+      return await db.select().from(schema.appointments);
     } catch (error) {
       console.error("Error getting appointments:", error);
-      // تفاصيل أكثر عن الخطأ لتسهيل التشخيص
-      console.error("Original error details:", error instanceof Error ? error.message : String(error));
       return [];
     }
   },
