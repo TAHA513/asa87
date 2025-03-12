@@ -58,9 +58,9 @@ async function startServer() {
       next();
     });
 
-    // Configure session storere({
-      checkPeriod: 86400000 // Prune expired entries every 24h
-    });
+    // Configure session store
+    import { storage } from "./storage";
+    const sessionStore = storage.sessionStore;
 
     // Configure sessions before auth
     app.use(session({
