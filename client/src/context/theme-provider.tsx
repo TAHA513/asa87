@@ -78,9 +78,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 // All types, initial state, and context have already been declared elsewhere in the file
 
-export function ThemeProvider({
-  children,
-  defaultTheme = "system",
+// Removing duplicate ThemeProvider function
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(
     () => (localStorage.getItem("theme") as Theme) || defaultTheme
