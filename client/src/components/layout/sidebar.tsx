@@ -213,7 +213,7 @@ export function Sidebar({ className }: SidebarProps) {
     </div>
   );
 }
-import React from "react";
+
 import {
   Sidebar as UISidebar,
   SidebarContent,
