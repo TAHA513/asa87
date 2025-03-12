@@ -232,11 +232,11 @@ import {
   Truck,
   DollarSign
 } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export default function SidebarComponent() {
   const navigate = useNavigate();
-  const location = useLocation();
+  const location = useLocation(); // Using already imported useLocation
   
   const isActive = (path: string) => {
     return location.pathname === path;
