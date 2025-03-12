@@ -76,7 +76,7 @@ export const useTheme = () => {
 
 import { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "dark" | "light" | "system";
+// Type has already been declared elsewhere in the file
 
 type ThemeProviderProps = {
   children: React.ReactNode;
