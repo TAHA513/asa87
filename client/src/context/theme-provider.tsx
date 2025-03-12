@@ -74,7 +74,6 @@ export const useTheme = () => {
 };
 "use client";
 
-import * as React from "react";
 import { createContext, useContext, useEffect, useState } from "react";
 
 type Theme = "dark" | "light" | "system";
