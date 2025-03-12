@@ -28,7 +28,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './context/AuthProvider';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from './context/theme-provider';
+import App from './App';
 
 
 const queryClient = new QueryClient();
@@ -38,17 +39,19 @@ createRoot(document.getElementById("root") as HTMLElement).render(
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<App />} /> {/* Assuming App is the main route */}
-            <Route path="/inventory" element={<Inventory />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/pos" element={<PosPage />} />
-            <Route path="/sales-history" element={<SalesHistory />} />
-            <Route path="/sales-analytics" element={<SalesAnalytics />} /> {/* Added route for SalesAnalytics */}
-            <Route path="/product-recommendation" element={<ProductRecommendation />} /> {/* Added route for product recommendation */}
-            <Route path="/ai-analytics" element={<AIAnalytics />} /> {/* Added route for AIAnalytics */}
-          </Routes>
+          <ThemeProvider defaultTheme="light"> {/* Added ThemeProvider */}
+            <Routes>
+              <Route path="/" element={<App />} /> {/* Assuming App is the main route */}
+              <Route path="/inventory" element={<Inventory />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/pos" element={<PosPage />} />
+              <Route path="/sales-history" element={<SalesHistory />} />
+              <Route path="/sales-analytics" element={<SalesAnalytics />} /> {/* Added route for SalesAnalytics */}
+              <Route path="/product-recommendation" element={<ProductRecommendation />} /> {/* Added route for product recommendation */}
+              <Route path="/ai-analytics" element={<AIAnalytics />} /> {/* Added route for AIAnalytics */}
+            </Routes>
+          </ThemeProvider>
         </AuthProvider>
       </QueryClientProvider>
     </BrowserRouter>
