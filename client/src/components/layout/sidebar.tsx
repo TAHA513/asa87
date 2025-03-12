@@ -224,7 +224,7 @@ import {
 } from "@/components/ui/sidebar";
 import { 
   Home, 
-  Settings, 
+  Settings as SettingsIcon, 
   ShoppingCart, 
   Users, 
   Package, 
@@ -277,7 +277,7 @@ export default function SidebarComponent() {
             <SidebarMenuLink onClick={() => navigate("/finances")}>المالية</SidebarMenuLink>
           </SidebarMenuItem>
           
-          <SidebarMenuItem active={isActive("/settings")} icon={<Settings />}>
+          <SidebarMenuItem active={isActive("/settings")} icon={<SettingsIcon />}>
             <SidebarMenuLink onClick={() => navigate("/settings")}>الإعدادات</SidebarMenuLink>
           </SidebarMenuItem>
         </SidebarMenu>
