@@ -1,66 +1,59 @@
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider } from "@/hooks/use-auth";
-import { ProtectedRoute } from "./lib/protected-route";
 
-import NotFound from "@/pages/not-found";
-import AuthPage from "@/pages/auth-page";
-import Dashboard from "@/pages/dashboard";
-import Inventory from "@/pages/inventory";
-import Sales from "@/pages/sales";
-import InvoicesPage from "@/pages/InvoicesPage";
-import InvoiceDetailsPage from "@/pages/InvoiceDetailsPage";
-import Staff from "@/pages/staff";
-import Settings from "@/pages/settings";
-import Installments from "@/pages/installments";
-import Marketing from "@/pages/marketing";
-import Reports from "@/pages/reports";
-import Expenses from "@/pages/expenses";
-import Suppliers from "@/pages/suppliers";
-import Barcodes from "@/pages/barcodes";
-import DiscountCodes from "@/pages/discount-codes";
-import Customers from "@/pages/customers";
-import Appointments from "@/pages/appointments";
-import InvoiceView from "./pages/invoice-view";
-import PrintReportPage from "./pages/reports/print-report";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from "@/components/theme-provider";
+import { QueryClient, QueryClientProvider } from 'react-query';
+import { AuthProvider } from '@/contexts/auth-context';
+import Dashboard from './pages/dashboard';
+import Products from './pages/products';
+import Customers from './pages/customers';
+import Sales from './pages/sales';
+import Appointments from './pages/appointments';
+import Reports from './pages/reports';
+import Settings from './pages/settings';
+import Login from './pages/login';
+import Marketing from './pages/marketing';
+import Installments from './pages/installments';
+import Inventory from './pages/inventory';
+import Suppliers from './pages/suppliers';
+import Expenses from './pages/expenses';
+import NotFound from './pages/not-found';
+import PrintReport from './pages/reports/print-report';
+import StoreSettings from './pages/store-settings';
+import InvoiceView from './pages/invoice-view';
 
-function Router() {
-  return (
-    <Switch>
-      <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute path="/" component={Dashboard} />
-      <ProtectedRoute path="/inventory" component={Inventory} />
-      <ProtectedRoute path="/sales" component={Sales} />
-      <ProtectedRoute path="/invoices" component={InvoicesPage} />
-      <ProtectedRoute path="/invoices/:id" component={InvoiceDetailsPage} />
-      <ProtectedRoute path="/staff" component={Staff} />
-      <ProtectedRoute path="/settings" component={Settings} />
-      <ProtectedRoute path="/installments" component={Installments} />
-      <ProtectedRoute path="/marketing" component={Marketing} />
-      <ProtectedRoute path="/reports" component={Reports} />
-      <ProtectedRoute path="/reports/print/:type/:id" element={<PrintReportPage />} />
-      <ProtectedRoute path="/expenses" component={Expenses} />
-      <ProtectedRoute path="/suppliers" component={Suppliers} />
-      <ProtectedRoute path="/barcodes" component={Barcodes} />
-      <ProtectedRoute path="/discount-codes" component={DiscountCodes} />
-      <ProtectedRoute path="/customers" component={Customers} />
-      <ProtectedRoute path="/appointments" component={Appointments} />
-      <Route path="/invoices/:id" element={<InvoiceView />} />
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
+// Create a client for React Query
+const queryClient = new QueryClient();
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router />
-        <Toaster />
-      </AuthProvider>
-    </QueryClientProvider>
+    <ThemeProvider defaultTheme="system" storageKey="ui-theme">
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <Router>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/customers" element={<Customers />} />
+              <Route path="/sales" element={<Sales />} />
+              <Route path="/appointments" element={<Appointments />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/reports/print/:type" element={<PrintReport />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/marketing" element={<Marketing />} />
+              <Route path="/installments" element={<Installments />} />
+              <Route path="/inventory" element={<Inventory />} />
+              <Route path="/suppliers" element={<Suppliers />} />
+              <Route path="/expenses" element={<Expenses />} />
+              <Route path="/store-settings" element={<StoreSettings />} />
+              <Route path="/invoices/:id" element={<InvoiceView />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Router>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 
