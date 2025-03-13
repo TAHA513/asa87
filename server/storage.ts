@@ -1,9 +1,12 @@
-import { db, sql } from './db';
+import { neon } from '@neondatabase/serverless';
+import { config } from './config';
 import * as schema from '../shared/schema';
 import * as bcrypt from '@node-rs/bcrypt';
 import { eq, and, gt, lt, desc, gte, lte, asc, like, or } from 'drizzle-orm';
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
+
+const db = neon(config.database.url);
 
 const PostgresSessionStore = connectPg(session);
 
