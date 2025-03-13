@@ -6,8 +6,10 @@ import { eq, and, gt, lt, desc, gte, lte, asc, like, or } from 'drizzle-orm';
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 
-// Remove any potential quotes from the URL
-const dbUrl = config.database.url.replace(/['"`]/g, '');
+// Clean the database URL by removing any quotes
+const dbUrl = (config.database.url || '').replace(/['"]/g, '').trim();
+
+// Initialize database connection
 const db = neon(dbUrl);
 
 const PostgresSessionStore = connectPg(session);
