@@ -5,25 +5,27 @@ import { eq, and, gt, lt, desc, gte, lte, asc, like, or } from 'drizzle-orm';
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 
-// Clean and validate database URL
-const dbUrl = (() => {
-  const url = (config.database.url || '').replace(/['"]/g, '').trim();
+// Initialize database connection with proper URL handling
+function initializeDatabase() {
   try {
-    new URL(url);
-    return url;
+    const url = config.database.url;
+    if (!url) {
+      throw new Error('DATABASE_URL environment variable is not set');
+    }
+    return neon(url);
   } catch (error) {
-    throw new Error(`Invalid database URL: ${error.message}`);
+    console.error('Failed to initialize database:', error);
+    throw error;
   }
-})();
+}
 
-// Initialize database connection
-const db = neon(dbUrl);
+const db = initializeDatabase();
 
 const PostgresSessionStore = connectPg(session);
 
 const sessionStore = new PostgresSessionStore({
   conObject: {
-    connectionString: dbUrl,
+    connectionString: config.database.url,
   },
   createTableIfMissing: true,
 });
