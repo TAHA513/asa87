@@ -732,3 +732,22 @@ export const insertStoreSettingsSchema = createInsertSchema(storeSettings)
   });
 
 export type InsertStoreSettings = z.infer<typeof insertStoreSettingsSchema>;
+
+export const campaigns = pgTable('campaigns', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  description: text('description'),
+  startDate: timestamp('start_date').notNull(),
+  endDate: timestamp('end_date'),
+  status: text('status').default('active'),
+  createdAt: timestamp('created_at').defaultNow()
+});
+
+export const systemActivity = pgTable('system_activity', {
+  id: serial('id').primaryKey(),
+  entityType: text('entity_type').notNull(),
+  entityId: integer('entity_id').notNull(),
+  action: text('action').notNull(),
+  details: text('details'),
+  createdAt: timestamp('created_at').defaultNow()
+});

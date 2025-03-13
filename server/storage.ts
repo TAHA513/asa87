@@ -1,14 +1,20 @@
 import { neon } from '@neondatabase/serverless';
 import { config } from './config';
 import * as schema from '../shared/schema';
-import * as bcrypt from '@node-rs/bcrypt';
 import { eq, and, gt, lt, desc, gte, lte, asc, like, or } from 'drizzle-orm';
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
-import { cleanDatabaseUrl } from './utils';
 
-// Clean the database URL by removing any quotes
-const dbUrl = (config.database.url || '').replace(/['"]/g, '').trim();
+// Clean and validate database URL
+const dbUrl = (() => {
+  const url = (config.database.url || '').replace(/['"]/g, '').trim();
+  try {
+    new URL(url);
+    return url;
+  } catch (error) {
+    throw new Error(`Invalid database URL: ${error.message}`);
+  }
+})();
 
 // Initialize database connection
 const db = neon(dbUrl);
