@@ -1,4 +1,4 @@
-simport { neon } from '@neondatabase/serverless';
+import { neon } from '@neondatabase/serverless';
 import { config } from './config';
 import * as schema from '../shared/schema';
 import * as bcrypt from '@node-rs/bcrypt';
@@ -8,7 +8,7 @@ import connectPg from 'connect-pg-simple';
 import { cleanDatabaseUrl } from './utils';
 
 // Clean the database URL by removing any quotes
-const dbUrl = cleanDatabaseUrl(config.database.url);
+const dbUrl = (config.database.url || '').replace(/['"]/g, '').trim();
 
 // Initialize database connection
 const db = neon(dbUrl);
